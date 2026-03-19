@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hướng Dẫn Cài Đặt ATP v12</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f0f4ff;
+            color: #1e293b;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 860px;
+            margin: 0 auto;
+        }
+
+        /* HEADER */
+        .header {
+            background: linear-gradient(135deg, #1e40af 0%, #7c3aed 100%);
+            border-radius: 20px;
+            padding: 48px 48px 40px;
+            color: white;
+            margin-bottom: 32px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -60px;
+            right: -60px;
+            width: 240px;
+            height: 240px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: -40px;
+            left: 40px;
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .header-tag {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            padding: 4px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+
+        .header h1 {
+            font-size: 36px;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 12px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.85;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header-result {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            padding: 10px 18px;
+            margin-top: 20px;
+            font-weight: 600;
+            font-size: 15px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* REQUIREMENT BOX */
+        .req-box {
+            background: white;
+            border-radius: 16px;
+            padding: 24px 32px;
+            margin-bottom: 28px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .req-box h3 {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #64748b;
+            margin-bottom: 16px;
+        }
+
+        .req-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .req-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: #f8fafc;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .req-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .req-item b {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .req-item span {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        /* STEPS */
+        .step {
+            background: white;
+            border-radius: 16px;
+            padding: 28px 32px;
+            margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            position: relative;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .step-num {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 800;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .step-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .step-subtitle {
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+        .step-badge {
+            margin-left: auto;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .badge-once {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-each {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        /* colors per step */
+        .s1 .step-num {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .s2 .step-num {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .s3 .step-num {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+        }
+
+        .s4 .step-num {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        }
+
+        .s5 .step-num {
+            background: linear-gradient(135deg, #ec4899, #db2777);
+        }
+
+        /* CODE BLOCK */
+        .code-wrap {
+            background: #0f172a;
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin: 16px 0;
+            position: relative;
+        }
+
+        .code-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .code-wrap code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: #7dd3fc;
+            line-height: 1.7;
+            display: block;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .code-wrap .comment {
+            color: #475569;
+        }
+
+        .code-wrap .cmd {
+            color: #34d399;
+        }
+
+        /* RESULT BOX */
+        .result-box {
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin: 12px 0;
+            font-size: 13px;
+            color: #166534;
+        }
+
+        .result-box .icon {
+            margin-right: 6px;
+        }
+
+        /* TIPS */
+        .tip-box {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin: 12px 0;
+            font-size: 13px;
+            color: #78350f;
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        /* ERROR TABLE */
+        .err-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+            font-size: 13px;
+        }
+
+        .err-table th {
+            background: #f1f5f9;
+            padding: 10px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .err-table th:first-child {
+            border-radius: 8px 0 0 8px;
+        }
+
+        .err-table th:last-child {
+            border-radius: 0 8px 8px 0;
+        }
+
+        .err-table td {
+            padding: 10px 16px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #334155;
+            vertical-align: top;
+        }
+
+        .err-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .err code {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+
+        /* WIFI BOX */
+        .wifi-box {
+            background: linear-gradient(135deg, #dbeafe, #ede9fe);
+            border-radius: 14px;
+            padding: 24px 28px;
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .wifi-icon {
+            font-size: 40px;
+        }
+
+        .wifi-box h3 {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1e40af;
+            margin-bottom: 6px;
+        }
+
+        .wifi-box p {
+            font-size: 13px;
+            color: #3730a3;
+            line-height: 1.6;
+        }
+
+        /* STOP BOX */
+        .stop-box {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            color: #7f1d1d;
+        }
+
+        /* FOOTER */
+        .footer {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 12px;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        /* PRINT */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .container {
+                max-width: 100%;
+            }
+
+            .step,
+            .req-box,
+            .header {
+                box-shadow: none;
+            }
+
+            .header {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .step-num {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+
+        ul.checklist {
+            list-style: none;
+            padding: 0;
+            margin: 12px 0;
+        }
+
+        ul.checklist li {
+            padding: 6px 0 6px 28px;
+            position: relative;
+            font-size: 14px;
+            color: #334155;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        ul.checklist li:last-child {
+            border-bottom: none;
+        }
+
+        ul.checklist li::before {
+            content: '→';
+            position: absolute;
+            left: 4px;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+
+        <!-- HEADER -->
+        <div class="header">
+            <div class="header-tag">Hướng Dẫn Cài Đặt</div>
+            <h1>ATP v12</h1>
+            <p>Cài đặt và chạy ứng dụng quản lý phụ tùng trên máy tính của bạn</p>
+            <div class="header-result">
+                🌐 &nbsp; Kết quả: <strong>http://localhost:3000/</strong>
+            </div>
+        </div>
+
+        <!-- YÊU CẦU -->
+        <div class="req-box">
+            <h3>⚙️ Yêu Cầu Trước Khi Cài</h3>
+            <div class="req-grid">
+                <div class="req-item">
+                    <div class="req-icon" style="background:#fef3c7">🪟</div>
+                    <div>
+                        <b>Windows 10 / 11</b><br>
+                        <span>Hệ điều hành</span>
+                    </div>
+                </div>
+                <div class="req-item">
+                    <div class="req-icon" style="background:#dcfce7">🟢</div>
+                    <div>
+                        <b>Node.js LTS</b><br>
+                        <span>Phiên bản 18 trở lên — chưa có thì cài ở Bước 1</span>
+                    </div>
+                </div>
+                <div class="req-item">
+                    <div class="req-icon" style="background:#dbeafe">🌐</div>
+                    <div>
+                        <b>Trình duyệt</b><br>
+                        <span>Chrome hoặc Microsoft Edge</span>
+                    </div>
+                </div>
+                <div class="req-item">
+                    <div class="req-icon" style="background:#f3e8ff">📦</div>
+                    <div>
+                        <b>Thư mục v12</b><br>
+                        <span>File app (copy từ người dùng khác)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 1 -->
+        <div class="step s1">
+            <div class="step-header">
+                <div class="step-num">1</div>
+                <div>
+                    <div class="step-title">Cài Node.js</div>
+                    <div class="step-subtitle">Chỉ làm 1 lần duy nhất</div>
+                </div>
+                <span class="step-badge badge-once">1 lần</span>
+            </div>
+            <ul class="checklist">
+                <li>Vào <strong>https://nodejs.org</strong> → tải bản <strong>LTS</strong> (ví dụ: 20.x.x LTS)</li>
+                <li>Chạy file <strong>.msi</strong> vừa tải → nhấn <strong>Next</strong> liên tục →
+                    <strong>Install</strong> → <strong>Finish</strong></li>
+                <li>Mở <strong>Command Prompt</strong> (nhấn Win+R → gõ <code
+                        style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-family:monospace">cmd</code> →
+                    Enter) và kiểm tra:</li>
+            </ul>
+            <div class="code-wrap">
+                <div class="code-label">Kiểm tra Node.js</div>
+                <code>node --version</code>
+            </div>
+            <div class="result-box">
+                <span class="icon">✅</span> Thấy <strong>v20.x.x</strong> (hoặc cao hơn) là thành công!
+            </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="step s2">
+            <div class="step-header">
+                <div class="step-num">2</div>
+                <div>
+                    <div class="step-title">Copy Thư Mục App Vào Máy</div>
+                    <div class="step-subtitle">Chỉ làm 1 lần duy nhất</div>
+                </div>
+                <span class="step-badge badge-once">1 lần</span>
+            </div>
+            <p style="font-size:14px;color:#334155;margin-bottom:12px;">
+                Copy toàn bộ thư mục <strong>v12</strong> vào máy, ví dụ đặt tại:
+            </p>
+            <div class="code-wrap">
+                <code>C:\ATP\v12\</code>
+            </div>
+            <div class="tip-box">
+                ⚠️ <div><strong>Lưu ý:</strong> Không đặt trong thư mục có <strong>dấu cách hoặc ký tự đặc
+                        biệt</strong><br>
+                    ✅ Tốt: <code style="font-family:monospace">C:\ATP\v12</code> &nbsp;|&nbsp; ❌ Tránh: <code
+                        style="font-family:monospace">C:\My Documents\ATP v12</code></div>
+            </div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="step s3">
+            <div class="step-header">
+                <div class="step-num">3</div>
+                <div>
+                    <div class="step-title">Cài Dependencies</div>
+                    <div class="step-subtitle">Chỉ làm 1 lần duy nhất</div>
+                </div>
+                <span class="step-badge badge-once">1 lần</span>
+            </div>
+            <p style="font-size:14px;color:#334155;margin-bottom:12px;">
+                Mở <strong>Command Prompt</strong> và chạy lệnh sau:
+            </p>
+            <div class="code-wrap">
+                <div class="code-label">Command Prompt (cmd.exe)</div>
+                <code><span class="comment">-- Di chuyển vào thư mục app --</span>
+cd C:\ATP\v12
+
+<span class="comment">-- Cài các thư viện cần thiết --</span>
+<span class="cmd">node -e "require('child_process').execSync('npm install', {stdio:'inherit'})"</span></code>
+            </div>
+            <div class="result-box">
+                <span class="icon">⏳</span> Chờ <strong>1–2 phút</strong>... Thấy <strong>"added xxx packages"</strong>
+                là xong ✅
+            </div>
+        </div>
+
+        <!-- STEP 4 -->
+        <div class="step s4">
+            <div class="step-header">
+                <div class="step-num">4</div>
+                <div>
+                    <div class="step-title">Khởi Động App</div>
+                    <div class="step-subtitle">Làm mỗi lần muốn sử dụng</div>
+                </div>
+                <span class="step-badge badge-each">Mỗi lần</span>
+            </div>
+            <p style="font-size:14px;color:#334155;margin-bottom:12px;">
+                Mở <strong>Command Prompt</strong> và chạy:
+            </p>
+            <div class="code-wrap">
+                <div class="code-label">Command Prompt (cmd.exe)</div>
+                <code>cd C:\ATP\v12
+
+<span class="cmd">node node_modules/vite/bin/vite.js --port 3000</span></code>
+            </div>
+            <div class="result-box">
+                <span class="icon">✅</span> Thấy thông báo này là app đang chạy:<br><br>
+                <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#166534">
+  VITE v6.x.x  ready in xxx ms<br>
+  ➜  Local:   http://localhost:3000/<br>
+  ➜  Network: http://192.168.x.x:3000/
+      </code>
+            </div>
+            <div class="stop-box">
+                🛑 <div>Để <strong>tắt app</strong>: nhấn <strong>Ctrl + C</strong> trong cửa sổ Command Prompt</div>
+            </div>
+        </div>
+
+        <!-- STEP 5 -->
+        <div class="step s5">
+            <div class="step-header">
+                <div class="step-num">5</div>
+                <div>
+                    <div class="step-title">Mở App Trên Trình Duyệt</div>
+                    <div class="step-subtitle">Làm mỗi lần muốn sử dụng</div>
+                </div>
+                <span class="step-badge badge-each">Mỗi lần</span>
+            </div>
+            <p style="font-size:14px;color:#334155;margin-bottom:16px;">
+                Mở <strong>Chrome</strong> hoặc <strong>Edge</strong> → nhập vào thanh địa chỉ:
+            </p>
+            <div class="code-wrap" style="text-align:center">
+                <code
+                    style="font-size:20px;color:#38bdf8;font-weight:700;letter-spacing:1px">http://localhost:3000/</code>
+            </div>
+            <div class="result-box" style="text-align:center;font-size:16px;padding:20px">
+                🎉 &nbsp; <strong>App đã chạy thành công!</strong>
+            </div>
+        </div>
+
+        <!-- WIFI BOX -->
+        <div class="wifi-box">
+            <div class="wifi-icon">📡</div>
+            <div>
+                <h3>Cho Người Khác Xem Trong Cùng Mạng WiFi</h3>
+                <p>Dùng địa chỉ <strong>Network</strong> hiển thị ở Bước 4, ví dụ:<br>
+                    <code
+                        style="font-family:monospace;font-weight:700;color:#1e40af">http://192.168.1.10:3000/</code><br>
+                    (thay bằng IP thực tế trên màn hình của bạn)
+                </p>
+            </div>
+        </div>
+
+        <!-- ERROR TABLE -->
+        <div class="step" style="margin-top:20px">
+            <div class="step-header" style="margin-bottom:12px">
+                <div style="font-size:24px">❓</div>
+                <div class="step-title">Xử Lý Lỗi Thường Gặp</div>
+            </div>
+            <table class="err-table">
+                <thead>
+                    <tr>
+                        <th>Lỗi gặp phải</th>
+                        <th>Cách xử lý</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="err"><code>node</code> không nhận diện</td>
+                        <td>Chưa cài Node.js → Quay lại <strong>Bước 1</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="err"><code>Cannot find module 'vite'</code></td>
+                        <td>Chưa cài npm → Quay lại <strong>Bước 3</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="err"><code>Port 3000 already in use</code></td>
+                        <td>Đổi port: thêm <code>--port 3001</code> vào lệnh Bước 4, sau đó vào
+                            <code>localhost:3001</code></td>
+                    </tr>
+                    <tr>
+                        <td>App không load dữ liệu</td>
+                        <td>Dùng Chrome hoặc Edge (không dùng Internet Explorer)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="footer">
+            ATP v12 — Ứng dụng Quản Lý Phụ Tùng &nbsp;|&nbsp; Chạy tại http://localhost:3000/
+        </div>
+
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,4 @@
+ItemCode,ItemName,BrandName,SourceId,Available,Backorder,BaseForecast,AvgQty3M,AvgQty6M,AvgQty12M,TotalPO,POThisMonth,Status,TypeCar,LOISGroup,TrendFlag
+82125A511A1,Engine Oil,BMW,BMWASIA,150,0,100,95,90,85,50,0,Active,X5,Fast,Up
+95123456789,Brake Pad,Kia,KIA-INDIA,20,5,30,28,25,22,10,10,Active,K3,Medium,Stable
+71234567890,Air Filter,Mazda,MAZDA,5,10,15,14,12,10,20,0,Critical,CX5,Slow,Down

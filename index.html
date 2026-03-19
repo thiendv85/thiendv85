@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Auto Parts Governance | Executive Intelligence</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Be+Vietnam+Pro:wght@100;200;300;400;500;600;700;800;900&family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap"
+    rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontSize: {
+            '2xs': ['0.625rem', { lineHeight: '0.75rem' }],
+            'xs': ['0.75rem', { lineHeight: '1rem' }],
+            'sm': ['0.875rem', { lineHeight: '1.25rem' }],
+            'base': ['1rem', { lineHeight: '1.5rem' }],
+            'lg': ['1.125rem', { lineHeight: '1.75rem' }],
+            'xl': ['1.25rem', { lineHeight: '1.75rem' }],
+            '2xl': ['1.5rem', { lineHeight: '2rem' }],
+            '3xl': ['1.875rem', { lineHeight: '2.25rem' }],
+            '4xl': ['2.25rem', { lineHeight: '2.5rem' }],
+          },
+          fontFamily: {
+            sans: ['Public Sans', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+            heading: ['Be Vietnam Pro', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            slate: {
+              850: '#151f32',
+            },
+            // Semantic Design Tokens
+            // Semantic Design Tokens: Industrial Premium Palette
+            atp: {
+              primary: '#1E293B',    // Slate Deep
+              secondary: '#334155',  // Steel
+              action: '#DC2626',     // Precision Red
+              accent: '#F59E0B',     // Safety Amber
+              success: '#10B981',    // Logistics Green
+              background: '#F8FAFC', // Clean Slate
+              text: {
+                dark: '#0F172A',   // Slate-900
+                light: '#64748B'   // Slate-500
+              }
+            }
+          },
+          backgroundImage: {
+            'gradient-blue': 'linear-gradient(135deg, #1E3A8A 0%, #1E293B 100%)',
+            'gradient-emerald': 'linear-gradient(135deg, #065F46 0%, #1E293B 100%)',
+            'gradient-rose': 'linear-gradient(135deg, #9F1239 0%, #7F1D1D 100%)',
+            'gradient-amber': 'linear-gradient(135deg, #92400E 0%, #78350F 100%)',
+            'gradient-slate': 'linear-gradient(135deg, #334155 0%, #1E293B 100%)',
+            'gradient-header': 'linear-gradient(135deg, #ffffff 0%, #F8FAFC 100%)',
+            'gradient-soft-blue': 'linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%)',
+            'gradient-dark': 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+            'gradient-professional': 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)', // Slate-800 Base
+            'glass-white': 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%)',
+          },
+          boxShadow: {
+            'soft': '0 4px 12px rgba(0, 0, 0, 0.05)',
+            'medium': '0 8px 24px rgba(0, 0, 0, 0.08)',
+            'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.12)',
+            'glow-blue': '0 12px 24px -6px rgba(59, 130, 246, 0.4)',
+            'glow-rose': '0 12px 24px -6px rgba(244, 63, 94, 0.4)',
+            'glow-emerald': '0 12px 24px -6px rgba(16, 185, 129, 0.4)',
+            'glow-amber': '0 12px 24px -6px rgba(245, 158, 11, 0.4)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc;
+      color: #1e293b;
+      /* Updated to Text Primary */
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Minimalist Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    .custom-scrollbar {
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e1 transparent;
+    }
+
+    /* Sharp Borders for Sticky Columns */
+    .sticky-column-shadow {
+      border-right: 1px solid #e2e8f0 !important;
+      box-shadow: 4px 0 12px -4px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Clean Print Styles */
+    @media print {
+      @page {
+        size: A4 landscape;
+        margin: 10mm 8mm 10mm 8mm;
+      }
+
+      body,
+      html {
+        background-color: white !important;
+        color: black !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      /* Hide ALL elements via visibility (works at any nesting depth) */
+      body * {
+        visibility: hidden !important;
+      }
+
+      /* Show ONLY the print layout and all its descendants */
+      #print-layout,
+      #print-layout * {
+        visibility: visible !important;
+      }
+
+      /* Position print-layout at top-left so it fills the page */
+      #print-layout {
+        display: block !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        background: white !important;
+      }
+
+      .no-print {
+        display: none !important;
+      }
+
+      /* Page breaks - enforce one table per page */
+      .print-page {
+        page-break-after: always;
+        page-break-inside: avoid;
+        width: 100%;
+        max-height: 190mm;
+        overflow: hidden;
+        box-sizing: border-box;
+      }
+
+      .print-page:last-child {
+        page-break-after: avoid;
+      }
+
+      /* Print table styling */
+      .print-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 7pt;
+        font-family: 'Inter', sans-serif;
+      }
+
+      .print-table th {
+        background-color: #1e293b !important;
+        color: white !important;
+        padding: 4px 5px;
+        text-align: left;
+        font-weight: 900;
+        font-size: 6.5pt;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        border: 1px solid #334155;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .print-table td {
+        padding: 3px 5px;
+        border: 1px solid #e2e8f0;
+        vertical-align: middle;
+        line-height: 1.3;
+      }
+
+      .print-table tbody tr.group-header {
+        background-color: #f1f5f9 !important;
+        font-weight: 900;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .print-table tbody tr.sub-row td {
+        color: #334155;
+        font-size: 8pt;
+      }
+
+      .print-table tfoot tr {
+        background-color: #1e293b !important;
+        color: white !important;
+        font-weight: 900;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .print-table tfoot td {
+        border-color: #334155;
+        color: white !important;
+      }
+
+      /* Color accents */
+      .print-red {
+        color: #dc2626 !important;
+        font-weight: 900;
+      }
+
+      .print-amber {
+        color: #d97706 !important;
+        font-weight: 900;
+      }
+
+      .print-emerald {
+        color: #059669 !important;
+        font-weight: 900;
+      }
+
+      .print-blue {
+        color: #2563eb !important;
+        font-weight: 900;
+      }
+
+      .print-muted {
+        color: #94a3b8 !important;
+      }
+
+      /* Simulation badge */
+      .print-sim-badge {
+        background-color: #dbeafe !important;
+        color: #1d4ed8 !important;
+        border: 1px solid #93c5fd;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+
+    .animate-fadeIn {
+      animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Slide Up - for cards and rows entering */
+    .animate-slideUp {
+      animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      opacity: 0;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Staggered children - use on parent container */
+    .stagger-children>* {
+      opacity: 0;
+      animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .stagger-children>*:nth-child(1) {
+      animation-delay: 0ms;
+    }
+
+    .stagger-children>*:nth-child(2) {
+      animation-delay: 60ms;
+    }
+
+    .stagger-children>*:nth-child(3) {
+      animation-delay: 120ms;
+    }
+
+    .stagger-children>*:nth-child(4) {
+      animation-delay: 180ms;
+    }
+
+    .stagger-children>*:nth-child(5) {
+      animation-delay: 240ms;
+    }
+
+    .stagger-children>*:nth-child(6) {
+      animation-delay: 300ms;
+    }
+
+    /* Float hover - for cards */
+    .hover-float {
+      transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.3s ease;
+    }
+
+    .hover-float:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.12);
+    }
+
+    /* Count up shimmer - for values that just loaded */
+    .animate-countUp {
+      animation: countPulse 0.8s ease-out;
+    }
+
+    @keyframes countPulse {
+      0% {
+        opacity: 0.3;
+        transform: scale(0.95);
+      }
+
+      50% {
+        opacity: 1;
+        transform: scale(1.05);
+      }
+
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    /* Zebra striping for tables */
+    .table-zebra tbody tr:nth-child(even) {
+      background-color: rgba(248, 250, 252, 0.6);
+    }
+
+    .table-zebra tbody tr:nth-child(odd) {
+      background-color: transparent;
+    }
+
+    .table-zebra tbody tr:hover {
+      background-color: rgba(241, 245, 249, 0.8) !important;
+    }
+
+    /* Table breathing room */
+    .table-relaxed td,
+    .table-relaxed th {
+      padding-top: 14px !important;
+      padding-bottom: 14px !important;
+    }
+
+    /* Gradient Priority Badges */
+    .badge-p0 {
+      background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+      color: white;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 2px 8px -2px rgba(225, 29, 72, 0.5);
+    }
+
+    .badge-p1 {
+      background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+      color: white;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 2px 8px -2px rgba(249, 115, 22, 0.5);
+    }
+
+    .badge-p2 {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: white;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 2px 8px -2px rgba(59, 130, 246, 0.4);
+    }
+
+    .badge-p3 {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 2px 8px -2px rgba(16, 185, 129, 0.4);
+    }
+
+    .badge-p4,
+    .badge-p5 {
+      background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+      color: white;
+      box-shadow: 0 2px 6px -2px rgba(100, 116, 139, 0.3);
+    }
+
+    /* Pagination pill style */
+    .pagination-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 36px;
+      height: 36px;
+      padding: 0 10px;
+      border-radius: 12px;
+      font-weight: 900;
+      font-size: 13px;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+    }
+
+    .pagination-pill:hover:not(:disabled):not(.active) {
+      background: #f1f5f9;
+      border-color: #e2e8f0;
+    }
+
+    .pagination-pill.active {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
+      box-shadow: 0 4px 12px -2px rgba(59, 130, 246, 0.4);
+      border-color: transparent;
+    }
+
+    .pagination-pill:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    /* Pulse indicator */
+    .animate-pulse-dot {
+      animation: pulseDot 2s ease-in-out infinite;
+    }
+
+    @keyframes pulseDot {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.5;
+        transform: scale(0.8);
+      }
+    }
+  </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.33.0",
+    "react-dom": "https://esm.sh/react-dom@^19.2.3",
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
+    "xlsx": "https://esm.sh/xlsx@0.18.5"
+  }
+}
+</script>
+  <link rel="stylesheet" href="/index.css">
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+
+</html>

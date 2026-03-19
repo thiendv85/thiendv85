@@ -1,0 +1,30 @@
+
+/* Đổi tất cả các văn bản chỉ định sang màu xám cực nhẹ (gần như trắng) */
+.antigravity-dashboard-container, 
+.supply-chain-data, 
+.metric-label, 
+.workbench-title {
+    color: #F5F5F5 !important; /* Màu xám nhạt/trắng */
+}
+
+/* Áp dụng cụ thể cho các chỉ số phần trăm hoặc xu hướng */
+.trend-value {
+    color: #E0E0E0 !important;
+}
+
+/* Đảm bảo các liên kết (Links) cũng đổi màu nhưng giữ nguyên thuộc tính khác */
+.link-item, .substitution-chain {
+    color: #DCDCDC !important;
+    text-decoration: underline;
+}
+
+/* Hiệu ứng nổi khối 3D cho tiêu đề trang */
+.workbench-title {
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    letter-spacing: -0.02em;
+}
+
+/* Support for custom spacing and layout refinements */
+.ml-15 {
+    margin-left: 3.75rem; /* 60px */
+}

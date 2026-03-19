@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>ATP Supply Chain Analytics - Đào tạo Nhân sự</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/theme/white.min.css">
+
+    <!-- Google Fonts for Vietnamese support -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <!-- Theme overrides for ATP "RUNWAY" style -->
+    <style>
+        :root {
+            --r-main-font: 'Be Vietnam Pro', sans-serif;
+            --r-heading-font: 'Be Vietnam Pro', sans-serif;
+            --r-heading-color: #1e3a8a;
+            /* Blue 900 */
+            --r-link-color: #3b82f6;
+            --r-selection-background-color: #bfdbfe;
+            --atp-blue: #2563eb;
+            --atp-blue-dark: #1e40af;
+            --atp-slate: #64748b;
+        }
+
+        .reveal {
+            font-family: 'Be Vietnam Pro', sans-serif;
+        }
+
+        .reveal h1,
+        .reveal h2,
+        .reveal h3 {
+            font-weight: 900;
+            letter-spacing: -0.02em;
+            text-transform: uppercase;
+        }
+
+        .reveal section img {
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            max-height: 450px !important;
+            object-fit: contain;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.2em 0.6em;
+            font-size: 0.7em;
+            font-weight: 900;
+            color: white;
+            background: var(--atp-blue);
+            border-radius: 8px;
+            margin: 0 0.1em;
+        }
+
+        .formula-box {
+            background: #f8fafc;
+            border-left: 10px solid var(--atp-blue);
+            padding: 1.5em;
+            text-align: left;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            border-radius: 0 20px 20px 0;
+        }
+
+        .process-step {
+            background: white;
+            border: 1px solid #e2e8f0;
+            padding: 1em;
+            border-radius: 15px;
+            margin-bottom: 0.5em;
+            display: flex;
+            align-items: center;
+            gap: 1em;
+            transition: transform 0.3s;
+        }
+
+        .process-step:hover {
+            transform: scale(1.02);
+            border-color: var(--atp-blue);
+        }
+
+        .step-num {
+            background: var(--atp-blue);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-weight: 900;
+        }
+
+        .img-container {
+            margin-top: 1em;
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- Slide 1: Welcome -->
+            <section data-background-gradient="linear-gradient(to bottom right, #f8fafc, #eff6ff)">
+                <div style="text-align: left;">
+                    <h3 style="color: var(--atp-blue); margin-bottom: 0;">Supply Chain Analytics</h3>
+                    <h1 style="font-size: 3.5em; line-height: 0.9;">ATP Training<br><span
+                            style="color: var(--atp-blue-dark)">System Guide</span></h1>
+                    <p style="color: var(--atp-slate); font-weight: 600;">Hướng dẫn công việc hằng ngày & Thuật ngữ hệ
+                        thống</p>
+                </div>
+            </section>
+
+            <!-- Slide 2: Mục tiêu -->
+            <section>
+                <h2>Mục tiêu buổi học</h2>
+                <ul>
+                    <li class="fragment fade-up">Hiểu rõ các thuật ngữ kỹ thuật (LT, SP, SSP, ROP).</li>
+                    <li class="fragment fade-up">Nắm vững quy trình làm việc hằng ngày trên ATP.</li>
+                    <li class="fragment fade-up">Sử dụng tính năng Mô phỏng (Simulation) để ra quyết định.</li>
+                </ul>
+            </section>
+
+            <!-- Slide 3: Chương 1 - Thuật ngữ -->
+            <section data-background-color="#1e3a8a">
+                <h1 style="color: white;">Phần 1: Thuật ngữ hệ thống</h1>
+            </section>
+
+            <!-- Slide 4: Glossary 1 -->
+            <section>
+                <h3>Khai báo tham số (Parameters)</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Thuật ngữ</th>
+                            <th>Ý nghĩa</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge">LT</span> <strong>Lead Time</strong></td>
+                            <td>Thời gian chờ hàng (từ khi chốt đến khi nhập kho).</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge">SP</span> <strong>Safety Period</strong></td>
+                            <td>Chu kỳ đặt hàng (Bạn muốn mua hàng đủ bán cho bao nhiêu ngày?).</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge">SSP</span> <strong>Safety Stock Period</strong></td>
+                            <td>Thời gian dự phòng an toàn (Vùng đệm bảo hiểm).</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Slide 5: Glossary 2 -->
+            <section>
+                <h3>Kết quả tính toán</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Thuật ngữ</th>
+                            <th>Ý nghĩa</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>ROP</strong></td>
+                            <td>Điểm đặt hàng (Khi [Tồn + PO] < ROP -> Đặt hàng).</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Stock Max</strong></td>
+                            <td>Lượng tồn kho kỳ vọng tối đa (Trần cung ứng).</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Backorder</strong></td>
+                            <td>Số lượng khách nợ khách (Thiếu hàng đang đợi trả).</td>
+                        </tr>
+                        <tr>
+                            <td><strong>SNP</strong></td>
+                            <td>Quy cách đóng gói (Bội số khi đặt hàng).</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Slide 6: Chương 2 - Logic tính toán -->
+            <section data-background-color="#2563eb">
+                <h1 style="color: white;">Phần 2: Công thức vận hành</h1>
+            </section>
+
+            <!-- Slide 7: ROP Formula -->
+            <section>
+                <h3>1. Điểm đặt hàng (ROP)</h3>
+                <div class="formula-box">
+                    ROP = (LT + SSP) × Doanh số TB ngày
+                </div>
+                <div style="text-align: left; font-size: 0.8em; margin-top: 1em;">
+                    <p>💡 <strong>Tại sao LT + SSP?</strong></p>
+                    <p>Hệ thống đảm bảo lượng hàng còn lại đủ bán trong thời gian chờ hàng về (LT) và vẫn còn 1 vùng đệm
+                        an toàn (SSP) khi hàng cập cảng.</p>
+                </div>
+            </section>
+
+            <!-- Slide 8: Stock Max Formula -->
+            <section>
+                <h3>2. Tồn kho tối đa (Stock Max)</h3>
+                <div class="formula-box">
+                    Stock Max = ROP + (SP × Doanh số TB ngày)
+                </div>
+                <div style="text-align: left; font-size: 0.8em; margin-top: 1em;">
+                    <p>💡 <strong>Tại sao thêm SP?</strong></p>
+                    <p>Khi hàng xuống mức ROP, ta sẽ mua thêm đúng một chu kỳ bán hàng (SP). Khi đó tổng lượng hàng sẽ
+                        đạt mức Max lý tưởng.</p>
+                </div>
+            </section>
+
+            <!-- Slide 9: SP vs SSP -->
+            <section>
+                <h3>Phân biệt SP & SSP</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div style="background: #eff6ff; padding: 1em; border-radius: 15px;">
+                        <h4 style="color: var(--atp-blue);">SSP (Bảo hiểm)</h4>
+                        <p style="font-size: 0.7em;">Dùng để chống lại rủi ro: Nhu cầu tăng đột biến hoặc NCC giao hàng
+                            trễ.</p>
+                    </div>
+                    <div style="background: #f0fdf4; padding: 1em; border-radius: 15px;">
+                        <h4 style="color: #16a34a;">SP (Chu kỳ)</h4>
+                        <p style="font-size: 0.7em;">Dùng để định lượng mua: Mua đủ hàng để bán đến chu kỳ đặt hàng tiếp
+                            theo.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 10: Chương 3 - Công việc hằng ngày -->
+            <section data-background-color="#64748b">
+                <h1 style="color: white;">Phần 3: Workflow hằng ngày</h1>
+            </section>
+
+            <!-- Slide 11: Step 1 Update Data -->
+            <section>
+                <h3>B1: Cập nhật dữ liệu</h3>
+                <p style="font-size: 0.6em;">Tải file CSV mới nhất lên tab File Upload.</p>
+                <div class="img-container">
+                    <img src="screenshots/upload.png" alt="Upload Page">
+                </div>
+            </section>
+
+            <!-- Slide 12: Step 2 Dashboard -->
+            <section>
+                <h3>B2: Kiểm tra Rủi ro</h3>
+                <p style="font-size: 0.6em;">Vào Dashboard -> Priority P1/P2 để thấy mã sắp hết hàng.</p>
+                <div class="img-container">
+                    <img src="screenshots/dashboard.png" alt="Dashboard Page">
+                </div>
+            </section>
+
+            <!-- Slide 13: Step 3 Backorder -->
+            <section>
+                <h3>B3: Xử lý nợ khách</h3>
+                <p style="font-size: 0.6em;">Giải quyết nợ theo thứ tự ưu tiên trong tab Backorder.</p>
+                <div class="img-container">
+                    <img src="screenshots/backorder.png" alt="Backorder Page">
+                </div>
+            </section>
+
+            <!-- Slide 14: Step 4 Ordering -->
+            <section>
+                <h3>B4: Lập kế hoạch Đặt hàng</h3>
+                <p style="font-size: 0.6em;">Vào tab Ordering -> Dùng BO Suggest & Gap Suggest.</p>
+                <div class="img-container">
+                    <img src="screenshots/ordering.png" alt="Ordering Page">
+                </div>
+            </section>
+
+            <!-- Slide 15: Simulation Skill -->
+            <section>
+                <h3>Kỹ năng Simulation</h3>
+                <p style="font-size: 0.6em; color: var(--atp-slate);">Sau khi nhập số lượng dự kiến, chuyển sang
+                    <strong>Simulated</strong> để kiểm tra:</p>
+                <div class="img-container">
+                    <img src="screenshots/simulation.png" alt="Simulation Example">
+                </div>
+            </section>
+
+            <!-- Slide 16: End -->
+            <section data-background-gradient="linear-gradient(to top right, #f8fafc, #eff6ff)">
+                <h1>Cảm ơn bạn!</h1>
+                <p style="color: var(--atp-blue); font-weight: 900;">Hãy thử ngay trên hệ thống ATP.</p>
+                <div style="margin-top: 2em; border-top: 1px solid #e2e8f0; padding-top: 1em;">
+                    <p style="font-size: 0.5em; color: var(--atp-slate);">© 2026 ATP Supply Chain Analytics. All rights
+                        reserved.</p>
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            center: true,
+            slideNumber: 'c/t',
+            transition: 'convex',
+            backgroundTransition: 'zoom'
+        });
+    </script>
+</body>
+
+</html>

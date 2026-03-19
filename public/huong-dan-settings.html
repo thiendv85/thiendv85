@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hướng dẫn sử dụng – Trang Cấu hình (Settings) | ATP v12</title>
+    <style>
+        /* ── Reset & Base ── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            font-size: 14px;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            color: #1e293b;
+            background: #f8fafc;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ── Print ── */
+        @media print {
+            body {
+                background: #fff;
+                font-size: 12px;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .page-break {
+                page-break-before: always;
+            }
+
+            .card {
+                box-shadow: none !important;
+                border: 1px solid #e2e8f0 !important;
+            }
+
+            a {
+                color: inherit;
+                text-decoration: none;
+            }
+
+            header {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .tab-badge,
+            .badge,
+            .example-box,
+            .tip-box,
+            .warn-box,
+            .info-box {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+
+        /* ── Layout ── */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 24px 20px;
+            overflow-x: hidden;
+        }
+
+        /* ── Header ── */
+        header {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 60%, #7c3aed 100%);
+            color: #fff;
+            padding: 36px 40px 28px;
+            border-radius: 16px;
+            margin-bottom: 32px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(45deg, transparent, transparent 20px,
+                    rgba(255, 255, 255, .03) 20px, rgba(255, 255, 255, .03) 21px);
+        }
+
+        header .logo {
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: #93c5fd;
+            margin-bottom: 10px;
+        }
+
+        header h1 {
+            font-size: 26px;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+        }
+
+        header p {
+            font-size: 13px;
+            color: #bfdbfe;
+            font-weight: 600;
+        }
+
+        header .meta {
+            margin-top: 16px;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        header .meta span {
+            background: rgba(255, 255, 255, .12);
+            border: 1px solid rgba(255, 255, 255, .15);
+            border-radius: 8px;
+            padding: 4px 12px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* ── TOC ── */
+        .toc {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 28px;
+        }
+
+        .toc h2 {
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: 3px;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+        }
+
+        .toc ol {
+            padding-left: 20px;
+        }
+
+        .toc li {
+            margin-bottom: 6px;
+            font-size: 13px;
+            color: #334155;
+            font-weight: 600;
+        }
+
+        .toc a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+
+        /* ── Section ── */
+        section {
+            margin-bottom: 36px;
+        }
+
+        section>h2 {
+            font-size: 17px;
+            font-weight: 900;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 18px;
+        }
+
+        section>h2 .ico {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        /* ── Card ── */
+        .card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, .05);
+        }
+
+        .card h3 {
+            font-size: 13px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #475569;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ── Field Row ── */
+        .field-row {
+            display: grid;
+            grid-template-columns: 160px 1fr;
+            gap: 10px 16px;
+            padding: 10px 0;
+            border-bottom: 1px solid #f1f5f9;
+            align-items: start;
+        }
+
+        @media (max-width: 600px) {
+            .field-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .field-row:last-child {
+            border-bottom: none;
+        }
+
+        .field-label {
+            font-size: 13px;
+            font-weight: 800;
+            color: #1e293b;
+        }
+
+        .field-sub {
+            font-size: 11px;
+            color: #94a3b8;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        .field-desc {
+            font-size: 13px;
+            color: #334155;
+            line-height: 1.6;
+        }
+
+        .field-desc strong {
+            color: #0f172a;
+        }
+
+        /* ── Badges ── */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-blue {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .badge-green {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .badge-amber {
+            background: #fef9c3;
+            color: #92400e;
+        }
+
+        .badge-rose {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .badge-purple {
+            background: #ede9fe;
+            color: #6d28d9;
+        }
+
+        .badge-slate {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        /* ── Info / Tip / Warn boxes ── */
+        .info-box,
+        .tip-box,
+        .warn-box,
+        .example-box {
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 13px;
+            margin-top: 10px;
+            line-height: 1.6;
+        }
+
+        .info-box {
+            background: #eff6ff;
+            border-left: 4px solid #2563eb;
+            color: #1e3a8a;
+        }
+
+        .tip-box {
+            background: #f0fdf4;
+            border-left: 4px solid #16a34a;
+            color: #14532d;
+        }
+
+        .warn-box {
+            background: #fffbeb;
+            border-left: 4px solid #d97706;
+            color: #78350f;
+        }
+
+        .example-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid #7c3aed;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            color: #334155;
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-x: auto;
+        }
+
+        .info-box strong,
+        .tip-box strong,
+        .warn-box strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        /* ── Tab Nav Illustration ── */
+        .tab-nav {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .tab-badge {
+            padding: 6px 14px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .tab-active {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #fff;
+        }
+
+        .tab-inactive {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+
+        /* ── Column Grid ── */
+        .col-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .col-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 12px;
+        }
+
+        .col-item .col-name {
+            font-weight: 800;
+            color: #1e293b;
+        }
+
+        .col-item .col-on {
+            color: #16a34a;
+            font-weight: 700;
+            font-size: 11px;
+        }
+
+        .col-item .col-off {
+            color: #94a3b8;
+            font-weight: 700;
+            font-size: 11px;
+        }
+
+        /* ── Scrollable table wrapper ── */
+        .table-wrap {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin-top: 10px;
+            border-radius: 8px;
+        }
+
+        .table-wrap table {
+            margin-top: 0;
+        }
+
+        /* ── Scenario table ── */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-top: 10px;
+            min-width: 420px;
+        }
+
+        th {
+            background: #f1f5f9;
+            color: #475569;
+            font-weight: 800;
+            text-align: left;
+            padding: 8px 12px;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #334155;
+            vertical-align: top;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* ── Page number ── */
+        .footer {
+            text-align: center;
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 40px;
+            padding-top: 16px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        /* ── Print button ── */
+        .print-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 13px;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, .4);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background .2s;
+        }
+
+        .print-btn:hover {
+            background: #1d4ed8;
+        }
+
+        @media print {
+            .print-btn {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <button class="print-btn no-print" onclick="window.print()">🖨️ Xuất PDF</button>
+
+    <div class="container">
+
+        <!-- ── HEADER ── -->
+        <header>
+            <div class="logo">ATP v12 · Tài liệu hướng dẫn</div>
+            <h1>⚙️ Hướng dẫn trang Cấu hình hệ thống</h1>
+            <p>Giải thích chi tiết từng tham số và ví dụ thực tế</p>
+            <div class="meta">
+                <span>Phiên bản: v12.0</span>
+                <span>Cập nhật: 25/02/2026</span>
+                <span>Ngôn ngữ: Tiếng Việt</span>
+            </div>
+        </header>
+
+        <!-- ── TOC ── -->
+        <div class="toc">
+            <h2>📋 Mục lục</h2>
+            <ol>
+                <li><a href="#overview">Tổng quan trang Settings</a></li>
+                <li><a href="#tab-inventory">Tab 1 – Tham số kho</a></li>
+                <li><a href="#tab-display">Tab 2 – Hiển thị</a></li>
+                <li><a href="#tab-export">Tab 3 – Xuất dữ liệu</a></li>
+                <li><a href="#tab-system">Tab 4 – Hệ thống</a></li>
+                <li><a href="#save-reset">Lưu / Đặt lại / Xuất nhập cấu hình</a></li>
+                <li><a href="#scenarios">Tình huống thực tế</a></li>
+            </ol>
+        </div>
+
+        <!-- ══════════════════════════════════════════════ -->
+        <!-- 1. OVERVIEW -->
+        <!-- ══════════════════════════════════════════════ -->
+        <section id="overview">
+            <h2><span class="ico" style="background:#e0e7ff">⚙️</span>Tổng quan trang Cấu hình</h2>
+            <div class="card">
+                <p>Trang <strong>Cấu hình (Settings)</strong> là nơi tập trung toàn bộ thông số điều khiển hành vi của
+                    hệ thống ATP. Mọi thay đổi sẽ được lưu vào bộ nhớ trình duyệt (localStorage) và áp dụng ngay sau khi
+                    nhấn <strong>"Lưu cấu hình"</strong>.</p>
+                <div class="tip-box" style="margin-top:12px">
+                    <strong>💡 Gợi ý nhanh</strong>
+                    Sau khi cài đặt xong, dùng nút <strong>"Xuất cấu hình"</strong> để lưu file JSON và chia sẻ cho các
+                    máy khác.
+                </div>
+            </div>
+            <div class="card">
+                <h3>Các tab điều hướng</h3>
+                <div class="tab-nav">
+                    <span class="tab-badge tab-active">📦 Tham số kho</span>
+                    <span class="tab-badge tab-inactive">🎨 Hiển thị</span>
+                    <span class="tab-badge tab-inactive">📤 Xuất dữ liệu</span>
+                    <span class="tab-badge tab-inactive">⚙️ Hệ thống</span>
+                </div>
+                <p style="font-size:13px;color:#475569">Nhấp vào từng tab để xem và chỉnh nhóm tham số tương ứng. Tab
+                    đang active sẽ hiển thị nền xanh.</p>
+            </div>
+        </section>
+
+        <!-- ══════════════════════════════════════════════ -->
+        <!-- 2. TAB INVENTORY -->
+        <!-- ══════════════════════════════════════════════ -->
+        <section id="tab-inventory" class="page-break">
+            <h2><span class="ico" style="background:#dbeafe">📦</span>Tab 1 – Tham số kho</h2>
+
+            <!-- Non-BMW -->
+            <div class="card">
+                <h3>🏭 Thông số mặc định (Non-BMW)</h3>
+                <div class="field-row">
+                    <div>
+                        <div class="field-label">Lead Time (LT)</div>
+                        <div class="field-sub">Đơn vị: ngày</div>
+                    </div>
+                    <div class="field-desc">
+                        Thời gian từ lúc đặt hàng đến khi nhận hàng. Dùng để tính <strong>ROP</strong>.<br>
+                        <strong>Mặc định: 90 ngày</strong><br>
+                        <strong>Ví dụ:</strong> Hàng Non-BMW đặt từ Nhật thường mất 90 ngày → để 90.
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div>
+                        <div class="field-label">Safety Period (SP)</div>
+                        <div class="field-sub">Đơn vị: ngày</div>
+                    </div>
+                    <div class="field-desc">
+                        Khoảng cách giữa các lần đặt hàng định kỳ. Dùng để tính <strong>Stock Max</strong>.<br>
+                        <strong>Mặc định: 30 ngày</strong><br>
+                        <strong>Ví dụ:</strong> Đặt hàng mỗi tháng 1 lần → SP = 30.
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div>
+                        <div class="field-label">Safety Stock Period (SSP)</div>
+                        <div class="field-sub">Đơn vị: ngày</div>
+                    </div>
+                    <div class="field-desc">
+                        Số ngày tồn kho dự phòng (buffer) tránh đứt hàng do biến động nhu cầu.<br>
+                        <strong>Mặc định: 15 ngày</strong><br>
+                        <strong>Ví dụ:</strong> Nhu cầu bất thường có thể tăng đột biến trong 15 ngày.
+                    </div>
+                </div>
+                <div class="info-box">
+                    <strong>📐 Công thức tính toán</strong>
+                    ROP = (LT × demand_daily) + SSP × demand_daily<br>
+                    Stock Max = ROP + SP × demand_daily<br><br>
+                    <em>Ví dụ cụ thể:</em> Item A có demand_daily = 2 chiếc/ngày, LT=90, SSP=15, SP=30<br>
+                    → ROP = (90 × 2) + (15 × 2) = 180 + 30 = <strong>210 chiếc</strong><br>
+                    → Stock Max = 210 + (30 × 2) = <strong>270 chiếc</strong>
+                </div>
+            </div>
+
+            <!-- BMW -->
+            <div class="card">
+                <h3>🚗 Thông số BMW</h3>
+                <p style="font-size:13px;color:#475569;margin-bottom:10px">
+                    Hàng BMW nhập từ Đức có chuỗi cung ứng khác. Hệ thống tự nhận dạng khi tên file upload chứa từ
+                    <span class="badge badge-blue">bmw</span> và áp thông số riêng.
+                </p>
+                <div class="field-row">
+                    <div>
+                        <div class="field-label">Lead Time BMW</div>
+                        <div class="field-sub">Mặc định: 60 ngày</div>
+                    </div>
+                    <div class="field-desc">Thời gian giao hàng từ BMW AG thường ngắn hơn Non-BMW do logistics chuyên
+                        biệt.</div>
+                </div>
+                <div class="field-row">
+                    <div>
+                        <div class="field-label">Safety Period BMW</div>
+                        <div class="field-sub">Mặc định: 15 ngày</div>
+                    </div>
+                    <div class="field-desc">Đặt hàng BMW 2 lần/tháng → SP = 15.</div>
+                </div>
+                <div class="field-row">
+                    <div>
+                        <div class="field-label">Safety Stock Period BMW</div>
+                        <div class="field-sub">Mặc định: 7 ngày</div>
+                    </div>
+                    <div class="field-desc">BMW có sẵn hàng tại kho nội địa, buffer cần thấp hơn.</div>
+                </div>
+            </div>
+
+            <!-- Ngưỡng cảnh báo -->
+            <div class="card">
+                <h3>⚠️ Ngưỡng cảnh báo</h3>
+                <div class="field-row">
+                    <div>
+                        <div class="field-label">P0 – Critical MOS</div>
+                        <div class="field-sub">Mặc định: 0.5 tháng</div>
+                    </div>
+                    <div class="field-desc">
+                        Khi MOS < ngưỡng này → item được gắn nhãn <span class="badge badge-rose">P0 · Hết hàng
+                            khẩn</span><br>
+                            <strong>Ví dụ:</strong> MOS = 0.3 tháng (≈9 ngày) → P0, cần đặt AIR ngay.
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div>
+                        <div class="field-label">P1 – Warning MOS</div>
+                        <div class="field-sub">Mặc định: 1.5 tháng</div>
+                    </div>
+                    <div class="field-desc">
+                        Khi MOS trong [P0, P1) → <span class="badge badge-amber">P1 · Sắp hết</span><br>
+                        <strong>Ví dụ:</strong> MOS = 1.2 tháng → P1, ưu tiên đặt SEA trong order tiếp theo.
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div>
+                        <div class="field-label">Ngày ghi nhận tồn kho</div>
+                        <div class="field-sub">Snapshot date</div>
+                    </div>
+                    <div class="field-desc">
+                        Ngày cắt dữ liệu. Hệ thống dùng ngày này để tính hàng PO nào sẽ về trong tháng hiện tại.<br>
+                        <strong>Ví dụ:</strong> Snapshot = 25/02/2026 → PO có ETA từ 25/02–28/02 được tính là "hàng về
+                        tháng này".
+                    </div>
+                </div>
+                <div class="warn-box">
+                    <strong>⚠️ Lưu ý quan trọng</strong>
+                    Ngày snapshot cần cập nhật mỗi lần bạn import dữ liệu tồn kho mới để tránh tính sai hàng về.
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════════════════════════════════════════ -->
+        <!-- 3. TAB DISPLAY -->
+        <!-- ══════════════════════════════════════════════ -->
+        <section id="tab-display" class="page-break">
+            <h2><span class="ico" style="background:#fce7f3">🎨</span>Tab 2 – Hiển thị</h2>
+
+            <div class="card">
+                <h3>👁️ Mặc định hiển thị</h3>
+                <div class="field-row">
+                    <div>
+                        <div class="field-label">Kho mặc định</div>
+                    </div>
+                    <div class="field-desc">
+                        Phạm vi kho áp dụng khi mở app lần đầu hoặc reset filter.<br>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Tùy chọn</th>
+                                    <th>Ý nghĩa</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="badge badge-slate">All (NB + BB)</span></td>
+                                    <td>Hiển thị tổng cả 2 kho miền Nam và Bắc</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge badge-blue">NB</span></td>
+                                    <td>Chỉ kho miền Nam (Hà Nội/HCM – tùy cấu hình)</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge badge-green">BB</span></td>
+                                    <td>Chỉ kho miền Bắc</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div>
+                        <div class="field-label">Cơ sở giá (Cost Basis)</div>
+                    </div>
+                    <div class="field-desc">
+                        Đơn giá dùng để tính giá trị tồn kho và dự thảo đặt hàng.<br>
+                        <strong>PP</strong> = Giá mua nội địa (VND) · <strong>FOB</strong> = Giá xuất xưởng (EUR)<br>
+                        <strong>Ví dụ:</strong> Báo cáo cho Giám đốc VN → chọn PP (VND). Báo cáo cho Tập đoàn → chọn FOB
+                        (EUR).
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div>
+                        <div class="field-label">Nguồn cầu mặc định</div>
+                    </div>
+                    <div class="field-desc">
+                        Kỳ trung bình dùng làm cơ sở tính ROP khi không có BaseForecast.<br>
+                        <strong>3M</strong> = phản ứng nhanh với xu hướng gần. <strong>12M</strong> = ổn định, phù hợp
+                        hàng sản xuất đều đặn.<br>
+                        <strong>Khuyến nghị:</strong> Dùng <span class="badge badge-blue">3M</span> cho phụ tùng có nhu
+                        cầu biến động nhiều.
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>🖥️ Giao diện</h3>
+                <div class="field-row">
+                    <div>
+                        <div class="field-label">Ngôn ngữ</div>
+                    </div>
+                    <div class="field-desc">🇻🇳 Tiếng Việt hoặc 🇬🇧 English. Thay đổi ngay sau khi lưu.</div>
+                </div>
+                <div class="field-row">
+                    <div>
+                        <div class="field-label">Tiền tệ</div>
+                    </div>
+                    <div class="field-desc">VND (₫) hoặc EUR (€). Ảnh hưởng đến format hiển thị giá trị trên Dashboard.
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div>
+                        <div class="field-label">Tự động lưu trạng thái</div>
+                    </div>
+                    <div class="field-desc">
+                        Khi <span class="badge badge-green">Bật</span>: filter, trang hiện tại, sort order sẽ được nhớ
+                        khi chuyển tab.<br>
+                        Khi <span class="badge badge-slate">Tắt</span>: mỗi lần mở lại trang sẽ về trạng thái mặc định.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════════════════════════════════════════ -->
+        <!-- 4. TAB EXPORT -->
+        <!-- ══════════════════════════════════════════════ -->
+        <section id="tab-export" class="page-break">
+            <h2><span class="ico" style="background:#dcfce7">📤</span>Tab 3 – Xuất dữ liệu</h2>
+
+            <!-- File config -->
+            <div class="card">
+                <h3>📄 Cấu hình file CSV</h3>
+                <div class="field-row">
+                    <div>
+                        <div class="field-label">Ký tự phân cách</div>
+                    </div>
+                    <div class="field-desc">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Tùy chọn</th>
+                                    <th>Khi nào dùng</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="badge badge-slate">Dấu phẩy (,)</span></td>
+                                    <td>Excel bản Anh/Mỹ, Google Sheets</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge badge-blue">Dấu chấm phẩy (;)</span></td>
+                                    <td><strong>Khuyến nghị</strong> cho Excel Việt Nam (locale VN dùng ; mặc định)</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge badge-slate">Tab</span></td>
+                                    <td>Import vào hệ thống ERP, SAP</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div>
+                        <div class="field-label">Encoding</div>
+                    </div>
+                    <div class="field-desc">
+                        <span class="badge badge-green">UTF-8 với BOM</span> (khuyến nghị) – Excel đọc được dấu tiếng
+                        Việt (ề, ộ, ư...).<br>
+                        <span class="badge badge-slate">UTF-8 thuần</span> – dùng cho hệ thống Linux/Unix hoặc import
+                        API.
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div>
+                        <div class="field-label">Định dạng ngày</div>
+                    </div>
+                    <div class="field-desc">
+                        <code>DD/MM/YYYY</code> – Việt Nam (VD: 25/02/2026)<br>
+                        <code>YYYY-MM-DD</code> – ISO 8601, phù hợp Excel/SQL quốc tế<br>
+                        <code>MM/DD/YYYY</code> – Mỹ
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div>
+                        <div class="field-label">Số chữ số thập phân</div>
+                    </div>
+                    <div class="field-desc">
+                        Áp dụng cho MOS, CST, tỉ lệ, giá trị tính toán.<br>
+                        <strong>Ví dụ:</strong> MOS = 2.3456789 → với precision = 2 → xuất <code>2.35</code>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columns inventory -->
+            <div class="card">
+                <h3>📊 Cột xuất tồn kho (Dashboard)</h3>
+                <p style="font-size:13px;color:#475569;margin-bottom:12px">
+                    Áp dụng khi nhấn nút <strong>"Xuất CSV"</strong> tại trang Dashboard / Inventory.
+                    Tick ✅ = cột được xuất, bỏ tick = cột bị ẩn khỏi file.
+                </p>
+                <div class="info-box">
+                    <strong>Nhóm cột có sẵn trong tồn kho</strong>
+                    Thông tin cơ bản · Tồn kho & Backorder · Pipeline & Đặt hàng · Dự báo & Bán hàng · Chỉ số kho · Giá
+                    & Giá trị
+                </div>
+                <div class="col-grid" style="margin-top:12px">
+                    <div class="col-item">
+                        <div class="col-name">Mã hàng</div>
+                        <div class="col-on">✅ Mặc định bật</div>
+                    </div>
+                    <div class="col-item">
+                        <div class="col-name">Tên hàng</div>
+                        <div class="col-on">✅ Mặc định bật</div>
+                    </div>
+                    <div class="col-item">
+                        <div class="col-name">TypeCar</div>
+                        <div class="col-on">✅ Mặc định bật</div>
+                    </div>
+                    <div class="col-item">
+                        <div class="col-name">LOIS Group</div>
+                        <div class="col-on">✅ Mặc định bật</div>
+                    </div>
+                    <div class="col-item">
+                        <div class="col-name">Tồn NB</div>
+                        <div class="col-on">✅ Mặc định bật</div>
+                    </div>
+                    <div class="col-item">
+                        <div class="col-name">Tồn BB</div>
+                        <div class="col-on">✅ Mặc định bật</div>
+                    </div>
+                    <div class="col-item">
+                        <div class="col-name">Tổng PO</div>
+                        <div class="col-on">✅ Mặc định bật</div>
+                    </div>
+                    <div class="col-item">
+                        <div class="col-name">AVG 6M</div>
+                        <div class="col-off">⬜ Mặc định tắt</div>
+                    </div>
+                    <div class="col-item">
+                        <div class="col-name">ROP</div>
+                        <div class="col-off">⬜ Mặc định tắt</div>
+                    </div>
+                    <div class="col-item">
+                        <div class="col-name">Giá trị dư</div>
+                        <div class="col-off">⬜ Mặc định tắt</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columns order draft -->
+            <div class="card">
+                <h3>🛒 Cột xuất Dự thảo Đặt hàng (Ordering)</h3>
+                <p style="font-size:13px;color:#475569;margin-bottom:12px">
+                    Áp dụng khi nhấn nút <strong>"Xuất CSV"</strong> tại trang Đặt hàng. Có <strong>39 cột</strong> chia
+                    thành 6 nhóm.
+                </p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nhóm</th>
+                            <th>Các cột chính</th>
+                            <th>Ghi chú</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Mã & Tên hàng</strong></td>
+                            <td>Mã hàng, Tên hàng, Trạng thái, TypeCar, LOIS, Trend, SNP</td>
+                            <td>Thông tin định danh cơ bản</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Số lượng & Giá trị</strong></td>
+                            <td>SL AIR, SL SEA, Tổng SL, Thành tiền, Tiền tệ, Đơn giá PP, Đơn giá FOB</td>
+                            <td>Giá theo Cost Basis hiện tại</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Gợi ý & Ghi chú</strong></td>
+                            <td>SL Gợi ý SEA, SL Gợi ý BO/AIR, Ghi chú đặt hàng, Ghi chú data</td>
+                            <td>Từ hệ thống tính toán</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Tồn kho & Pipeline</strong></td>
+                            <td>Available, Net Demand, Tồn đại lý, Safety Stock, Hàng về, Tổng PO, Nợ BO, <span
+                                    class="badge badge-purple">Mức ưu tiên P1-P5</span>, Trạng thái nợ</td>
+                            <td>Tình trạng tồn kho đầy đủ</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Dự báo & Bán hàng</strong></td>
+                            <td>Bán M1, AVG 3M, 6M, 12M, 24M, Base Forecast</td>
+                            <td>Lịch sử & dự báo nhu cầu</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Chỉ số tồn kho</strong></td>
+                            <td>MOS, CST Hiện tại, CST Sau Đặt, ROP, Stock Max</td>
+                            <td>KPI tồn kho và tác động đặt hàng</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="tip-box" style="margin-top:12px">
+                    <strong>💡 Cột "Mức ưu tiên (P1-P5)"</strong>
+                    Giá trị P1 = ưu tiên cao nhất (cần đặt ngay), P5 = thấp nhất. Tính dựa trên MOS, tồn kho, backorder
+                    và số lượng đặt trong dự thảo.
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════════════════════════════════════════ -->
+        <!-- 5. TAB SYSTEM -->
+        <!-- ══════════════════════════════════════════════ -->
+        <section id="tab-system" class="page-break">
+            <h2><span class="ico" style="background:#fef9c3">⚙️</span>Tab 4 – Hệ thống</h2>
+
+            <div class="card">
+                <h3>🏢 Thông tin báo cáo</h3>
+                <div class="field-row">
+                    <div>
+                        <div class="field-label">Tên công ty</div>
+                    </div>
+                    <div class="field-desc">Xuất hiện trên header báo cáo in PDF. VD: <em>Vietnam Auto Trading JSC</em>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div>
+                        <div class="field-label">Tiêu đề báo cáo</div>
+                    </div>
+                    <div class="field-desc">VD: <em>Báo cáo Tình trạng Tồn kho – Tháng 02/2026</em></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>💾 Quản lý cấu hình</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Chức năng</th>
+                            <th>Mô tả</th>
+                            <th>Khi nào dùng</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge badge-blue">Xuất cấu hình</span></td>
+                            <td>Tải file <code>.json</code> chứa toàn bộ settings hiện tại</td>
+                            <td>Backup trước khi thay đổi lớn; chia sẻ cho đồng nghiệp</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-slate">Nhập cấu hình</span></td>
+                            <td>Upload file <code>.json</code> đã xuất trước để khôi phục</td>
+                            <td>Cài lại máy mới hoặc restore sau sự cố</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-rose">Đặt lại mặc định</span></td>
+                            <td>Xóa toàn bộ chỉnh sửa, về giá trị gốc của hệ thống</td>
+                            <td>Khi cấu hình bị lỗi và muốn bắt đầu lại</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-green">Dọn cache</span></td>
+                            <td>Xóa bộ nhớ trạng thái trang (filter, sort, page) nhưng <strong>giữ lại settings</strong>
+                            </td>
+                            <td>Khi app bị treo hoặc hiển thị sai sau update dữ liệu</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ══════════════════════════════════════════════ -->
+        <!-- 6. SAVE / RESET -->
+        <!-- ══════════════════════════════════════════════ -->
+        <section id="save-reset">
+            <h2><span class="ico" style="background:#dbeafe">💾</span>Lưu / Hủy thay đổi</h2>
+            <div class="card">
+                <p style="font-size:13px;margin-bottom:12px">Thanh lưu cố định ở phía dưới màn hình luôn hiển thị khi
+                    bạn đang ở trang Settings.</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nút</th>
+                            <th>Tác dụng</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge badge-blue">💾 Lưu cấu hình</span></td>
+                            <td>Lưu vào localStorage, áp dụng ngay cho toàn bộ app. Nút chuyển xanh lá <em>"Đã
+                                    lưu!"</em> trong 2 giây.</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-slate">✕ Hủy thay đổi</span></td>
+                            <td>Hoàn tác mọi chỉnh sửa kể từ lần mở trang Settings, khôi phục về trạng thái đã lưu trước
+                                đó.</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="warn-box" style="margin-top:12px">
+                    <strong>⚠️ Chú ý</strong>
+                    Nếu đóng tab hoặc chuyển trang mà <em>chưa nhấn Lưu</em>, mọi thay đổi sẽ bị mất.
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════════════════════════════════════════ -->
+        <!-- 7. SCENARIOS -->
+        <!-- ══════════════════════════════════════════════ -->
+        <section id="scenarios" class="page-break">
+            <h2><span class="ico" style="background:#f3e8ff">🎯</span>Tình huống thực tế</h2>
+
+            <div class="card">
+                <h3>📌 Tình huống 1 – Chuẩn bị xuất báo cáo cho phòng kế toán</h3>
+                <p style="font-size:13px;color:#334155;margin-bottom:10px">Phòng kế toán dùng Excel Việt Nam và cần file
+                    CSV đọc được tiếng Việt, cột đơn giá theo VND.</p>
+                <div class="example-box">Tab Xuất dữ liệu:
+                    Ký tự phân cách → Dấu chấm phẩy ( ; )
+                    Encoding → UTF-8 với BOM
+                    Số thập phân → 0 (giá tiền không cần lẻ)
+
+                    Cột xuất tồn kho → Bật: Mã hàng, Tên hàng, Tổng tồn kho, Đơn giá PP, Giá trị tồn kho
+                    Tắt: AVG 6M, AVG 12M, ROP, Stock Max, Đơn giá FOB</div>
+            </div>
+
+            <div class="card">
+                <h3>📌 Tình huống 2 – Xuất dự thảo đặt hàng gửi sang Tập đoàn</h3>
+                <p style="font-size:13px;color:#334155;margin-bottom:10px">Tập đoàn yêu cầu file CSV với giá EUR, phân
+                    cách Tab, không cần BOM.</p>
+                <div class="example-box">Tab Hiển thị:
+                    Cơ sở giá → FOB (EUR)
+
+                    Tab Xuất dữ liệu:
+                    Ký tự phân cách → Tab
+                    Encoding → UTF-8 thuần
+                    Số thập phân → 4 (giá EUR cần độ chính xác cao)
+
+                    Cột xuất Dự thảo:
+                    Bật: Mã hàng, Tên hàng, SL AIR, SL SEA, Tổng SL, Đơn giá FOB, Thành tiền, Tiền tệ
+                    Bật: Mức ưu tiên (P1-P5), Trạng thái nợ
+                    Tắt: AVG 6M, AVG 24M, CST Hiện tại, ROP, Stock Max</div>
+            </div>
+
+            <div class="card">
+                <h3>📌 Tình huống 3 – Điều chỉnh ngưỡng cảnh báo giữa mùa cao điểm</h3>
+                <p style="font-size:13px;color:#334155;margin-bottom:10px">Tháng 12 (mùa Tết) nhu cầu tăng mạnh, muốn
+                    cảnh báo sớm hơn bình thường.</p>
+                <div class="example-box">Tab Tham số kho → Ngưỡng cảnh báo:
+                    P0 Critical MOS → 1.0 tháng (bình thường: 0.5)
+                    P1 Warning MOS → 3.0 tháng (bình thường: 1.5)
+
+                    Hiệu quả: Items có MOS < 3 tháng sẽ được đánh P1, giúp team mua hàng thấy ngay những item cần bổ
+                        sung trước Tết.</div>
+                        <div class="tip-box" style="margin-top:10px">
+                            <strong>💡 Nhớ đặt lại</strong>
+                            Sau mùa cao điểm, đặt lại P0 = 0.5, P1 = 1.5 để tránh cảnh báo thừa.
+                        </div>
+                </div>
+
+                <div class="card">
+                    <h3>📌 Tình huống 4 – Chia sẻ cấu hình với máy tính mới</h3>
+                    <div class="example-box">Bước 1: Trên máy cũ
+                        Tab Hệ thống → Quản lý cấu hình → "Xuất cấu hình" → Tải về file atp-settings-2026-02-25.json
+
+                        Bước 2: Trên máy mới
+                        Tab Hệ thống → "Nhập cấu hình" → Chọn file atp-settings-2026-02-25.json
+                        → Thông báo "Đã nhập cấu hình thành công!"
+
+                        Bước 3:
+                        Nhấn "Lưu cấu hình" để áp dụng.</div>
+                </div>
+        </section>
+
+        <!-- ── FOOTER ── -->
+        <div class="footer">
+            ATP v12 – Hướng dẫn trang Cấu hình · Tháng 02/2026 · Bản quyền nội bộ
+        </div>
+
+    </div><!-- /container -->
+    <script>
+        // Auto-wrap all tables in a scrollable container
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('table').forEach(function (table) {
+                if (!table.parentElement.classList.contains('table-wrap')) {
+                    var wrapper = document.createElement('div');
+                    wrapper.className = 'table-wrap';
+                    table.parentNode.insertBefore(wrapper, table);
+                    wrapper.appendChild(table);
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

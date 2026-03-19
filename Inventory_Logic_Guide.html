@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technical Documentation - ATP v12 Inventory Engine</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent: #3b82f6;
+            --accent-light: #eff6ff;
+            --text-main: #334155;
+            --text-dark: #0f172a;
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --border: #e2e8f0;
+            --code-bg: #1e293b;
+            --code-text: #e2e8f0;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-body);
+            color: var(--text-main);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Layout */
+        .wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        aside {
+            width: 300px;
+            background: var(--primary);
+            color: white;
+            padding: 40px 20px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        main {
+            flex: 1;
+            padding: 60px 80px;
+            max-width: 1100px;
+        }
+
+        /* Navigation */
+        aside h2 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #94a3b8;
+            margin-bottom: 20px;
+        }
+
+        aside nav ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        aside nav li {
+            margin-bottom: 12px;
+        }
+
+        aside nav a {
+            color: #cbd5e1;
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+            display: block;
+            padding: 8px 12px;
+            border-radius: 6px;
+        }
+
+        aside nav a:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        aside nav a.active {
+            color: white;
+            background: var(--accent);
+            font-weight: 600;
+        }
+
+        /* Typography */
+        h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin-bottom: 15px;
+            letter-spacing: -0.02em;
+        }
+
+        h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-top: 60px;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-top: 40px;
+        }
+
+        p {
+            margin-bottom: 25px;
+            font-size: 1.1rem;
+        }
+
+        /* Components */
+        .info-box {
+            background: var(--accent-light);
+            border-left: 4px solid var(--accent);
+            padding: 25px;
+            border-radius: 0 12px 12px 0;
+            margin: 30px 0;
+        }
+
+        .info-box strong {
+            color: var(--accent);
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .code-block {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 25px;
+            border-radius: 12px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            margin: 30px 0;
+            position: relative;
+            overflow-x: auto;
+        }
+
+        .code-block header {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: #334155;
+            padding: 4px 12px;
+            border-radius: 0 12px 0 12px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #94a3b8;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        th {
+            background: #f1f5f9;
+            text-align: left;
+            padding: 18px;
+            font-weight: 700;
+            color: var(--text-dark);
+            border-bottom: 2px solid var(--border);
+        }
+
+        td {
+            padding: 18px;
+            border-bottom: 1px solid var(--border);
+            font-size: 1rem;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .formula-container {
+            background: white;
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 40px;
+            margin: 40px 0;
+            text-align: center;
+        }
+
+        .formula {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin: 20px 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .formula span {
+            color: var(--text-main);
+            font-weight: 400;
+            font-size: 1rem;
+            margin: 0 10px;
+        }
+
+        .badge {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .badge-red {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-amber {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-green {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .step-card {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .step-num {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        @media (max-width: 1024px) {
+            aside {
+                display: none;
+            }
+
+            main {
+                padding: 40px 20px;
+            }
+
+            h1 {
+                font-size: 2.2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrapper">
+        <aside>
+            <div style="font-size: 1.5rem; font-weight: 800; margin-bottom: 40px; color: var(--accent);">ATP v12 Docs
+            </div>
+            <h2>Kiến trúc Engine</h2>
+            <nav>
+                <ul>
+                    <li><a href="#overview" class="active">Tổng quan hệ thống</a></li>
+                    <li><a href="#demand">Thuật toán Dự báo (Demand)</a></li>
+                    <li><a href="#thresholds">Tham số Tồn kho (Thresholds)</a></li>
+                    <li><a href="#ordering">Logic Đề xuất & AIR/SEA</a></li>
+                    <li><a href="#simulation">Mô phỏng & Real-time KPI</a></li>
+                    <li><a href="#priorities">Phân loại Ưu tiên P0-P5</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main>
+            <section id="overview">
+                <h1>Tài liệu Kỹ thuật: Inventory Engine</h1>
+                <p>Hệ thống <strong>Inventory Engine</strong> (nằm tại <code>utils/inventoryEngine.ts</code>) là thành
+                    phần "Trí tuệ Nhân tạo" trung tâm của ứng dụng ATP v12. Engine thực hiện tính toán song song cho
+                    hàng ngàn mã hàng (SKU) theo kiến trúc <strong>Single Source of Truth</strong> (Nguồn sự thật duy
+                    nhất), đảm bảo kết quả nhất quán giữa Dashboard, Ordering và báo cáo Phân tích.</p>
+
+                <div class="info-box">
+                    <strong>TRIẾT LÝ RESERVE-BASED</strong>
+                    Hệ thống không đánh giá hàng hóa dựa trên số lượng vật lý trong kho (Physical Stock), mà dựa trên
+                    <strong>Vị thế tương lai (Reserve)</strong> = <code>Available + Incoming - Backorder</code>.
+                </div>
+            </section>
+
+            <section id="demand">
+                <h2>1. Thuật toán Xác định Nhu cầu (Demand Resolution)</h2>
+                <p>Đây là bước quan trọng nhất. Engine sử dụng cấu trúc phân tầng (Cascading) để tìm ra "số bán kỳ vọng"
+                    sát nhất với thực tế.</p>
+
+                <div class="code-block">
+                    <header>Logic Cấu Trúc</header>
+                    1. IF (BaseForecast > 0) THEN USE BaseForecast<br>
+                    2. ELSE IF (SourceSetting == '6M') THEN USE AvgSales6M<br>
+                    3. ELSE IF (AvgSales3M > 0) THEN USE AvgSales3M<br>
+                    4. ELSE USE Max(SalesHistoryAvg, 0.01)
+                </div>
+
+                <h3>Tại sao lại là 0.01?</h3>
+                <p>Đối với những mã hàng không có bất kỳ lịch sử bán nào hoặc không có dự báo, app gán giá trị
+                    <code>0.01</code> thay vì <code>0</code> để kích hoạt các công thức tính toán MOS (Tháng tồn kho) và
+                    ROP, giúp nhân viên không bỏ sót mã hàng mới nhập.</p>
+            </section>
+
+            <section id="thresholds">
+                <h2>2. Tính toán Tham số Tồn kho (Thresholds)</h2>
+                <p>Mọi chỉ số an toàn đều được chuyển đổi từ <strong>Số ngày (Days)</strong> sang <strong>Số lượng
+                        (Quantity)</strong> dựa trên Nhu cầu ngày.</p>
+
+                <div class="formula-container">
+                    <div class="formula">
+                        ROP = (Demand / 30) × (LeadTime + SafetyPeriod)
+                    </div>
+                    <p>Trong đó: LeadTime là thời gian đặt hàng (mặc định 90 ngày), SafetyPeriod là tồn dự phòng (mặc
+                        định 15 ngày).</p>
+                </div>
+
+                <div class="formula-container">
+                    <div class="formula">
+                        Max = ROP + ((Demand / 30) × SalePeriod)
+                    </div>
+                    <p>SalePeriod là chu kỳ đặt hàng (mặc định 30 ngày). Điều này đảm bảo khi chúng ta đặt hàng, mỗi đơn
+                        sẽ bao phủ nhu cầu của 1 tháng.</p>
+                </div>
+            </section>
+
+            <section id="ordering">
+                <h2>3. Thuyết Đề xuất Đặt hàng (Ordering & Anti-Double Count)</h2>
+                <p>Thuật toán đề xuất được thiết kế để giải quyết bài toán: <strong>Làm sao cho đủ hàng nhưng không được
+                        đặt thừa.</strong></p>
+
+                <div class="step-card">
+                    <div class="step-num">1</div>
+                    <div class="step-content">
+                        <strong>Xác định SEA (Gợi ý đặt biển):</strong>
+                        Hệ thống kiểm tra <code>NetReserve < StockMax</code>. Nếu thỏa mãn, nó sẽ tính lượng cần đặt để
+                        bù đắp khoảng trống lên mức Max.
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-num">2</div>
+                    <div class="step-content">
+                        <strong>Xác định AIR (Gợi ý đặt bay):</strong>
+                        Hệ thống tính <code>Backorder - (Available + PO)</code>. Nếu kết quả > 0 (tức là nợ khách mà
+                        không có hàng nào về cover kịp), hệ thống sẽ gợi ý đặt AIR.
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <strong>CƠ CHẾ NGĂN ĐẶT THỪA (Anti-Double Count):</strong>
+                    Nếu lượng hàng SEA bạn đặt đã đủ lớn để cover luôn cả phần đang nợ khách (Backorder), hệ thống sẽ tự
+                    động gán gợi ý AIR về <strong>0</strong>. Bạn sẽ không bao giờ gặp tình trạng vừa bấm AIR vừa bấm
+                    SEA mà tổng lại vượt quá mức Max cho phép.
+                </div>
+            </section>
+
+            <section id="simulation">
+                <h2>4. Mô phỏng Thực tế (Real-time Simulation)</h2>
+                <p>Mọi thay đổi số lượng đặt hàng trong "Dự thảo" (Draft) đều được engine mô phỏng ngay lập tức để tính
+                    lại KPI:</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>KPI Mô phỏng</th>
+                            <th>Mục đích</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Delta Stockout Resolved</strong></td>
+                            <td>Tổng số mã hàng sẽ thoát khỏi rủi ro hết hàng sau khi nhận đơn hàng dự thảo này.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Delta Excess Added</strong></td>
+                            <td>Số tiền chênh lệch sẽ bị coi là dôi dư (Excess) nếu bạn cố tình đặt nhiều hơn mức Max.
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Simulated MOS</strong></td>
+                            <td>Tháng tồn kho dự kiến sau khi toàn bộ đơn dự thảo cập bến.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section id="priorities">
+                <h2>5. Hệ thống Phân loại Ưu tiên (Priority Matrix)</h2>
+                <p>App sử dụng 2 hệ thống ưu tiên lồng ghép để hỗ trợ ra quyết định:</p>
+
+                <h3>Bucket Priority (Phân tích chiến lược)</h3>
+                <ul>
+                    <li><span class="badge badge-red">P0</span>: Hết sạch hàng, PO không có, khách đang chờ.</li>
+                    <li><span class="badge badge-amber">P1</span>: Rủi ro cao trong 3 tháng tới. Cần xem xét đặt hàng
+                        SEA ngay.</li>
+                    <li><span class="badge badge-green">P2</span>: An toàn tuyệt đối.</li>
+                </ul>
+
+                <h3>Picking Priority (Ưu tiên nhà cung cấp - P1 to P5)</h3>
+                <p>Dành riêng cho nhân viên đặt hàng khi làm việc với kho NCC:</p>
+                <ul>
+                    <li><strong>P1:</strong> Phải đặt ngay (BO).</li>
+                    <li><strong>P2-P3:</strong> Hàng Fast-mover đang hụt dưới ROP.</li>
+                    <li><strong>P4:</strong> Hàng Active cần bổ sung định kỳ.</li>
+                    <li><strong>P5:</strong> Hàng Slow-mover hoặc bổ sung dôi dư.</li>
+                </ul>
+            </section>
+
+            <footer>
+                Tài liệu Kỹ thuật ATP v12<br>
+                Được biên soạn tự động bởi Antigravity Engine<br>
+                © 2026 Toàn quyền bảo lưu.
+            </footer>
+        </main>
+    </div>
+</body>
+
+</html>
