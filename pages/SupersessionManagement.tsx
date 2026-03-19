@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Typography } from '../components/Typography';
 import { InventoryItem } from '../types/inventory';
@@ -25,7 +24,8 @@ import {
     Plus
 } from 'lucide-react';
 import { useLanguage } from '../utils/i18n';
-import { saveToCloudStorage, loadFromCloudStorage } from '../utils/supabase';
+import { saveToCloudStorage, loadFromCloudStorage, verifyAdminPin } from '../utils/supabase';
+
 interface SupersessionManagementProps {
     data: InventoryItem[];
     mappings: SupersessionMapping[];
@@ -53,11 +53,18 @@ export const SupersessionManagement = ({
     const [isLoadingCloud, setIsLoadingCloud] = useState(false);
 
     const handleSaveToCloud = async () => {
+        const pin = prompt('Vui lòng nhập Mã Phê Duyệt (Admin PIN) để lưu cấu hình này lên máy chủ:\n(Mặc định: 2026)');
+        if (pin === null) return;
+        if (!verifyAdminPin(pin)) {
+            alert('❌ Mã phê duyệt không chính xác!');
+            return;
+        }
+
         setIsSavingCloud(true);
         const success = await saveToCloudStorage('supersession_draft', mappings);
         setIsSavingCloud(false);
         if (success) {
-            alert('Đã lưu Dự thảo Mã chuyển đổi lên Cloud (Supabase) thành công!');
+            alert('✅ Đã lưu Dự thảo Mã chuyển đổi lên Cloud (Supabase) thành công!');
         } else {
             alert('Lỗi khi lưu lên Cloud. Vui lòng kiểm tra thiết lập SQL Supabase.');
         }

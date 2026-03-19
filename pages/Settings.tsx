@@ -341,11 +341,18 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
     const [isLoadingCloud, setIsLoadingCloud] = useState(false);
 
     const handleSaveToCloud = async () => {
+        const pin = prompt('Vui lòng nhập Mã Phê Duyệt (Admin PIN) để lưu lên Cloud:\n(Mặc định: 2026)');
+        if (pin === null) return;
+        if (!verifyAdminPin(pin)) {
+            alert('❌ Mã phê duyệt không chính xác! Không thể lưu cấu hình.');
+            return;
+        }
+
         setIsSavingCloud(true);
         const success = await saveToCloudStorage('global_config', draft);
         setIsSavingCloud(false);
         if (success) {
-            alert('Đã lưu cấu hình lên Cloud (Supabase) thành công!');
+            alert('✅ Đã lưu cấu hình lên Cloud (Supabase) thành công!');
             handleSave();
         } else {
             alert('Lỗi khi lưu cấu hình lên Cloud. Vui lòng kiểm tra lại thiết lập Database.');

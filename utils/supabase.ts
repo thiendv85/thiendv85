@@ -5,6 +5,13 @@ const supabaseKey = 'sb_publishable_Iahv6LF7asBI3E_u_HAZhQ_Qrb99Qjm'; // Provide
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Hàm kiểm tra mã phê duyệt (Admin PIN)
+export const verifyAdminPin = (inputPin: string) => {
+  // Ưu tiên biến môi trường VITE_ADMIN_PIN (nếu thiết lập trên Vercel), mặc định là '2026' nếu không có
+  const adminPin = (import.meta as any).env.VITE_ADMIN_PIN || '2026';
+  return inputPin === adminPin;
+};
+
 // Helper function to save JSON data to cloud_storage table
 export async function saveToCloudStorage(id: string, data: any) {
   try {
