@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../utils/i18n';
+import { saveToCloudStorage, loadFromCloudStorage } from '../utils/supabase';
 import { Typography } from '../components/Typography';
 import { Brand, SourceProfile, AVAILABLE_BRANDS, DEFAULT_SOURCE_PROFILES } from '../types/inventory';
 
@@ -337,6 +337,32 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
     const [draft, setDraft] = useState<AppSettings>(settings);
     const [saved, setSaved] = useState(false);
     const [activeTab, setActiveTab] = useState<'inventory' | 'display' | 'export' | 'system'>('inventory');
+    const [isSavingCloud, setIsSavingCloud] = useState(false);
+    const [isLoadingCloud, setIsLoadingCloud] = useState(false);
+
+    const handleSaveToCloud = async () => {
+        setIsSavingCloud(true);
+        const success = await saveToCloudStorage('global_config', draft);
+        setIsSavingCloud(false);
+        if (success) {
+            alert('Đã lưu cấu hình lên Cloud (Supabase) thành công!');
+            handleSave();
+        } else {
+            alert('Lỗi khi lưu cấu hình lên Cloud. Vui lòng kiểm tra lại thiết lập Database.');
+        }
+    };
+
+    const handleLoadFromCloud = async () => {
+        setIsLoadingCloud(true);
+        const data = await loadFromCloudStorage('global_config');
+        setIsLoadingCloud(false);
+        if (data) {
+            setDraft({ ...DEFAULT_APP_SETTINGS, ...data });
+            alert('Đã tải cấu hình từ Cloud thành công!');
+        } else {
+            alert('Không tìm thấy bản lưu cấu hình trên Cloud hoặc có lỗi.');
+        }
+    };
 
     const upd = useCallback(<K extends keyof AppSettings>(key: K, val: AppSettings[K]) => {
         setDraft(prev => ({ ...prev, [key]: val }));
@@ -456,12 +482,19 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                         <Typography variant="label" className="text-slate-400 mt-1 block">Tùy chỉnh thông số & xuất dữ liệu</Typography>
                     </div>
                     <div className="flex items-center gap-3 flex-wrap">
+                        <button onClick={handleLoadFromCloud} disabled={isLoadingCloud} className="flex items-center gap-2 bg-blue-500/30 border border-blue-400/30 text-blue-100 px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-blue-500/50 transition-all shadow-lg shadow-blue-500/20">
+                            <i className={`fas ${isLoadingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-down'}`} /> Tải Cloud
+                        </button>
+                        <button onClick={handleSaveToCloud} disabled={isSavingCloud} className="flex items-center gap-2 bg-emerald-500/30 border border-emerald-400/30 text-emerald-100 px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-emerald-500/50 transition-all shadow-lg shadow-emerald-500/20">
+                            <i className={`fas ${isSavingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up'}`} /> Lưu Cloud
+                        </button>
+                        <div className="w-px h-6 bg-white/20 mx-1 hidden md:block"></div>
                         <label className="flex items-center gap-2 bg-white/10 border border-white/10 text-white px-4 py-2 rounded-xl text-xs font-black uppercase cursor-pointer hover:bg-white/20 transition-all">
-                            <i className="fas fa-file-import" /> Nhập cấu hình
+                            <i className="fas fa-file-import" /> Nhập file local
                             <input type="file" accept=".json" className="hidden" onChange={handleImportConfig} />
                         </label>
                         <button onClick={handleExportConfig} className="flex items-center gap-2 bg-white/10 border border-white/10 text-white px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-white/20 transition-all">
-                            <i className="fas fa-file-export" /> Xuất cấu hình
+                            <i className="fas fa-file-export" /> Xuất file
                         </button>
                         <button onClick={handleReset} className="flex items-center gap-2 bg-rose-500/20 border border-rose-400/20 text-rose-300 px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-rose-500/30 transition-all">
                             <i className="fas fa-rotate-left" /> Mặc định

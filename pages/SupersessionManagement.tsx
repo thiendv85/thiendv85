@@ -1,4 +1,4 @@
-﻿
+
 import React, { useState, useMemo } from 'react';
 import { Typography } from '../components/Typography';
 import { InventoryItem } from '../types/inventory';
@@ -25,7 +25,7 @@ import {
     Plus
 } from 'lucide-react';
 import { useLanguage } from '../utils/i18n';
-
+import { saveToCloudStorage, loadFromCloudStorage } from '../utils/supabase';
 interface SupersessionManagementProps {
     data: InventoryItem[];
     mappings: SupersessionMapping[];
@@ -49,6 +49,31 @@ export const SupersessionManagement = ({
     const [selectedPart, setSelectedPart] = useState<string | null>(null);
     const [showUpload, setShowUpload] = useState(false);
     const [activeTab, setActiveTab] = useState<TabMode>('MAPPING');
+    const [isSavingCloud, setIsSavingCloud] = useState(false);
+    const [isLoadingCloud, setIsLoadingCloud] = useState(false);
+
+    const handleSaveToCloud = async () => {
+        setIsSavingCloud(true);
+        const success = await saveToCloudStorage('supersession_draft', mappings);
+        setIsSavingCloud(false);
+        if (success) {
+            alert('Đã lưu Dự thảo Mã chuyển đổi lên Cloud (Supabase) thành công!');
+        } else {
+            alert('Lỗi khi lưu lên Cloud. Vui lòng kiểm tra thiết lập SQL Supabase.');
+        }
+    };
+
+    const handleLoadFromCloud = async () => {
+        setIsLoadingCloud(true);
+        const data = await loadFromCloudStorage('supersession_draft');
+        setIsLoadingCloud(false);
+        if (data && Array.isArray(data)) {
+            onUpdateMappings(data);
+            alert('Đã tải Dự thảo từ Cloud thành công!');
+        } else {
+            alert('Không tìm thấy bản dự thảo nào trên Cloud hoặc có lỗi.');
+        }
+    };
 
     // 1. Build Graph
     const graph = useMemo(() => {
@@ -130,22 +155,29 @@ export const SupersessionManagement = ({
                             <Plus size={16} /> {t('common_add_new') || 'Thêm'}
                         </button>
 
+                        <button onClick={handleLoadFromCloud} disabled={isLoadingCloud} className="bg-blue-500/30 border border-blue-400/30 text-blue-100 hover:bg-blue-500/50 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20">
+                            <i className={`fas ${isLoadingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-down'}`} /> Tải Cloud
+                        </button>
+
                         <button
                             onClick={() => setShowUpload(!showUpload)}
                             className={`
-                                px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2
+                                px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2
                                 ${showUpload
                                     ? 'bg-white/20 text-white border border-white/20 hover:bg-white/30'
-                                    : 'bg-white text-purple-700 hover:bg-white/90 shadow-lg border border-transparent'}
+                                    : 'bg-white/10 text-white hover:bg-white/20 border border-white/20'}
                             `}
                         >
-                            {showUpload ? <><X size={16} /> Cancel</> : <><Upload size={16} /> {t('common_import')}</>}
+                            {showUpload ? <><X size={16} /> Hủy</> : <><Upload size={16} /> Nhập Local</>}
                         </button>
 
                         {mappings.length > 0 && (
                             <>
-                                <button onClick={handleExport} className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border border-white/20 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2">
-                                    <Download size={16} /> {t('common_export')}
+                                <button onClick={handleSaveToCloud} disabled={isSavingCloud} className="bg-emerald-500/30 border border-emerald-400/30 text-emerald-100 hover:bg-emerald-500/50 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-emerald-500/20">
+                                    <i className={`fas ${isSavingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up'}`} /> Lưu Cloud
+                                </button>
+                                <button onClick={handleExport} className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border border-white/20 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2">
+                                    <Download size={16} /> Xuất Local
                                 </button>
                                 <button onClick={handleClear} className="bg-white/10 backdrop-blur-sm hover:bg-rose-500/30 text-white border border-white/20 hover:border-rose-300/30 px-4 py-2.5 rounded-xl transition-all" title={t('ss_clear')}>
                                     <Trash2 size={18} />

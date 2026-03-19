@@ -9,10 +9,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google/genai": "^1.33.0",
+    "@supabase/supabase-js": "^2.99.2",
+    "lucide-react": "^0.563.0",
+    "pg": "^8.20.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "@google/genai": "^1.33.0",
-    "lucide-react": "^0.563.0",
     "xlsx": "0.18.5"
   },
   "devDependencies": {
