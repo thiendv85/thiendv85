@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../utils/i18n';
-import { saveToCloudStorage, loadFromCloudStorage } from '../utils/supabase';
+import { saveToCloudStorage, loadFromCloudStorage, verifyAdminPin } from '../utils/supabase';
 import { Typography } from '../components/Typography';
 import { Brand, SourceProfile, AVAILABLE_BRANDS, DEFAULT_SOURCE_PROFILES } from '../types/inventory';
 
