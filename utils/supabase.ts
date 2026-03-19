@@ -50,3 +50,19 @@ export async function loadFromCloudStorage(id: string) {
     return null;
   }
 }
+
+// Function to get list of order drafts (metadata only)
+export async function listOrderDrafts() {
+  try {
+    const { data, error } = await supabase
+      .from('cloud_storage')
+      .select('id, updated_at')
+      .like('id', 'order_draft_%')
+      .order('updated_at', { ascending: false });
+      
+    if (error) return [];
+    return data || [];
+  } catch (err) {
+    return [];
+  }
+}

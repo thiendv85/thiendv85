@@ -15,6 +15,7 @@ import { ConsolidatedStockCell } from '../components/ConsolidatedStockCell';
 import { AppSettings } from './Settings';
 import { computeInventory, computeInventoryBatch, makeComputeParams, resolveItemProfile } from '../utils/inventoryEngine';
 import { Typography } from '../components/Typography';
+import { CloudDraftModal } from '../components/CloudDraftModal';
 
 // --- GLOBAL UTILITIES ---
 const currencyFormatterVND = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 });
@@ -143,6 +144,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
     const [supersessionWarnings, setSupersessionWarnings] = useState<Record<string, number>>({});
     const [confirmationQueue, setConfirmationQueue] = useState<{ code: string, type: 'air' | 'sea', val: number }[]>([]);
     const [confirmedSkus, setConfirmedSkus] = useState<Set<string>>(new Set());
+    const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const tableScrollRef = useRef<HTMLDivElement>(null);
@@ -527,6 +529,9 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                         <input type="text" placeholder={t('ord_search_ph')} value={filters.search} onChange={(e) => handleMainFilterChange({ ...filters, search: e.target.value })} className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:bg-white focus:border-blue-400 transition-all text-slate-700" />
                     </div>
                     <div className="flex items-center gap-3 w-full lg:w-auto justify-end">
+                        <button onClick={() => setIsCloudModalOpen(true)} className="bg-blue-50/50 text-blue-700 hover:bg-blue-100 px-4 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border border-blue-200 flex items-center gap-2 mr-2">
+                            <i className="fas fa-cloud"></i> Quản lý Cloud
+                        </button>
                         <input type="file" ref={fileInputRef} className="hidden" accept=".csv" onChange={handleImport} />
                         <button onClick={() => fileInputRef.current?.click()} className="bg-slate-100 text-slate-700 hover:bg-slate-200 px-4 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border border-slate-200"><i className="fas fa-file-import mr-2"></i> {t('ord_import_btn')}</button>
                         <button
@@ -828,6 +833,16 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                 </div>,
                 document.body
             )}
+            
+            <CloudDraftModal 
+                isOpen={isCloudModalOpen} 
+                onClose={() => setIsCloudModalOpen(false)} 
+                currentDraft={{ quantities: orderQuantities, notes: orderNotes }} 
+                onLoadDraft={(draft) => {
+                    setOrderQuantities(prev => ({ ...prev, ...draft.quantities }));
+                    setOrderNotes(prev => ({ ...prev, ...draft.notes }));
+                }}
+            />
         </div >
     );
 };
