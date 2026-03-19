@@ -17,6 +17,7 @@ import { InventoryDistribution } from './pages/InventoryDistribution';
 import { LanguageProvider, useLanguage } from './utils/i18n';
 import { Typography } from './components/Typography';
 import { resolveItemProfile } from './utils/inventoryEngine';
+import { loadFromCloudStorage } from './utils/supabase';
 
 const AppContent = () => {
     const [data, setData] = useState<InventoryItem[]>([]);
@@ -46,6 +47,22 @@ const AppContent = () => {
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
     const [initialParams, setInitialParams] = useState<{ lt: number; sp: number; ssp: number } | undefined>(undefined);
     const [appSettings, setAppSettings] = useState<AppSettings>(loadAppSettings);
+
+    // Tự động tải dữ liệu từ Cloud khi khởi động App
+    useEffect(() => {
+        const fetchCloudDefaults = async () => {
+            try {
+                const configData = await loadFromCloudStorage('global_config');
+                if (configData) setAppSettings(prev => ({ ...prev, ...configData }));
+
+                const ssData = await loadFromCloudStorage('supersession_draft');
+                if (ssData && Array.isArray(ssData)) setSupersessionMappings(ssData);
+            } catch (err) {
+                console.error("Lỗi khi tải từ Cloud:", err);
+            }
+        };
+        fetchCloudDefaults();
+    }, []);
 
     // Supersession Edit Modal state
     const [isSsModalOpen, setIsSsModalOpen] = useState(false);
