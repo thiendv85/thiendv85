@@ -218,8 +218,8 @@ const AppContent = () => {
 
     return (
         <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#f8fafc] to-[#e2e8f0] relative font-sans text-slate-800 overflow-x-clip">
-            <header className="bg-gradient-professional border-b border-white/10 px-4 md:px-8 py-3 sticky top-0 z-40 shadow-glass print:hidden">
-                <div className="max-w-[1800px] mx-auto flex justify-between items-center gap-4">
+            <header className="bg-gradient-professional border-b border-white/10 px-3 md:px-5 py-2 sticky top-0 z-40 shadow-glass print:hidden">
+                <div className="max-w-[1920px] mx-auto flex justify-between items-center gap-2">
                     <div className="flex items-center space-x-2 md:space-x-3 cursor-pointer group shrink-0" onClick={() => setView('dashboard')}>
                         <div className="bg-white/10 backdrop-blur-md text-white w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center border border-white/20 shadow-lg group-hover:scale-105 transition-transform">
                             <i className="fas fa-cubes text-sm md:text-lg text-blue-400"></i>
@@ -242,9 +242,10 @@ const AppContent = () => {
                                 <span className="xl:hidden">...</span>
                             </div>
                         ) : monthlyDataDate ? (
-                            <div title={`Dữ liệu tháng: ${monthlyDataDate}`} className="bg-emerald-600/20 border border-emerald-400/30 text-emerald-300 px-2.5 py-1.5 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                            <div title={`Dữ liệu tháng: ${monthlyDataDate}`} className="bg-emerald-600/20 border border-emerald-400/30 text-emerald-300 px-2 py-1 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
                                 <i className="fas fa-database"></i>
-                                <span>Dữ liệu Tháng: {monthlyDataDate ? monthlyDataDate.split('-').reverse().join('/') : 'OK'}</span>
+                                <span className="hidden xl:inline">Dữ liệu Tháng: {monthlyDataDate ? monthlyDataDate.split('-').reverse().join('/') : 'OK'}</span>
+                                <span className="xl:hidden">{monthlyDataDate ? monthlyDataDate.split('-').reverse().join('/') : 'OK'}</span>
                             </div>
                         ) : (
                             <div title="Chưa tải dữ liệu tháng — vào Settings → Hệ thống → Upload File Monthly" className="flex items-center gap-1.5 bg-amber-500/20 border border-amber-400/30 text-amber-200 px-3 py-1.5 rounded-lg text-xs font-bold cursor-default">
@@ -255,7 +256,7 @@ const AppContent = () => {
                         )}
                     </div>
 
-                    <nav className="flex items-center gap-1.5 bg-white/5 p-1.5 rounded-2xl border border-white/10 overflow-x-auto no-scrollbar max-w-[60%] md:max-w-none backdrop-blur-md shadow-inner">
+                    <nav className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10 overflow-x-auto no-scrollbar backdrop-blur-md shadow-inner">
                         {[
                             { id: 'dashboard', label: t('nav_dashboard'), icon: 'fa-chart-simple' },
                             { id: 'ordering', label: t('nav_ordering'), icon: 'fa-cart-shopping' },
@@ -270,14 +271,14 @@ const AppContent = () => {
                                     key={nav.id}
                                     onClick={() => setView(nav.id as any)}
                                     className={`
-                                        px-3 md:px-4 py-2 rounded-lg transition-all flex items-center gap-2 shrink-0
+                                        px-2.5 md:px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 shrink-0
                                         ${isActive
                                             ? 'bg-white text-blue-700 shadow-[0_4px_12px_rgba(59,130,246,0.15)] ring-1 ring-blue-50/50 font-bold scale-[1.02]'
                                             : 'text-white/70 hover:bg-white/10 hover:text-white'}
                                     `}
                                 >
-                                    <i className={`fas ${nav.icon} ${isActive ? 'text-blue-600' : ''}`}></i>
-                                    <Typography variant="label" className={`hidden sm:inline ${isActive ? 'text-blue-700' : 'text-white/60'}`}>
+                                    <i className={`fas ${nav.icon} text-xs ${isActive ? 'text-blue-600' : ''}`}></i>
+                                    <Typography variant="label" className={`hidden md:inline text-[10px] xl:text-xs ${isActive ? 'text-blue-700' : 'text-white/60'}`}>
                                         {nav.label}
                                     </Typography>
                                 </button>
@@ -306,7 +307,7 @@ const AppContent = () => {
                 </div>
             </header >
 
-            <main className="flex-1 max-w-[1800px] w-full mx-auto p-4 md:p-8">
+            <main className="flex-1 max-w-[1920px] w-full mx-auto p-3 md:p-5 page-content-hd">
                 {view === 'dashboard' && <Dashboard data={data} onItemSelect={handleSelectItem} initialParams={initialParams} initialState={pageStates.current.dashboard} onSaveState={(s) => pageStates.current.dashboard = s} draftData={sharedDraft} graph={supersessionGraph} appSettings={appSettings} />}
                 {view === 'ordering' && <Ordering data={data} onItemSelect={handleSelectItem} initialParams={initialParams} initialState={pageStates.current.ordering} onSaveState={(s) => pageStates.current.ordering = s} sharedDraft={sharedDraft} onUpdateDraft={setSharedDraft} graph={supersessionGraph} appSettings={appSettings} />}
                 { view === 'demand-intel' && <DemandIntelligence data={data} onItemSelect={handleSelectItem} initialState={pageStates.current.demand} onSaveState={(s) => pageStates.current.demand = s} draftData={sharedDraft} onUpdateDraft={setSharedDraft} />}

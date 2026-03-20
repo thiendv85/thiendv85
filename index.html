@@ -82,10 +82,30 @@
   <style>
     body {
       font-family: 'Inter', sans-serif;
+      /* Auto-scale font for 13-inch HD (1366px) through 4K */
+      font-size: clamp(12px, 0.9vw, 15px);
       background-color: #f8fafc;
       color: #1e293b;
-      /* Updated to Text Primary */
       -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Compact layout for HD (13-inch, 1366-1440px) */
+    @media (max-width: 1440px) {
+      /* Tighter table cells */
+      td, th { font-size: 0.72rem !important; }
+      /* Reduce large heading sizes on HD */
+      .workbench-title { font-size: 1.1rem !important; }
+      /* Supply chain data subtitle: shrink */
+      .supply-chain-data { font-size: 0.65rem !important; }
+      /* Metric card labels */
+      .metric-label { font-size: 0.6rem !important; }
+      /* Tighter page wrapper padding */
+      .page-content-hd { padding-left: 1rem !important; padding-right: 1rem !important; }
+    }
+
+    @media (max-width: 1280px) {
+      td, th { font-size: 0.68rem !important; }
+      .workbench-title { font-size: 1rem !important; }
     }
 
     /* Minimalist Scrollbar */
