@@ -203,7 +203,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                 ) : monthlyData ? (
                                     <div className="flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 px-2.5 py-1 rounded-lg text-xs font-bold">
                                         <i className="fas fa-calendar-check" />
-                                        <span>Update Data {monthlyDataDate ? monthlyDataDate.split('-').reverse().join('/') : 'OK'}</span>
+                                        <span>Dữ liệu Tháng: {monthlyDataDate ? monthlyDataDate.split('-').reverse().join('/') : 'OK'}</span>
                                     </div>
                                 ) : (
                                     <div title="Vào Settings → Hệ thống → Upload File Monthly để kích hoạt" className="flex items-center gap-1.5 bg-amber-500/20 border border-amber-400/40 text-amber-300 px-2.5 py-1 rounded-lg text-xs font-bold cursor-help">

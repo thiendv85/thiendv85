@@ -658,7 +658,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                                                         ...prev,
                                                                         activeSourceId: isCurrentlyActive ? newId : prev.activeSourceId,
                                                                         sourceProfiles: prev.sourceProfiles.map(p =>
-                                                                            p.id === profile.id ? { ...p, id: newId } : p
+                                                                            (p.id === profile.id && p.brand === profile.brand) ? { ...p, id: newId } : p
                                                                         )
                                                                     };
                                                                 });
@@ -672,7 +672,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                                             value={profile.name}
                                                             onChange={e => {
                                                                 const v = e.target.value;
-                                                                setDraft(prev => ({ ...prev, sourceProfiles: prev.sourceProfiles.map(p => p.id === profile.id ? { ...p, name: v } : p) }));
+                                                                setDraft(prev => ({ ...prev, sourceProfiles: prev.sourceProfiles.map(p => (p.id === profile.id && p.brand === profile.brand) ? { ...p, name: v } : p) }));
                                                             }}
                                                         />
                                                     </div>
@@ -684,7 +684,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                                             value={profile.lt}
                                                             onChange={e => {
                                                                 const v = parseInt(e.target.value) || 1;
-                                                                setDraft(prev => ({ ...prev, sourceProfiles: prev.sourceProfiles.map(p => p.id === profile.id ? { ...p, lt: v } : p) }));
+                                                                setDraft(prev => ({ ...prev, sourceProfiles: prev.sourceProfiles.map(p => (p.id === profile.id && p.brand === profile.brand) ? { ...p, lt: v } : p) }));
                                                             }}
                                                         />
                                                     </div>
@@ -696,7 +696,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                                             value={profile.sp}
                                                             onChange={e => {
                                                                 const v = parseInt(e.target.value) || 1;
-                                                                setDraft(prev => ({ ...prev, sourceProfiles: prev.sourceProfiles.map(p => p.id === profile.id ? { ...p, sp: v } : p) }));
+                                                                setDraft(prev => ({ ...prev, sourceProfiles: prev.sourceProfiles.map(p => (p.id === profile.id && p.brand === profile.brand) ? { ...p, sp: v } : p) }));
                                                             }}
                                                         />
                                                     </div>
@@ -708,7 +708,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                                             value={profile.ssp}
                                                             onChange={e => {
                                                                 const v = parseInt(e.target.value) || 1;
-                                                                setDraft(prev => ({ ...prev, sourceProfiles: prev.sourceProfiles.map(p => p.id === profile.id ? { ...p, ssp: v } : p) }));
+                                                                setDraft(prev => ({ ...prev, sourceProfiles: prev.sourceProfiles.map(p => (p.id === profile.id && p.brand === profile.brand) ? { ...p, ssp: v } : p) }));
                                                             }}
                                                         />
                                                     </div>
@@ -716,7 +716,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                                     <div className="col-span-1 flex justify-center">
                                                         <button
                                                             className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-all border border-transparent hover:border-rose-100"
-                                                            onClick={() => setDraft(prev => ({ ...prev, sourceProfiles: prev.sourceProfiles.filter(p => p.id !== profile.id), activeSourceId: prev.activeSourceId === profile.id ? (prev.sourceProfiles.find(x => x.id !== profile.id)?.id ?? '') : prev.activeSourceId }))}
+                                                            onClick={() => setDraft(prev => ({ ...prev, sourceProfiles: prev.sourceProfiles.filter(p => !(p.id === profile.id && p.brand === profile.brand)), activeSourceId: prev.activeSourceId === profile.id ? (prev.sourceProfiles.find(x => x.id !== profile.id)?.id ?? '') : prev.activeSourceId }))}
                                                             title="Xóa nguồn"
                                                         >
                                                             <i className="fas fa-trash text-xs" />
