@@ -62,6 +62,9 @@ const AppContent = () => {
                 const ssData = await loadFromCloudStorage('supersession_draft');
                 if (ssData && Array.isArray(ssData)) setSupersessionMappings(ssData);
 
+                const kittingData = await loadFromCloudStorage('kitting_draft');
+                if (kittingData && Array.isArray(kittingData)) setKittingDefs(kittingData);
+
                 // Load monthly coefficient data (File B)
                 setIsMonthlyLoading(true);
                 const monthly = await loadLatestMonthlyData();
