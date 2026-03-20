@@ -212,6 +212,7 @@ const AppContent = () => {
             onData={handleDataUpload} 
             monthlyData={monthlyData} 
             isMonthlyLoading={isMonthlyLoading} 
+            monthlyDataDate={monthlyDataDate}
         />
     );
 
@@ -241,10 +242,9 @@ const AppContent = () => {
                                 <span className="xl:hidden">...</span>
                             </div>
                         ) : monthlyDataDate ? (
-                            <div title={`Dữ liệu tháng: ${monthlyDataDate}`} className="flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-400/30 text-emerald-200 px-3 py-1.5 rounded-lg text-xs font-bold cursor-default">
-                                <i className="fas fa-calendar-check text-emerald-300 text-xs" />
-                                <span className="hidden xl:inline">Monthly: {monthlyDataDate}</span>
-                                <span className="xl:hidden">M</span>
+                            <div title={`Dữ liệu tháng: ${monthlyDataDate}`} className="bg-emerald-600/20 border border-emerald-400/30 text-emerald-300 px-2.5 py-1.5 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                                <i className="fas fa-database"></i>
+                                <span>Update Data {monthlyDataDate ? monthlyDataDate.split('-').reverse().join('/') : 'OK'}</span>
                             </div>
                         ) : (
                             <div title="Chưa tải dữ liệu tháng — vào Settings → Hệ thống → Upload File Monthly" className="flex items-center gap-1.5 bg-amber-500/20 border border-amber-400/30 text-amber-200 px-3 py-1.5 rounded-lg text-xs font-bold cursor-default">
