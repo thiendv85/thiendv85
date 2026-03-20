@@ -1,12 +1,13 @@
-﻿
+
 import React, { useState, useRef } from 'react';
-import { InventoryItem } from '../types/inventory';
+import { InventoryItem, MonthlyData } from '../types/inventory';
 import { parseCSV, parseDealerStockCSV, parseBackorderCSV } from '../utils/csvParser';
 import { useLanguage } from '../utils/i18n';
 
 
-export const FileUpload = ({ onData }: {
+export const FileUpload = ({ onData, monthlyData }: {
     onData: (data: InventoryItem[], filename: string, sourceId: string) => void;
+    monthlyData?: Record<string, MonthlyData> | null;
 }) => {
     const [mainFile, setMainFile] = useState<File | null>(null);
     const [dealerFile, setDealerFile] = useState<File | null>(null);
@@ -42,7 +43,7 @@ export const FileUpload = ({ onData }: {
 
         try {
             const mainText = await readFile(mainFile);
-            let inventoryData = parseCSV(mainText);
+            let inventoryData = parseCSV(mainText, monthlyData ?? undefined);
 
             // 1. Process Dealer File (Optional)
             if (dealerFile) {
@@ -191,6 +192,17 @@ export const FileUpload = ({ onData }: {
                                     </h3>
                                     <p className="text-slate-400 text-xs font-medium mt-1 pl-3.5">Tải lên file snapshot tồn kho (.csv)</p>
                                 </div>
+                                {/* Monthly Data Badge */}
+                                {monthlyData
+                                    ? <div className="flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 px-2.5 py-1 rounded-lg text-xs font-bold">
+                                        <i className="fas fa-calendar-check" />
+                                        <span>D/L tháng: OK</span>
+                                      </div>
+                                    : <div title="Vào Settings → Hệ thống → Upload File Monthly để kích hoạt" className="flex items-center gap-1.5 bg-amber-500/20 border border-amber-400/40 text-amber-300 px-2.5 py-1 rounded-lg text-xs font-bold cursor-help">
+                                        <i className="fas fa-triangle-exclamation" />
+                                        <span>Chưa có d/l tháng</span>
+                                      </div>
+                                }
                             </div>
 
                             <div className="space-y-4">

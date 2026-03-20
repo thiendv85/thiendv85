@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { InventoryItem, KittingDefinition } from './types/inventory';
+import { InventoryItem, KittingDefinition, MonthlyData } from './types/inventory';
 import { SupersessionMapping, SupersessionGraph } from './utils/supersessionGraph';
 import { FileUpload } from './pages/FileUpload';
 import { Dashboard } from './pages/Dashboard';
@@ -17,11 +17,14 @@ import { InventoryDistribution } from './pages/InventoryDistribution';
 import { LanguageProvider, useLanguage } from './utils/i18n';
 import { Typography } from './components/Typography';
 import { resolveItemProfile } from './utils/inventoryEngine';
-import { loadFromCloudStorage } from './utils/supabase';
+import { loadFromCloudStorage, loadLatestMonthlyData } from './utils/supabase';
 
 const AppContent = () => {
     const [data, setData] = useState<InventoryItem[]>([]);
     const [kittingDefs, setKittingDefs] = useState<KittingDefinition[]>([]);
+    // Monthly coefficient data (File B) — loaded from Supabase on boot
+    const [monthlyData, setMonthlyData] = useState<Record<string, MonthlyData> | null>(null);
+    const [monthlyDataDate, setMonthlyDataDate] = useState<string | null>(null);
 
     const [supersessionMappings, setSupersessionMappings] = useState<SupersessionMapping[]>(() => {
         try {
@@ -57,6 +60,13 @@ const AppContent = () => {
 
                 const ssData = await loadFromCloudStorage('supersession_draft');
                 if (ssData && Array.isArray(ssData)) setSupersessionMappings(ssData);
+
+                // Load monthly coefficient data (File B)
+                const monthly = await loadLatestMonthlyData();
+                if (monthly?.data) {
+                    setMonthlyData(monthly.data);
+                    setMonthlyDataDate(monthly.updatedAt.slice(0, 10));
+                }
             } catch (err) {
                 console.error("Lỗi khi tải từ Cloud:", err);
             }
@@ -194,7 +204,7 @@ const AppContent = () => {
         setSupersessionMappings(newMappings);
     };
 
-    if (view === 'upload') return <FileUpload onData={handleDataUpload} />;
+    if (view === 'upload') return <FileUpload onData={handleDataUpload} monthlyData={monthlyData} />;
 
     return (
         <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#f8fafc] to-[#e2e8f0] relative font-sans text-slate-800 overflow-x-clip">
@@ -212,6 +222,21 @@ const AppContent = () => {
                                 {t('app_subtitle')}
                             </Typography>
                         </div>
+                    </div>
+                    {/* Monthly Data Status Badge */}
+                    <div className="hidden md:flex items-center">
+                        {monthlyDataDate
+                            ? <div title={`Dữ liệu tháng: ${monthlyDataDate}`} className="flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-400/30 text-emerald-200 px-3 py-1.5 rounded-lg text-xs font-bold cursor-default">
+                                <i className="fas fa-calendar-check text-emerald-300 text-xs" />
+                                <span className="hidden xl:inline">Monthly: {monthlyDataDate}</span>
+                                <span className="xl:hidden">M</span>
+                              </div>
+                            : <div title="Chưa tải dữ liệu tháng — vào Settings → Hệ thống → Upload File Monthly" className="flex items-center gap-1.5 bg-amber-500/20 border border-amber-400/30 text-amber-200 px-3 py-1.5 rounded-lg text-xs font-bold cursor-default">
+                                <i className="fas fa-triangle-exclamation text-amber-300 text-xs" />
+                                <span className="hidden xl:inline">Chưa có d/l tháng</span>
+                                <span className="xl:hidden">!</span>
+                              </div>
+                        }
                     </div>
 
                     <nav className="flex items-center gap-1.5 bg-white/5 p-1.5 rounded-2xl border border-white/10 overflow-x-auto no-scrollbar max-w-[60%] md:max-w-none backdrop-blur-md shadow-inner">

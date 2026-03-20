@@ -118,6 +118,60 @@ export interface BackorderDetail {
     RawDate?: number;
 }
 
+/**
+ * MonthlyData — parsed from File B (monthly CSV, uploaded via Settings and cached in Supabase).
+ * All fields from the monthly file. ItemCode is the join key with File A (daily).
+ * Fields: forecast coefficients, sales avgs, LOIS, sales history (M0-M11),
+ * statistical indicators, risk levels, etc.
+ */
+export interface MonthlyData {
+    ItemCode: string;
+    ItemName?: string;
+    LOISGroup?: string;
+    AvgQty3M?: number;
+    AvgQty6M?: number;
+    AvgQty12M?: number;
+    AvgQty24M?: number;
+    TrendFlag?: string;
+    // Note: SafetyStock / ROP / MaxInventory are CALCULATED by inventoryEngine using LT settings
+    // These raw file values are informational only; engine values take precedence.
+    SafetyStock_Raw?: number;
+    ROPFinal_Raw?: number;
+    MaxInventory_High_Raw?: number;
+    MaxInventory_Low_Raw?: number;
+    MaxInventory_Mid_Raw?: number;
+    MOS?: number;
+    BaseForecast?: number;
+    Forecast_NB?: number;
+    Forecast_BB?: number;
+    // Sales history months: M0 (oldest/Jan of 12m window) to M11 (newest/last month)
+    // Parser normalizes to array [M0..M11] → oldest first
+    SalesHistory?: number[];
+    // Extended forecast fields
+    OrderType?: string;
+    BranchGroup?: string;
+    Forecast_eff?: number;
+    Forecast_M1?: number;
+    Forecast_M2?: number;
+    Forecast_M3?: number;
+    SeasonalityFactor?: number;
+    SeasonalityFactor_M1?: number;
+    SeasonalityFactor_M2?: number;
+    SeasonalityFactor_M3?: number;
+    ForecastMethod?: string;
+    ForecastMethodDetail?: string;
+    TrendAdjMethod?: string;
+    BaseForecast_Orig?: number;
+    LinRegSlope?: number;
+    LinRegForecast?: number;
+    Sigma_eff?: number;
+    CV?: number;
+    AlphaUsed?: number;
+    InventoryRiskLevel?: string;
+    MAD?: number;
+    MAPE?: number;
+}
+
 export interface InventoryItem {
     ItemCode: string;
     ItemName: string;

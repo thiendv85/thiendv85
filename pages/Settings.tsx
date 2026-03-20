@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLanguage } from '../utils/i18n';
-import { saveToCloudStorage, loadFromCloudStorage, verifyAdminPin } from '../utils/supabase';
+import { saveToCloudStorage, loadFromCloudStorage, verifyAdminPin, saveMonthlyData, loadLatestMonthlyData, listMonthlyDataSnapshots } from '../utils/supabase';
+import { parseMonthlyCSV } from '../utils/csvParser';
 import { Typography } from '../components/Typography';
 import { Brand, SourceProfile, AVAILABLE_BRANDS, DEFAULT_SOURCE_PROFILES } from '../types/inventory';
 
@@ -339,6 +340,69 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
     const [activeTab, setActiveTab] = useState<'inventory' | 'display' | 'export' | 'system'>('inventory');
     const [isSavingCloud, setIsSavingCloud] = useState(false);
     const [isLoadingCloud, setIsLoadingCloud] = useState(false);
+
+    // ── Monthly Data (File B) Upload State ─────────────────────────────────
+    const [monthlyUploadStatus, setMonthlyUploadStatus] = useState<'idle' | 'parsing' | 'ready' | 'saving' | 'done' | 'error'>('idle');
+    const [monthlyPreview, setMonthlyPreview] = useState<{ count: number; filename: string; data: Record<string, any> } | null>(null);
+    const [monthlyHistory, setMonthlyHistory] = useState<{ id: string; updated_at: string }[]>([]);
+    const [monthlyCurrentDate, setMonthlyCurrentDate] = useState<string | null>(null);
+    const monthlyInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        // Load current monthly data info and history on Settings open
+        (async () => {
+            const latest = await loadLatestMonthlyData();
+            if (latest) setMonthlyCurrentDate(latest.updatedAt.slice(0, 10));
+            const hist = await listMonthlyDataSnapshots();
+            setMonthlyHistory(hist);
+        })();
+    }, []);
+
+    const handleMonthlyFilePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setMonthlyUploadStatus('parsing');
+        setMonthlyPreview(null);
+        const reader = new FileReader();
+        reader.onload = ev => {
+            try {
+                const text = ev.target?.result as string;
+                const parsed = parseMonthlyCSV(text);
+                const count = Object.keys(parsed).length;
+                if (count === 0) {
+                    alert('Không tìm thấy dữ liệu trong file. Kiểm tra cột ItemCode.');
+                    setMonthlyUploadStatus('error');
+                    return;
+                }
+                setMonthlyPreview({ count, filename: file.name, data: parsed });
+                setMonthlyUploadStatus('ready');
+            } catch { setMonthlyUploadStatus('error'); }
+        };
+        reader.readAsText(file, 'UTF-8');
+        e.target.value = '';
+    };
+
+    const handleMonthlyUpload = async () => {
+        if (!monthlyPreview) return;
+        const pin = prompt('Nhập Admin PIN để lưu dữ liệu tháng lên Cloud:\n(Mặc định: 2026)');
+        if (pin === null) return;
+        if (!verifyAdminPin(pin)) { alert('❌ Mã phê duyệt không đúng!'); return; }
+        setMonthlyUploadStatus('saving');
+        const ok = await saveMonthlyData(monthlyPreview.data);
+        if (ok) {
+            const today = new Date().toISOString().slice(0, 10);
+            setMonthlyCurrentDate(today);
+            const hist = await listMonthlyDataSnapshots();
+            setMonthlyHistory(hist);
+            setMonthlyPreview(null);
+            setMonthlyUploadStatus('done');
+            setTimeout(() => setMonthlyUploadStatus('idle'), 2000);
+        } else {
+            alert('Lỗi khi lưu lên Cloud.');
+            setMonthlyUploadStatus('error');
+        }
+    };
+    // ───────────────────────────────────────────────────────────────────────
 
     const handleSaveToCloud = async () => {
         const pin = prompt('Vui lòng nhập Mã Phê Duyệt (Admin PIN) để lưu lên Cloud:\n(Mặc định: 2026)');
@@ -1070,6 +1134,77 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                     <i className="fas fa-broom" /> Dọn cache
                                 </button>
                             </div>
+                        </div>
+                    </SectionCard>
+
+                    {/* Monthly Data (File B) Upload */}
+                    <SectionCard title="Dữ liệu tháng (File B – Monthly)" icon="fa-calendar-days">
+                        <div className="space-y-4">
+                            <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 text-xs text-blue-700 font-bold">
+                                <i className="fas fa-info-circle mr-2" />
+                                File B chứa: LOIS, AvgQty, Forecast, SalesHistory (M0–M11), hệ số thống kê...<br />
+                                Sau khi upload, app sẽ <strong>tự tải về khi mở</strong> và merge vào file hàng ngày theo ItemCode.<br />
+                                <span className="text-blue-500 mt-1 block">⚙ SafetyStock / ROP / MaxInventory được tính lại theo công thức LT Setting — không lấy thẳng từ file.</span>
+                            </div>
+
+                            {/* Current status */}
+                            <div className="flex items-center gap-3">
+                                <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold ${
+                                    monthlyCurrentDate
+                                        ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+                                        : 'bg-amber-50 border border-amber-200 text-amber-700'
+                                }`}>
+                                    <i className={`fas ${monthlyCurrentDate ? 'fa-calendar-check text-emerald-500' : 'fa-triangle-exclamation text-amber-500'}`} />
+                                    {monthlyCurrentDate ? `Bản hiện tại: ${monthlyCurrentDate}` : 'Chưa có dữ liệu tháng trên Cloud'}
+                                </div>
+                            </div>
+
+                            {/* File Picker */}
+                            <div className="flex items-center gap-3">
+                                <label className="flex-1 flex items-center gap-3 h-14 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl px-4 cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-all group">
+                                    <i className="fas fa-file-csv text-slate-400 group-hover:text-blue-500 transition-colors" />
+                                    <span className="text-sm font-bold text-slate-500 group-hover:text-blue-600 transition-colors truncate">
+                                        {monthlyUploadStatus === 'parsing' ? 'Đang đọc file...' :
+                                         monthlyPreview ? `${monthlyPreview.filename} (${monthlyPreview.count.toLocaleString()} mã)` :
+                                         'Chọn File Monthly CSV...'}
+                                    </span>
+                                    <input ref={monthlyInputRef} type="file" accept=".csv" className="hidden" onChange={handleMonthlyFilePick} />
+                                </label>
+                                <button
+                                    onClick={handleMonthlyUpload}
+                                    disabled={!monthlyPreview || monthlyUploadStatus === 'saving'}
+                                    className={`h-14 px-5 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 ${
+                                        !monthlyPreview || monthlyUploadStatus === 'saving'
+                                            ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                            : monthlyUploadStatus === 'done'
+                                            ? 'bg-emerald-600 text-white'
+                                            : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-200'
+                                    }`}
+                                >
+                                    <i className={`fas ${
+                                        monthlyUploadStatus === 'saving' ? 'fa-spinner fa-spin' :
+                                        monthlyUploadStatus === 'done' ? 'fa-check' : 'fa-cloud-arrow-up'
+                                    }`} />
+                                    {monthlyUploadStatus === 'saving' ? 'Đang lưu...' :
+                                     monthlyUploadStatus === 'done' ? 'Xong!' : 'Upload'}
+                                </button>
+                            </div>
+
+                            {/* History */}
+                            {monthlyHistory.length > 0 && (
+                                <div>
+                                    <div className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Lịch sử upload</div>
+                                    <div className="space-y-1 max-h-40 overflow-y-auto">
+                                        {monthlyHistory.map(h => (
+                                            <div key={h.id} className="flex items-center gap-3 px-3 py-2 bg-slate-50 rounded-lg border border-slate-100 text-xs">
+                                                <i className="fas fa-clock text-slate-400" />
+                                                <span className="font-bold text-slate-600">{h.id.replace('monthly_data_', '')}</span>
+                                                <span className="text-slate-400 ml-auto">{new Date(h.updated_at).toLocaleString('vi-VN')}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </SectionCard>
 
