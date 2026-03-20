@@ -1,7 +1,8 @@
-﻿import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { InventoryItem, KittingDefinition, OrderingDraft } from '../types/inventory';
 import { parseKittingCSV } from '../utils/csvParser';
 import { useLanguage } from '../utils/i18n';
+import { saveToCloudStorage, loadFromCloudStorage, verifyAdminPin } from '../utils/supabase';
 
 // Inline: RepairPackageMetrics
 const RepairPackageMetrics = ({ sets }: { sets: any[] }) => {
@@ -199,8 +200,39 @@ export const RepairPackageOptimizer = ({
     const [orderInputs, setOrderInputs] = useState<Record<string, { nb: number, bb: number }>>({});
     const [expandedSet, setExpandedSet] = useState<string | null>(null);
     const [selectedComparisonCodes, setSelectedComparisonCodes] = useState<string[]>(initialState?.selectedComparisonCodes || []);
+    const [isSavingCloud, setIsSavingCloud] = useState(false);
+    const [isLoadingCloud, setIsLoadingCloud] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleSaveToCloud = async () => {
+        const pin = prompt('Vui lòng nhập Mã Phê Duyệt (Admin PIN) để lưu cấu hình Gói Phụ Tùng lên máy chủ:\n(Mặc định: 2026)');
+        if (pin === null) return;
+        if (!verifyAdminPin(pin)) {
+            alert('❌ Mã phê duyệt không chính xác!');
+            return;
+        }
+        setIsSavingCloud(true);
+        const success = await saveToCloudStorage('kitting_draft', kittingDefs);
+        setIsSavingCloud(false);
+        if (success) {
+            alert('✅ Đã lưu cấu hình Gói Phụ Tùng lên Cloud (Supabase) thành công!');
+        } else {
+            alert('Lỗi khi lưu lên Cloud. Vui lòng kiểm tra thiết lập SQL Supabase.');
+        }
+    };
+
+    const handleLoadFromCloud = async () => {
+        setIsLoadingCloud(true);
+        const cloudData = await loadFromCloudStorage('kitting_draft');
+        setIsLoadingCloud(false);
+        if (cloudData && Array.isArray(cloudData)) {
+            onKittingDefsChange(cloudData);
+            alert(`✅ Đã tải ${cloudData.length} định nghĩa Gói Phụ Tùng từ Cloud thành công!`);
+        } else {
+            alert('Không tìm thấy dữ liệu Kitting nào trên Cloud hoặc có lỗi.');
+        }
+    };
 
     useEffect(() => {
         if (onSaveState) {
@@ -403,7 +435,7 @@ export const RepairPackageOptimizer = ({
                         <p className="text-amber-200 text-sm font-bold mt-1 uppercase tracking-widest">Tối ưu hóa khả năng sẵn sàng của các bộ linh kiện sửa chữa</p>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2 md:gap-3">
                         {(totalDraftItems > 0 || hasInputs) && (
                             <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm p-1.5 rounded-xl border border-white/10">
                                 <span className="text-2xs font-bold text-amber-200 pl-2">Đang chọn: {totalDraftItems} mã</span>
@@ -414,6 +446,25 @@ export const RepairPackageOptimizer = ({
                                     <i className="fas fa-trash-alt mr-1"></i> Xóa Draft
                                 </button>
                             </div>
+                        )}
+
+                        {/* Cloud Buttons */}
+                        <button
+                            onClick={handleLoadFromCloud}
+                            disabled={isLoadingCloud}
+                            className="bg-blue-500/30 border border-blue-400/30 text-blue-100 hover:bg-blue-500/50 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20 disabled:opacity-60"
+                        >
+                            <i className={`fas ${isLoadingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-down'}`} /> Tải Cloud
+                        </button>
+
+                        {kittingDefs.length > 0 && (
+                            <button
+                                onClick={handleSaveToCloud}
+                                disabled={isSavingCloud}
+                                className="bg-emerald-500/30 border border-emerald-400/30 text-emerald-100 hover:bg-emerald-500/50 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-emerald-500/20 disabled:opacity-60"
+                            >
+                                <i className={`fas ${isSavingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up'}`} /> Lưu Cloud
+                            </button>
                         )}
 
                         <div className="flex bg-white/10 backdrop-blur-sm p-1 rounded-xl border border-white/10">
