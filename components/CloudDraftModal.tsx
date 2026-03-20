@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Typography } from './Typography';
 import { listOrderDrafts, saveToCloudStorage, loadFromCloudStorage } from '../utils/supabase';
 
@@ -83,7 +84,7 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft }: 
 
     if (!isOpen) return null;
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fadeIn">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
 
@@ -193,6 +194,7 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft }: 
                     )}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
