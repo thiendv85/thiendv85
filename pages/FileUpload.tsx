@@ -5,9 +5,10 @@ import { parseCSV, parseDealerStockCSV, parseBackorderCSV } from '../utils/csvPa
 import { useLanguage } from '../utils/i18n';
 
 
-export const FileUpload = ({ onData, monthlyData }: {
+export const FileUpload = ({ onData, monthlyData, isMonthlyLoading }: {
     onData: (data: InventoryItem[], filename: string, sourceId: string) => void;
     monthlyData?: Record<string, MonthlyData> | null;
+    isMonthlyLoading?: boolean;
 }) => {
     const [mainFile, setMainFile] = useState<File | null>(null);
     const [dealerFile, setDealerFile] = useState<File | null>(null);
@@ -193,16 +194,22 @@ export const FileUpload = ({ onData, monthlyData }: {
                                     <p className="text-slate-400 text-xs font-medium mt-1 pl-3.5">Tải lên file snapshot tồn kho (.csv)</p>
                                 </div>
                                 {/* Monthly Data Badge */}
-                                {monthlyData
-                                    ? <div className="flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 px-2.5 py-1 rounded-lg text-xs font-bold">
+                                {isMonthlyLoading ? (
+                                    <div className="flex items-center gap-1.5 bg-blue-500/20 border border-blue-400/40 text-blue-300 px-2.5 py-1 rounded-lg text-xs font-bold animate-pulse">
+                                        <i className="fas fa-sync fa-spin" />
+                                        <span>Đang đồng bộ...</span>
+                                    </div>
+                                ) : monthlyData ? (
+                                    <div className="flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 px-2.5 py-1 rounded-lg text-xs font-bold">
                                         <i className="fas fa-calendar-check" />
                                         <span>D/L tháng: OK</span>
                                       </div>
-                                    : <div title="Vào Settings → Hệ thống → Upload File Monthly để kích hoạt" className="flex items-center gap-1.5 bg-amber-500/20 border border-amber-400/40 text-amber-300 px-2.5 py-1 rounded-lg text-xs font-bold cursor-help">
+                                ) : (
+                                    <div title="Vào Settings → Hệ thống → Upload File Monthly để kích hoạt" className="flex items-center gap-1.5 bg-amber-500/20 border border-amber-400/40 text-amber-300 px-2.5 py-1 rounded-lg text-xs font-bold cursor-help">
                                         <i className="fas fa-triangle-exclamation" />
                                         <span>Chưa có d/l tháng</span>
                                       </div>
-                                }
+                                )}
                             </div>
 
                             <div className="space-y-4">
@@ -211,30 +218,34 @@ export const FileUpload = ({ onData, monthlyData }: {
                                     onDragOver={onDragOver}
                                     onDragLeave={onDragLeave}
                                     onDrop={handleMainFileDrop}
-                                    onClick={() => mainInputRef.current?.click()}
+                                    onClick={() => !isMonthlyLoading && mainInputRef.current?.click()}
                                     className={`
                                   relative w-full h-24 rounded-2xl border-2 border-dashed transition-all cursor-pointer flex items-center px-6 group overflow-hidden
                                   ${isDragging
                                             ? 'bg-blue-500/20 border-blue-400 shadow-[0_0_30px_rgba(59,130,246,0.3)] scale-[1.02]'
                                             : mainFile
                                                 ? 'bg-emerald-500/10 border-emerald-500/50'
-                                                : 'bg-black/20 border-white/10 hover:border-blue-400/50 hover:bg-black/30'}
+                                                : isMonthlyLoading 
+                                                    ? 'bg-blue-500/5 border-blue-500/20 cursor-wait opacity-60'
+                                                    : 'bg-black/20 border-white/10 hover:border-blue-400/50 hover:bg-black/30'}
                               `}
                                 >
                                     <div className="flex-1 flex items-center gap-5 relative z-10">
-                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-all shadow-lg ${mainFile ? 'bg-gradient-emerald text-white' : 'bg-white/10 border border-white/10 text-slate-400 group-hover:bg-gradient-blue group-hover:text-white'}`}>
-                                            <i className={`fas ${mainFile ? 'fa-check text-2xl' : 'fa-cloud-arrow-up text-2xl'}`}></i>
+                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-all shadow-lg ${mainFile ? 'bg-gradient-emerald text-white' : isMonthlyLoading ? 'bg-blue-900/40 text-blue-400' : 'bg-white/10 border border-white/10 text-slate-400 group-hover:bg-gradient-blue group-hover:text-white'}`}>
+                                            <i className={`fas ${isMonthlyLoading ? 'fa-sync fa-spin text-xl' : mainFile ? 'fa-check text-2xl' : 'fa-cloud-arrow-up text-2xl'}`}></i>
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className={`text-2xs font-black uppercase tracking-widest mb-1 ${mainFile ? 'text-emerald-400' : 'text-blue-300'}`}>
-                                                {mainFile ? 'Sẵn sàng phân tích' : 'Dữ liệu chính'}
+                                            <span className={`text-2xs font-black uppercase tracking-widest mb-1 ${isMonthlyLoading ? 'text-blue-400' : mainFile ? 'text-emerald-400' : 'text-blue-300'}`}>
+                                                {isMonthlyLoading 
+                                                    ? 'Đang tải dữ liệu nguồn B...' 
+                                                    : mainFile ? 'Sẵn sàng phân tích' : 'Dữ liệu chính'}
                                             </span>
                                             <span className={`text-sm font-bold truncate transition-colors ${mainFile ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
-                                                {mainFile ? mainFile.name : "Kéo thả file Inventory tại đây..."}
+                                                {isMonthlyLoading ? "Vui lòng đợi 10-20s để đồng bộ 80k mã..." : mainFile ? mainFile.name : "Kéo thả file Inventory tại đây..."}
                                             </span>
                                         </div>
                                     </div>
-                                    <input type="file" ref={mainInputRef} className="hidden" accept=".csv" onChange={(e) => e.target.files && setMainFile(e.target.files[0])} />
+                                    <input type="file" ref={mainInputRef} className="hidden" accept=".csv" onChange={(e) => !isMonthlyLoading && e.target.files && setMainFile(e.target.files[0])} />
                                 </div>
 
                                 {/* Optional Inputs Grid */}
@@ -286,19 +297,19 @@ export const FileUpload = ({ onData, monthlyData }: {
 
                                 {/* Action Button */}
                                 <button
-                                    disabled={!mainFile || isLoading}
+                                    disabled={!mainFile || isLoading || isMonthlyLoading}
                                     onClick={processFiles}
                                     className={`
                                   w-full h-14 rounded-xl font-black uppercase tracking-[0.15em] shadow-lg transition-all flex items-center justify-center gap-3 mt-4 border border-white/10 group relative overflow-hidden
-                                  ${!mainFile || isLoading
+                                  ${!mainFile || isLoading || isMonthlyLoading
                                             ? 'bg-slate-700/50 text-slate-500 cursor-not-allowed'
                                             : 'bg-gradient-blue hover:shadow-glow-blue hover:scale-[1.02] text-white'}
                               `}
                                 >
-                                    {isLoading ? (
+                                    {isLoading || isMonthlyLoading ? (
                                         <>
                                             <i className="fas fa-circle-notch animate-spin"></i>
-                                            <span>Processing...</span>
+                                            <span>{isMonthlyLoading ? 'Syncing Monthly...' : 'Processing...'}</span>
                                         </>
                                     ) : (
                                         <>

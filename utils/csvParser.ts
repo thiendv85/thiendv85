@@ -267,8 +267,9 @@ export const parseMonthlyCSV = (text: string): Record<string, MonthlyData> => {
 
     lines.slice(1).forEach(line => {
         const row = parseLine(line, delimiter);
-        const itemCode = row[idxCode]?.trim();
-        if (!itemCode) return;
+        const rawItemCode = row[idxCode]?.trim();
+        if (!rawItemCode) return;
+        const itemCode = rawItemCode.toUpperCase();
 
         // Parse sales history (M columns)
         const salesHistory: number[] = [];
@@ -479,7 +480,8 @@ export const parseCSV = (text: string, monthlyData?: Record<string, MonthlyData>
         }
 
         // ── Merge Monthly Data (File B) if provided ──────────────────────────
-        const itemCode = row[idxMap.ItemCode]?.trim();
+        const rawItemCode = row[idxMap.ItemCode]?.trim();
+        const itemCode = rawItemCode?.toUpperCase() || "";
         const monthly = monthlyData ? monthlyData[itemCode] : undefined;
 
         // LOISGroup & TrendFlag: File B wins if available

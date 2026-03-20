@@ -8,7 +8,7 @@ import { SkuDetail } from './pages/SkuDetail';
 import { Ordering } from './pages/Ordering';
 import { DemandIntelligence } from './pages/DemandIntelligence';
 import { RepairPackageOptimizer } from './components/RepairPackageOptimizer';
-import { BackorderProcessing } from './pages/BackorderProcessing';
+// import { BackorderProcessing } from './pages/BackorderProcessing';
 import { SupersessionManagement } from './pages/SupersessionManagement';
 import { SupersessionEditModal } from './components/SupersessionEditModal';
 import { SettingsPage, loadAppSettings, saveAppSettings, AppSettings } from './pages/Settings';
@@ -25,6 +25,7 @@ const AppContent = () => {
     // Monthly coefficient data (File B) — loaded from Supabase on boot
     const [monthlyData, setMonthlyData] = useState<Record<string, MonthlyData> | null>(null);
     const [monthlyDataDate, setMonthlyDataDate] = useState<string | null>(null);
+    const [isMonthlyLoading, setIsMonthlyLoading] = useState(false);
 
     const [supersessionMappings, setSupersessionMappings] = useState<SupersessionMapping[]>(() => {
         try {
@@ -62,11 +63,13 @@ const AppContent = () => {
                 if (ssData && Array.isArray(ssData)) setSupersessionMappings(ssData);
 
                 // Load monthly coefficient data (File B)
+                setIsMonthlyLoading(true);
                 const monthly = await loadLatestMonthlyData();
                 if (monthly?.data) {
                     setMonthlyData(monthly.data);
                     setMonthlyDataDate(monthly.updatedAt.slice(0, 10));
                 }
+                setIsMonthlyLoading(false);
             } catch (err) {
                 console.error("Lỗi khi tải từ Cloud:", err);
             }
@@ -204,7 +207,13 @@ const AppContent = () => {
         setSupersessionMappings(newMappings);
     };
 
-    if (view === 'upload') return <FileUpload onData={handleDataUpload} monthlyData={monthlyData} />;
+    if (view === 'upload') return (
+        <FileUpload 
+            onData={handleDataUpload} 
+            monthlyData={monthlyData} 
+            isMonthlyLoading={isMonthlyLoading} 
+        />
+    );
 
     return (
         <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#f8fafc] to-[#e2e8f0] relative font-sans text-slate-800 overflow-x-clip">
@@ -225,18 +234,25 @@ const AppContent = () => {
                     </div>
                     {/* Monthly Data Status Badge */}
                     <div className="hidden md:flex items-center">
-                        {monthlyDataDate
-                            ? <div title={`Dữ liệu tháng: ${monthlyDataDate}`} className="flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-400/30 text-emerald-200 px-3 py-1.5 rounded-lg text-xs font-bold cursor-default">
+                        {isMonthlyLoading ? (
+                            <div className="flex items-center gap-1.5 bg-blue-500/20 border border-blue-400/30 text-blue-200 px-3 py-1.5 rounded-lg text-xs font-bold animate-pulse">
+                                <i className="fas fa-sync fa-spin text-blue-400 text-xs" />
+                                <span className="hidden xl:inline">Đang đồng bộ tháng...</span>
+                                <span className="xl:hidden">...</span>
+                            </div>
+                        ) : monthlyDataDate ? (
+                            <div title={`Dữ liệu tháng: ${monthlyDataDate}`} className="flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-400/30 text-emerald-200 px-3 py-1.5 rounded-lg text-xs font-bold cursor-default">
                                 <i className="fas fa-calendar-check text-emerald-300 text-xs" />
                                 <span className="hidden xl:inline">Monthly: {monthlyDataDate}</span>
                                 <span className="xl:hidden">M</span>
-                              </div>
-                            : <div title="Chưa tải dữ liệu tháng — vào Settings → Hệ thống → Upload File Monthly" className="flex items-center gap-1.5 bg-amber-500/20 border border-amber-400/30 text-amber-200 px-3 py-1.5 rounded-lg text-xs font-bold cursor-default">
+                            </div>
+                        ) : (
+                            <div title="Chưa tải dữ liệu tháng — vào Settings → Hệ thống → Upload File Monthly" className="flex items-center gap-1.5 bg-amber-500/20 border border-amber-400/30 text-amber-200 px-3 py-1.5 rounded-lg text-xs font-bold cursor-default">
                                 <i className="fas fa-triangle-exclamation text-amber-300 text-xs" />
                                 <span className="hidden xl:inline">Chưa có d/l tháng</span>
                                 <span className="xl:hidden">!</span>
-                              </div>
-                        }
+                            </div>
+                        )}
                     </div>
 
                     <nav className="flex items-center gap-1.5 bg-white/5 p-1.5 rounded-2xl border border-white/10 overflow-x-auto no-scrollbar max-w-[60%] md:max-w-none backdrop-blur-md shadow-inner">

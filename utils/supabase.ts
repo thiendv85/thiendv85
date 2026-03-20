@@ -180,8 +180,11 @@ export async function loadLatestMonthlyData(): Promise<{ data: Record<string, an
       if (!rows || rows.length === 0) break;
 
       for (const r of rows) {
-        result[r.item_code] = {
-          ItemCode:          r.item_code,
+        const itemCode = (r.item_code || '').trim().toUpperCase();
+        if (!itemCode) continue;
+
+        result[itemCode] = {
+          ItemCode:          itemCode,
           LOISGroup:         r.lois_group,
           AvgQty3M:          r.avg_qty_3m,
           AvgQty6M:          r.avg_qty_6m,
@@ -209,6 +212,8 @@ export async function loadLatestMonthlyData(): Promise<{ data: Record<string, an
 
       if (rows.length < PAGE) break;
       from += PAGE;
+      // Yield to main thread to prevent UI freezing with 80k rows
+      await new Promise(r => setTimeout(r, 0));
     }
 
     if (Object.keys(result).length === 0) return null;
