@@ -177,6 +177,19 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                 const draftQty = draft.air + draft.sea;
                 const itemProfile = resolveItemProfile(item, computeParams.sourceProfiles);
                 const computed = computeInventory(item, computeParams, draftQty, itemProfile);
+                
+                // O12 FIX: Restore original order suggestions to ensure they remain static after drafting quantities
+                if (item.computed) {
+                    computed.gapOrExcess = item.computed.gapOrExcess;
+                    computed.suggestedBO = item.computed.suggestedBO;
+                    if (computed.transfer && item.computed.transfer) {
+                        computed.transfer.suggestedOrderNB = item.computed.transfer.suggestedOrderNB;
+                        computed.transfer.suggestedOrderBB = item.computed.transfer.suggestedOrderBB;
+                        computed.transfer.transferNBtoBB = item.computed.transfer.transferNBtoBB;
+                        computed.transfer.transferBBtoNB = item.computed.transfer.transferBBtoNB;
+                    }
+                }
+                
                 finalizedItem = { ...item, computed };
             }
 
@@ -597,6 +610,11 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                             <div className="text-xs text-slate-500 font-bold truncate max-w-[200px]">{item.ItemName}</div>
                                             <div className="mt-1 flex flex-wrap items-center gap-2">
                                                 <span className="text-xs font-black px-1.5 py-0.5 rounded uppercase bg-blue-50 text-blue-700 border border-blue-100">LOIS {item.LOISGroup}</span>
+                                                {item.SourceId && (
+                                                    <span className="text-2xs font-black px-1.5 py-0.5 rounded uppercase bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                                        {item.SourceId}
+                                                    </span>
+                                                )}
                                                 {item.TypeCar && (
                                                     <span className="text-2xs font-black px-1.5 py-0.5 rounded uppercase bg-slate-100 text-slate-600 border border-slate-200">
                                                         {item.TypeCar}

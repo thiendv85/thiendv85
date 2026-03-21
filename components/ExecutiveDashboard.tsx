@@ -1,4 +1,4 @@
-﻿
+
 import React, { useMemo, useState, useEffect } from 'react';
 import { InventoryItem, DashboardSettings, InventoryFilters, getDebtStatus, OrderingDraft } from '../types/inventory';
 import { StatusBadge } from './StatusBadge';
@@ -16,7 +16,7 @@ import { Typography } from './Typography';
 // Inline: StockOutCountdown
 const StockOutCountdown = ({ current, onOrder, dailyDemand, backorder }: { current: number; onOrder: number; dailyDemand: number; backorder: number }) => {
     const available = Math.max(0, current - backorder);
-    const totalAvail = available + (onOrder || 0);
+    const totalAvail = available; // Chỉ tính tồn kho vật lý (Onhand) trừ đi nợ đơn (Backorder), không cộng PO (onOrder)
     if (dailyDemand <= 0) return <div className="text-slate-300 font-black text-base">∞</div>;
     const daysLeft = Math.floor(totalAvail / dailyDemand);
     const mos = daysLeft / 30;
@@ -29,24 +29,7 @@ const StockOutCountdown = ({ current, onOrder, dailyDemand, backorder }: { curre
     );
 };
 
-// Inline: SupersessionCell
-const SupersessionCell = ({ item, graph, onClick }: { item: any; graph?: SupersessionGraph; onClick?: (e: React.MouseEvent) => void }) => {
-    if (!graph) return null;
-    const chain = graph.getChain(item.ItemCode);
-    if (!chain || chain.allParts.length <= 1) return null;
-    const isObsolete = chain.allParts[chain.allParts.length - 1] !== item.ItemCode;
-    return (
-        <Typography
-            as="span"
-            variant="label"
-            onClick={onClick}
-            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border cursor-pointer text-[#DCDCDC] underline link-item substitution-chain ${isObsolete ? 'bg-amber-50/10 border-amber-200/30' : 'bg-blue-50/10 border-blue-200/30'
-                }`}
-        >
-            <i className="fas fa-link" />{isObsolete ? 'Superseded' : 'Supersedes'}
-        </Typography>
-    );
-};
+
 
 const CombinedDebtPriorityBadge = ({ item, draftQty = 0 }: { item: InventoryItem, draftQty?: number }) => {
     const priority = calculatePickingPriority(item, draftQty);
@@ -262,17 +245,15 @@ export const ExecutiveDashboard = ({ filteredData, allData, onItemSelect, settin
                                         <td className="px-6 py-3 sticky left-12 z-10 bg-white group-hover:bg-slate-50/80 transition-colors sticky-column-shadow border-b border-slate-50 cursor-pointer" onClick={() => onItemSelect(item)}>
                                             <div className="flex items-center gap-2">
                                                 <Typography variant="mono" className="text-slate-900 text-base group-hover:text-blue-600 transition-colors !font-bold leading-none">{item.ItemCode}</Typography>
+                                                <SupersessionIndicator partNumber={item.ItemCode} graph={graph} onClick={(e) => { e.stopPropagation(); onItemSelect(item); }} />
                                             </div>
                                             <Typography variant="body-sm" className="text-slate-500 font-bold truncate max-w-[180px]">{item.ItemName}</Typography>
                                             <div className="mt-1 flex flex-wrap items-center gap-2">
-                                                {hasSupersession ? (
-                                                    <SupersessionCell
-                                                        item={item}
-                                                        graph={graph}
-                                                        onClick={(e) => { e.stopPropagation(); onItemSelect(item); }}
-                                                    />
-                                                ) : (
-                                                    <DebtStatusBadge item={item} />
+                                                <DebtStatusBadge item={item} />
+                                                {item.SourceId && (
+                                                    <Typography variant="label" className="bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded font-bold">
+                                                        {item.SourceId}
+                                                    </Typography>
                                                 )}
                                                 {item.TypeCar && (
                                                     <Typography variant="label" className="bg-slate-100 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded">
