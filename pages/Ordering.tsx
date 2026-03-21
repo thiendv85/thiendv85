@@ -174,20 +174,15 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
             // If item has draft, re-calculate its simulations. Otherwise, use base item.
             let finalizedItem = item;
             if (hasDraft) {
-                const draftQty = draft.air + draft.sea;
                 const itemProfile = resolveItemProfile(item, computeParams.sourceProfiles);
-                const computed = computeInventory(item, computeParams, draftQty, itemProfile);
+                const computed = computeInventory(item, computeParams, draft, itemProfile);
                 
-                // O12 FIX: Restore original order suggestions to ensure they remain static after drafting quantities
+                // O12 FIX: Restore original AIR and total SEA order suggestions to ensure they remain static.
+                // NOTE: We do NOT restore suggestedOrderNB, suggestedOrderBB, transferNBtoBB, transferBBtoNB
+                // so that they can dynamically reflect the split for the newly drafted quantity based on target distribution!
                 if (item.computed) {
                     computed.gapOrExcess = item.computed.gapOrExcess;
                     computed.suggestedBO = item.computed.suggestedBO;
-                    if (computed.transfer && item.computed.transfer) {
-                        computed.transfer.suggestedOrderNB = item.computed.transfer.suggestedOrderNB;
-                        computed.transfer.suggestedOrderBB = item.computed.transfer.suggestedOrderBB;
-                        computed.transfer.transferNBtoBB = item.computed.transfer.transferNBtoBB;
-                        computed.transfer.transferBBtoNB = item.computed.transfer.transferBBtoNB;
-                    }
                 }
                 
                 finalizedItem = { ...item, computed };

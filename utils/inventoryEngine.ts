@@ -258,9 +258,11 @@ function calculateLinReg(history: number[]): { slope: number; forecast: number }
 export function computeInventory(
     item: InventoryItem,
     params: ComputeParams,
-    draftQty = 0,
+    draftData: { air: number; sea: number } = { air: 0, sea: 0 },
     itemSourceProfile?: SourceProfile
 ): ComputedFields {
+    const draftQty = draftData.air + draftData.sea;
+
     // ── 0. PARAMS RESOLUTION ────────────────────────────────────────────────
     // Nếu có profile truyền vào (ví dụ khớp từ SourceId), dùng tham số của profile đó.
     // Nếu không, dùng tham số toàn cục từ params.
@@ -522,7 +524,9 @@ export function computeInventory(
         maxNB = Math.round(stockMax * ratioNB);
         maxBB = Math.round(stockMax * ratioBB);
 
-        if (gapOrExcess > 0) {
+        const amountToSplit = draftData.sea > 0 ? draftData.sea : gapOrExcess;
+
+        if (amountToSplit > 0) {
             const reserveNB_forOrder = physicalNB + transferBBtoNB - transferNBtoBB + (item.TotalPO_NB || 0);
             const reserveBB_forOrder = physicalBB + transferNBtoBB - transferBBtoNB + (item.TotalPO_BB || 0);
 
@@ -532,13 +536,13 @@ export function computeInventory(
 
             if (totalDeficit > 0) {
                 const ratioNB_deficit = gapNB / totalDeficit;
-                const rawShareNB = gapOrExcess * ratioNB_deficit;
+                const rawShareNB = amountToSplit * ratioNB_deficit;
                 suggestedOrderNB = Math.round(rawShareNB / snp) * snp;
-                suggestedOrderBB = gapOrExcess - suggestedOrderNB;
+                suggestedOrderBB = amountToSplit - suggestedOrderNB;
             } else {
-                const rawShareNB = gapOrExcess * ratioNB;
+                const rawShareNB = amountToSplit * ratioNB;
                 suggestedOrderNB = Math.round(rawShareNB / snp) * snp;
-                suggestedOrderBB = gapOrExcess - suggestedOrderNB;
+                suggestedOrderBB = amountToSplit - suggestedOrderNB;
             }
         }
     }
@@ -645,12 +649,10 @@ export function computeInventoryBatch(
     draftData?: Record<string, { air: number; sea: number }>
 ): InventoryItem[] {
     return items.map(item => {
-        const draftQty = draftData?.[item.ItemCode]
-            ? (draftData[item.ItemCode].air + draftData[item.ItemCode].sea)
-            : 0;
+        const itemDraftData = draftData?.[item.ItemCode] || { air: 0, sea: 0 };
 
         const itemProfile = resolveItemProfile(item, params.sourceProfiles);
-        const computed = computeInventory(item, params, draftQty, itemProfile);
+        const computed = computeInventory(item, params, itemDraftData, itemProfile);
         return { ...item, computed };
     });
 }
