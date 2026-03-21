@@ -12,6 +12,7 @@ import { SupersessionGraph } from '../utils/supersessionGraph';
 import { SupersessionIndicator } from './SupersessionIndicator';
 import { ConsolidatedStockCell } from './ConsolidatedStockCell';
 import { Typography } from './Typography';
+import { TrendBadge } from './TrendBadge';
 
 // Inline: StockOutCountdown
 const StockOutCountdown = ({ current, onOrder, dailyDemand, backorder }: { current: number; onOrder: number; dailyDemand: number; backorder: number }) => {
@@ -120,10 +121,14 @@ export const ExecutiveDashboard = ({ filteredData, allData, onItemSelect, settin
             </div>
 
             {isMobile ? (
-                <div className="p-4 space-y-4 bg-slate-50/30">
-                    {paginatedData.map((item, idx) => {
-                        const draftQty = draftData?.quantities?.[item.ItemCode] ? (draftData.quantities[item.ItemCode].air + draftData.quantities[item.ItemCode].sea) : 0;
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 stagger-children">
+                    {paginatedData.map((item) => {
+                        const m1Actual = item.SalesHistory ? item.SalesHistory[item.SalesHistory.length - 1] : 0;
                         const incomingThisMonth = item.computed?.incomingCurrentMonth || 0;
+                        const demandMonthly = (item.computed?.demandRateDaily || 0) * 30;
+                        const draftQty = draftData?.quantities?.[item.ItemCode] ? (draftData.quantities[item.ItemCode].air + draftData.quantities[item.ItemCode].sea) : 0;
+                        const chain = graph?.getChain(item.ItemCode);
+                        const hasSupersession = chain && chain.allParts.length > 1;
 
                         return (
                             <div key={item.ItemCode} onClick={() => onItemSelect(item)} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm active:scale-[0.98] transition-transform">
@@ -160,6 +165,26 @@ export const ExecutiveDashboard = ({ filteredData, allData, onItemSelect, settin
                                     </div>
                                 </div>
 
+                                {/* Demand & Pipeline Summary for Cards */}
+                                <div className="grid grid-cols-2 gap-3 mb-4">
+                                    <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                                        <Typography variant="label" className="text-slate-400 block mb-1 uppercase tracking-tighter">DEMAND</Typography>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-black text-slate-700">{(m1Actual || 0).toLocaleString()}</span>
+                                            <div className="h-3 w-px bg-slate-300"></div>
+                                            <span className="font-black text-emerald-600">{item.BaseForecast ? Math.round(item.BaseForecast).toLocaleString() : '-'}</span>
+                                        </div>
+                                    </div>
+                                    <div className="bg-blue-50/50 p-2 rounded-xl border border-blue-100">
+                                        <Typography variant="label" className="text-blue-400 block mb-1 uppercase tracking-tighter">Pipeline (In/PO)</Typography>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-black text-blue-700">+{incomingThisMonth.toLocaleString()}</span>
+                                            <div className="h-3 w-px bg-blue-200"></div>
+                                            <span className="font-black text-indigo-600">PO: {item.TotalPO.toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div className="space-y-4">
                                     <StockProgressBar
                                         current={item.computed?.available || 0} rop={item.computed?.rop || 0}
@@ -173,7 +198,7 @@ export const ExecutiveDashboard = ({ filteredData, allData, onItemSelect, settin
                                         <div className="flex flex-col">
                                             <Typography variant="label" className="text-slate-400">Runway (MOS)</Typography>
                                             <Typography variant="h3" className={(item.computed?.mos || 0) < 1 ? 'text-rose-600' : 'text-slate-900'}>
-                                                {(item.computed?.mos || 0).toFixed(1)} <span className="text-xs">M</span>
+                                                {demandMonthly <= 0 ? '∞' : `${(item.computed?.mos || 0).toFixed(1)} M`}
                                             </Typography>
                                         </div>
                                         <div className="flex flex-col text-right">
@@ -196,10 +221,11 @@ export const ExecutiveDashboard = ({ filteredData, allData, onItemSelect, settin
                             <tr>
                                 <th className="px-4 py-4 w-12 text-center border-b border-slate-200/60 sticky left-0 z-40 bg-white">#</th>
                                 <th className="px-6 py-4 min-w-[220px] sticky left-12 z-40 bg-white border-b border-slate-200/60 sticky-column-shadow">SKU IDENTITY</th>
-                                <th className="px-4 py-4 border-b border-slate-200/60 text-right">STOCK HEALTH</th>
-                                <th className="px-4 py-4 border-b border-slate-200/60 text-center">{t('th_incoming')}</th>
-                                <th className="px-4 py-4 text-center border-b border-slate-200/60">{t('ord_th_momentum')}</th>
-                                <th className="px-4 py-4 text-center border-b border-slate-200/60">RUNWAY</th>
+                                <th className="px-4 py-4 border-b border-slate-200/60 text-center min-w-[110px]">DEMAND</th>
+                                <th className="px-4 py-4 border-b border-slate-200/60 text-right min-w-[145px]">STOCK HEALTH</th>
+                                <th className="px-4 py-4 border-b border-slate-200/60 text-center min-w-[110px]">SUPPLY PIPELINE</th>
+                                <th className="px-4 py-4 text-center border-b border-slate-200/60 min-w-[120px]">{t('ord_th_momentum')}</th>
+                                <th className="px-4 py-4 text-center border-b border-slate-200/60 min-w-[80px]">RUNWAY</th>
                                 <th className="px-4 py-4 text-center border-b border-slate-200/60">{t('ord_th_dealer_cst')}</th>
                                 <th className="px-4 py-4 text-right border-b border-slate-200/60">{t('th_stock_val')}</th>
                                 <th className="px-4 py-4 text-center sticky right-0 z-40 bg-white border-b border-slate-200/60 border-l border-slate-200"><i className="fas fa-gear"></i></th>
@@ -240,37 +266,72 @@ export const ExecutiveDashboard = ({ filteredData, allData, onItemSelect, settin
                                                 )}
                                                 {item.TypeCar && (
                                                     <Typography variant="label" className="bg-slate-100 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded">
-                                                        {item.TypeCar}
+                                                         {item.TypeCar?.split(' | ')[0]}
                                                     </Typography>
                                                 )}
                                             </div>
                                         </td>
 
-                                        <td className="px-4 py-3 border-b border-slate-50">
-                                            <div className="flex flex-col items-end">
-                                                <div className="flex items-center gap-3 mb-1">
-                                                    <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200/60 shadow-sm" title="Last Month Sales / Base Forecast">
-                                                        <span className="font-black text-slate-800 text-sm">{(m1Actual || 0).toLocaleString()}</span>
-                                                        <div className="h-3 w-px bg-slate-300"></div>
-                                                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-tighter">FC: {item.BaseForecast ? (item.BaseForecast >= 10 ? Math.round(item.BaseForecast).toLocaleString() : item.BaseForecast.toFixed(1)) : '-'}</span>
+                                        {/* DEMAND SIGNAL */}
+                                        <td className="px-4 py-3 text-center border-b border-slate-50">
+                                            <div className="flex flex-col items-center gap-1">
+                                                <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200/80 shadow-sm" title="Bán M-1 thực tế / Dự báo FC">
+                                                    <div className="flex flex-col items-start leading-tight">
+                                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">M-1</span>
+                                                        <span className="font-black text-slate-800 text-sm leading-none">{(m1Actual || 0).toLocaleString()}</span>
                                                     </div>
-                                                    <ConsolidatedStockCell item={item} allItems={inventorySource} graph={graph} />
+                                                    <div className="h-8 w-px bg-slate-200"></div>
+                                                    <div className="flex flex-col items-start leading-tight">
+                                                        <span className="text-[9px] font-black text-emerald-500 uppercase tracking-wider">FC</span>
+                                                        <span className="font-black text-emerald-700 text-sm leading-none">{item.BaseForecast ? (item.BaseForecast >= 10 ? Math.round(item.BaseForecast).toLocaleString() : item.BaseForecast.toFixed(1)) : '-'}</span>
+                                                    </div>
                                                 </div>
-                                                <StockProgressBar current={item.computed?.available || 0} rop={item.computed?.rop || 0} max={item.computed?.isStopBiz ? 0 : (item.computed?.stockMax || 1)} ss={item.computed?.safetyStock} onOrder={item.TotalPO} incoming={incomingThisMonth} backorder={item.Backorder} breakdown={item.BackorderBreakdown} draftAdd={draftQty} baseFc={item.BaseForecast} />
+                                                <TrendBadge trend={item.TrendFlag} />
                                             </div>
                                         </td>
+
+                                        <td className="px-4 py-3 border-b border-slate-50">
+                                            <div className="flex flex-col items-end">
+                                                <ConsolidatedStockCell item={item} allItems={inventorySource} graph={graph} />
+                                                <StockProgressBar current={item.computed?.available || 0} rop={item.computed?.rop || 0} max={item.computed?.isStopBiz ? 0 : (item.computed?.stockMax || 1)} ss={item.computed?.safetyStock} onOrder={item.TotalPO} incoming={incomingThisMonth} backorder={item.Backorder} backorderBreakdown={item.BackorderBreakdown} draftAdd={draftQty} baseFc={item.BaseForecast} />
+                                            </div>
+                                        </td>
+
                                         <td className="px-4 py-3 text-center border-b border-slate-50">
-                                            <Typography variant="body" className={`font-bold ${incomingThisMonth > 0 ? 'text-blue-700' : 'text-slate-300'}`}>
-                                                {incomingThisMonth > 0 ? `+${incomingThisMonth.toLocaleString()}` : '-'}
-                                            </Typography>
-                                            {incomingThisMonth > 0 && <Typography variant="label" className="text-blue-400 !font-semibold normal-case leading-tight">Về trong tháng</Typography>}
+                                            <div className="flex flex-col items-center gap-1">
+                                                {incomingThisMonth > 0 ? (
+                                                    <div className="flex flex-col items-center">
+                                                        <Typography variant="body" className="font-bold text-blue-700">+{incomingThisMonth.toLocaleString()}</Typography>
+                                                        <Typography variant="label" className="text-blue-400 !font-semibold normal-case leading-tight">Về tháng này</Typography>
+                                                    </div>
+                                                ) : (
+                                                    <Typography variant="body" className="font-bold text-slate-300">-</Typography>
+                                                )}
+                                                {item.TotalPO > 0 && (
+                                                    <div className="flex items-center gap-1 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                                                        <i className="fas fa-ship text-indigo-400 text-[9px]"></i>
+                                                        <span className="text-[10px] font-black text-indigo-600">PO: {item.TotalPO.toLocaleString()}</span>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-4 py-3 text-center border-b border-slate-50"><SalesMomentum values={[item.AvgQty24M, item.AvgQty12M, item.AvgQty6M, item.AvgQty3M]} history={item.SalesHistory} forecast={item.BaseForecast} /></td>
-                                        <td className="px-4 py-3 text-center border-b border-slate-50"><StockOutCountdown current={item.computed?.available || 0} onOrder={item.TotalPO} dailyDemand={item.computed?.demandRateDaily || 0} backorder={item.Backorder} /></td>
                                         <td className="px-4 py-3 text-center border-b border-slate-50">
-                                            <Typography variant="body" className="font-bold text-slate-800">{item.DealerInventory.toLocaleString()}</Typography>
+                                            {demandMonthly <= 0 ? (
+                                                <div className="flex flex-col items-center">
+                                                    <Typography variant="body" className="font-bold text-slate-300">∞</Typography>
+                                                    <Typography variant="label" className="text-slate-400 !font-semibold normal-case">No demand</Typography>
+                                                </div>
+                                            ) : (
+                                                <StockOutCountdown current={item.computed?.available || 0} onOrder={item.TotalPO} dailyDemand={item.computed?.demandRateDaily || 0} backorder={item.Backorder} />
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-3 text-center border-b border-slate-50">
+                                            <Typography variant="body" className="font-bold text-slate-800">{(item.DealerInventory || 0).toLocaleString()}</Typography>
                                             <div className="mt-1 flex flex-col items-center">
-                                                <Typography variant="label" className="text-slate-400 !font-semibold normal-case border border-slate-200 px-1.5 rounded-lg bg-slate-50">CST: {currentCst.toFixed(1)}</Typography>
+                                                <div className={`text-sm font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200`}>
+                                                    {demandMonthly <= 0 ? 'CST: ∞' : `CST: ${currentCst.toFixed(1)}`}
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="px-4 py-3 text-right border-b border-slate-50">

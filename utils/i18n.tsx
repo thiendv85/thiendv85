@@ -28,6 +28,9 @@ export const dictionary = {
         status_active: "Đang kinh doanh",
         status_sleeping: "Ngủ đông",
         status_dead: "Ngừng kinh doanh",
+        trend_up: "Tăng",
+        trend_down: "Giảm",
+        trend_stable: "Ổn định",
 
         // --- STOCK PROGRESS BAR ---
         spb_avail: "Sẵn có",
@@ -142,7 +145,7 @@ export const dictionary = {
         ord_th_sea: "SEA (Regular)",
         ord_th_note: "Ghi chú",
         ord_th_amount: "Thành tiền",
-        ord_th_demand: "M-1 / Base FC",
+        ord_th_demand: "DEMAND",
 
         // --- BACKORDER PROCESSING ---
         bo_title: "Backorder Radar",
@@ -320,6 +323,9 @@ export const dictionary = {
         status_active: "Active",
         status_sleeping: "Sleeping",
         status_dead: "Dead Stock",
+        trend_up: "Up",
+        trend_down: "Down",
+        trend_stable: "Stable",
 
         // --- STOCK PROGRESS BAR ---
         spb_avail: "Avail",
@@ -434,7 +440,7 @@ export const dictionary = {
         ord_th_sea: "SEA (Regular)",
         ord_th_note: "Note",
         ord_th_amount: "Amount",
-        ord_th_demand: "M-1 / Base FC",
+        ord_th_demand: "DEMAND",
 
         // --- BACKORDER PROCESSING ---
         bo_title: "Backorder Radar",

@@ -8,6 +8,7 @@ import { StockProgressBar } from '../components/StockProgressBar';
 import { SalesMomentum } from '../components/SalesMomentum';
 import { exportOrderDraftToCSV, parseOrderingDraftCSV, calculatePickingPriority, CsvExportOptions } from '../utils/csvParser';
 import { useLanguage } from '../utils/i18n';
+import { TrendBadge } from '../components/TrendBadge';
 import { SupersessionGraph } from '../utils/supersessionGraph';
 import { SupersessionWarning } from '../components/SupersessionWarning';
 import { SupersessionIndicator } from '../components/SupersessionIndicator';
@@ -538,8 +539,9 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                             <tr className="text-xs uppercase font-black tracking-wider">
                                 <th className="px-4 py-4 w-12 text-center text-slate-400 border-b border-slate-200 sticky left-0 z-40 bg-slate-50/95 shadow-sm"><Typography variant="label">#</Typography></th>
                                 <th className="px-4 py-4 min-w-[200px] sticky left-12 z-40 bg-slate-50/95 border-b border-slate-200 sticky-column-shadow"><Typography variant="label">{t('ord_th_sku')}</Typography></th>
+                                <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[110px]"><Typography variant="label">DEMAND</Typography></th>
                                 <th className="px-4 py-4 min-w-[145px] text-right border-b border-slate-200"><Typography variant="label">{t('ord_th_health')}</Typography></th>
-                                <th className="px-4 py-4 text-center border-b border-slate-200"><Typography variant="label">{t('th_incoming')}</Typography></th>
+                                <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[110px]"><Typography variant="label">SUPPLY PIPELINE</Typography></th>
                                 <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[120px]"><Typography variant="label">{t('ord_th_momentum')}</Typography></th>
                                 <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[80px]"><Typography variant="label">{t('ord_th_mos')}</Typography></th>
                                 <th className="px-4 py-4 text-center border-b border-slate-200"><Typography variant="label">{t('ord_th_dealer_cst')}</Typography></th>
@@ -585,34 +587,80 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                                 )}
                                                 {item.TypeCar && (
                                                     <span className="text-2xs font-black px-1.5 py-0.5 rounded uppercase bg-slate-100 text-slate-600 border border-slate-200">
-                                                        {item.TypeCar}
+                                                         {item.TypeCar?.split(' | ')[0]}
                                                     </span>
                                                 )}
-                                                <span className={`text-xs font-black px-1.5 py-0.5 rounded uppercase flex items-center gap-1 border ${item.TrendFlag === 'Up' ? 'text-emerald-700 bg-emerald-50 border-emerald-100' : 'text-slate-500 bg-slate-50 border-slate-100'}`}><i className={`fas fa-${item.TrendFlag === 'Up' ? 'arrow-trend-up' : 'minus'}`}></i> {item.TrendFlag}</span>
                                             </div>
                                         </td>
+                                        {/* DEMAND SIGNAL — cột tách riêng, đứng trước Stock Health */}
+                                        <td className="px-4 py-3 text-center border-b border-slate-50">
+                                            <div className="flex flex-col items-center gap-1">
+                                                <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200/80 shadow-sm" title="Bán M-1 thực tế / Dự báo FC">
+                                                    <div className="flex flex-col items-start leading-tight">
+                                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">M-1</span>
+                                                        <span className="font-black text-slate-800 text-sm leading-none">{(m1Actual || 0).toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="h-8 w-px bg-slate-200"></div>
+                                                    <div className="flex flex-col items-start leading-tight">
+                                                        <span className="text-[9px] font-black text-emerald-500 uppercase tracking-wider">FC</span>
+                                                        <span className="font-black text-emerald-700 text-sm leading-none">{item.BaseForecast ? (item.BaseForecast >= 10 ? Math.round(item.BaseForecast).toLocaleString() : item.BaseForecast.toFixed(1)) : '-'}</span>
+                                                    </div>
+                                                </div>
+                                                <TrendBadge trend={item.TrendFlag} />
+                                            </div>
+                                        </td>
+                                        {/* STOCK HEALTH */}
                                         <td className="px-4 py-3 text-right border-b border-slate-50">
                                             <div className="flex flex-col items-end">
-                                                <div className="flex items-center gap-3 mb-1">
-                                                    <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200/60 shadow-sm" title="Last Month Sales / Base Forecast">
-                                                        <span className="font-black text-slate-800 text-sm">{(m1Actual || 0).toLocaleString()}</span>
-                                                        <div className="h-3 w-px bg-slate-300"></div>
-                                                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-tighter">FC: {item.BaseForecast ? (item.BaseForecast >= 10 ? Math.round(item.BaseForecast).toLocaleString() : item.BaseForecast.toFixed(1)) : '-'}</span>
-                                                    </div>
-                                                    <ConsolidatedStockCell item={item} allItems={enrichedList} graph={graph} />
-                                                </div>
+                                                <ConsolidatedStockCell item={item} allItems={enrichedList} graph={graph} />
                                                 <StockProgressBar current={item.computed?.available || 0} rop={item.computed?.rop || 0}
-                                                    // O6 Fix: max fallback dùng 0 nếu isStop, không dùng 100 tùy tiện
                                                     max={item.computed?.isStopBiz ? 0 : (item.computed?.stockMax || 1)}
                                                     ss={item.computed?.safetyStock} onOrder={item.TotalPO} incoming={incomingThisMonth} backorder={item.Backorder} breakdown={item.BackorderBreakdown} draftAdd={draftQtyTotal} baseFc={item.BaseForecast} />
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3 text-center border-b border-slate-50"><div className={`text-base font-black ${incomingThisMonth > 0 ? 'text-blue-700' : 'text-slate-300'}`}>{incomingThisMonth > 0 ? `+${incomingThisMonth.toLocaleString()}` : '-'}</div>{incomingThisMonth > 0 && <div className="text-2xs font-bold text-blue-400 uppercase leading-tight">Về trong tháng</div>}</td>
+                                        {/* SUPPLY PIPELINE — incoming tháng + total PO */}
+                                        <td className="px-4 py-3 text-center border-b border-slate-50">
+                                            <div className="flex flex-col items-center gap-1">
+                                                {incomingThisMonth > 0 ? (
+                                                    <div className="flex flex-col items-center">
+                                                        <div className="text-base font-black text-blue-700">+{incomingThisMonth.toLocaleString()}</div>
+                                                        <div className="text-[10px] font-bold text-blue-400 uppercase leading-tight">Về tháng này</div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-slate-300 font-black text-base">-</div>
+                                                )}
+                                                {item.TotalPO > 0 && (
+                                                    <div className="flex items-center gap-1 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                                                        <i className="fas fa-ship text-indigo-400 text-[9px]"></i>
+                                                        <span className="text-[10px] font-black text-indigo-600">PO: {item.TotalPO.toLocaleString()}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </td>
                                         <td className="px-4 py-3 text-center border-b border-slate-50">
                                             <SalesMomentum values={[item.AvgQty24M, item.AvgQty12M, item.AvgQty6M, item.AvgQty3M]} history={item.SalesHistory} forecast={item.BaseForecast} />
                                         </td>
-                                        <td className="px-4 py-3 text-center border-b border-slate-50"><div className={`text-base font-black ${item.computed!.mos < 1 ? 'text-rose-700' : (item.computed!.mos > 12 ? 'text-amber-700' : 'text-emerald-700')}`}>{(item.computed?.mos || 0).toFixed(1)} <span className="text-xs text-slate-500">M</span></div></td>
-                                        <td className="px-4 py-3 text-center border-b border-slate-50"><div className="text-sm font-black text-slate-800">{(item.DealerInventory || 0).toLocaleString()}</div><div className="mt-1 flex flex-col items-center"><div className={`text-sm font-black px-2 py-0.5 rounded-full transition-all duration-500 ${isCstImproved ? 'bg-blue-600 text-white border border-blue-700 scale-110' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>CST: {(displayCst || 0).toFixed(1)}</div></div></td>
+                                        {/* MOS — fix bug khi demand = 0 */}
+                                        <td className="px-4 py-3 text-center border-b border-slate-50">
+                                            {demandMonthly <= 0 ? (
+                                                <div className="flex flex-col items-center">
+                                                    <div className="text-base font-black text-slate-300">∞</div>
+                                                    <div className="text-[10px] font-bold text-slate-400 uppercase">No demand</div>
+                                                </div>
+                                            ) : (
+                                                <div className={`text-base font-black ${item.computed!.mos < 1 ? 'text-rose-700' : (item.computed!.mos > 12 ? 'text-amber-700' : 'text-emerald-700')}`}>
+                                                    {(item.computed?.mos || 0).toFixed(1)} <span className="text-xs text-slate-500">M</span>
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-3 text-center border-b border-slate-50">
+                                            <div className="text-sm font-black text-slate-800">{(item.DealerInventory || 0).toLocaleString()}</div>
+                                            <div className="mt-1 flex flex-col items-center">
+                                                <div className={`text-sm font-black px-2 py-0.5 rounded-full transition-all duration-500 ${isCstImproved ? 'bg-blue-600 text-white border border-blue-700 scale-110' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
+                                                    {demandMonthly <= 0 ? 'CST: ∞' : `CST: ${(displayCst || 0).toFixed(1)}`}
+                                                </div>
+                                            </div>
+                                        </td>
                                         <td className="px-4 py-3 border-x border-slate-100 bg-rose-50/10 text-center border-b border-slate-50">
                                             <input type="number" value={d.air || ''} onChange={e => handleQtyChange(item.ItemCode, 'air', parseInt(e.target.value) || 0)} className="w-20 text-center font-black text-sm border border-rose-200 rounded-xl p-2 focus:border-rose-400 outline-none bg-white transition-all text-rose-700" placeholder="0" />
                                             {((item.computed?.suggestedBO || 0) > 0) && d.air === 0 && (

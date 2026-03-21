@@ -486,7 +486,12 @@ export const parseCSV = (text: string, monthlyData?: Record<string, MonthlyData>
 
         // LOISGroup & TrendFlag: File B wins if available
         const loisGroup = monthly?.LOISGroup || row[idxMap.LOISGroup]?.trim() || '';
-        const trendFlag = monthly?.TrendFlag || row[idxMap.TrendFlag]?.trim() || 'Stable';
+        const rawTrend = (monthly?.TrendFlag || row[idxMap.TrendFlag]?.trim() || 'Stable').toUpperCase();
+        
+        let trendFlag = 'Stable';
+        if (rawTrend.includes('UP') || rawTrend.includes('TANG')) trendFlag = 'Up';
+        else if (rawTrend.includes('DOWN') || rawTrend.includes('GIAM')) trendFlag = 'Down';
+        else if (rawTrend.includes('DINH') || rawTrend.includes('STABLE')) trendFlag = 'Stable';
 
         // Avg & Forecast: File B wins
         const avgQty3M  = monthly?.AvgQty3M  ?? parseNum(row[idxMap.AvgQty3M]);
