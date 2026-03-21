@@ -29,36 +29,6 @@ const StockOutCountdown = ({ current, onOrder, dailyDemand, backorder }: { curre
     );
 };
 
-
-
-const CombinedDebtPriorityBadge = ({ item, draftQty = 0 }: { item: InventoryItem, draftQty?: number }) => {
-    const priority = calculatePickingPriority(item, draftQty);
-    const status = getDebtStatus(item);
-
-    const debtMap: any = {
-        'normal': { label: 'Bình thường', classes: 'text-slate-600 border-slate-300 bg-slate-100/50' },
-        'stock_cover': { label: 'Tồn đủ trả', classes: 'bg-emerald-500/10 text-atp-success border-atp-success/30 backdrop-blur-sm' },
-        'month_cover': { label: 'Trả trong tháng', classes: 'bg-blue-500/10 text-atp-secondary border-atp-secondary/30 backdrop-blur-sm' },
-        'po_cover': { label: 'PO đủ trả', classes: 'bg-atp-primary/10 text-atp-primary border-atp-primary/30 backdrop-blur-sm' },
-        'deficit_po': { label: 'Thiếu (Có PO)', classes: 'bg-atp-accent/10 text-atp-accent border-atp-accent/30 backdrop-blur-sm' },
-        'deficit_no_po': { label: 'Thiếu (No PO)', classes: 'bg-atp-action/10 text-atp-action border-atp-action/30 backdrop-blur-sm' },
-    };
-
-    const badgeClass = `badge-p${Math.min(priority, 5)}`;
-    const c = debtMap[status] || debtMap.normal;
-
-    return (
-        <div className="flex items-center gap-1.5 group/badge">
-            <Typography variant="label" className={`px-2 py-0.5 rounded-lg text-white flex-shrink-0 shadow-sm transition-all group-hover/badge:scale-110 group-hover/badge:shadow-md ${badgeClass}`}>
-                P{priority}
-            </Typography>
-            <Typography variant="label" className={`inline-flex px-2 py-0.5 rounded-lg border whitespace-nowrap shadow-sm transition-all group-hover/badge:bg-white ${c.classes}`}>
-                {c.label}
-            </Typography>
-        </div>
-    );
-};
-
 interface ExecutiveDashboardProps {
     filteredData: InventoryItem[];
     allData?: InventoryItem[]; // NEW: Full dataset for consolidation
@@ -161,6 +131,10 @@ export const ExecutiveDashboard = ({ filteredData, allData, onItemSelect, settin
                                     <div>
                                         <div className="flex items-center gap-2">
                                             <Typography variant="mono" className="text-slate-900 text-lg !font-bold leading-none">{item.ItemCode}</Typography>
+                                            {(() => {
+                                                const p = calculatePickingPriority(item, draftQty);
+                                                return <span className={`badge-p${Math.min(p, 5)} px-1.5 py-0.5 rounded font-black text-[10px] leading-none shrink-0`}>P{p}</span>;
+                                            })()}
                                             <SupersessionIndicator
                                                 partNumber={item.ItemCode}
                                                 graph={graph}
@@ -169,14 +143,21 @@ export const ExecutiveDashboard = ({ filteredData, allData, onItemSelect, settin
                                         </div>
                                         <div className="text-xs text-slate-500 font-bold truncate mt-1 flex items-center gap-2">
                                             <span className="truncate">{item.ItemName}</span>
+                                        </div>
+                                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                                            <DebtStatusBadge item={item} />
+                                            {item.SourceId && (
+                                                <Typography variant="label" className="bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded font-bold">
+                                                    {item.SourceId}
+                                                </Typography>
+                                            )}
                                             {item.TypeCar && (
-                                                <Typography variant="label" className="shrink-0 bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">
+                                                <Typography variant="label" className="bg-slate-100 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded">
                                                     {item.TypeCar}
                                                 </Typography>
                                             )}
                                         </div>
                                     </div>
-                                    <CombinedDebtPriorityBadge item={item} draftQty={draftQty} />
                                 </div>
 
                                 <div className="space-y-4">
@@ -215,10 +196,8 @@ export const ExecutiveDashboard = ({ filteredData, allData, onItemSelect, settin
                             <tr>
                                 <th className="px-4 py-4 w-12 text-center border-b border-slate-200/60 sticky left-0 z-40 bg-white">#</th>
                                 <th className="px-6 py-4 min-w-[220px] sticky left-12 z-40 bg-white border-b border-slate-200/60 sticky-column-shadow">SKU IDENTITY</th>
-                                <th className="px-4 py-4 text-right border-b border-slate-200/60">STOCK HEALTH</th>
-                                <th className="px-4 py-4 text-center border-b border-slate-200/60">{t('th_incoming')}</th>
-                                <th className="px-4 py-4 border-b border-slate-200/60">DEBT STATUS (P1-P5)</th>
-                                <th className="px-4 py-4 text-center border-b border-slate-200/60">{t('ord_th_demand')}</th>
+                                <th className="px-4 py-4 border-b border-slate-200/60 text-right">STOCK HEALTH</th>
+                                <th className="px-4 py-4 border-b border-slate-200/60 text-center">{t('th_incoming')}</th>
                                 <th className="px-4 py-4 text-center border-b border-slate-200/60">{t('ord_th_momentum')}</th>
                                 <th className="px-4 py-4 text-center border-b border-slate-200/60">RUNWAY</th>
                                 <th className="px-4 py-4 text-center border-b border-slate-200/60">{t('ord_th_dealer_cst')}</th>
@@ -245,6 +224,10 @@ export const ExecutiveDashboard = ({ filteredData, allData, onItemSelect, settin
                                         <td className="px-6 py-3 sticky left-12 z-10 bg-white group-hover:bg-slate-50/80 transition-colors sticky-column-shadow border-b border-slate-50 cursor-pointer" onClick={() => onItemSelect(item)}>
                                             <div className="flex items-center gap-2">
                                                 <Typography variant="mono" className="text-slate-900 text-base group-hover:text-blue-600 transition-colors !font-bold leading-none">{item.ItemCode}</Typography>
+                                                {(() => {
+                                                    const p = calculatePickingPriority(item, draftQty);
+                                                    return <span className={`badge-p${Math.min(p, 5)} px-1.5 py-0.5 rounded font-black text-[10px] leading-none shrink-0`}>P{p}</span>;
+                                                })()}
                                                 <SupersessionIndicator partNumber={item.ItemCode} graph={graph} onClick={(e) => { e.stopPropagation(); onItemSelect(item); }} />
                                             </div>
                                             <Typography variant="body-sm" className="text-slate-500 font-bold truncate max-w-[180px]">{item.ItemName}</Typography>
@@ -265,12 +248,14 @@ export const ExecutiveDashboard = ({ filteredData, allData, onItemSelect, settin
 
                                         <td className="px-4 py-3 border-b border-slate-50">
                                             <div className="flex flex-col items-end">
-                                                {/* Replaced simple text with ConsolidatedStockCell */}
-                                                <ConsolidatedStockCell
-                                                    item={item}
-                                                    allItems={inventorySource}
-                                                    graph={graph}
-                                                />
+                                                <div className="flex items-center gap-3 mb-1">
+                                                    <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200/60 shadow-sm" title="Last Month Sales / Base Forecast">
+                                                        <span className="font-black text-slate-800 text-sm">{(m1Actual || 0).toLocaleString()}</span>
+                                                        <div className="h-3 w-px bg-slate-300"></div>
+                                                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-tighter">FC: {item.BaseForecast ? (item.BaseForecast >= 10 ? Math.round(item.BaseForecast).toLocaleString() : item.BaseForecast.toFixed(1)) : '-'}</span>
+                                                    </div>
+                                                    <ConsolidatedStockCell item={item} allItems={inventorySource} graph={graph} />
+                                                </div>
                                                 <StockProgressBar current={item.computed?.available || 0} rop={item.computed?.rop || 0} max={item.computed?.isStopBiz ? 0 : (item.computed?.stockMax || 1)} ss={item.computed?.safetyStock} onOrder={item.TotalPO} incoming={incomingThisMonth} backorder={item.Backorder} breakdown={item.BackorderBreakdown} draftAdd={draftQty} baseFc={item.BaseForecast} />
                                             </div>
                                         </td>
@@ -279,13 +264,6 @@ export const ExecutiveDashboard = ({ filteredData, allData, onItemSelect, settin
                                                 {incomingThisMonth > 0 ? `+${incomingThisMonth.toLocaleString()}` : '-'}
                                             </Typography>
                                             {incomingThisMonth > 0 && <Typography variant="label" className="text-blue-400 !font-semibold normal-case leading-tight">Về trong tháng</Typography>}
-                                        </td>
-                                        <td className="px-4 py-3 border-b border-slate-50"><CombinedDebtPriorityBadge item={item} /></td>
-                                        <td className="px-4 py-3 text-center border-b border-slate-50">
-                                            <div className="flex flex-col items-center">
-                                                <Typography variant="body" className="font-bold text-slate-900 leading-tight">{m1Actual.toLocaleString()}</Typography>
-                                                <Typography variant="label" className="text-emerald-600 leading-tight">FC: {item.BaseForecast || '-'}</Typography>
-                                            </div>
                                         </td>
                                         <td className="px-4 py-3 text-center border-b border-slate-50"><SalesMomentum values={[item.AvgQty24M, item.AvgQty12M, item.AvgQty6M, item.AvgQty3M]} history={item.SalesHistory} forecast={item.BaseForecast} /></td>
                                         <td className="px-4 py-3 text-center border-b border-slate-50"><StockOutCountdown current={item.computed?.available || 0} onOrder={item.TotalPO} dailyDemand={item.computed?.demandRateDaily || 0} backorder={item.Backorder} /></td>

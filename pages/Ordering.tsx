@@ -11,6 +11,7 @@ import { useLanguage } from '../utils/i18n';
 import { SupersessionGraph } from '../utils/supersessionGraph';
 import { SupersessionWarning } from '../components/SupersessionWarning';
 import { SupersessionIndicator } from '../components/SupersessionIndicator';
+import { DebtStatusBadge } from '../components/DebtStatusBadge';
 import { ConsolidatedStockCell } from '../components/ConsolidatedStockCell';
 import { AppSettings } from './Settings';
 import { computeInventory, computeInventoryBatch, makeComputeParams, resolveItemProfile } from '../utils/inventoryEngine';
@@ -21,38 +22,7 @@ import { CloudDraftModal } from '../components/CloudDraftModal';
 const currencyFormatterVND = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 });
 const currencyFormatterEUR = new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 });
 
-const CombinedDebtStatusBadge = ({ item, draftQty = 0 }: { item: InventoryItem, draftQty?: number }) => {
-    const priority = calculatePickingPriority(item, draftQty);
-    const bo = item.Backorder;
-    const available = Math.max(0, item.computed?.available || 0);
-    const incomingTotal = item.TotalPO;
-    const incomingMonth = item.computed?.incomingCurrentMonth || 0;
-    const totalSupply = available + incomingTotal + draftQty;
 
-    let debtLabel = "Normal";
-    let debtClasses = "text-slate-400";
-    if (bo > 0) {
-        if (bo <= available) { debtLabel = "Stock Cover"; debtClasses = "bg-atp-success/10 text-atp-success border-atp-success/30"; }
-        else if (bo <= available + incomingMonth) { debtLabel = "Month Cover"; debtClasses = "bg-atp-secondary/10 text-atp-secondary border-atp-secondary/30"; }
-        else if (bo <= available + incomingTotal) { debtLabel = "PO Cover"; debtClasses = "bg-atp-primary/10 text-atp-primary border-atp-primary/30"; }
-        else if (bo <= totalSupply) { debtLabel = "Draft Covers"; debtClasses = "bg-atp-primary/5 text-atp-primary/70 border-atp-primary/20"; }
-        else if (incomingTotal > 0) { debtLabel = "Deficit (PO)"; debtClasses = "bg-atp-accent/10 text-atp-accent border-atp-accent/30"; }
-        else { debtLabel = "Deficit (No PO)"; debtClasses = "bg-atp-action/10 text-atp-action border-atp-action/30"; }
-    }
-
-    const badgeClass = `badge-p${Math.min(priority, 5)}`;
-
-    return (
-        <div className="flex flex-col items-center gap-1">
-            <Typography variant="label" className={`px-2 py-0.5 rounded-lg font-bold flex-shrink-0 ${badgeClass}`}>
-                P{priority}
-            </Typography>
-            <Typography variant="label" className={`px-1.5 py-0.5 rounded font-bold border truncate max-w-[80px] ${debtClasses} !text-[9px] text-center`}>
-                {debtLabel}
-            </Typography>
-        </div>
-    );
-};
 
 const DraftAnalysisCharts = ({ itemMap, orderQuantities, costBasis }: { itemMap: Map<string, InventoryItem>, orderQuantities: Record<string, { air: number, sea: number }>, costBasis: 'PP' | 'FOB' }) => {
     const { t } = useLanguage();
@@ -570,8 +540,6 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                 <th className="px-4 py-4 min-w-[200px] sticky left-12 z-40 bg-slate-50/95 border-b border-slate-200 sticky-column-shadow"><Typography variant="label">{t('ord_th_sku')}</Typography></th>
                                 <th className="px-4 py-4 min-w-[145px] text-right border-b border-slate-200"><Typography variant="label">{t('ord_th_health')}</Typography></th>
                                 <th className="px-4 py-4 text-center border-b border-slate-200"><Typography variant="label">{t('th_incoming')}</Typography></th>
-                                <th className="px-4 py-4 border-b border-slate-200 min-w-[90px] text-center"><Typography variant="label">{t('ord_th_debt')}</Typography></th>
-                                <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[100px]"><Typography variant="label">{t('ord_th_demand')}</Typography></th>
                                 <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[120px]"><Typography variant="label">{t('ord_th_momentum')}</Typography></th>
                                 <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[80px]"><Typography variant="label">{t('ord_th_mos')}</Typography></th>
                                 <th className="px-4 py-4 text-center border-b border-slate-200"><Typography variant="label">{t('ord_th_dealer_cst')}</Typography></th>
@@ -600,15 +568,20 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                         <td className="px-4 py-3 sticky left-12 z-10 bg-white group-hover:bg-slate-50 transition-colors sticky-column-shadow border-b border-slate-50" onClick={() => onItemSelect(item)}>
                                             <div className="flex items-center gap-2">
                                                 <div className="font-black text-slate-800 text-base uppercase cursor-pointer hover:text-blue-600 font-mono tracking-tight">{item.ItemCode}</div>
+                                                {(() => {
+                                                    const p = calculatePickingPriority(item, draftQtyTotal);
+                                                    return <span className={`badge-p${Math.min(p, 5)} px-1.5 py-0.5 rounded font-black text-[10px] leading-none shrink-0`}>P{p}</span>;
+                                                })()}
                                                 <SupersessionIndicator partNumber={item.ItemCode} graph={graph} onClick={(e) => { e.stopPropagation(); onItemSelect(item); }} />
                                             </div>
                                             <div className="text-xs text-slate-500 font-bold truncate max-w-[200px]">{item.ItemName}</div>
                                             <div className="mt-1 flex flex-wrap items-center gap-2">
+                                                <DebtStatusBadge item={item} />
                                                 <span className="text-xs font-black px-1.5 py-0.5 rounded uppercase bg-blue-50 text-blue-700 border border-blue-100">LOIS {item.LOISGroup}</span>
                                                 {item.SourceId && (
-                                                    <span className="text-2xs font-black px-1.5 py-0.5 rounded uppercase bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                                    <Typography variant="label" className="bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded font-bold">
                                                         {item.SourceId}
-                                                    </span>
+                                                    </Typography>
                                                 )}
                                                 {item.TypeCar && (
                                                     <span className="text-2xs font-black px-1.5 py-0.5 rounded uppercase bg-slate-100 text-slate-600 border border-slate-200">
@@ -620,7 +593,14 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                         </td>
                                         <td className="px-4 py-3 text-right border-b border-slate-50">
                                             <div className="flex flex-col items-end">
-                                                <ConsolidatedStockCell item={item} allItems={enrichedList} graph={graph} />
+                                                <div className="flex items-center gap-3 mb-1">
+                                                    <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200/60 shadow-sm" title="Last Month Sales / Base Forecast">
+                                                        <span className="font-black text-slate-800 text-sm">{(m1Actual || 0).toLocaleString()}</span>
+                                                        <div className="h-3 w-px bg-slate-300"></div>
+                                                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-tighter">FC: {item.BaseForecast ? (item.BaseForecast >= 10 ? Math.round(item.BaseForecast).toLocaleString() : item.BaseForecast.toFixed(1)) : '-'}</span>
+                                                    </div>
+                                                    <ConsolidatedStockCell item={item} allItems={enrichedList} graph={graph} />
+                                                </div>
                                                 <StockProgressBar current={item.computed?.available || 0} rop={item.computed?.rop || 0}
                                                     // O6 Fix: max fallback dùng 0 nếu isStop, không dùng 100 tùy tiện
                                                     max={item.computed?.isStopBiz ? 0 : (item.computed?.stockMax || 1)}
@@ -628,13 +608,6 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                             </div>
                                         </td>
                                         <td className="px-4 py-3 text-center border-b border-slate-50"><div className={`text-base font-black ${incomingThisMonth > 0 ? 'text-blue-700' : 'text-slate-300'}`}>{incomingThisMonth > 0 ? `+${incomingThisMonth.toLocaleString()}` : '-'}</div>{incomingThisMonth > 0 && <div className="text-2xs font-bold text-blue-400 uppercase leading-tight">Về trong tháng</div>}</td>
-                                        <td className="px-4 py-3 border-b border-slate-50"><CombinedDebtStatusBadge item={item} draftQty={draftQtyTotal} /></td>
-                                        <td className="px-4 py-3 text-center border-b border-slate-50">
-                                            <div className="flex flex-col items-center">
-                                                <div className="font-black text-slate-900 text-base leading-tight">{(m1Actual || 0).toLocaleString()}</div>
-                                                <div className="text-xs font-black text-emerald-600 uppercase leading-tight">FC: {item.BaseForecast ? (item.BaseForecast >= 10 ? Math.round(item.BaseForecast).toLocaleString() : item.BaseForecast.toFixed(1)) : '-'}</div>
-                                            </div>
-                                        </td>
                                         <td className="px-4 py-3 text-center border-b border-slate-50">
                                             <SalesMomentum values={[item.AvgQty24M, item.AvgQty12M, item.AvgQty6M, item.AvgQty3M]} history={item.SalesHistory} forecast={item.BaseForecast} />
                                         </td>
