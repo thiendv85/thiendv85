@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLanguage } from '../utils/i18n';
-import { saveToCloudStorage, loadFromCloudStorage, verifyAdminPin, saveMonthlyData, loadLatestMonthlyData, listMonthlyDataSnapshots, listProfiles, updateProfileRole, toggleUserActive, listWorkflows, createWorkflow, updateWorkflow } from '../utils/supabase';
+import { saveToCloudStorage, loadFromCloudStorage, verifyAdminPin, saveMonthlyData, loadLatestMonthlyData, listMonthlyDataSnapshots, listProfiles, updateProfileRole, toggleUserActive, listWorkflows, createWorkflow, updateWorkflow, createUserByAdmin } from '../utils/supabase';
+import { supabase } from '../utils/supabase';
 import { parseMonthlyCSV } from '../utils/csvParser';
 import { Typography } from '../components/Typography';
 import { Brand, SourceProfile, AVAILABLE_BRANDS, DEFAULT_SOURCE_PROFILES, ApprovalWorkflow, WorkflowLevel } from '../types/inventory';
@@ -345,6 +346,22 @@ const UserManagementTab = () => {
     const [newWfName, setNewWfName] = useState('');
     const [showNewWfForm, setShowNewWfForm] = useState(false);
 
+    // Create user form
+    const [showCreateUser, setShowCreateUser] = useState(false);
+    const [newEmail, setNewEmail] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [newFullName, setNewFullName] = useState('');
+    const [newRole, setNewRole] = useState<UserRole>('viewer');
+    const [createError, setCreateError] = useState('');
+    const [isCreating, setIsCreating] = useState(false);
+
+    // Change password
+    const [showChangePw, setShowChangePw] = useState(false);
+    const [newPw, setNewPw] = useState('');
+    const [confirmPw, setConfirmPw] = useState('');
+    const [pwMsg, setPwMsg] = useState('');
+    const [isChangingPw, setIsChangingPw] = useState(false);
+
     const load = useCallback(async () => {
         setIsLoading(true);
         const [u, w] = await Promise.all([listProfiles(), listWorkflows()]);
@@ -363,6 +380,30 @@ const UserManagementTab = () => {
     const handleToggleActive = async (userId: string, active: boolean) => {
         await toggleUserActive(userId, !active);
         setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_active: !active } : u));
+    };
+
+    const handleCreateUser = async () => {
+        if (!newEmail.trim() || !newPassword.trim()) return;
+        setIsCreating(true);
+        setCreateError('');
+        const { error } = await createUserByAdmin(newEmail.trim(), newPassword, newFullName.trim(), newRole);
+        setIsCreating(false);
+        if (error) { setCreateError(error); return; }
+        setNewEmail(''); setNewPassword(''); setNewFullName(''); setNewRole('viewer');
+        setShowCreateUser(false);
+        load();
+    };
+
+    const handleChangePassword = async () => {
+        if (newPw.length < 6) { setPwMsg('Mật khẩu phải ít nhất 6 ký tự.'); return; }
+        if (newPw !== confirmPw) { setPwMsg('Mật khẩu không khớp.'); return; }
+        setIsChangingPw(true);
+        const { error } = await supabase.auth.updateUser({ password: newPw });
+        setIsChangingPw(false);
+        if (error) { setPwMsg(error.message); return; }
+        setPwMsg('✓ Đã đổi mật khẩu thành công!');
+        setNewPw(''); setConfirmPw('');
+        setTimeout(() => { setPwMsg(''); setShowChangePw(false); }, 2000);
     };
 
     const handleCreateWorkflow = async () => {
@@ -436,7 +477,43 @@ const UserManagementTab = () => {
                         </tbody>
                     </table>
                 </div>
-                <p className="text-xs text-slate-400 mt-2"><i className="fas fa-info-circle mr-1" />Để tạo user mới, dùng Supabase Dashboard → Auth → Users → Invite.</p>
+                {/* Create User Form */}
+                {showCreateUser ? (
+                    <div className="mt-4 p-4 border border-blue-200 bg-blue-50 rounded-xl space-y-3">
+                        <Typography variant="label" className="text-blue-700 font-black uppercase tracking-widest block">Tạo tài khoản mới</Typography>
+                        {createError && <p className="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{createError}</p>}
+                        <div className="grid grid-cols-2 gap-2">
+                            <div>
+                                <label className="block text-xs font-black text-slate-500 mb-1">Họ tên</label>
+                                <input value={newFullName} onChange={e => setNewFullName(e.target.value)} placeholder="Nguyễn Văn A" className="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-blue-400" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-black text-slate-500 mb-1">Role</label>
+                                <select value={newRole} onChange={e => setNewRole(e.target.value as UserRole)} className="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm bg-white outline-none focus:border-blue-400">
+                                    {(Object.keys(ROLE_LABELS) as UserRole[]).map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-black text-slate-500 mb-1">Email</label>
+                                <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="user@company.com" className="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-blue-400" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-black text-slate-500 mb-1">Mật khẩu</label>
+                                <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Ít nhất 6 ký tự" className="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-blue-400" />
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={handleCreateUser} disabled={isCreating || !newEmail || !newPassword} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-xs font-black flex items-center gap-2">
+                                {isCreating ? <><i className="fas fa-circle-notch fa-spin" /> Đang tạo...</> : <><i className="fas fa-user-plus" /> Tạo tài khoản</>}
+                            </button>
+                            <button onClick={() => { setShowCreateUser(false); setCreateError(''); }} className="px-4 py-2 rounded-lg text-xs font-black border border-slate-200 text-slate-500 hover:bg-slate-50">Hủy</button>
+                        </div>
+                    </div>
+                ) : (
+                    <button onClick={() => setShowCreateUser(true)} className="mt-3 flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-black">
+                        <i className="fas fa-user-plus" /> Tạo tài khoản mới
+                    </button>
+                )}
             </SectionCard>
 
             {/* Workflows */}
@@ -474,6 +551,33 @@ const UserManagementTab = () => {
                     <button onClick={() => setShowNewWfForm(true)} className="mt-3 flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-black">
                         <i className="fas fa-plus" /> Thêm workflow mới
                     </button>
+                )}
+            </SectionCard>
+
+            {/* Change Password */}
+            <SectionCard title="Đổi mật khẩu" icon="fa-lock">
+                {!showChangePw ? (
+                    <button onClick={() => setShowChangePw(true)} className="flex items-center gap-2 text-slate-600 hover:text-blue-600 text-sm font-black border border-slate-200 px-4 py-2 rounded-xl hover:border-blue-300 transition-all">
+                        <i className="fas fa-key" /> Đổi mật khẩu của tôi
+                    </button>
+                ) : (
+                    <div className="space-y-3 max-w-sm">
+                        {pwMsg && <p className={`text-xs px-3 py-2 rounded-lg border ${pwMsg.startsWith('✓') ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-rose-50 border-rose-200 text-rose-600'}`}>{pwMsg}</p>}
+                        <div>
+                            <label className="block text-xs font-black text-slate-500 mb-1">Mật khẩu mới</label>
+                            <input type="password" value={newPw} onChange={e => setNewPw(e.target.value)} placeholder="Ít nhất 6 ký tự" className="w-full border border-slate-300 rounded-xl px-4 py-2 text-sm outline-none focus:border-blue-400" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-black text-slate-500 mb-1">Xác nhận mật khẩu</label>
+                            <input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} placeholder="Nhập lại mật khẩu mới" className="w-full border border-slate-300 rounded-xl px-4 py-2 text-sm outline-none focus:border-blue-400" onKeyDown={e => e.key === 'Enter' && handleChangePassword()} />
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={handleChangePassword} disabled={isChangingPw || !newPw || !confirmPw} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2">
+                                {isChangingPw ? <><i className="fas fa-circle-notch fa-spin" /> Đang lưu...</> : <><i className="fas fa-check" /> Xác nhận</>}
+                            </button>
+                            <button onClick={() => { setShowChangePw(false); setNewPw(''); setConfirmPw(''); setPwMsg(''); }} className="px-4 py-2 rounded-xl text-xs font-black border border-slate-200 text-slate-500 hover:bg-slate-50">Hủy</button>
+                        </div>
+                    </div>
                 )}
             </SectionCard>
         </div>
