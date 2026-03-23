@@ -170,22 +170,23 @@ export const ApprovalQueue = () => {
                                         let text = 'text-slate-600';
                                         let label = currentStatus;
 
-                                        if (currentStatus === 'pending') { icon = 'fa-clock'; bg = 'bg-amber-50'; text = 'text-amber-700'; label = 'Cần duyệt (Pending)'; }
-                                        else if (currentStatus === 'in_progress') { icon = 'fa-spinner fa-spin'; bg = 'bg-blue-50'; text = 'text-blue-700'; label = 'Đang xử lý (In Progress)'; }
-                                        else if (currentStatus === 'returned') { icon = 'fa-rotate-left'; bg = 'bg-purple-50'; text = 'text-purple-700'; label = 'Bị trả lại (Returned)'; }
-                                        else if (currentStatus === 'approved') { icon = 'fa-check-circle'; bg = 'bg-emerald-50'; text = 'text-emerald-700'; label = 'Đã duyệt (Approved)'; }
-                                        else if (currentStatus === 'rejected') { icon = 'fa-times-circle'; bg = 'bg-rose-50'; text = 'text-rose-700'; label = 'Bị từ chối (Rejected)'; }
+                                        let borderL = 'border-slate-400';
+                                        if (currentStatus === 'pending') { icon = 'fa-clock'; bg = 'bg-amber-100'; text = 'text-amber-800'; label = 'Cần duyệt (Pending)'; borderL = 'border-amber-400'; }
+                                        else if (currentStatus === 'in_progress') { icon = 'fa-spinner fa-spin'; bg = 'bg-blue-100'; text = 'text-blue-800'; label = 'Đang xử lý (In Progress)'; borderL = 'border-blue-400'; }
+                                        else if (currentStatus === 'returned') { icon = 'fa-rotate-left'; bg = 'bg-purple-100'; text = 'text-purple-800'; label = 'Bị trả lại (Returned)'; borderL = 'border-purple-400'; }
+                                        else if (currentStatus === 'approved') { icon = 'fa-check-circle'; bg = 'bg-emerald-100'; text = 'text-emerald-800'; label = 'Đã duyệt (Approved)'; borderL = 'border-emerald-400'; }
+                                        else if (currentStatus === 'rejected') { icon = 'fa-times-circle'; bg = 'bg-rose-100'; text = 'text-rose-800'; label = 'Bị từ chối (Rejected)'; borderL = 'border-rose-400'; }
 
                                         rows.push(
-                                            <tr key={`group-${currentStatus}`} className="bg-slate-50/80 border-y border-slate-200">
-                                                <td colSpan={8} className="px-4 py-2.5">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className={`w-6 h-6 rounded-md flex items-center justify-center ${bg} ${text} shadow-sm border border-slate-200/50`}>
-                                                            <i className={`fas ${icon} text-[10px]`}></i>
+                                            <tr key={`group-${currentStatus}`} className={`bg-slate-100/90 border-y border-slate-300 shadow-sm border-l-4 ${borderL}`}>
+                                                <td colSpan={8} className="px-5 py-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${bg} ${text} shadow-sm border border-black/5`}>
+                                                            <i className={`fas ${icon} text-[11px]`}></i>
                                                         </div>
-                                                        <span className={`text-xs font-black uppercase tracking-widest ${text}`}>{label}</span>
-                                                        <div className="h-4 w-px bg-slate-200 mx-2"></div>
-                                                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-200 shadow-sm">
+                                                        <span className={`text-sm font-black uppercase tracking-widest ${text}`}>{label}</span>
+                                                        <div className="h-5 w-px bg-slate-300 mx-3"></div>
+                                                        <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 bg-white/80 px-3 py-1 rounded-full border border-slate-200 shadow-sm">
                                                             {requests.filter(r => r.status === currentStatus).length} Yêu cầu
                                                         </span>
                                                     </div>
