@@ -105,15 +105,6 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
         } catch (e) { console.error(e); } finally { setIsSubmitting(false); }
     };
 
-    // ─── KPI card helper ──────────────────────────────────────────────────────
-    const KPI = ({ label, value, sub, cls = '' }: { label: string; value: string | number; sub?: string; cls?: string }) => (
-        <div className="bg-slate-50 rounded-xl px-3 py-2.5 border border-slate-200/80">
-            <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{label}</div>
-            <div className={`text-lg font-black leading-tight mt-0.5 ${cls}`}>{value}</div>
-            {sub && <div className="text-[10px] text-slate-400 mt-0.5">{sub}</div>}
-        </div>
-    );
-
     return (
         <div className="fixed inset-0 z-[200] bg-white flex flex-col">
 
@@ -205,21 +196,13 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                 {/* ── LEFT SIDEBAR (fixed, always visible) ────────────────── */}
                 <div className="w-[300px] shrink-0 flex flex-col border-r border-slate-200 bg-slate-50 overflow-y-auto">
 
-                    {/* KPI Summary */}
-                    <div className="p-4 space-y-3 border-b border-slate-200">
+                    {/* Sức khoẻ tồn kho — không lặp header pills */}
+                    <div className="p-4 space-y-2 border-b border-slate-200">
                         <div className="flex items-center gap-2">
                             <div className="w-1 h-4 bg-emerald-400 rounded-full" />
-                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Tổng quan đơn hàng</span>
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Sức khoẻ tồn kho</span>
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
-                            <KPI label="SKU" value={rows.length} />
-                            <KPI label="Tổng giá trị" value={`${(totals.value / 1e6).toFixed(1)}M`} cls="text-emerald-700" />
-                            {totals.air > 0 && <KPI label="Air" value={totals.air} cls="text-rose-600" sub="Bù nợ" />}
-                            {totals.sea > 0 && <KPI label="Sea" value={totals.sea} cls="text-blue-700" sub="Regular" />}
-                        </div>
-
-                        {/* Health badges */}
-                        <div className="flex flex-wrap gap-1.5 pt-1">
+                        <div className="flex flex-wrap gap-1.5">
                             {totals.oos > 0 && (
                                 <span className="flex items-center gap-1 text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200 px-2 py-1 rounded-lg">
                                     <i className="fas fa-circle-exclamation text-[10px]" /> OOS: {totals.oos}
@@ -233,6 +216,11 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                             {totals.bo > 0 && (
                                 <span className="flex items-center gap-1 text-xs font-bold bg-rose-50 text-rose-600 border border-rose-200 px-2 py-1 rounded-lg">
                                     <i className="fas fa-hourglass-half text-[10px]" /> BO: {totals.bo}
+                                </span>
+                            )}
+                            {totals.oos === 0 && totals.risk === 0 && totals.bo === 0 && (
+                                <span className="flex items-center gap-1 text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-1 rounded-lg">
+                                    <i className="fas fa-circle-check text-[10px]" /> Tồn kho ổn
                                 </span>
                             )}
                             <span className={`flex items-center gap-1 text-xs font-bold border px-2 py-1 rounded-lg ${
