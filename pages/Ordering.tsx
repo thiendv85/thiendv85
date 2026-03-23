@@ -15,9 +15,12 @@ import { SupersessionIndicator } from '../components/SupersessionIndicator';
 import { DebtStatusBadge } from '../components/DebtStatusBadge';
 import { ConsolidatedStockCell } from '../components/ConsolidatedStockCell';
 import { AppSettings } from './Settings';
-import { computeInventory, computeInventoryBatch, makeComputeParams, resolveItemProfile } from '../utils/inventoryEngine';
+import { computeInventory, computeInventoryBatch, makeComputeParams, resolveItemProfile, MOS_LOW_STOCK_THRESHOLD } from '../utils/inventoryEngine';
 import { Typography } from '../components/Typography';
 import { CloudDraftModal } from '../components/CloudDraftModal';
+
+// --- MODULE-LEVEL CONSTANTS ---
+const PRIORITY_ORDER: Record<string, number> = { P1: 0, P2: 1, P3: 2 };
 
 // --- GLOBAL UTILITIES ---
 const currencyFormatterVND = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 });
@@ -194,6 +197,13 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
             if (filters.specialFilter === 'has_warning') {
                 if (!i.computed?.warnings || i.computed.warnings.length === 0) return false;
             }
+            if (filters.specialFilter === 'low_stock') {
+                const avail = i.computed?.available || 0;
+                const ss = i.computed?.safetyStock || 0;
+                const mos = i.computed?.mos || 0;
+                // Low stock: tồn vật lý < safety stock HOẶC MOS < ngưỡng thấp (nhưng chưa hẳn stockout)
+                if (avail >= ss && mos >= MOS_LOW_STOCK_THRESHOLD) return false;
+            }
             if (filters.costRange > 0) {
                 const range = COST_RANGES[filters.costRange];
                 if (i.UnitCost_PP < range.min || i.UnitCost_PP >= range.max) return false;
@@ -211,6 +221,13 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
 
         return list.sort((a, b) => {
             switch (sortKey) {
+                case 'priority': {
+                    const pa = PRIORITY_ORDER[a.computed?.priorityBucket || 'P3'];
+                    const pb = PRIORITY_ORDER[b.computed?.priorityBucket || 'P3'];
+                    if (pa !== pb) return pa - pb;
+                    // Tiebreak: MOS tăng dần (thiếu hàng nhất lên đầu)
+                    return (a.computed?.mos || 0) - (b.computed?.mos || 0);
+                }
                 case 'mos_asc': return (a.computed?.mos || 0) - (b.computed?.mos || 0);
                 case 'mos_desc': return (b.computed?.mos || 0) - (a.computed?.mos || 0);
                 case 'fc_desc': return (b.BaseForecast || 0) - (a.BaseForecast || 0);
