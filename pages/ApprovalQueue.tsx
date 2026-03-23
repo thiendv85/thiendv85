@@ -157,36 +157,85 @@ export const ApprovalQueue = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {requests.map(req => {
-                                const qs = req.snapshot_data?.quantities || {};
-                                const skuCount = Object.values(qs as Record<string, { air: number; sea: number }>)
-                                    .filter(q => q.air > 0 || q.sea > 0).length;
-                                return (
-                                    <tr key={req.id} className="border-t border-slate-100 hover:bg-slate-50/80 transition-colors cursor-pointer" onClick={() => openDetail(req)}>
-                                        <td className="px-4 py-3 font-bold text-slate-800">{req.draft_name}</td>
-                                        <td className="px-4 py-3 text-slate-500">{req.brand || '—'}</td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold">
-                                                    <i className="fas fa-user" />
+                            {(() => {
+                                let currentStatus = '';
+                                const rows: React.ReactNode[] = [];
+
+                                requests.forEach(req => {
+                                    if (req.status !== currentStatus) {
+                                        currentStatus = req.status;
+
+                                        let icon = 'fa-circle-dot';
+                                        let bg = 'bg-slate-50';
+                                        let text = 'text-slate-600';
+                                        let label = currentStatus;
+
+                                        if (currentStatus === 'pending') { icon = 'fa-clock'; bg = 'bg-amber-50'; text = 'text-amber-700'; label = 'Cần duyệt (Pending)'; }
+                                        else if (currentStatus === 'in_progress') { icon = 'fa-spinner fa-spin'; bg = 'bg-blue-50'; text = 'text-blue-700'; label = 'Đang xử lý (In Progress)'; }
+                                        else if (currentStatus === 'returned') { icon = 'fa-rotate-left'; bg = 'bg-purple-50'; text = 'text-purple-700'; label = 'Bị trả lại (Returned)'; }
+                                        else if (currentStatus === 'approved') { icon = 'fa-check-circle'; bg = 'bg-emerald-50'; text = 'text-emerald-700'; label = 'Đã duyệt (Approved)'; }
+                                        else if (currentStatus === 'rejected') { icon = 'fa-times-circle'; bg = 'bg-rose-50'; text = 'text-rose-700'; label = 'Bị từ chối (Rejected)'; }
+
+                                        rows.push(
+                                            <tr key={`group-${currentStatus}`} className="bg-slate-50/80 border-y border-slate-200">
+                                                <td colSpan={8} className="px-4 py-2.5">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className={`w-6 h-6 rounded-md flex items-center justify-center ${bg} ${text} shadow-sm border border-slate-200/50`}>
+                                                            <i className={`fas ${icon} text-[10px]`}></i>
+                                                        </div>
+                                                        <span className={`text-xs font-black uppercase tracking-widest ${text}`}>{label}</span>
+                                                        <div className="h-4 w-px bg-slate-200 mx-2"></div>
+                                                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-200 shadow-sm">
+                                                            {requests.filter(r => r.status === currentStatus).length} Yêu cầu
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    }
+
+                                    const qs = req.snapshot_data?.quantities || {};
+                                    const skuCount = Object.values(qs as Record<string, { air: number; sea: number }>)
+                                        .filter(q => q.air > 0 || q.sea > 0).length;
+
+                                    let bgHover = 'hover:bg-slate-50/80';
+                                    let borderL = 'border-l-transparent';
+                                    let rowBg = 'bg-white';
+                                    if (req.status === 'pending') { borderL = 'border-l-amber-400'; bgHover = 'hover:bg-amber-50/80'; rowBg = 'bg-amber-50/20'; }
+                                    else if (req.status === 'in_progress') { borderL = 'border-l-blue-400'; bgHover = 'hover:bg-blue-50'; rowBg = 'bg-blue-50/20'; }
+                                    else if (req.status === 'returned') { borderL = 'border-l-purple-400'; bgHover = 'hover:bg-purple-50'; rowBg = 'bg-purple-50/20'; }
+                                    else if (req.status === 'approved') { borderL = 'border-l-emerald-400'; bgHover = 'hover:bg-emerald-50'; rowBg = 'bg-emerald-50/20'; }
+                                    else if (req.status === 'rejected') { borderL = 'border-l-rose-400'; bgHover = 'hover:bg-rose-50'; rowBg = 'bg-rose-50/20'; }
+
+                                    rows.push(
+                                        <tr key={req.id} className={`border-t border-slate-100 ${rowBg} ${bgHover} transition-colors cursor-pointer border-l-4 ${borderL} group`} onClick={() => openDetail(req)}>
+                                            <td className="px-5 py-3.5 font-black text-slate-800 text-[13px] group-hover:text-blue-700 transition-colors">{req.draft_name}</td>
+                                            <td className="px-4 py-3.5 text-slate-600 font-bold">{req.brand || '—'}</td>
+                                            <td className="px-4 py-3.5">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-500 border border-slate-200 flex items-center justify-center text-[10px] font-bold">
+                                                        <i className="fas fa-user" />
+                                                    </div>
+                                                    <span className="text-slate-800 font-bold text-xs">{usersMap[req.submitted_by] || 'Unknown'}</span>
                                                 </div>
-                                                <span className="text-slate-600 font-medium">{usersMap[req.submitted_by] || 'Unknown'}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3 text-center">
-                                            <span className="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-0.5 rounded">{skuCount}</span>
-                                        </td>
-                                        <td className="px-4 py-3 text-center text-slate-500 font-bold">{req.current_level}</td>
-                                        <td className="px-4 py-3 text-center"><ApprovalStatusBadge status={req.status} size="sm" /></td>
-                                        <td className="px-4 py-3 text-slate-400 text-xs">{new Date(req.submitted_at).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
-                                        <td className="px-4 py-3 text-right">
-                                            <span className="text-blue-500 text-xs font-black uppercase tracking-widest">
-                                                Xem & Duyệt <i className="fas fa-chevron-right ml-1" />
-                                            </span>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
+                                            </td>
+                                            <td className="px-4 py-3.5 text-center">
+                                                <span className="bg-slate-100 text-slate-700 text-[11px] font-black px-2.5 py-1 rounded shadow-sm border border-slate-200">{skuCount}</span>
+                                            </td>
+                                            <td className="px-4 py-3.5 text-center text-slate-700 font-black">Lvl {req.current_level}</td>
+                                            <td className="px-4 py-3.5 text-center"><ApprovalStatusBadge status={req.status} size="sm" /></td>
+                                            <td className="px-4 py-3.5 text-slate-500 text-[11px] font-bold whitespace-nowrap"><i className="far fa-clock mr-1.5 opacity-70"></i>{new Date(req.submitted_at).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+                                            <td className="px-4 py-3.5 text-right">
+                                                <span className="bg-white border border-slate-200 text-slate-600 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 shadow-sm px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap">
+                                                    Xem <i className="fas fa-chevron-right ml-1 opacity-70 text-[10px]" />
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                });
+
+                                return rows;
+                            })()}
                         </tbody>
                     </table>
                 )}
