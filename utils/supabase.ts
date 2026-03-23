@@ -260,6 +260,14 @@ export async function createUserByAdmin(email: string, password: string, fullNam
   return { error: null };
 }
 
+export async function adminResetPassword(targetUserId: string, newPassword: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.functions.invoke('admin-reset-password', {
+    body: { target_user_id: targetUserId, new_password: newPassword },
+  });
+  if (error) return { error: error.message };
+  return { error: null };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // APPROVAL WORKFLOWS
 // ─────────────────────────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLanguage } from '../utils/i18n';
-import { saveToCloudStorage, loadFromCloudStorage, verifyAdminPin, saveMonthlyData, loadLatestMonthlyData, listMonthlyDataSnapshots, listProfiles, updateProfileRole, toggleUserActive, listWorkflows, createWorkflow, updateWorkflow, createUserByAdmin } from '../utils/supabase';
+import { saveToCloudStorage, loadFromCloudStorage, verifyAdminPin, saveMonthlyData, loadLatestMonthlyData, listMonthlyDataSnapshots, listProfiles, updateProfileRole, toggleUserActive, listWorkflows, createWorkflow, updateWorkflow, createUserByAdmin, adminResetPassword } from '../utils/supabase';
 import { supabase } from '../utils/supabase';
 import { parseMonthlyCSV } from '../utils/csvParser';
 import { Typography } from '../components/Typography';
@@ -340,10 +340,13 @@ const ROLE_LABELS: Record<UserRole, string> = {
 };
 
 const UserManagementTab = () => {
+    const { user } = useAuth();
     const [users, setUsers] = useState<UserProfile[]>([]);
     const [workflows, setWorkflowList] = useState<ApprovalWorkflow[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [newWfName, setNewWfName] = useState('');
+    const [newWfBrand, setNewWfBrand] = useState<string>('');
+    const [newWfLevels, setNewWfLevels] = useState<WorkflowLevel[]>([{ level: 1, approver_ids: [], require_all: false }]);
     const [showNewWfForm, setShowNewWfForm] = useState(false);
 
     // Create user form
@@ -355,12 +358,18 @@ const UserManagementTab = () => {
     const [createError, setCreateError] = useState('');
     const [isCreating, setIsCreating] = useState(false);
 
-    // Change password
+    // Change password (own)
     const [showChangePw, setShowChangePw] = useState(false);
     const [newPw, setNewPw] = useState('');
     const [confirmPw, setConfirmPw] = useState('');
     const [pwMsg, setPwMsg] = useState('');
     const [isChangingPw, setIsChangingPw] = useState(false);
+
+    // Admin reset password for another user
+    const [resetTarget, setResetTarget] = useState<UserProfile | null>(null);
+    const [resetPw, setResetPw] = useState('');
+    const [resetMsg, setResetMsg] = useState('');
+    const [isResetting, setIsResetting] = useState(false);
 
     const load = useCallback(async () => {
         setIsLoading(true);
@@ -406,16 +415,31 @@ const UserManagementTab = () => {
         setTimeout(() => { setPwMsg(''); setShowChangePw(false); }, 2000);
     };
 
+    const handleAdminResetPassword = async () => {
+        if (!resetTarget || resetPw.length < 6) { setResetMsg('Mật khẩu phải ít nhất 6 ký tự.'); return; }
+        setIsResetting(true); setResetMsg('');
+        const { error } = await adminResetPassword(resetTarget.id, resetPw);
+        setIsResetting(false);
+        if (error) { setResetMsg(error); return; }
+        setResetMsg('✓ Đã đổi mật khẩu!');
+        setTimeout(() => { setResetTarget(null); setResetPw(''); setResetMsg(''); }, 1500);
+    };
+
     const handleCreateWorkflow = async () => {
-        if (!newWfName.trim()) return;
+        if (!newWfName.trim() || !user) return;
         const id = await createWorkflow({
             name: newWfName.trim(),
-            brand: null,
-            levels: [{ level: 1, approver_ids: [], require_all: false }],
+            brand: newWfBrand || null,
+            levels: newWfLevels,
             is_active: true,
-            created_by: '',
+            created_by: user.id,
         });
-        if (id) { setNewWfName(''); setShowNewWfForm(false); load(); }
+        if (id) {
+            setNewWfName(''); setNewWfBrand('');
+            setNewWfLevels([{ level: 1, approver_ids: [], require_all: false }]);
+            setShowNewWfForm(false);
+            load();
+        }
     };
 
     const handleToggleWorkflow = async (wf: ApprovalWorkflow) => {
@@ -465,18 +489,73 @@ const UserManagementTab = () => {
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-right">
-                                        <button
-                                            onClick={() => handleToggleActive(u.id, u.is_active)}
-                                            className={`text-xs font-black px-3 py-1.5 rounded-lg border transition-all ${u.is_active ? 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100' : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}
-                                        >
-                                            {u.is_active ? 'Vô hiệu hoá' : 'Kích hoạt'}
-                                        </button>
+                                        <div className="flex items-center justify-end gap-2">
+                                            <button
+                                                onClick={() => { setResetTarget(u); setResetPw(''); setResetMsg(''); }}
+                                                className="text-xs font-black px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all"
+                                            >
+                                                <i className="fas fa-key mr-1" />Đổi mật khẩu
+                                            </button>
+                                            <button
+                                                onClick={() => handleToggleActive(u.id, u.is_active)}
+                                                className={`text-xs font-black px-3 py-1.5 rounded-lg border transition-all ${u.is_active ? 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100' : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}
+                                            >
+                                                {u.is_active ? 'Vô hiệu hoá' : 'Kích hoạt'}
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
+                {/* Admin Reset Password Modal */}
+                {resetTarget && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setResetTarget(null)}>
+                        <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4 space-y-4" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                                    <i className="fas fa-key text-blue-600" />
+                                </div>
+                                <div>
+                                    <p className="font-black text-slate-800 text-sm">Đổi mật khẩu</p>
+                                    <p className="text-xs text-slate-500">{resetTarget.full_name || 'Người dùng'}</p>
+                                </div>
+                            </div>
+                            {resetMsg && (
+                                <p className={`text-xs px-3 py-2 rounded-lg border ${resetMsg.startsWith('✓') ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-rose-50 border-rose-200 text-rose-600'}`}>{resetMsg}</p>
+                            )}
+                            <div>
+                                <label className="block text-xs font-black text-slate-500 mb-1">Mật khẩu mới</label>
+                                <input
+                                    type="password"
+                                    value={resetPw}
+                                    onChange={e => setResetPw(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && handleAdminResetPassword()}
+                                    placeholder="Ít nhất 6 ký tự"
+                                    autoFocus
+                                    className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-400 font-medium"
+                                />
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={handleAdminResetPassword}
+                                    disabled={isResetting || resetPw.length < 6}
+                                    className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-black py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 transition-all"
+                                >
+                                    {isResetting ? <><i className="fas fa-circle-notch fa-spin" /> Đang lưu...</> : <><i className="fas fa-check" /> Xác nhận</>}
+                                </button>
+                                <button
+                                    onClick={() => setResetTarget(null)}
+                                    className="px-4 py-2.5 rounded-xl text-sm font-black border border-slate-200 text-slate-500 hover:bg-slate-50 transition-all"
+                                >
+                                    Hủy
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Create User Form */}
                 {showCreateUser ? (
                     <div className="mt-4 p-4 border border-blue-200 bg-blue-50 rounded-xl space-y-3">
@@ -523,7 +602,8 @@ const UserManagementTab = () => {
                         <div key={wf.id} className="flex items-center justify-between p-3 border border-slate-200 rounded-xl hover:bg-slate-50">
                             <div>
                                 <span className="font-bold text-slate-800 text-sm">{wf.name}</span>
-                                <span className="ml-2 text-xs text-slate-500">{wf.levels.length} level(s)</span>
+                                {wf.brand && <span className="ml-2 text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-bold">{wf.brand}</span>}
+                                <span className="ml-2 text-xs text-slate-400">{wf.levels.length} cấp</span>
                             </div>
                             <button
                                 onClick={() => handleToggleWorkflow(wf)}
@@ -536,16 +616,102 @@ const UserManagementTab = () => {
                     {workflows.length === 0 && <p className="text-sm text-slate-400 py-4 text-center">Chưa có workflow nào.</p>}
                 </div>
                 {showNewWfForm ? (
-                    <div className="flex gap-2 mt-3">
-                        <input
-                            value={newWfName}
-                            onChange={e => setNewWfName(e.target.value)}
-                            placeholder="Tên workflow VD: Phê duyệt Kia NB"
-                            className="flex-1 border border-slate-300 rounded-xl px-4 py-2 text-sm font-bold outline-none focus:border-blue-400"
-                            onKeyDown={e => e.key === 'Enter' && handleCreateWorkflow()}
-                        />
-                        <button onClick={handleCreateWorkflow} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-black hover:bg-blue-700">Tạo</button>
-                        <button onClick={() => setShowNewWfForm(false)} className="px-4 py-2 rounded-xl text-sm font-black border border-slate-200 text-slate-500 hover:bg-slate-50">Hủy</button>
+                    <div className="mt-4 border border-blue-200 bg-blue-50/50 rounded-2xl p-4 space-y-4">
+                        <p className="text-xs font-black text-blue-700 uppercase tracking-widest">Tạo workflow mới</p>
+
+                        {/* Name + Brand */}
+                        <div className="flex gap-3">
+                            <div className="flex-1">
+                                <label className="block text-xs font-black text-slate-500 mb-1">Tên workflow</label>
+                                <input
+                                    value={newWfName}
+                                    onChange={e => setNewWfName(e.target.value)}
+                                    placeholder="VD: Phê duyệt đặt hàng BMW"
+                                    className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-blue-400 bg-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-black text-slate-500 mb-1">Thương hiệu</label>
+                                <select
+                                    value={newWfBrand}
+                                    onChange={e => setNewWfBrand(e.target.value)}
+                                    className="border border-slate-300 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-blue-400 bg-white"
+                                >
+                                    <option value="">Tất cả</option>
+                                    {AVAILABLE_BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Levels builder */}
+                        <div>
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="text-xs font-black text-slate-500">CẤP PHÊ DUYỆT</label>
+                                <button
+                                    type="button"
+                                    onClick={() => setNewWfLevels(prev => [...prev, { level: prev.length + 1, approver_ids: [], require_all: false }])}
+                                    className="text-xs font-black text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                >
+                                    <i className="fas fa-plus" /> Thêm cấp
+                                </button>
+                            </div>
+                            <div className="space-y-3">
+                                {newWfLevels.map((lvl, idx) => (
+                                    <div key={idx} className="bg-white border border-slate-200 rounded-xl p-3 space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-black text-slate-600">Cấp {lvl.level}</span>
+                                            <div className="flex items-center gap-3">
+                                                <label className="flex items-center gap-1.5 cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={lvl.require_all}
+                                                        onChange={e => setNewWfLevels(prev => prev.map((l, i) => i === idx ? { ...l, require_all: e.target.checked } : l))}
+                                                        className="w-3.5 h-3.5 rounded accent-blue-600"
+                                                    />
+                                                    <span className="text-xs text-slate-500 font-bold">Yêu cầu tất cả duyệt</span>
+                                                </label>
+                                                {newWfLevels.length > 1 && (
+                                                    <button type="button" onClick={() => setNewWfLevels(prev => prev.filter((_, i) => i !== idx).map((l, i) => ({ ...l, level: i + 1 })))}
+                                                        className="text-rose-400 hover:text-rose-600 text-xs">
+                                                        <i className="fas fa-trash" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                        {/* Approver checkboxes */}
+                                        <div className="flex flex-wrap gap-2">
+                                            {users.filter(u => u.role === 'approver' || u.role === 'admin').map(u => (
+                                                <label key={u.id} className={`flex items-center gap-1.5 cursor-pointer px-2.5 py-1 rounded-lg border text-xs font-bold transition-all ${lvl.approver_ids.includes(u.id) ? 'bg-blue-100 border-blue-300 text-blue-700' : 'border-slate-200 text-slate-500 hover:border-blue-200'}`}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={lvl.approver_ids.includes(u.id)}
+                                                        onChange={e => setNewWfLevels(prev => prev.map((l, i) => i === idx ? {
+                                                            ...l,
+                                                            approver_ids: e.target.checked ? [...l.approver_ids, u.id] : l.approver_ids.filter(id => id !== u.id)
+                                                        } : l))}
+                                                        className="sr-only"
+                                                    />
+                                                    {u.full_name || u.id.slice(0, 8)}
+                                                </label>
+                                            ))}
+                                            {users.filter(u => u.role === 'approver' || u.role === 'admin').length === 0 && (
+                                                <span className="text-xs text-slate-400 italic">Chưa có người dùng role approver/admin</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex gap-2 pt-1">
+                            <button onClick={handleCreateWorkflow} disabled={!newWfName.trim()} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-2 rounded-xl text-sm font-black flex items-center gap-2">
+                                <i className="fas fa-check" /> Tạo workflow
+                            </button>
+                            <button onClick={() => { setShowNewWfForm(false); setNewWfName(''); setNewWfBrand(''); setNewWfLevels([{ level: 1, approver_ids: [], require_all: false }]); }}
+                                className="px-4 py-2 rounded-xl text-sm font-black border border-slate-200 text-slate-500 hover:bg-slate-50">
+                                Hủy
+                            </button>
+                        </div>
                     </div>
                 ) : (
                     <button onClick={() => setShowNewWfForm(true)} className="mt-3 flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-black">
