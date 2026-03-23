@@ -671,20 +671,31 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
 
                 {/* ─── Returned banner ─── */}
                 {isReturned && (
-                    <div className="mx-4 mb-2 flex items-center gap-3 bg-indigo-50 border border-indigo-200 rounded-2xl px-4 py-3">
-                        <i className="fas fa-rotate-left text-indigo-600 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                            <span className="text-indigo-800 font-black text-sm block">Draft bị trả lại để điều chỉnh</span>
-                            {returnReason && <span className="text-indigo-600 text-xs">Lý do: {returnReason}</span>}
+                    <div className="mx-4 mb-2 bg-indigo-50 border border-indigo-200 rounded-2xl px-4 py-3 flex flex-col gap-2">
+                        <div className="flex items-center gap-3">
+                            <i className="fas fa-rotate-left text-indigo-600 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                                <span className="text-indigo-800 font-black text-sm block">Draft bị trả lại — Approver đã điều chỉnh</span>
+                                {returnReason && (
+                                    <div className="flex items-start gap-1.5 mt-1">
+                                        <i className="fas fa-comment-dots text-indigo-400 text-xs mt-0.5 shrink-0" />
+                                        <span className="text-indigo-700 text-xs font-medium italic">"{returnReason}"</span>
+                                    </div>
+                                )}
+                            </div>
+                            <button
+                                onClick={handleResubmit}
+                                disabled={isSubmitting || Object.values(orderQuantities).every((v: any) => !v.air && !v.sea)}
+                                className="shrink-0 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2"
+                            >
+                                {isSubmitting ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-paper-plane" />}
+                                Gửi lại
+                            </button>
                         </div>
-                        <button
-                            onClick={handleResubmit}
-                            disabled={isSubmitting || Object.values(orderQuantities).every((v: any) => !v.air && !v.sea)}
-                            className="shrink-0 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2"
-                        >
-                            {isSubmitting ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-paper-plane" />}
-                            Gửi lại
-                        </button>
+                        <div className="flex items-center gap-1.5 text-[11px] text-indigo-500 bg-indigo-100/60 rounded-lg px-3 py-1.5">
+                            <i className="fas fa-circle-info text-indigo-400" />
+                            Số lượng đặt hàng đã được cập nhật theo điều chỉnh của approver. Xem lại, sửa nếu cần rồi nhấn Gửi lại.
+                        </div>
                     </div>
                 )}
 
@@ -1046,7 +1057,13 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                     // Tự động load approval request tương ứng với cloud draft
                     if (draftName) {
                         fetchRequestByDraftName(draftName).then(req => {
-                            if (req) setApprovalRequest(req);
+                            if (req) {
+                                setApprovalRequest(req);
+                                // Nếu đơn bị trả lại, override quantities bằng điều chỉnh của approver
+                                if (req.status === 'returned' && req.snapshot_data?.quantities) {
+                                    setOrderQuantities(req.snapshot_data.quantities);
+                                }
+                            }
                         });
                     }
                 }}
