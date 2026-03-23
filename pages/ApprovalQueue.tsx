@@ -17,62 +17,128 @@ type TabFilter = 'pending' | 'mine' | 'all';
 
 // ─── Snapshot Viewer ─────────────────────────────────────────────────────────
 
-const priorityColor = (p?: string) => {
-    if (p === 'P1') return 'text-rose-400 font-black';
-    if (p === 'P2') return 'text-amber-400 font-bold';
-    return 'text-slate-400';
+const PriorityBadge = ({ p }: { p?: string }) => {
+    const cls = p === 'P1' ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+        : p === 'P2' ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+        : 'bg-slate-700/40 text-slate-400 border-slate-600/40';
+    return <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-black border ${cls}`}>{p || 'P3'}</span>;
 };
+
+const fmt = (n?: number, dec = 0) => n == null ? '-' : n.toLocaleString('vi-VN', { maximumFractionDigits: dec });
+const fmtM = (n?: number) => n == null ? '-' : n.toFixed(1) + 'M';
 
 const SnapshotViewer = ({ data }: { data: SnapshotData }) => {
     const items = Object.entries(data.quantities).filter(([, q]) => q.air > 0 || q.sea > 0);
+    const totalAir = items.reduce((s, [, q]) => s + q.air, 0);
+    const totalSea = items.reduce((s, [, q]) => s + q.sea, 0);
+    const totalValue = items.reduce((s, [code, q]) => {
+        const ctx = data.inventory_context.find(c => c.itemCode === code);
+        return s + (ctx?.unitCost || 0) * (q.air + q.sea);
+    }, 0);
+
     return (
         <div className="space-y-3">
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-                <i className="fas fa-calendar-alt" />
-                Submitted: {new Date(data.submitted_at).toLocaleString('vi-VN')}
-                <span className="ml-auto opacity-60">v{data.app_version}</span>
+            <div className="flex items-center gap-3 text-xs text-slate-400 flex-wrap">
+                <span><i className="fas fa-calendar-alt mr-1" />{new Date(data.submitted_at).toLocaleString('vi-VN')}</span>
+                <span className="bg-slate-800 px-2 py-0.5 rounded font-bold">{items.length} SKU</span>
+                {totalAir > 0 && <span className="text-amber-300 font-bold"><i className="fas fa-plane mr-1" />Air: {totalAir}</span>}
+                {totalSea > 0 && <span className="text-cyan-300 font-bold"><i className="fas fa-ship mr-1" />Sea: {totalSea}</span>}
+                {totalValue > 0 && <span className="text-emerald-300 font-bold ml-auto">{(totalValue / 1e6).toFixed(1)}M VND</span>}
             </div>
-            <div className="overflow-auto rounded-xl border border-slate-700/50 max-h-72">
-                <table className="w-full text-xs">
+
+            <div className="overflow-auto rounded-xl border border-slate-700/50 max-h-[480px]">
+                <table className="w-full text-xs border-separate border-spacing-0">
                     <thead>
-                        <tr className="bg-slate-800/80 text-slate-400 uppercase tracking-widest sticky top-0">
-                            <th className="px-3 py-2 text-left font-black">Mã hàng</th>
-                            <th className="px-3 py-2 text-left font-black">Tên</th>
-                            <th className="px-3 py-2 text-center font-black">Air</th>
-                            <th className="px-3 py-2 text-center font-black">Sea</th>
-                            <th className="px-3 py-2 text-center font-black">Tồn kho</th>
-                            <th className="px-3 py-2 text-center font-black">SS</th>
-                            <th className="px-3 py-2 text-center font-black">MOS</th>
-                            <th className="px-3 py-2 text-center font-black">Runway</th>
-                            <th className="px-3 py-2 text-center font-black">P</th>
-                            <th className="px-3 py-2 text-left font-black">Cảnh báo / Ghi chú</th>
+                        <tr className="bg-slate-800 text-slate-400 uppercase tracking-wider sticky top-0 z-10">
+                            <th className="px-3 py-2.5 text-left font-black sticky left-0 bg-slate-800 z-20 border-b border-slate-700/50">SKU</th>
+                            <th className="px-3 py-2.5 text-center font-black border-b border-slate-700/50 bg-rose-900/30 text-rose-300">Air</th>
+                            <th className="px-3 py-2.5 text-center font-black border-b border-slate-700/50 bg-cyan-900/30 text-cyan-300">Sea</th>
+                            <th className="px-3 py-2.5 text-center font-black border-b border-slate-700/50">Tồn kho</th>
+                            <th className="px-3 py-2.5 text-center font-black border-b border-slate-700/50">SS / ROP</th>
+                            <th className="px-3 py-2.5 text-center font-black border-b border-slate-700/50">MAX</th>
+                            <th className="px-3 py-2.5 text-center font-black border-b border-slate-700/50">Pipeline</th>
+                            <th className="px-3 py-2.5 text-center font-black border-b border-slate-700/50">BO</th>
+                            <th className="px-3 py-2.5 text-center font-black border-b border-slate-700/50">Demand</th>
+                            <th className="px-3 py-2.5 text-center font-black border-b border-slate-700/50">MOS</th>
+                            <th className="px-3 py-2.5 text-center font-black border-b border-slate-700/50">P</th>
+                            <th className="px-3 py-2.5 text-left font-black border-b border-slate-700/50">Cảnh báo / Ghi chú</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {items.map(([code, qty]) => {
+                        {items.map(([code, qty], i) => {
                             const ctx = data.inventory_context.find(c => c.itemCode === code);
                             const note = data.notes[code] || '';
-                            const warnings = ctx?.warnings?.join(', ') || '';
+                            const hasWarning = ctx?.warnings?.length > 0;
+                            const rowCls = `border-t border-slate-700/30 ${i % 2 === 0 ? 'bg-slate-900/20' : ''} hover:bg-slate-700/30 transition-colors`;
+                            const stockPct = ctx && ctx.stockMax > 0 ? Math.min(100, (ctx.available / ctx.stockMax) * 100) : 0;
                             return (
-                                <tr key={code} className="border-t border-slate-700/30 hover:bg-slate-700/20">
-                                    <td className="px-3 py-1.5 font-mono font-bold text-blue-300 whitespace-nowrap">{code}</td>
-                                    <td className="px-3 py-1.5 text-slate-300 max-w-[120px] truncate">{ctx?.itemName || ''}</td>
-                                    <td className="px-3 py-1.5 text-center font-bold text-amber-300">{qty.air || '-'}</td>
-                                    <td className="px-3 py-1.5 text-center font-bold text-cyan-300">{qty.sea || '-'}</td>
-                                    <td className="px-3 py-1.5 text-center text-slate-300">{ctx?.available ?? '-'}</td>
-                                    <td className="px-3 py-1.5 text-center text-slate-400">{ctx?.safetyStock ?? '-'}</td>
-                                    <td className="px-3 py-1.5 text-center text-slate-400">{ctx?.mos != null ? ctx.mos.toFixed(1) : '-'}</td>
-                                    <td className="px-3 py-1.5 text-center text-slate-400">{ctx?.runway != null ? ctx.runway.toFixed(0) : '-'}</td>
-                                    <td className={`px-3 py-1.5 text-center ${priorityColor(ctx?.priorityBucket)}`}>{ctx?.priorityBucket || '-'}</td>
-                                    <td className="px-3 py-1.5 text-slate-400 max-w-[160px]">
-                                        {warnings && <span className="text-rose-400 mr-1">{warnings}</span>}
-                                        {note && <span className="italic">{note}</span>}
+                                <tr key={code} className={rowCls}>
+                                    {/* SKU */}
+                                    <td className="px-3 py-2 sticky left-0 bg-slate-900 border-r border-slate-700/30 min-w-[160px]">
+                                        <div className="font-mono font-bold text-blue-300 text-[11px]">{code}</div>
+                                        <div className="text-slate-400 truncate max-w-[140px] text-[10px]">{ctx?.itemName || ''}</div>
+                                        <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                                            {ctx?.loisGroup && <span className="text-[8px] bg-slate-700 text-slate-300 px-1 py-0.5 rounded font-bold">L{ctx.loisGroup}</span>}
+                                            {ctx?.trendFlag && <span className="text-[8px] bg-blue-900/40 text-blue-300 px-1 py-0.5 rounded font-bold">{ctx.trendFlag}</span>}
+                                            {ctx?.typecar && <span className="text-[8px] text-slate-500">{ctx.typecar}</span>}
+                                        </div>
+                                    </td>
+                                    {/* Air */}
+                                    <td className="px-3 py-2 text-center bg-rose-900/10">
+                                        {qty.air > 0 ? <span className="font-black text-rose-300 text-sm">{qty.air}</span> : <span className="text-slate-600">-</span>}
+                                    </td>
+                                    {/* Sea */}
+                                    <td className="px-3 py-2 text-center bg-cyan-900/10">
+                                        {qty.sea > 0 ? <span className="font-black text-cyan-300 text-sm">{qty.sea}</span> : <span className="text-slate-600">-</span>}
+                                    </td>
+                                    {/* Tồn kho + mini bar */}
+                                    <td className="px-3 py-2 text-center min-w-[80px]">
+                                        <div className="font-bold text-slate-200">{fmt(ctx?.available)}</div>
+                                        {ctx && ctx.stockMax > 0 && (
+                                            <div className="w-full h-1 bg-slate-700 rounded-full mt-1 overflow-hidden">
+                                                <div className={`h-full rounded-full ${stockPct < 30 ? 'bg-rose-500' : stockPct < 60 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${stockPct}%` }} />
+                                            </div>
+                                        )}
+                                    </td>
+                                    {/* SS / ROP */}
+                                    <td className="px-3 py-2 text-center text-slate-400">
+                                        <div>{fmt(ctx?.safetyStock)}</div>
+                                        <div className="text-slate-500 text-[10px]">ROP: {fmt(ctx?.rop)}</div>
+                                    </td>
+                                    {/* MAX */}
+                                    <td className="px-3 py-2 text-center text-slate-400">{fmt(ctx?.stockMax)}</td>
+                                    {/* Pipeline */}
+                                    <td className="px-3 py-2 text-center">
+                                        {ctx?.totalPO ? <span className="text-blue-300 font-bold">{fmt(ctx.totalPO)}</span> : <span className="text-slate-600">-</span>}
+                                    </td>
+                                    {/* Backorder */}
+                                    <td className="px-3 py-2 text-center">
+                                        {ctx?.backorder ? <span className="text-rose-400 font-bold">{fmt(ctx.backorder)}</span> : <span className="text-slate-600">-</span>}
+                                    </td>
+                                    {/* Demand/Forecast */}
+                                    <td className="px-3 py-2 text-center text-slate-400">{fmt(ctx?.baseForecast, 1)}</td>
+                                    {/* MOS */}
+                                    <td className="px-3 py-2 text-center">
+                                        <span className={`font-bold ${ctx?.mos != null && ctx.mos < 1 ? 'text-rose-400' : ctx?.mos != null && ctx.mos < 2 ? 'text-amber-400' : 'text-slate-300'}`}>
+                                            {ctx?.mos != null ? ctx.mos.toFixed(1) : '-'}
+                                        </span>
+                                    </td>
+                                    {/* Priority */}
+                                    <td className="px-3 py-2 text-center"><PriorityBadge p={ctx?.priorityBucket} /></td>
+                                    {/* Warnings + Note */}
+                                    <td className="px-3 py-2 min-w-[160px]">
+                                        {hasWarning && (
+                                            <div className="text-rose-400 text-[10px] mb-0.5">
+                                                <i className="fas fa-triangle-exclamation mr-1" />{ctx.warnings.join(' · ')}
+                                            </div>
+                                        )}
+                                        {note && <div className="text-slate-400 italic text-[10px]">{note}</div>}
                                     </td>
                                 </tr>
                             );
                         })}
                         {items.length === 0 && (
-                            <tr><td colSpan={10} className="px-3 py-4 text-center text-slate-500">Không có dòng nào.</td></tr>
+                            <tr><td colSpan={12} className="px-3 py-6 text-center text-slate-500">Không có dòng nào.</td></tr>
                         )}
                     </tbody>
                 </table>

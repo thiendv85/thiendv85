@@ -167,16 +167,27 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
             .filter(code => (orderQuantities[code].air || 0) + (orderQuantities[code].sea || 0) > 0)
             .map(code => {
                 const item = enrichedMap?.get(code);
+                const c = item?.computed;
                 return {
                     itemCode: code,
                     itemName: item?.ItemName || code,
-                    available: item?.computed?.available || 0,
-                    safetyStock: item?.computed?.safetyStock || 0,
-                    mos: item?.computed?.mos || 0,
-                    runway: item?.computed?.cst || 0,
+                    typecar: item?.TypeCar || '',
+                    loisGroup: item?.LOISGroup || '',
+                    trendFlag: item?.TrendFlag || '',
+                    status: item?.Status || '',
+                    available: c?.available || 0,
+                    safetyStock: c?.safetyStock || 0,
+                    rop: c?.rop || 0,
+                    stockMax: c?.stockMax || 0,
+                    totalPO: item?.TotalPO || 0,
+                    backorder: item?.Backorder || 0,
+                    dealerInventory: item?.DealerInventory || 0,
+                    mos: c?.mos || 0,
+                    runway: c?.cst || 0,
                     baseForecast: item?.BaseForecast || 0,
-                    priorityBucket: item?.computed?.priorityBucket || 'P3',
-                    warnings: (item?.computed?.warnings || []).map(w => w.message),
+                    priorityBucket: c?.priorityBucket || 'P3',
+                    unitCost: c?.unitCost || 0,
+                    warnings: (c?.warnings || []).map(w => w.message),
                 };
             }),
         submitted_at: new Date().toISOString(),

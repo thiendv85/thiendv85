@@ -373,12 +373,22 @@ export interface SnapshotData {
     inventory_context: Array<{
         itemCode: string;
         itemName: string;
+        typecar: string;
+        loisGroup: string;
+        trendFlag: string;
+        status: string;
         available: number;
         safetyStock: number;
+        rop: number;
+        stockMax: number;
+        totalPO: number;
+        backorder: number;
+        dealerInventory: number;
         mos: number;
         runway: number;
         baseForecast: number;
         priorityBucket: string;
+        unitCost: number;
         warnings: string[];
     }>;
     submitted_at: string;
