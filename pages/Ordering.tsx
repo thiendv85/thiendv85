@@ -1021,9 +1021,22 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                 isOpen={isCloudModalOpen}
                 onClose={() => setIsCloudModalOpen(false)}
                 currentDraft={{ quantities: orderQuantities, notes: orderNotes }}
-                onLoadDraft={(draft) => {
+                onLoadDraft={(draft, draftName) => {
                     setOrderQuantities(prev => ({ ...prev, ...draft.quantities }));
                     setOrderNotes(prev => ({ ...prev, ...draft.notes }));
+                    // Tự động load approval request tương ứng với cloud draft
+                    if (draftName) {
+                        fetchRequestByDraftName(draftName).then(req => {
+                            if (req) setApprovalRequest(req);
+                        });
+                    }
+                }}
+                onLoadReturnedRequest={(req) => {
+                    // Load từ snapshot: không cần cloud draft
+                    const snap = req.snapshot_data;
+                    setOrderQuantities(snap.quantities || {});
+                    setOrderNotes(snap.notes || {});
+                    setApprovalRequest(req);
                 }}
             />
 
