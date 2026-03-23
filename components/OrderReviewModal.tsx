@@ -42,6 +42,8 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
     const [showUnlock, setShowUnlock] = useState(false);
     const [showMatrix, setShowMatrix] = useState(false);
     const [confirmReject, setConfirmReject] = useState(false);
+    const [pageSize, setPageSize] = useState(25);
+    const [currentPage, setCurrentPage] = useState(1);
 
     const canAct = !!(profile?.role && ['admin', 'approver'].includes(profile.role)
         && ['pending', 'in_progress'].includes(request.status));
@@ -75,6 +77,13 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
             const cur = localQtys[ctx.itemCode] || { air: 0, sea: 0 };
             return orig.air !== cur.air || orig.sea !== cur.sea;
         }), [rows, localQtys, snap.quantities]);
+
+    const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+    const safePage = Math.min(currentPage, totalPages);
+    const pagedRows = rows.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+    const goToPage = (p: number) => setCurrentPage(Math.max(1, Math.min(p, totalPages)));
+    const handlePageSize = (n: number) => { setPageSize(n); setCurrentPage(1); };
 
     const setQty = (code: string, field: 'air' | 'sea', val: string) => {
         const n = Math.max(0, parseInt(val) || 0);
@@ -463,20 +472,33 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                 <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
                     {/* Table title bar */}
-                    <div className="px-5 py-2.5 bg-white border-b border-slate-200 flex items-center justify-between shrink-0">
-                        <div className="flex items-center gap-3">
+                    <div className="px-4 py-2 bg-white border-b border-slate-200 flex items-center justify-between shrink-0 gap-3">
+                        <div className="flex items-center gap-2.5 shrink-0">
                             <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Chi tiết đặt hàng</span>
                             <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">{rows.length} mã</span>
                         </div>
-                        <div className="flex items-center gap-4 text-xs font-bold">
-                            {totals.air > 0 && <span className="text-rose-600"><i className="fas fa-plane mr-1" />Air: {totals.air}</span>}
-                            {totals.sea > 0 && <span className="text-blue-700"><i className="fas fa-ship mr-1" />Sea: {totals.sea}</span>}
-                            <span className="text-emerald-700 font-black">{currencyVND.format(totals.value)}</span>
+                        <div className="flex items-center gap-3">
+                            {/* Lines-per-page */}
+                            <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                                <span className="font-bold hidden sm:inline">Dòng/trang</span>
+                                {[25, 50, 100].map(n => (
+                                    <button key={n} onClick={() => handlePageSize(n)}
+                                        className={`px-2 py-0.5 rounded font-black transition-colors ${pageSize === n ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                                        {n}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="w-px h-4 bg-slate-200" />
+                            <div className="flex items-center gap-2 text-xs font-bold">
+                                {totals.air > 0 && <span className="text-rose-600"><i className="fas fa-plane mr-1" />Air: {totals.air}</span>}
+                                {totals.sea > 0 && <span className="text-blue-700"><i className="fas fa-ship mr-1" />Sea: {totals.sea}</span>}
+                                <span className="text-emerald-700 font-black">{currencyVND.format(totals.value)}</span>
+                            </div>
                         </div>
                     </div>
 
                     {/* Scrollable table */}
-                    <div className="flex-1 overflow-auto min-h-0">
+                    <div className="flex-1 overflow-auto min-h-0 relative">
                         <table className="w-full text-sm text-left border-separate border-spacing-0 min-w-[1600px]">
                             <thead className="bg-slate-50/95 backdrop-blur-sm border-b-2 border-slate-200 text-slate-600 sticky top-0 z-30">
                                 <tr className="text-xs uppercase font-black tracking-wider">
@@ -499,7 +521,8 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                                 </tr>
                             </thead>
                             <tbody className="bg-white">
-                                {rows.map((ctx, idx) => {
+                                {pagedRows.map((ctx, idx) => {
+                                    const globalIdx = (safePage - 1) * pageSize + idx;
                                     const q = localQtys[ctx.itemCode] || { air: 0, sea: 0 };
                                     const origQ = snap.quantities[ctx.itemCode] || { air: 0, sea: 0 };
                                     const changed = q.air !== origQ.air || q.sea !== origQ.sea;
@@ -514,7 +537,7 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
 
                                             {/* # */}
                                             <td className="px-3 py-3 text-center text-slate-400 font-mono text-xs font-black border-b border-slate-50 sticky left-0 z-10 bg-white group-hover:bg-slate-50">
-                                                {idx + 1}
+                                                {globalIdx + 1}
                                             </td>
 
                                             {/* SKU */}
@@ -662,6 +685,73 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                             </tbody>
                         </table>
                     </div>
+
+                    {/* ── Pagination footer ─────────────────────────────────── */}
+                    {totalPages > 1 && (
+                        <div className="shrink-0 border-t border-slate-200 bg-white px-4 py-2 flex items-center justify-between gap-3">
+                            {/* Info */}
+                            <span className="text-xs text-slate-400 font-bold shrink-0">
+                                {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, rows.length)} / {rows.length} mã
+                            </span>
+
+                            {/* Page buttons */}
+                            <div className="flex items-center gap-1">
+                                {/* Prev */}
+                                <button onClick={() => goToPage(safePage - 1)} disabled={safePage === 1}
+                                    className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                                    <i className="fas fa-chevron-left text-[10px]" />
+                                </button>
+
+                                {/* Page number pills */}
+                                {(() => {
+                                    const pages: (number | '...')[] = [];
+                                    if (totalPages <= 7) {
+                                        for (let i = 1; i <= totalPages; i++) pages.push(i);
+                                    } else {
+                                        pages.push(1);
+                                        if (safePage > 3) pages.push('...');
+                                        for (let i = Math.max(2, safePage - 1); i <= Math.min(totalPages - 1, safePage + 1); i++) pages.push(i);
+                                        if (safePage < totalPages - 2) pages.push('...');
+                                        pages.push(totalPages);
+                                    }
+                                    return pages.map((p, i) =>
+                                        p === '...' ? (
+                                            <span key={`e${i}`} className="w-7 h-7 flex items-center justify-center text-slate-400 text-xs">…</span>
+                                        ) : (
+                                            <button key={p} onClick={() => goToPage(p as number)}
+                                                className={`w-7 h-7 flex items-center justify-center rounded-lg text-xs font-black transition-colors ${
+                                                    p === safePage
+                                                        ? 'bg-slate-800 text-white shadow-sm'
+                                                        : 'border border-slate-200 text-slate-600 hover:bg-slate-100'
+                                                }`}>
+                                                {p}
+                                            </button>
+                                        )
+                                    );
+                                })()}
+
+                                {/* Next */}
+                                <button onClick={() => goToPage(safePage + 1)} disabled={safePage === totalPages}
+                                    className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                                    <i className="fas fa-chevron-right text-[10px]" />
+                                </button>
+                            </div>
+
+                            {/* Jump to page */}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                                <span className="text-xs text-slate-400 font-bold">Trang</span>
+                                <input
+                                    type="number" min={1} max={totalPages}
+                                    defaultValue={safePage}
+                                    key={safePage}
+                                    onBlur={e => goToPage(parseInt(e.target.value) || 1)}
+                                    onKeyDown={e => { if (e.key === 'Enter') goToPage(parseInt((e.target as HTMLInputElement).value) || 1); }}
+                                    className="w-12 text-center text-xs font-black border border-slate-200 rounded-lg py-1 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200 transition-all"
+                                />
+                                <span className="text-xs text-slate-400">/ {totalPages}</span>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
