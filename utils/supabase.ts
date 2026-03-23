@@ -5,7 +5,9 @@ import type { ApprovalWorkflow, ApprovalRequest, ApprovalAction, ApprovalStatus,
 const supabaseUrl = 'https://jczdnlydozcftvnqnixt.supabase.co';
 const supabaseKey = 'sb_publishable_Iahv6LF7asBI3E_u_HAZhQ_Qrb99Qjm'; // Provided by user
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: { persistSession: false },
+});
 
 // Hàm kiểm tra mã phê duyệt (Admin PIN)
 export const verifyAdminPin = (inputPin: string) => {
