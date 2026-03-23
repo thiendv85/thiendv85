@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Typography } from './Typography';
-import { listOrderDrafts, saveToCloudStorage, loadFromCloudStorage, fetchAllRequests } from '../utils/supabase';
+import { listOrderDrafts, saveOrderDraft, loadFromCloudStorage, fetchAllRequests } from '../utils/supabase';
 import { ApprovalStatusBadge } from './ApprovalStatusBadge';
 import { ApprovalStatus } from '../types/inventory';
 
@@ -21,12 +21,11 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft }: 
 
     // Form states (Save)
     const [draftName, setDraftName] = useState('');
-    const [draftPassword, setDraftPassword] = useState('');
     const [draftBrand, setDraftBrand] = useState<string>('Kia');
 
     // Filter states (Load)
     const [filterBrand, setFilterBrand] = useState<string>('All');
-    const [filterDays, setFilterDays] = useState<number>(30); // Default 30 days
+    const [filterDays, setFilterDays] = useState<number>(30);
     const [filterSearch, setFilterSearch] = useState('');
 
     useEffect(() => {
@@ -47,26 +46,20 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft }: 
 
     const handleSave = async () => {
         if (!draftName.trim()) return alert("Vui lòng nhập Tên dự thảo");
-        if (!draftPassword.trim()) return alert("Vui lòng nhập Mật khẩu bảo vệ");
 
         const totalItems = Object.values(currentDraft.quantities).filter(v => v.air + v.sea > 0).length;
         if (totalItems === 0) return alert("Dự thảo hiện tại đang trống. Vui lòng tạo dự thảo trước khi lưu.");
 
         setIsLoading(true);
-        // ID Format: order_draft_BRAND_NAME
         const id = `order_draft_${draftBrand}_${draftName.trim()}`;
-        
-        const payload = {
-            password: draftPassword.trim(),
-            brand: draftBrand,
-            draftData: currentDraft
-        };
+        const payload = { brand: draftBrand, draftData: currentDraft };
 
-        const success = await saveToCloudStorage(id, payload);
+        const success = await saveOrderDraft(id, payload);
         setIsLoading(false);
 
         if (success) {
             alert(`Đã lưu bản nháp "${draftName}" (${draftBrand}) thành công!`);
+            setDraftName('');
             onClose();
         } else {
             alert("Lỗi khi lưu lên Cloud.");
@@ -74,15 +67,11 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft }: 
     };
 
     const handleLoad = async (id: string, brand: string, name: string) => {
-        const enteredPassword = prompt(`Nhập mật khẩu cho dự thảo "${name}" (${brand}):`);
-        if (enteredPassword === null) return;
-
         setIsLoading(true);
         const data = await loadFromCloudStorage(id);
         setIsLoading(false);
 
         if (!data) return alert("Không thể tải dữ liệu.");
-        if (data.password !== enteredPassword) return alert("❌ Mật khẩu không chính xác!");
 
         onLoadDraft(data.draftData);
         alert("✅ Tải dự thảo thành công!");
@@ -94,8 +83,7 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft }: 
         const parts = d.id.split('_');
         let brand = 'Khác';
         let name = d.id.replace('order_draft_', '');
-        
-        // Match order_draft_[BRAND]_[NAME]
+
         if (parts.length >= 4 && BRANDS.includes(parts[2] as any)) {
             brand = parts[2];
             name = parts.slice(3).join('_');
@@ -103,7 +91,7 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft }: 
 
         const matchesBrand = filterBrand === 'All' || brand === filterBrand;
         const matchesSearch = name.toLowerCase().includes(filterSearch.toLowerCase());
-        
+
         const updatedAt = new Date(d.updated_at);
         const diffDays = (new Date().getTime() - updatedAt.getTime()) / (1000 * 3600 * 24);
         const matchesDate = filterDays === 0 || diffDays <= filterDays;
@@ -129,20 +117,10 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft }: 
                 </div>
 
                 <div className="flex grid grid-cols-2 bg-slate-50 border-b border-slate-200">
-                    <button
-                        onClick={() => setActiveTab('LOAD')}
-                        className={`py-3 text-sm font-black uppercase tracking-widest transition-all ${
-                            activeTab === 'LOAD' ? 'bg-white text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-700'
-                        }`}
-                    >
+                    <button onClick={() => setActiveTab('LOAD')} className={`py-3 text-sm font-black uppercase tracking-widest transition-all ${activeTab === 'LOAD' ? 'bg-white text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>
                         Tải Về
                     </button>
-                    <button
-                        onClick={() => setActiveTab('SAVE')}
-                        className={`py-3 text-sm font-black uppercase tracking-widest transition-all ${
-                            activeTab === 'SAVE' ? 'bg-white text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-700'
-                        }`}
-                    >
+                    <button onClick={() => setActiveTab('SAVE')} className={`py-3 text-sm font-black uppercase tracking-widest transition-all ${activeTab === 'SAVE' ? 'bg-white text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>
                         Lưu Mới
                     </button>
                 </div>
@@ -150,22 +128,15 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft }: 
                 <div className="p-5 flex-1 flex flex-col min-h-0 overflow-hidden">
                     {activeTab === 'LOAD' && (
                         <div className="flex flex-col h-full min-h-0">
-                            {/* Filter Bar */}
                             <div className="grid grid-cols-2 gap-2 mb-4">
-                                <select 
-                                    value={filterBrand} 
-                                    onChange={e => setFilterBrand(e.target.value)}
-                                    className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold outline-none focus:border-blue-500"
-                                >
+                                <select value={filterBrand} onChange={e => setFilterBrand(e.target.value)}
+                                    className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold outline-none focus:border-blue-500">
                                     <option value="All">Tất cả thương hiệu</option>
                                     {BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
                                     <option value="Khác">Phổ thông / Khác</option>
                                 </select>
-                                <select 
-                                    value={filterDays} 
-                                    onChange={e => setFilterDays(Number(e.target.value))}
-                                    className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold outline-none focus:border-blue-500"
-                                >
+                                <select value={filterDays} onChange={e => setFilterDays(Number(e.target.value))}
+                                    className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold outline-none focus:border-blue-500">
                                     <option value={7}>7 ngày qua</option>
                                     <option value={30}>30 ngày qua</option>
                                     <option value={90}>90 ngày qua</option>
@@ -174,18 +145,14 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft }: 
                             </div>
                             <div className="relative mb-4">
                                 <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                                <input 
-                                    type="text" 
-                                    placeholder="Tìm tên dự thảo..."
-                                    value={filterSearch}
+                                <input type="text" placeholder="Tìm tên dự thảo..." value={filterSearch}
                                     onChange={e => setFilterSearch(e.target.value)}
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 py-2 text-xs font-bold outline-none focus:border-blue-500"
-                                />
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 py-2 text-xs font-bold outline-none focus:border-blue-500" />
                             </div>
 
                             <div className="flex justify-between items-center mb-4">
                                 <Typography variant="label" className="text-slate-500 uppercase tracking-widest text-[10px] font-black">
-                                    Kết quả ({filteredDrafts.length})
+                                    Dự thảo của tôi ({filteredDrafts.length})
                                 </Typography>
                                 <button onClick={fetchDrafts} disabled={isLoading} className="text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1">
                                     <i className={`fas fa-sync-alt ${isLoading ? 'fa-spin' : ''}`}></i> Làm mới
@@ -205,7 +172,6 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft }: 
                             ) : (
                                 <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
                                     {filteredDrafts.map(d => {
-                                        const dateFull = d.updated_at; // For diff calc
                                         const dateDisplay = new Date(d.updated_at).toLocaleString('vi-VN');
                                         const parts = d.id.split('_');
                                         let b = 'Khác';
@@ -214,29 +180,18 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft }: 
                                             b = parts[2];
                                             n = parts.slice(3).join('_');
                                         }
-
                                         return (
-                                            <div key={d.id} className="flex items-center justify-between p-3 border border-slate-200 rounded-xl hover:border-blue-400 hover:bg-blue-50/30 transition-all group relative overflow-hidden">
+                                            <div key={d.id} className="flex items-center justify-between p-3 border border-slate-200 rounded-xl hover:border-blue-400 hover:bg-blue-50/30 transition-all group">
                                                 <div className="flex-1 min-w-0 pr-4">
                                                     <div className="flex items-center gap-2 mb-1">
-                                                        <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${
-                                                            b === 'Kia' ? 'bg-rose-100 text-rose-600' :
-                                                            b === 'BMW' ? 'bg-blue-100 text-blue-600' :
-                                                            b === 'Mazda' ? 'bg-blue-50 text-slate-600' :
-                                                            b === 'Peugeot' ? 'bg-slate-800 text-white' :
-                                                            'bg-slate-100 text-slate-500'
-                                                        }`}>
-                                                            {b}
-                                                        </span>
+                                                        <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${b === 'Kia' ? 'bg-rose-100 text-rose-600' : b === 'BMW' ? 'bg-blue-100 text-blue-600' : b === 'Mazda' ? 'bg-blue-50 text-slate-600' : b === 'Peugeot' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500'}`}>{b}</span>
                                                         <Typography variant="body" className="font-black text-slate-800 truncate text-sm">{n}</Typography>
                                                         {approvalStatusMap[n] && <ApprovalStatusBadge status={approvalStatusMap[n]} size="sm" />}
                                                     </div>
                                                     <Typography variant="label" className="text-slate-400 block text-[10px]"><i className="far fa-clock"></i> {dateDisplay}</Typography>
                                                 </div>
-                                                <button
-                                                    onClick={() => handleLoad(d.id, b, n)}
-                                                    className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm shrink-0"
-                                                >
+                                                <button onClick={() => handleLoad(d.id, b, n)}
+                                                    className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm shrink-0">
                                                     <i className="fas fa-download"></i>
                                                 </button>
                                             </div>
@@ -253,15 +208,8 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft }: 
                                 <Typography variant="label" className="text-slate-500 font-bold block mb-2 uppercase tracking-wider text-xs">Thương hiệu</Typography>
                                 <div className="grid grid-cols-4 gap-2">
                                     {BRANDS.map(b => (
-                                        <button
-                                            key={b}
-                                            onClick={() => setDraftBrand(b)}
-                                            className={`py-2 rounded-lg text-xs font-black transition-all border-2 ${
-                                                draftBrand === b 
-                                                    ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200' 
-                                                    : 'bg-white text-slate-500 border-slate-100 hover:border-blue-300'
-                                            }`}
-                                        >
+                                        <button key={b} onClick={() => setDraftBrand(b)}
+                                            className={`py-2 rounded-lg text-xs font-black transition-all border-2 ${draftBrand === b ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200' : 'bg-white text-slate-500 border-slate-100 hover:border-blue-300'}`}>
                                             {b}
                                         </button>
                                     ))}
@@ -269,31 +217,16 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft }: 
                             </div>
                             <div>
                                 <Typography variant="label" className="text-slate-500 font-bold block mb-2 uppercase tracking-wider text-xs">Tên dự thảo</Typography>
-                                <input
-                                    type="text"
-                                    value={draftName}
-                                    onChange={e => setDraftName(e.target.value)}
+                                <input type="text" value={draftName} onChange={e => setDraftName(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && handleSave()}
                                     placeholder="Ví dụ: Du_Thao_Thang_4"
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all opacity-100"
-                                />
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" />
+                                <Typography variant="label" className="text-slate-400 block mt-2 leading-tight text-[11px]">
+                                    Dự thảo chỉ hiển thị với tài khoản của bạn. Dữ liệu được mã hoá theo phiên đăng nhập.
+                                </Typography>
                             </div>
-                            <div>
-                                <Typography variant="label" className="text-slate-500 font-bold block mb-2 uppercase tracking-wider text-xs">Mật khẩu bảo vệ</Typography>
-                                <input
-                                    type="password"
-                                    value={draftPassword}
-                                    onChange={e => setDraftPassword(e.target.value)}
-                                    placeholder="Nhập mật khẩu tự định nghĩa"
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
-                                />
-                                <Typography variant="label" className="text-slate-400 block mt-2 leading-tight text-[11px]">Mật khẩu này sẽ được yêu cầu khi tải lại dự thảo. Nếu quên mật khẩu, bạn sẽ không thể mở lại dự thảo này.</Typography>
-                            </div>
-
-                            <button
-                                onClick={handleSave}
-                                disabled={isLoading}
-                                className="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-xl uppercase tracking-widest transition-all shadow-lg shadow-emerald-600/20 active:scale-[0.98] flex items-center justify-center gap-2"
-                            >
+                            <button onClick={handleSave} disabled={isLoading}
+                                className="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-xl uppercase tracking-widest transition-all shadow-lg shadow-emerald-600/20 active:scale-[0.98] flex items-center justify-center gap-2">
                                 {isLoading ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-cloud-upload-alt"></i>}
                                 Lưu Lên Cloud
                             </button>

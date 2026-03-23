@@ -349,6 +349,7 @@ const UserManagementTab = () => {
     const [newWfProposers, setNewWfProposers] = useState<string[]>([]);
     const [newWfLevels, setNewWfLevels] = useState<WorkflowLevel[]>([{ level: 1, approver_ids: [], require_all: false }]);
     const [showNewWfForm, setShowNewWfForm] = useState(false);
+    const [editingWf, setEditingWf] = useState<ApprovalWorkflow | null>(null);
 
     // Create user form
     const [showCreateUser, setShowCreateUser] = useState(false);
@@ -416,6 +417,40 @@ const UserManagementTab = () => {
         setTimeout(() => { setPwMsg(''); setShowChangePw(false); }, 2000);
     };
 
+    const handleOpenEditWf = (wf: ApprovalWorkflow) => {
+        setEditingWf(wf);
+        setNewWfName(wf.name);
+        setNewWfBrand(wf.brand || '');
+        setNewWfProposers(wf.proposer_ids ?? []);
+        setNewWfLevels(wf.levels.length > 0 ? wf.levels : [{ level: 1, approver_ids: [], require_all: false }]);
+        setShowNewWfForm(true);
+    };
+
+    const handleSaveWf = async () => {
+        if (!newWfName.trim() || !user) return;
+        if (editingWf) {
+            await updateWorkflow(editingWf.id, {
+                name: newWfName.trim(),
+                brand: newWfBrand || null,
+                levels: newWfLevels,
+                proposer_ids: newWfProposers,
+            });
+        } else {
+            await createWorkflow({
+                name: newWfName.trim(),
+                brand: newWfBrand || null,
+                levels: newWfLevels,
+                proposer_ids: newWfProposers,
+                is_active: true,
+                created_by: user.id,
+            });
+        }
+        setEditingWf(null); setNewWfName(''); setNewWfBrand(''); setNewWfProposers([]);
+        setNewWfLevels([{ level: 1, approver_ids: [], require_all: false }]);
+        setShowNewWfForm(false);
+        load();
+    };
+
     const handleAdminResetPassword = async () => {
         if (!resetTarget || resetPw.length < 6) { setResetMsg('Mật khẩu phải ít nhất 6 ký tự.'); return; }
         setIsResetting(true); setResetMsg('');
@@ -426,23 +461,6 @@ const UserManagementTab = () => {
         setTimeout(() => { setResetTarget(null); setResetPw(''); setResetMsg(''); }, 1500);
     };
 
-    const handleCreateWorkflow = async () => {
-        if (!newWfName.trim() || !user) return;
-        const id = await createWorkflow({
-            name: newWfName.trim(),
-            brand: newWfBrand || null,
-            levels: newWfLevels,
-            proposer_ids: newWfProposers,
-            is_active: true,
-            created_by: user.id,
-        });
-        if (id) {
-            setNewWfName(''); setNewWfBrand(''); setNewWfProposers([]);
-            setNewWfLevels([{ level: 1, approver_ids: [], require_all: false }]);
-            setShowNewWfForm(false);
-            load();
-        }
-    };
 
     const handleToggleWorkflow = async (wf: ApprovalWorkflow) => {
         await updateWorkflow(wf.id, { is_active: !wf.is_active });
@@ -611,12 +629,16 @@ const UserManagementTab = () => {
                                     {wf.brand && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">{wf.brand}</span>}
                                     <span className="text-xs text-slate-400">{wf.levels.length} cấp phê duyệt</span>
                                 </div>
-                                <button
-                                    onClick={() => handleToggleWorkflow(wf)}
-                                    className={`text-xs font-black px-3 py-1.5 rounded-lg border transition-all ${wf.is_active ? 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100' : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}
-                                >
-                                    {wf.is_active ? 'Tắt' : 'Bật'}
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <button onClick={() => handleOpenEditWf(wf)}
+                                        className="text-xs font-black px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 transition-all">
+                                        <i className="fas fa-pen mr-1" />Sửa
+                                    </button>
+                                    <button onClick={() => handleToggleWorkflow(wf)}
+                                        className={`text-xs font-black px-3 py-1.5 rounded-lg border transition-all ${wf.is_active ? 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100' : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}>
+                                        {wf.is_active ? 'Tắt' : 'Bật'}
+                                    </button>
+                                </div>
                             </div>
                             {/* Detail rows */}
                             <div className="divide-y divide-slate-100 px-4 py-2 space-y-1">
@@ -654,7 +676,7 @@ const UserManagementTab = () => {
                 </div>
                 {showNewWfForm ? (
                     <div className="mt-4 border border-blue-200 bg-blue-50/50 rounded-2xl p-4 space-y-4">
-                        <p className="text-xs font-black text-blue-700 uppercase tracking-widest">Tạo workflow mới</p>
+                        <p className="text-xs font-black text-blue-700 uppercase tracking-widest">{editingWf ? `Chỉnh sửa: ${editingWf.name}` : 'Tạo workflow mới'}</p>
 
                         {/* Name + Brand */}
                         <div className="flex gap-3">
@@ -762,10 +784,10 @@ const UserManagementTab = () => {
                         </div>
 
                         <div className="flex gap-2 pt-1">
-                            <button onClick={handleCreateWorkflow} disabled={!newWfName.trim()} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-2 rounded-xl text-sm font-black flex items-center gap-2">
-                                <i className="fas fa-check" /> Tạo workflow
+                            <button onClick={handleSaveWf} disabled={!newWfName.trim()} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-2 rounded-xl text-sm font-black flex items-center gap-2">
+                                <i className="fas fa-check" /> {editingWf ? 'Lưu thay đổi' : 'Tạo workflow'}
                             </button>
-                            <button onClick={() => { setShowNewWfForm(false); setNewWfName(''); setNewWfBrand(''); setNewWfProposers([]); setNewWfLevels([{ level: 1, approver_ids: [], require_all: false }]); }}
+                            <button onClick={() => { setShowNewWfForm(false); setEditingWf(null); setNewWfName(''); setNewWfBrand(''); setNewWfProposers([]); setNewWfLevels([{ level: 1, approver_ids: [], require_all: false }]); }}
                                 className="px-4 py-2 rounded-xl text-sm font-black border border-slate-200 text-slate-500 hover:bg-slate-50">
                                 Hủy
                             </button>

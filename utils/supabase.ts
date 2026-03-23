@@ -14,17 +14,32 @@ export const verifyAdminPin = (inputPin: string) => {
   return inputPin === adminPin;
 };
 
-// Helper function to save JSON data to cloud_storage table
+// Helper function to save JSON data to cloud_storage table (global records, no owner)
 export async function saveToCloudStorage(id: string, data: any) {
   try {
     const { error } = await supabase
       .from('cloud_storage')
       .upsert({ id, data, updated_at: new Date().toISOString() });
-    
+
     if (error) throw error;
     return true;
   } catch (error) {
     console.error('Lỗi khi lưu lên Cloud:', error);
+    return false;
+  }
+}
+
+// Save a user-owned draft (owner_id = current user)
+export async function saveOrderDraft(id: string, data: any) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase
+      .from('cloud_storage')
+      .upsert({ id, data, updated_at: new Date().toISOString(), owner_id: user?.id ?? null });
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Lỗi khi lưu draft:', error);
     return false;
   }
 }
@@ -53,15 +68,17 @@ export async function loadFromCloudStorage(id: string) {
   }
 }
 
-// Function to get list of order drafts (metadata only)
+// List order drafts belonging to current user only
 export async function listOrderDrafts() {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
     const { data, error } = await supabase
       .from('cloud_storage')
-      .select('id, updated_at')
+      .select('id, updated_at, owner_id')
       .like('id', 'order_draft_%')
+      .eq('owner_id', user?.id ?? '')
       .order('updated_at', { ascending: false });
-      
+
     if (error) return [];
     return data || [];
   } catch (err) {
