@@ -612,7 +612,7 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
                                     </th>
                                     <th className="px-4 py-3.5 min-w-[210px] sticky left-12 z-40 bg-slate-50/95 border-b border-slate-200 border-r border-slate-200">SKU Identity</th>
                                     <th className="px-4 py-3.5 text-center border-b border-slate-200 min-w-[115px]">Demand</th>
-                                    <th className="px-4 py-3.5 min-w-[155px] text-right border-b border-slate-200">Stock Health</th>
+                                    <th className="px-3 py-3.5 min-w-[120px] text-right border-b border-slate-200">Stock Health</th>
                                     <th className="px-4 py-3.5 text-center border-b border-slate-200 min-w-[105px]">Supply Pipeline</th>
                                     <th className="px-4 py-3.5 text-center border-b border-slate-200 min-w-[135px]">Sales Momentum</th>
                                     <th className="px-4 py-3.5 text-center border-b border-slate-200 min-w-[75px]">MOS</th>

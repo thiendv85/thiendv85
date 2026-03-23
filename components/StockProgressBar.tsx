@@ -305,16 +305,38 @@ export const StockProgressBar: React.FC<StockProgressBarProps> = (props) => {
   const hasPO = onOrder > 0;
   const hasDraft = draftAdd > 0;
 
+  // Compact mini-badge config (icon + short label only)
+  const COMPACT_TAG: Record<ActionTagType, { icon: string; label: string; cls: string }> = {
+    BO_CLEARED:  { icon: 'fa-check-double', label: 'BO✓',  cls: 'bg-blue-600 text-white border-blue-700' },
+    ROP_MET:     { icon: 'fa-magic',        label: 'ROP✓', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+    BACKORDER:   { icon: 'fa-exclamation',  label: 'BO!',  cls: 'bg-rose-600 text-white border-rose-700' },
+    NO_PLANNING: { icon: 'fa-ban',          label: 'N/P',  cls: 'bg-slate-100 text-slate-500 border-slate-200' },
+    ORDER:       { icon: 'fa-cart-plus',    label: `ORD`,  cls: 'bg-rose-50 text-rose-700 border-rose-200 font-black' },
+    BO_COVERED:  { icon: 'fa-shield',       label: 'BO~',  cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+    EXCESS:      { icon: 'fa-boxes-stacked',label: 'EXC',  cls: 'bg-amber-50 text-amber-700 border-amber-200 font-black' },
+    HEALTHY:     { icon: 'fa-circle-check', label: 'OK',   cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  };
+
   return (
     <div className={`w-full ${compact ? '' : 'mt-2'} group/bar`} role="region" aria-label="Stock status indicator">
       {/* Header */}
-      <div className={`flex justify-between items-end ${compact ? 'mb-1' : 'mb-2'}`}>
-        <ActionTag
-          type={actionTagType}
-          shortageQty={shortageQty}
-          excessVal={metrics.excessVal}
-          t={t}
-        />
+      <div className={`flex justify-between items-center ${compact ? 'mb-0.5' : 'mb-2'}`}>
+
+        {/* Action tag — full in normal, mini badge in compact */}
+        {compact ? (
+          <span className={`inline-flex items-center gap-0.5 border px-1.5 py-0 rounded text-[9px] font-black leading-4 ${COMPACT_TAG[actionTagType].cls}`}>
+            <i className={`fas ${COMPACT_TAG[actionTagType].icon} text-[8px]`} />
+            {COMPACT_TAG[actionTagType].label}
+            {actionTagType === 'ORDER' && shortageQty > 0 && <span>:{shortageQty}</span>}
+          </span>
+        ) : (
+          <ActionTag
+            type={actionTagType}
+            shortageQty={shortageQty}
+            excessVal={metrics.excessVal}
+            t={t}
+          />
+        )}
 
         {/* Stock numbers — hidden in compact to save space */}
         {!compact && (
@@ -369,14 +391,11 @@ export const StockProgressBar: React.FC<StockProgressBarProps> = (props) => {
           </div>
         )}
 
-        {/* Compact mode: just show available + backorder inline */}
+        {/* Compact mode: available + backorder tiny inline right side */}
         {compact && (
-          <div className="text-[9px] font-bold text-slate-500 flex items-center gap-1">
-            <i className="fas fa-boxes text-[8px] text-slate-400"></i>
+          <div className="text-[9px] font-bold text-slate-400 flex items-center gap-0.5 shrink-0">
             <span>{current.toLocaleString()}</span>
-            {backorder > 0 && (
-              <span className="text-rose-600 font-black">·BO:{backorder}</span>
-            )}
+            {backorder > 0 && <span className="text-rose-500 font-black">·{backorder}</span>}
           </div>
         )}
       </div>
