@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLanguage } from '../utils/i18n';
-import { saveToCloudStorage, loadFromCloudStorage, verifyAdminPin, saveMonthlyData, loadLatestMonthlyData, listMonthlyDataSnapshots, listProfiles, updateProfileRole, toggleUserActive, listWorkflows, createWorkflow, updateWorkflow, createUserByAdmin } from '../utils/supabase';
+import { saveToCloudStorage, loadFromCloudStorage, verifyAdminPin, saveMonthlyData, loadLatestMonthlyData, listMonthlyDataSnapshots, listProfiles, updateProfileRole, toggleUserActive, listWorkflows, createWorkflow, updateWorkflow, createUserByAdmin, adminResetPassword } from '../utils/supabase';
 import { supabase } from '../utils/supabase';
 import { parseMonthlyCSV } from '../utils/csvParser';
 import { Typography } from '../components/Typography';
@@ -358,12 +358,18 @@ const UserManagementTab = () => {
     const [createError, setCreateError] = useState('');
     const [isCreating, setIsCreating] = useState(false);
 
-    // Change password
+    // Change password (own)
     const [showChangePw, setShowChangePw] = useState(false);
     const [newPw, setNewPw] = useState('');
     const [confirmPw, setConfirmPw] = useState('');
     const [pwMsg, setPwMsg] = useState('');
     const [isChangingPw, setIsChangingPw] = useState(false);
+
+    // Admin reset password for another user
+    const [resetTarget, setResetTarget] = useState<UserProfile | null>(null);
+    const [resetPw, setResetPw] = useState('');
+    const [resetMsg, setResetMsg] = useState('');
+    const [isResetting, setIsResetting] = useState(false);
 
     const load = useCallback(async () => {
         setIsLoading(true);
@@ -407,6 +413,16 @@ const UserManagementTab = () => {
         setPwMsg('✓ Đã đổi mật khẩu thành công!');
         setNewPw(''); setConfirmPw('');
         setTimeout(() => { setPwMsg(''); setShowChangePw(false); }, 2000);
+    };
+
+    const handleAdminResetPassword = async () => {
+        if (!resetTarget || resetPw.length < 6) { setResetMsg('Mật khẩu phải ít nhất 6 ký tự.'); return; }
+        setIsResetting(true); setResetMsg('');
+        const { error } = await adminResetPassword(resetTarget.id, resetPw);
+        setIsResetting(false);
+        if (error) { setResetMsg(error); return; }
+        setResetMsg('✓ Đã đổi mật khẩu!');
+        setTimeout(() => { setResetTarget(null); setResetPw(''); setResetMsg(''); }, 1500);
     };
 
     const handleCreateWorkflow = async () => {
@@ -473,18 +489,73 @@ const UserManagementTab = () => {
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-right">
-                                        <button
-                                            onClick={() => handleToggleActive(u.id, u.is_active)}
-                                            className={`text-xs font-black px-3 py-1.5 rounded-lg border transition-all ${u.is_active ? 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100' : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}
-                                        >
-                                            {u.is_active ? 'Vô hiệu hoá' : 'Kích hoạt'}
-                                        </button>
+                                        <div className="flex items-center justify-end gap-2">
+                                            <button
+                                                onClick={() => { setResetTarget(u); setResetPw(''); setResetMsg(''); }}
+                                                className="text-xs font-black px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all"
+                                            >
+                                                <i className="fas fa-key mr-1" />Đổi mật khẩu
+                                            </button>
+                                            <button
+                                                onClick={() => handleToggleActive(u.id, u.is_active)}
+                                                className={`text-xs font-black px-3 py-1.5 rounded-lg border transition-all ${u.is_active ? 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100' : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}
+                                            >
+                                                {u.is_active ? 'Vô hiệu hoá' : 'Kích hoạt'}
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
+                {/* Admin Reset Password Modal */}
+                {resetTarget && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setResetTarget(null)}>
+                        <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4 space-y-4" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                                    <i className="fas fa-key text-blue-600" />
+                                </div>
+                                <div>
+                                    <p className="font-black text-slate-800 text-sm">Đổi mật khẩu</p>
+                                    <p className="text-xs text-slate-500">{resetTarget.full_name || 'Người dùng'}</p>
+                                </div>
+                            </div>
+                            {resetMsg && (
+                                <p className={`text-xs px-3 py-2 rounded-lg border ${resetMsg.startsWith('✓') ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-rose-50 border-rose-200 text-rose-600'}`}>{resetMsg}</p>
+                            )}
+                            <div>
+                                <label className="block text-xs font-black text-slate-500 mb-1">Mật khẩu mới</label>
+                                <input
+                                    type="password"
+                                    value={resetPw}
+                                    onChange={e => setResetPw(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && handleAdminResetPassword()}
+                                    placeholder="Ít nhất 6 ký tự"
+                                    autoFocus
+                                    className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-400 font-medium"
+                                />
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={handleAdminResetPassword}
+                                    disabled={isResetting || resetPw.length < 6}
+                                    className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-black py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 transition-all"
+                                >
+                                    {isResetting ? <><i className="fas fa-circle-notch fa-spin" /> Đang lưu...</> : <><i className="fas fa-check" /> Xác nhận</>}
+                                </button>
+                                <button
+                                    onClick={() => setResetTarget(null)}
+                                    className="px-4 py-2.5 rounded-xl text-sm font-black border border-slate-200 text-slate-500 hover:bg-slate-50 transition-all"
+                                >
+                                    Hủy
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Create User Form */}
                 {showCreateUser ? (
                     <div className="mt-4 p-4 border border-blue-200 bg-blue-50 rounded-xl space-y-3">
