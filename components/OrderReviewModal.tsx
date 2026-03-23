@@ -115,7 +115,7 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
     };
 
     return (
-        <div className="fixed inset-0 z-[200] bg-white flex flex-col">
+        <div className="fixed inset-0 z-[200] bg-atp-background flex flex-col">
 
             {/* ═══ TOP HEADER ══════════════════════════════════════════════════ */}
             <div
@@ -215,7 +215,7 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
             <div className="flex-1 flex overflow-hidden min-h-0">
 
                 {/* ── LEFT SIDEBAR (fixed, always visible) ────────────────── */}
-                <div className="w-[300px] shrink-0 flex flex-col border-r border-slate-200 bg-slate-50 overflow-y-auto">
+                <div className="w-[300px] shrink-0 flex flex-col border-r border-slate-200/80 bg-white/80 backdrop-blur-sm overflow-y-auto shadow-glass">
 
                     {/* Sức khoẻ tồn kho — không lặp header pills */}
                     <div className="p-4 space-y-2 border-b border-slate-200">
@@ -359,7 +359,7 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                                 <button
                                     onClick={() => handleAction('approved')}
                                     disabled={isSubmitting}
-                                    className="w-full bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:opacity-50 text-white font-black py-3 rounded-xl text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-200 hover:shadow-emerald-300"
+                                    className="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-95 disabled:opacity-50 text-white font-black py-3 rounded-2xl text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-200 border border-emerald-700"
                                 >
                                     {submittingAction === 'approved'
                                         ? <i className="fas fa-spinner fa-spin" />
@@ -371,7 +371,7 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                                 <button
                                     onClick={() => handleAction('returned')}
                                     disabled={isSubmitting}
-                                    className="w-full border-2 border-indigo-300 text-indigo-600 hover:bg-indigo-50 active:bg-indigo-100 disabled:opacity-50 font-black py-2.5 rounded-xl text-xs uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all"
+                                    className="w-full border-2 border-indigo-300 text-indigo-600 hover:bg-indigo-50 active:scale-95 disabled:opacity-50 font-black py-2.5 rounded-2xl text-xs uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all"
                                 >
                                     {submittingAction === 'returned'
                                         ? <i className="fas fa-spinner fa-spin" />
@@ -384,7 +384,7 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                                     <button
                                         onClick={() => setConfirmReject(true)}
                                         disabled={isSubmitting}
-                                        className="w-full text-rose-600 hover:bg-rose-50 active:bg-rose-100 disabled:opacity-50 font-bold py-2 rounded-xl text-xs uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all border border-rose-200"
+                                        className="w-full text-rose-600 hover:bg-rose-50 active:scale-95 disabled:opacity-50 font-bold py-2 rounded-2xl text-xs uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all border border-rose-200"
                                     >
                                         <i className="fas fa-xmark" /> Từ chối đơn hàng
                                     </button>
@@ -426,7 +426,7 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                                 {!showUnlock ? (
                                     <button
                                         onClick={() => setShowUnlock(true)}
-                                        className="w-full border-2 border-orange-300 text-orange-600 hover:bg-orange-50 font-black py-3 rounded-xl text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-colors"
+                                        className="w-full border-2 border-orange-300 text-orange-600 hover:bg-orange-50 active:scale-95 font-black py-3 rounded-2xl text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
                                     >
                                         <i className="fas fa-lock-open" /> Mở khóa
                                     </button>
@@ -478,15 +478,15 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                             <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">{rows.length} mã</span>
                         </div>
                         <div className="flex items-center gap-3">
-                            {/* Lines-per-page */}
+                            {/* Lines-per-page — matches Ordering.tsx select style */}
                             <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                                <span className="font-bold hidden sm:inline">Dòng/trang</span>
-                                {[25, 50, 100].map(n => (
-                                    <button key={n} onClick={() => handlePageSize(n)}
-                                        className={`px-2 py-0.5 rounded font-black transition-colors ${pageSize === n ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
-                                        {n}
-                                    </button>
-                                ))}
+                                <span className="font-bold text-slate-400">Dòng/trang</span>
+                                <select value={pageSize} onChange={e => handlePageSize(Number(e.target.value))}
+                                    className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 outline-none cursor-pointer text-slate-700 font-bold text-xs hover:border-slate-300 transition-colors">
+                                    <option value={25}>25</option>
+                                    <option value={50}>50</option>
+                                    <option value={100}>100</option>
+                                </select>
                             </div>
                             <div className="w-px h-4 bg-slate-200" />
                             <div className="flex items-center gap-2 text-xs font-bold">
@@ -686,23 +686,22 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                         </table>
                     </div>
 
-                    {/* ── Pagination footer ─────────────────────────────────── */}
+                    {/* ── Pagination footer — dùng pagination-pill như Ordering.tsx ── */}
                     {totalPages > 1 && (
                         <div className="shrink-0 border-t border-slate-200 bg-white px-4 py-2 flex items-center justify-between gap-3">
                             {/* Info */}
                             <span className="text-xs text-slate-400 font-bold shrink-0">
-                                {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, rows.length)} / {rows.length} mã
+                                {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, rows.length)}
+                                <span className="text-slate-300 mx-1">/</span>
+                                {rows.length} mã
                             </span>
 
-                            {/* Page buttons */}
-                            <div className="flex items-center gap-1">
-                                {/* Prev */}
+                            {/* Page pills — identical pattern to Ordering.tsx */}
+                            <div className="flex items-center gap-0.5">
                                 <button onClick={() => goToPage(safePage - 1)} disabled={safePage === 1}
-                                    className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                                    <i className="fas fa-chevron-left text-[10px]" />
+                                    className="pagination-pill text-slate-600">
+                                    <i className="fas fa-chevron-left text-xs" />
                                 </button>
-
-                                {/* Page number pills */}
                                 {(() => {
                                     const pages: (number | '...')[] = [];
                                     if (totalPages <= 7) {
@@ -715,38 +714,27 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                                         pages.push(totalPages);
                                     }
                                     return pages.map((p, i) =>
-                                        p === '...' ? (
-                                            <span key={`e${i}`} className="w-7 h-7 flex items-center justify-center text-slate-400 text-xs">…</span>
-                                        ) : (
-                                            <button key={p} onClick={() => goToPage(p as number)}
-                                                className={`w-7 h-7 flex items-center justify-center rounded-lg text-xs font-black transition-colors ${
-                                                    p === safePage
-                                                        ? 'bg-slate-800 text-white shadow-sm'
-                                                        : 'border border-slate-200 text-slate-600 hover:bg-slate-100'
-                                                }`}>
-                                                {p}
-                                            </button>
-                                        )
+                                        p === '...'
+                                            ? <span key={`e${i}`} className="px-1 text-slate-300 text-xs">…</span>
+                                            : <button key={p} onClick={() => goToPage(p as number)}
+                                                className={`pagination-pill ${p === safePage ? 'active' : 'text-slate-600'}`}>{p}</button>
                                     );
                                 })()}
-
-                                {/* Next */}
                                 <button onClick={() => goToPage(safePage + 1)} disabled={safePage === totalPages}
-                                    className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                                    <i className="fas fa-chevron-right text-[10px]" />
+                                    className="pagination-pill text-slate-600">
+                                    <i className="fas fa-chevron-right text-xs" />
                                 </button>
                             </div>
 
                             {/* Jump to page */}
                             <div className="flex items-center gap-1.5 shrink-0">
-                                <span className="text-xs text-slate-400 font-bold">Trang</span>
+                                <span className="text-xs text-slate-400 font-bold">Đến trang</span>
                                 <input
                                     type="number" min={1} max={totalPages}
-                                    defaultValue={safePage}
-                                    key={safePage}
+                                    defaultValue={safePage} key={safePage}
                                     onBlur={e => goToPage(parseInt(e.target.value) || 1)}
                                     onKeyDown={e => { if (e.key === 'Enter') goToPage(parseInt((e.target as HTMLInputElement).value) || 1); }}
-                                    className="w-12 text-center text-xs font-black border border-slate-200 rounded-lg py-1 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200 transition-all"
+                                    className="w-12 text-center text-xs font-black border border-slate-200 rounded-xl py-1.5 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all bg-slate-50"
                                 />
                                 <span className="text-xs text-slate-400">/ {totalPages}</span>
                             </div>
