@@ -4,6 +4,7 @@ import { ApprovalStatusBadge } from './ApprovalStatusBadge';
 import { StockProgressBar } from './StockProgressBar';
 import { SalesMomentum } from './SalesMomentum';
 import { TrendBadge } from './TrendBadge';
+import { SnapshotMatrix } from './SnapshotMatrix';
 import { Typography } from './Typography';
 import { useAuth } from '../utils/authContext';
 import { processApprovalAction, unlockRequest } from '../utils/supabase';
@@ -142,6 +143,11 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                         {currencyVND.format(totals.value)}
                     </span>
                 </div>
+            </div>
+
+            {/* ─── Supply Matrix ───────────────────────────────────────────────── */}
+            <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 shrink-0">
+                <SnapshotMatrix items={rows} draftQtys={localQtys} />
             </div>
 
             {/* ─── Table ───────────────────────────────────────────────────────── */}
