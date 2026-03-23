@@ -17,6 +17,12 @@ type TabFilter = 'pending' | 'mine' | 'all';
 
 // ─── Snapshot Viewer ─────────────────────────────────────────────────────────
 
+const priorityColor = (p?: string) => {
+    if (p === 'P1') return 'text-rose-400 font-black';
+    if (p === 'P2') return 'text-amber-400 font-bold';
+    return 'text-slate-400';
+};
+
 const SnapshotViewer = ({ data }: { data: SnapshotData }) => {
     const items = Object.entries(data.quantities).filter(([, q]) => q.air > 0 || q.sea > 0);
     return (
@@ -26,35 +32,47 @@ const SnapshotViewer = ({ data }: { data: SnapshotData }) => {
                 Submitted: {new Date(data.submitted_at).toLocaleString('vi-VN')}
                 <span className="ml-auto opacity-60">v{data.app_version}</span>
             </div>
-            <div className="overflow-auto rounded-xl border border-slate-700/50 max-h-64">
+            <div className="overflow-auto rounded-xl border border-slate-700/50 max-h-72">
                 <table className="w-full text-xs">
                     <thead>
-                        <tr className="bg-slate-800/80 text-slate-400 uppercase tracking-widest">
+                        <tr className="bg-slate-800/80 text-slate-400 uppercase tracking-widest sticky top-0">
                             <th className="px-3 py-2 text-left font-black">Mã hàng</th>
                             <th className="px-3 py-2 text-left font-black">Tên</th>
                             <th className="px-3 py-2 text-center font-black">Air</th>
                             <th className="px-3 py-2 text-center font-black">Sea</th>
+                            <th className="px-3 py-2 text-center font-black">Tồn kho</th>
+                            <th className="px-3 py-2 text-center font-black">SS</th>
                             <th className="px-3 py-2 text-center font-black">MOS</th>
-                            <th className="px-3 py-2 text-left font-black">Ghi chú</th>
+                            <th className="px-3 py-2 text-center font-black">Runway</th>
+                            <th className="px-3 py-2 text-center font-black">P</th>
+                            <th className="px-3 py-2 text-left font-black">Cảnh báo / Ghi chú</th>
                         </tr>
                     </thead>
                     <tbody>
                         {items.map(([code, qty]) => {
                             const ctx = data.inventory_context.find(c => c.itemCode === code);
                             const note = data.notes[code] || '';
+                            const warnings = ctx?.warnings?.join(', ') || '';
                             return (
                                 <tr key={code} className="border-t border-slate-700/30 hover:bg-slate-700/20">
-                                    <td className="px-3 py-1.5 font-mono font-bold text-blue-300">{code}</td>
-                                    <td className="px-3 py-1.5 text-slate-300">{ctx?.itemName || ''}</td>
+                                    <td className="px-3 py-1.5 font-mono font-bold text-blue-300 whitespace-nowrap">{code}</td>
+                                    <td className="px-3 py-1.5 text-slate-300 max-w-[120px] truncate">{ctx?.itemName || ''}</td>
                                     <td className="px-3 py-1.5 text-center font-bold text-amber-300">{qty.air || '-'}</td>
                                     <td className="px-3 py-1.5 text-center font-bold text-cyan-300">{qty.sea || '-'}</td>
-                                    <td className="px-3 py-1.5 text-center text-slate-400">{ctx?.mos?.toFixed(1) ?? '-'}</td>
-                                    <td className="px-3 py-1.5 text-slate-400 italic truncate max-w-[140px]">{note}</td>
+                                    <td className="px-3 py-1.5 text-center text-slate-300">{ctx?.available ?? '-'}</td>
+                                    <td className="px-3 py-1.5 text-center text-slate-400">{ctx?.safetyStock ?? '-'}</td>
+                                    <td className="px-3 py-1.5 text-center text-slate-400">{ctx?.mos != null ? ctx.mos.toFixed(1) : '-'}</td>
+                                    <td className="px-3 py-1.5 text-center text-slate-400">{ctx?.runway != null ? ctx.runway.toFixed(0) : '-'}</td>
+                                    <td className={`px-3 py-1.5 text-center ${priorityColor(ctx?.priorityBucket)}`}>{ctx?.priorityBucket || '-'}</td>
+                                    <td className="px-3 py-1.5 text-slate-400 max-w-[160px]">
+                                        {warnings && <span className="text-rose-400 mr-1">{warnings}</span>}
+                                        {note && <span className="italic">{note}</span>}
+                                    </td>
                                 </tr>
                             );
                         })}
                         {items.length === 0 && (
-                            <tr><td colSpan={6} className="px-3 py-4 text-center text-slate-500">Không có dòng nào.</td></tr>
+                            <tr><td colSpan={10} className="px-3 py-4 text-center text-slate-500">Không có dòng nào.</td></tr>
                         )}
                     </tbody>
                 </table>
@@ -69,8 +87,8 @@ const AuditTrail = ({ actions }: { actions: ApprovalAction[] }) => (
     <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
         {actions.length === 0 && <p className="text-slate-500 text-xs">Chưa có hành động nào.</p>}
         {actions.map(a => (
-            <div key={a.id} className={`flex gap-2 text-xs rounded-lg px-3 py-2 border ${a.action === 'approved' ? 'bg-emerald-900/20 border-emerald-700/30' : a.action === 'rejected' ? 'bg-rose-900/20 border-rose-700/30' : 'bg-slate-800/40 border-slate-700/30'}`}>
-                <i className={`fas mt-0.5 ${a.action === 'approved' ? 'fa-circle-check text-emerald-400' : a.action === 'rejected' ? 'fa-circle-xmark text-rose-400' : 'fa-comment text-slate-400'}`} />
+            <div key={a.id} className={`flex gap-2 text-xs rounded-lg px-3 py-2 border ${a.action === 'approved' ? 'bg-emerald-900/20 border-emerald-700/30' : a.action === 'rejected' ? 'bg-rose-900/20 border-rose-700/30' : a.action === 'returned' ? 'bg-indigo-900/20 border-indigo-700/30' : 'bg-slate-800/40 border-slate-700/30'}`}>
+                <i className={`fas mt-0.5 ${a.action === 'approved' ? 'fa-circle-check text-emerald-400' : a.action === 'rejected' ? 'fa-circle-xmark text-rose-400' : a.action === 'returned' ? 'fa-rotate-left text-indigo-400' : 'fa-comment text-slate-400'}`} />
                 <div className="flex-1 min-w-0">
                     <span className="font-bold text-slate-300">Level {a.level}</span>
                     <span className="text-slate-500 ml-2">{new Date(a.acted_at).toLocaleString('vi-VN')}</span>
@@ -102,7 +120,7 @@ const DetailPanel = ({ request, actions, onClose, onRefresh }: DetailPanelProps)
     const canUnlock = profile?.role && ['admin', 'approver'].includes(profile.role)
         && request.status === 'approved';
 
-    const handleAction = async (action: 'approved' | 'rejected') => {
+    const handleAction = async (action: 'approved' | 'rejected' | 'returned') => {
         if (!user) return;
         setIsSubmitting(true);
         try {
@@ -183,6 +201,16 @@ const DetailPanel = ({ request, actions, onClose, onRefresh }: DetailPanelProps)
                                     <i className="fas fa-xmark" /> Từ chối
                                 </button>
                             </div>
+                            <button
+                                onClick={() => {
+                                    if (!comment.trim()) { alert('Vui lòng nhập lý do trả lại.'); return; }
+                                    handleAction('returned');
+                                }}
+                                disabled={isSubmitting}
+                                className="w-full border border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/10 disabled:opacity-50 font-black py-2 rounded-xl text-sm uppercase tracking-widest flex items-center justify-center gap-2"
+                            >
+                                <i className="fas fa-rotate-left" /> Trả lại để điều chỉnh
+                            </button>
                         </section>
                     )}
 

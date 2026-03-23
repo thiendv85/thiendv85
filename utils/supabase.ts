@@ -401,7 +401,7 @@ export async function fetchRequestActions(requestId: string): Promise<ApprovalAc
 export async function processApprovalAction(
   requestId: string,
   actorId: string,
-  action: 'approved' | 'rejected' | 'commented',
+  action: 'approved' | 'rejected' | 'commented' | 'returned',
   comment?: string
 ): Promise<{ success: boolean; newStatus: ApprovalStatus }> {
   // Look up request and workflow
@@ -426,6 +426,11 @@ export async function processApprovalAction(
   if (action === 'rejected') {
     await supabase.from('approval_requests').update({ status: 'rejected' }).eq('id', request.id);
     return { success: true, newStatus: 'rejected' };
+  }
+
+  if (action === 'returned') {
+    await supabase.from('approval_requests').update({ status: 'returned', current_level: 1 }).eq('id', request.id);
+    return { success: true, newStatus: 'returned' };
   }
 
   // action === 'approved': kiểm tra xem level hiện tại đã đủ chưa

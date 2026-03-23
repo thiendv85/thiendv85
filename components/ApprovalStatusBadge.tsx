@@ -7,6 +7,7 @@ const CONFIG: Record<ApprovalStatus, { label: string; icon: string; cls: string 
     approved:    { label: 'Đã duyệt',    icon: 'fa-circle-check',    cls: 'bg-emerald-500/15 border-emerald-400/40 text-emerald-300' },
     rejected:    { label: 'Từ chối',     icon: 'fa-circle-xmark',    cls: 'bg-rose-500/15 border-rose-400/40 text-rose-300' },
     unlocked:    { label: 'Đã mở khóa', icon: 'fa-lock-open',       cls: 'bg-orange-500/15 border-orange-400/40 text-orange-300' },
+    returned:    { label: 'Trả lại',     icon: 'fa-rotate-left',     cls: 'bg-indigo-500/15 border-indigo-400/40 text-indigo-300' },
 };
 
 interface Props {
