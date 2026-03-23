@@ -365,7 +365,7 @@ export interface ApprovalWorkflow {
     created_at: string;
 }
 
-export type ApprovalStatus = 'pending' | 'in_progress' | 'approved' | 'rejected' | 'unlocked';
+export type ApprovalStatus = 'pending' | 'in_progress' | 'approved' | 'rejected' | 'unlocked' | 'returned';
 
 export interface SnapshotData {
     quantities: Record<string, { air: number; sea: number }>;
@@ -374,7 +374,9 @@ export interface SnapshotData {
         itemCode: string;
         itemName: string;
         available: number;
+        safetyStock: number;
         mos: number;
+        runway: number;
         baseForecast: number;
         priorityBucket: string;
         warnings: string[];
