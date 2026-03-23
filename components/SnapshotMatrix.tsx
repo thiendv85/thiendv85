@@ -29,6 +29,8 @@ interface Props {
     items: CtxItem[];
     /** Số lượng đang đặt (để tính simulated) */
     draftQtys?: Record<string, { air: number; sea: number }>;
+    /** Chế độ compact: chỉ hiện group-level (L/O/I/S/U), ít cột hơn */
+    compact?: boolean;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -84,7 +86,7 @@ const fmtTr = (v: number) => {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const SnapshotMatrix = ({ items, draftQtys = {} }: Props) => {
+export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props) => {
     const [showSim, setShowSim] = useState(false);
 
     const { matrixData, grand } = useMemo(() => {
@@ -296,6 +298,84 @@ export const SnapshotMatrix = ({ items, draftQtys = {} }: Props) => {
     const grandMOS = grand.grandTurnover > 0 ? (activeGrandStockVal * 12 / grand.grandTurnover) : 0;
     const grandExcPct = activeGrandStockVal > 0 ? (totalExcessVal / activeGrandStockVal) * 100 : 0;
 
+    // ── Compact render ──────────────────────────────────────────────────────────
+    if (compact) {
+        const renderCompactRow = (label: string, subKeys: string[], groupColor?: string) => {
+            const r = { items: 0, noStock: 0, short: 0, stockVal: 0, boItems: 0, simStockVal: 0, turnover: 0, trendSum: 0, trendCount: 0 };
+            subKeys.forEach(k => {
+                if (!matrixData[k]) return;
+                const m = matrixData[k];
+                r.items += m.items; r.noStock += m.noStock; r.short += m.short;
+                r.stockVal += m.stockVal; r.boItems += m.boItems;
+                r.simStockVal += m.simStockVal; r.turnover += m.turnover;
+                r.trendSum += m.trendSum; r.trendCount += m.trendCount;
+            });
+            if (r.items === 0) return null;
+            const activeVal = showSim ? r.simStockVal : r.stockVal;
+            const mos = r.turnover > 0 ? (activeVal * 12 / r.turnover) : 0;
+            return (
+                <tr key={label} className="border-b border-slate-100 text-xs hover:bg-slate-50/60 transition-colors">
+                    <td className="px-2 py-1.5 border-r border-slate-100">
+                        <div className="flex items-center gap-1.5">
+                            {groupColor && <div className={`w-1 h-2.5 ${groupColor} rounded-full shrink-0`} />}
+                            <span className="font-bold text-slate-800 text-[10px]">{label}</span>
+                        </div>
+                    </td>
+                    <td className="px-2 py-1.5 text-center text-slate-500 text-[10px]">{r.items}</td>
+                    <td className={`px-2 py-1.5 text-center font-bold text-[10px] ${r.noStock > 0 ? 'text-rose-600' : 'text-slate-300'}`}>{r.noStock || '—'}</td>
+                    <td className={`px-2 py-1.5 text-center font-bold text-[10px] ${r.short > 0 ? 'text-amber-600' : 'text-slate-300'}`}>{r.short || '—'}</td>
+                    <td className="px-2 py-1.5 text-right font-bold text-blue-700 text-[10px]">{fmtTr(activeVal)}</td>
+                    <td className={`px-2 py-1.5 text-center font-bold italic text-[10px] ${mos > 0 && mos < 1 ? 'text-rose-600' : mos > 12 ? 'text-amber-600' : 'text-slate-600'}`}>
+                        {mos > 0 ? `${mos.toFixed(1)}M` : '—'}
+                    </td>
+                    <td className={`px-2 py-1.5 text-center font-bold text-[10px] ${r.boItems > 0 ? 'text-rose-600' : 'text-slate-300'}`}>{r.boItems || '—'}</td>
+                </tr>
+            );
+        };
+
+        return (
+            <div className="border border-slate-200 rounded-xl overflow-hidden bg-white">
+                <div className="flex items-center justify-between px-3 py-2 bg-slate-800 text-white">
+                    <span className="font-black text-[10px] uppercase tracking-widest">Ma Trận Cung Ứng</span>
+                    <button
+                        onClick={() => setShowSim(p => !p)}
+                        className={`text-[9px] font-black px-2 py-0.5 rounded border transition-colors ${showSim ? 'bg-blue-500 border-blue-400 text-white' : 'border-slate-500 text-slate-400 hover:text-white'}`}
+                    >
+                        {showSim ? 'SIM' : 'TT'}
+                    </button>
+                </div>
+                <table className="w-full text-[10px] border-separate border-spacing-0">
+                    <thead>
+                        <tr className="bg-slate-50 text-slate-500 text-[9px] uppercase tracking-wider font-black">
+                            <th className="px-2 py-1.5 text-left border-r border-slate-100">Phân Khúc</th>
+                            <th className="px-2 py-1.5 text-center">SKU</th>
+                            <th className="px-2 py-1.5 text-center text-rose-600">OOS</th>
+                            <th className="px-2 py-1.5 text-center text-amber-600">Risk</th>
+                            <th className="px-2 py-1.5 text-right text-blue-600">Val</th>
+                            <th className="px-2 py-1.5 text-center">MOS</th>
+                            <th className="px-2 py-1.5 text-center text-rose-600">BO</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {LOIS_HIERARCHY.map(group => renderCompactRow(group.label, group.sub, group.color))}
+                        <tr className="bg-slate-800 text-white text-[9px] font-black">
+                            <td className="px-2 py-1.5 border-r border-slate-600">TOTAL</td>
+                            <td className="px-2 py-1.5 text-center">{totalItems}</td>
+                            <td className={`px-2 py-1.5 text-center ${totalNoStock > 0 ? 'text-rose-400' : 'text-slate-500'}`}>{totalNoStock || '0'}</td>
+                            <td className={`px-2 py-1.5 text-center ${totalShort > 0 ? 'text-amber-400' : 'text-slate-500'}`}>{totalShort || '0'}</td>
+                            <td className="px-2 py-1.5 text-right text-blue-300">{fmtTr(activeGrandStockVal)}</td>
+                            <td className={`px-2 py-1.5 text-center italic ${grandMOS < 1 ? 'text-rose-400' : grandMOS > 12 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                {grandMOS > 0 ? `${grandMOS.toFixed(1)}M` : '—'}
+                            </td>
+                            <td className={`px-2 py-1.5 text-center ${totalBoItems > 0 ? 'text-rose-400' : 'text-slate-500'}`}>{totalBoItems || '0'}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        );
+    }
+
+    // ── Full render ─────────────────────────────────────────────────────────────
     return (
         <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm bg-white">
             {/* Header */}
