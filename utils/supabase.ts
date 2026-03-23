@@ -472,6 +472,17 @@ export async function processApprovalAction(
   }
 }
 
+/** Gửi lại yêu cầu đã bị trả lại: cập nhật snapshot + reset status/level về pending */
+export async function resubmitApprovalRequest(requestId: string, snapshotData: SnapshotData): Promise<boolean> {
+  const { error } = await supabase.from('approval_requests').update({
+    status: 'pending',
+    current_level: 1,
+    snapshot_data: snapshotData,
+    submitted_at: new Date().toISOString(),
+  }).eq('id', requestId);
+  return !error;
+}
+
 export async function unlockRequest(requestId: string, actorId: string, reason: string): Promise<boolean> {
   const { error } = await supabase.from('approval_requests').update({
     status: 'unlocked',

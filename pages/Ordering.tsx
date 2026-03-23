@@ -20,8 +20,8 @@ import { Typography } from '../components/Typography';
 import { CloudDraftModal } from '../components/CloudDraftModal';
 import { useAuth } from '../utils/authContext';
 import { ApprovalStatusBadge } from '../components/ApprovalStatusBadge';
-import { listWorkflows, submitApprovalRequest, fetchRequestByDraftName } from '../utils/supabase';
-import { ApprovalRequest, ApprovalWorkflow } from '../types/inventory';
+import { listWorkflows, submitApprovalRequest, fetchRequestByDraftName, resubmitApprovalRequest, fetchRequestActions } from '../utils/supabase';
+import { ApprovalRequest, ApprovalWorkflow, ApprovalAction } from '../types/inventory';
 
 // --- MODULE-LEVEL CONSTANTS ---
 const PRIORITY_ORDER: Record<string, number> = { P1: 0, P2: 1, P3: 2 };
@@ -129,15 +129,28 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
     const [submitDraftName, setSubmitDraftName] = useState('');
     const [selectedWorkflowId, setSelectedWorkflowId] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [returnReason, setReturnReason] = useState<string>('');
 
     const { user, profile } = useAuth();
     const isLocked = approvalRequest?.status === 'approved';
+    const isReturned = approvalRequest?.status === 'returned';
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const tableScrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => { if (onUpdateDraft) onUpdateDraft({ quantities: orderQuantities, notes: orderNotes }); }, [orderQuantities, orderNotes, onUpdateDraft]);
     useEffect(() => { if (onSaveState) onSaveState({ settings, filters, quantities: orderQuantities, notes: orderNotes, viewFilter, itemsPerPage }); }, [settings, filters, orderQuantities, orderNotes, viewFilter, itemsPerPage, onSaveState]);
+
+    useEffect(() => {
+        if (approvalRequest?.status === 'returned') {
+            fetchRequestActions(approvalRequest.id).then(acts => {
+                const last = [...acts].reverse().find(a => a.action === 'returned');
+                setReturnReason(last?.comment || '');
+            });
+        } else {
+            setReturnReason('');
+        }
+    }, [approvalRequest?.id, approvalRequest?.status]);
 
     const handleOpenSubmitModal = async () => {
         const [wfs] = await Promise.all([listWorkflows()]);
@@ -147,43 +160,58 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
         setIsSubmitModalOpen(true);
     };
 
+    const buildSnapshot = () => ({
+        quantities: orderQuantities,
+        notes: orderNotes,
+        inventory_context: Object.keys(orderQuantities)
+            .filter(code => (orderQuantities[code].air || 0) + (orderQuantities[code].sea || 0) > 0)
+            .map(code => {
+                const item = enrichedMap?.get(code);
+                return {
+                    itemCode: code,
+                    itemName: item?.ItemName || code,
+                    available: item?.computed?.available || 0,
+                    safetyStock: item?.computed?.safetyStock || 0,
+                    mos: item?.computed?.mos || 0,
+                    runway: item?.computed?.cst || 0,
+                    baseForecast: item?.BaseForecast || 0,
+                    priorityBucket: item?.computed?.priorityBucket || 'P3',
+                    warnings: (item?.computed?.warnings || []).map(w => w.message),
+                };
+            }),
+        submitted_at: new Date().toISOString(),
+        app_version: '13',
+    });
+
     const handleSubmitApproval = async () => {
         if (!user || !submitDraftName.trim() || !selectedWorkflowId) return;
         setIsSubmitting(true);
-        const snapshot = {
-            quantities: orderQuantities,
-            notes: orderNotes,
-            inventory_context: Object.keys(orderQuantities)
-                .filter(code => (orderQuantities[code].air || 0) + (orderQuantities[code].sea || 0) > 0)
-                .map(code => {
-                    const item = enrichedMap?.get(code);
-                    return {
-                        itemCode: code,
-                        itemName: item?.ItemName || code,
-                        available: item?.computed?.available || 0,
-                        safetyStock: item?.computed?.safetyStock || 0,
-                        mos: item?.computed?.mos || 0,
-                        runway: item?.computed?.cst || 0,
-                        baseForecast: item?.BaseForecast || 0,
-                        priorityBucket: item?.computed?.priorityBucket || 'P3',
-                        warnings: (item?.computed?.warnings || []).map(w => w.message),
-                    };
-                }),
-            submitted_at: new Date().toISOString(),
-            app_version: '13',
-        };
         const id = await submitApprovalRequest({
             draft_name: submitDraftName.trim(),
             brand: null,
             workflow_id: selectedWorkflowId,
             submitted_by: user.id,
-            snapshot_data: snapshot,
+            snapshot_data: buildSnapshot(),
         });
         setIsSubmitting(false);
         setIsSubmitModalOpen(false);
         if (id) {
             const req = await fetchRequestByDraftName(submitDraftName.trim());
             setApprovalRequest(req);
+        }
+    };
+
+    const handleResubmit = async () => {
+        if (!approvalRequest) return;
+        if (!confirm(`Gửi lại yêu cầu phê duyệt "${approvalRequest.draft_name}" với dữ liệu đã chỉnh sửa?`)) return;
+        setIsSubmitting(true);
+        const ok = await resubmitApprovalRequest(approvalRequest.id, buildSnapshot());
+        setIsSubmitting(false);
+        if (ok) {
+            const req = await fetchRequestByDraftName(approvalRequest.draft_name);
+            setApprovalRequest(req);
+        } else {
+            alert('Lỗi khi gửi lại yêu cầu.');
         }
     };
 
@@ -605,7 +633,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                             <i className="fas fa-trash-alt"></i> Xóa dự thảo
                         </button>
                         <button onClick={handleExport} className="bg-blue-600 text-white hover:bg-blue-700 px-6 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2 border border-blue-700"><i className="fas fa-file-export"></i> {t('ord_export_btn')}</button>
-                        {profile?.role && ['admin', 'planner'].includes(profile.role) && (
+                        {profile?.role && ['admin', 'planner'].includes(profile.role) && !isReturned && (
                             <button
                                 onClick={handleOpenSubmitModal}
                                 disabled={Object.values(orderQuantities).every((v: any) => !v.air && !v.sea)}
@@ -621,6 +649,25 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                         )}
                     </div>
                 </div>
+
+                {/* ─── Returned banner ─── */}
+                {isReturned && (
+                    <div className="mx-4 mb-2 flex items-center gap-3 bg-indigo-50 border border-indigo-200 rounded-2xl px-4 py-3">
+                        <i className="fas fa-rotate-left text-indigo-600 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                            <span className="text-indigo-800 font-black text-sm block">Draft bị trả lại để điều chỉnh</span>
+                            {returnReason && <span className="text-indigo-600 text-xs">Lý do: {returnReason}</span>}
+                        </div>
+                        <button
+                            onClick={handleResubmit}
+                            disabled={isSubmitting || Object.values(orderQuantities).every((v: any) => !v.air && !v.sea)}
+                            className="shrink-0 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2"
+                        >
+                            {isSubmitting ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-paper-plane" />}
+                            Gửi lại
+                        </button>
+                    </div>
+                )}
 
                 {/* ─── Lock banner ─── */}
                 {isLocked && (
