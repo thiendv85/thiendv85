@@ -75,7 +75,7 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
         }
         setIsSubmitting(true);
         try {
-            const modifiedQtys = action === 'approved' ? localQtys : undefined;
+            const modifiedQtys = localQtys;
             await processApprovalAction(request.id, user.id, action, comment || undefined, modifiedQtys);
             onRefresh();
             onClose();

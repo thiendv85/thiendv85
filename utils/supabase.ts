@@ -432,7 +432,14 @@ export async function processApprovalAction(
   }
 
   if (action === 'returned') {
-    await supabase.from('approval_requests').update({ status: 'returned', current_level: 1 }).eq('id', request.id);
+    const returnUpdate: Record<string, unknown> = { status: 'returned', current_level: 1 };
+    if (modifiedQuantities) {
+      returnUpdate.snapshot_data = {
+        ...request.snapshot_data,
+        quantities: modifiedQuantities,
+      };
+    }
+    await supabase.from('approval_requests').update(returnUpdate).eq('id', request.id);
     return { success: true, newStatus: 'returned' };
   }
 
