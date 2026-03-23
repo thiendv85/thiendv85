@@ -601,31 +601,31 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
 
                     {/* Scrollable table */}
                     <div className="flex-1 overflow-auto min-h-0 relative">
-                        <table className="w-full text-sm text-left border-separate border-spacing-0 min-w-[1600px]">
+                        <table className="w-full text-sm text-left border-separate border-spacing-0 min-w-[1150px]">
                             <thead className="bg-slate-50/95 backdrop-blur-sm border-b-2 border-slate-200 text-slate-600 sticky top-0 z-30">
                                 <tr className="text-xs uppercase font-black tracking-wider">
-                                    <th className="px-4 py-3.5 w-12 text-center text-slate-400 border-b border-slate-200 sticky left-0 z-40 bg-slate-50/95 cursor-pointer hover:bg-slate-100 transition-colors" onClick={handleToggleAll}>
+                                    <th className="px-3 py-3 w-10 text-center text-slate-400 border-b border-slate-200 sticky left-0 z-40 bg-slate-50/95 cursor-pointer hover:bg-slate-100 transition-colors" onClick={handleToggleAll}>
                                         <div className="flex flex-col items-center gap-1">
                                             <input type="checkbox" checked={selectedItems.size === rows.length && rows.length > 0} onChange={handleToggleAll} className="w-4 h-4 cursor-pointer accent-blue-600 rounded" />
                                             <span className="text-[8px] uppercase font-bold tracking-tighter leading-none">All</span>
                                         </div>
                                     </th>
-                                    <th className="px-4 py-3.5 min-w-[210px] sticky left-12 z-40 bg-slate-50/95 border-b border-slate-200 border-r border-slate-200">SKU Identity</th>
-                                    <th className="px-4 py-3.5 text-center border-b border-slate-200 min-w-[115px]">Demand</th>
-                                    <th className="px-3 py-3.5 min-w-[120px] text-right border-b border-slate-200">Stock Health</th>
-                                    <th className="px-4 py-3.5 text-center border-b border-slate-200 min-w-[105px]">Supply Pipeline</th>
-                                    <th className="px-4 py-3.5 text-center border-b border-slate-200 min-w-[135px]">Sales Momentum</th>
-                                    <th className="px-4 py-3.5 text-center border-b border-slate-200 min-w-[75px]">MOS</th>
-                                    <th className="px-4 py-3.5 text-center border-b border-slate-200 min-w-[95px]">Dealer & CST</th>
-                                    <th className="px-4 py-3.5 text-center border-x border-slate-200 bg-rose-50/40 border-b border-slate-200 min-w-[105px]">
-                                        <span className="text-rose-600">Air (Bù Nợ)</span>
+                                    <th className="px-3 py-3 min-w-[160px] sticky left-10 z-40 bg-slate-50/95 border-b border-slate-200 border-r border-slate-200">SKU Identity</th>
+                                    <th className="px-2 py-3 text-center border-b border-slate-200 min-w-[100px]">Demand</th>
+                                    <th className="px-2 py-3 min-w-[115px] text-right border-b border-slate-200">Stock Health</th>
+                                    <th className="px-2 py-3 text-center border-b border-slate-200 min-w-[85px]">Pipeline</th>
+                                    <th className="px-2 py-3 text-center border-b border-slate-200 min-w-[105px]">Momentum</th>
+                                    <th className="px-2 py-3 text-center border-b border-slate-200 min-w-[65px]">MOS</th>
+                                    <th className="px-2 py-3 text-center border-b border-slate-200 min-w-[85px]">DLR/CST</th>
+                                    <th className="px-2 py-3 text-center border-x border-slate-200 bg-rose-50/40 border-b border-slate-200 min-w-[85px]">
+                                        <span className="text-rose-600 font-bold">Air</span>
                                     </th>
-                                    <th className="px-4 py-3.5 text-center border-r border-slate-200 bg-blue-50/40 border-b border-slate-200 min-w-[105px]">
-                                        <span className="text-blue-700">Sea (Regular)</span>
+                                    <th className="px-2 py-3 text-center border-r border-slate-200 bg-blue-50/40 border-b border-slate-200 min-w-[85px]">
+                                        <span className="text-blue-700 font-bold">Sea</span>
                                     </th>
-                                    <th className="px-4 py-3.5 min-w-[130px] border-b border-slate-200">Ghi chú</th>
-                                    <th className="px-4 py-3.5 text-right border-b border-slate-200 border-l border-slate-200 min-w-[110px]">Thành Tiền</th>
-                                    <th className="px-4 py-3.5 sticky right-0 z-40 bg-slate-50/95 border-b border-slate-200 border-l border-slate-200 min-w-[90px] text-center">Trạng thái</th>
+                                    <th className="px-3 py-3 min-w-[100px] border-b border-slate-200">Note</th>
+                                    <th className="px-3 py-3 text-right border-b border-slate-200 border-l border-slate-200 min-w-[95px]">Amount</th>
+                                    <th className="px-2 py-3 sticky right-0 z-40 bg-slate-50/95 border-b border-slate-200 border-l border-slate-200 min-w-[80px] text-center">Status</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white">
@@ -653,7 +653,7 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
                                             </td>
 
                                             {/* SKU */}
-                                            <td className={`px-3 py-1.5 sticky left-12 z-10 border-b border-slate-50/80 border-r border-slate-100
+                                            <td className={`px-3 py-1 sticky left-10 z-10 border-b border-slate-50/80 border-r border-slate-100
                                                 ${!selectedItems.has(ctx.itemCode) ? 'bg-slate-50 group-hover:bg-slate-100' : 'bg-white group-hover:bg-slate-50'}`}>
                                                 <div className="flex items-center gap-1.5">
                                                     <span className="font-black text-slate-800 text-xs font-mono tracking-tight">{ctx.itemCode}</span>
@@ -664,7 +664,7 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
                                                         {ctx.priorityBucket || 'P3'}
                                                     </span>
                                                 </div>
-                                                <div className="text-[10px] text-slate-500 truncate max-w-[195px] leading-tight">{ctx.itemName}</div>
+                                                <div className="text-[10px] text-slate-500 truncate max-w-[150px] leading-tight">{ctx.itemName}</div>
                                                 <div className="mt-0.5 flex flex-wrap gap-0.5">
                                                     {ctx.status && <span className="text-[8px] font-black px-1 py-0 rounded bg-slate-100 text-slate-500 uppercase leading-4">{ctx.status}</span>}
                                                     {ctx.loisGroup && <span className="text-[8px] font-black px-1 py-0 rounded bg-blue-50 text-blue-600 border border-blue-100 uppercase leading-4">L{ctx.loisGroup}</span>}
