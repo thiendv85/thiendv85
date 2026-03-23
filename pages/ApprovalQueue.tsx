@@ -246,6 +246,7 @@ export const ApprovalQueue = () => {
                 <OrderReviewModal
                     request={selected.req}
                     actions={selected.actions}
+                    usersMap={usersMap}
                     onClose={() => setSelected(null)}
                     onRefresh={loadRequests}
                 />
