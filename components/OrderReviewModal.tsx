@@ -154,6 +154,146 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
         } catch (e) { console.error(e); } finally { setIsSubmitting(false); }
     };
 
+    // ─── Print Order Form (popup) ─────────────────────────────────────────────
+    const handlePrintOrder = () => {
+        const sd = new Date(request.submitted_at || Date.now());
+        const month = sd.getMonth() + 1;
+        const year = sd.getFullYear();
+        const weekOfMonth = Math.ceil(sd.getDate() / 7);
+        const pad = (n: number) => n.toString().padStart(2, '0');
+
+        // Previous month for reference data header
+        const prevDate = new Date(sd);
+        prevDate.setMonth(prevDate.getMonth() - 1);
+        const prevMonth = prevDate.getMonth() + 1;
+        const prevYear = prevDate.getFullYear();
+        const prevWeek = Math.max(1, weekOfMonth - 1) || 4;
+
+        const fmt = (v: number, dec = 0) => v ? v.toLocaleString('vi-VN', { maximumFractionDigits: dec }) : '-';
+        const fmtMoney = (v: number) => v ? (v / 1_000_000).toFixed(1) : '-';
+
+        // Build data rows
+        let totalQty = 0, totalBB = 0, totalNB = 0, totalValue = 0;
+        let bodyRows = '';
+        rows.forEach((ctx, idx) => {
+            const q = localQtys[ctx.itemCode] || { air: 0, sea: 0 };
+            const isSelected = selectedItems.has(ctx.itemCode);
+            const qtyBB = isSelected ? q.sea : 0; // sea = BB = Miền Bắc
+            const qtyNB = isSelected ? q.air : 0; // air = NB = Miền Nam
+            const qty = qtyBB + qtyNB;
+            const value = (ctx.unitCost || 0) * qty;
+            const totalStock = (ctx.available || 0) + (ctx.dealerInventory || 0);
+            const fc = ctx.baseForecast || 0;
+            const ltMonths = (ctx as any).effectiveLT ? ((ctx as any).effectiveLT / 30).toFixed(1) : '-';
+            const mosSauDat = fc > 0 ? ((totalStock + (ctx.totalPO || 0) + qty) / fc).toFixed(1) : '-';
+
+            totalQty += qty; totalBB += qtyBB; totalNB += qtyNB; totalValue += value;
+
+            bodyRows += `<tr>
+                <td class="c">${idx + 1}</td>
+                <td>${ctx.itemCode}</td>
+                <td class="name">${ctx.itemName}</td>
+                <td class="c">${ctx.loisGroup || '-'}</td>
+                <td>${ctx.typecar || '-'}</td>
+                <td class="c">${ctx.loisGroup || '-'}</td>
+                <td class="c">${ltMonths}</td>
+                <td class="r">${fmt(ctx.available)}</td>
+                <td class="r">${fmt(ctx.dealerInventory)}</td>
+                <td class="r">${fmt(totalStock)}</td>
+                <td class="r">${fmt(fc, 1)}</td>
+                <td class="r">${ctx.mos ? ctx.mos.toFixed(1) : '-'}</td>
+                <td class="r">${fmt(ctx.totalPO)}</td>
+                <td class="r">${fmt(ctx.backorder)}</td>
+                <td class="r">${fmt(ctx.stockMax)}</td>
+                <td class="r b">${fmt(qty)}</td>
+                <td class="r">${fmt(qtyBB)}</td>
+                <td class="r">${fmt(qtyNB)}</td>
+                <td class="r">${fmtMoney(value)}</td>
+                <td class="r">${mosSauDat}</td>
+                <td class="c"></td>
+            </tr>`;
+        });
+
+        const footerRow = `<tr>
+            <td colspan="7" class="b">TỔNG CỘNG</td>
+            <td class="r"></td><td class="r"></td><td class="r"></td><td class="r"></td><td class="r"></td>
+            <td class="r"></td><td class="r"></td><td class="r"></td>
+            <td class="r b">${fmt(totalQty)}</td>
+            <td class="r">${fmt(totalBB)}</td>
+            <td class="r">${fmt(totalNB)}</td>
+            <td class="r b">${fmtMoney(totalValue)}</td>
+            <td class="r"></td><td class="c"></td>
+        </tr>`;
+
+        const html = `<!DOCTYPE html><html lang="vi"><head>
+<meta charset="UTF-8">
+<title>Phiếu Đặt Hàng – ${request.draft_name}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
+<style>
+@page { size: A4 landscape; margin: 8mm 7mm; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Noto Sans', Arial, sans-serif; font-size: 7pt; color: #000; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.title { text-align: center; font-size: 10pt; font-weight: 900; color: #c00; text-transform: uppercase; line-height: 1.5; margin-top: 6px; }
+.subtitle { text-align: center; font-size: 8pt; font-style: italic; color: #c00; margin-bottom: 8px; }
+table { width: 100%; border-collapse: collapse; font-size: 6.5pt; table-layout: fixed; }
+thead th { background: #e8e8e8; border: 1px solid #999; padding: 2px 3px; font-size: 6pt; font-weight: 700; text-align: center; vertical-align: middle; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+tbody td { border: 1px solid #bbb; padding: 1.5px 3px; vertical-align: middle; font-size: 6.5pt; line-height: 1.2; }
+tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; padding: 2px 3px; font-size: 6.5pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.r { text-align: right; } .c { text-align: center; } .b { font-weight: 900; }
+.name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 110px; }
+.hdr-group { background: #ddd; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+@media print { body { margin: 0; } }
+</style>
+</head><body>
+<div class="title">BẢNG KÊ DANH MỤC PHỤ TÙNG, VẬT TƯ THƯƠNG HIỆU<br/>ĐỀ XUẤT ĐẶT HÀNG TUẦN ${weekOfMonth} THÁNG ${pad(month)} NĂM ${year}</div>
+<div class="subtitle">(Đính kèm theo tờ trình số:&hellip;/&hellip;/ Ngày &hellip;&hellip; tháng ${pad(month)} năm ${year})</div>
+<table>
+<colgroup>
+<col style="width:22px"><col style="width:62px"><col style="width:110px"><col style="width:32px"><col style="width:48px">
+<col style="width:26px"><col style="width:30px">
+<col style="width:32px"><col style="width:32px"><col style="width:36px">
+<col style="width:34px"><col style="width:30px"><col style="width:34px"><col style="width:30px"><col style="width:34px">
+<col style="width:32px"><col style="width:32px"><col style="width:32px"><col style="width:40px">
+<col style="width:34px"><col style="width:34px">
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2">STT</th>
+<th rowspan="2">Mã Phụ Tùng</th>
+<th rowspan="2">Tên Phụ Tùng</th>
+<th rowspan="2">Nhóm loại hình</th>
+<th rowspan="2">Mẫu xe</th>
+<th rowspan="2">LOIS</th>
+<th rowspan="2">Thời gian hàng về<br/>(Tháng)</th>
+<th colspan="3" class="hdr-group">Tồn Việt Nam</th>
+<th rowspan="2">BQ bán hàng GT</th>
+<th rowspan="2">Cơ số tồn Việt Nam<br/>(Tháng BH)</th>
+<th rowspan="2">Đặt NCC chưa giao</th>
+<th rowspan="2">Số lượng nợ</th>
+<th rowspan="2">Số lượng tồn kho<br/>định mức</th>
+<th colspan="4" class="hdr-group">Đề xuất đặt hàng dự trữ tuần ${pad(weekOfMonth)} tháng ${pad(month)}, năm ${year}</th>
+<th rowspan="2">Tổng Cơ số tồn sau đặt<br/>(tháng BH)</th>
+<th rowspan="2">Cơ số tồn định mức<br/>đã duyệt</th>
+</tr>
+<tr>
+<th>PP</th><th>ĐL</th><th>Tổng tồn</th>
+<th>Tổng số</th><th>Miền Bắc</th><th>Miền Nam</th><th>Thành tiền<br/>(Tr. đ)</th>
+</tr>
+</thead>
+<tbody>${bodyRows}</tbody>
+<tfoot>${footerRow}</tfoot>
+</table>
+</body></html>`;
+
+        const w = window.open('', '_blank', 'width=1200,height=800');
+        if (!w) return alert('Trình duyệt đã chặn popup. Hãy cho phép popup để in.');
+        w.document.write(html);
+        w.document.close();
+        w.focus();
+        setTimeout(() => { w.print(); }, 600);
+    };
+
     return (
         <div className="fixed inset-0 z-[200] bg-atp-background flex flex-col">
 
@@ -290,6 +430,158 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
                         </button>
                     </div>
 
+                    {/* ── ACTION PANEL (Top, before content) ──────────── */}
+                    <div className="border-b border-slate-200 p-3 flex flex-col gap-2 shrink-0 bg-slate-50/80 backdrop-blur-md z-20">
+
+                        {canAct && (
+                            <>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-1.5 h-4 bg-blue-600 rounded-full" />
+                                        <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">
+                                            Hành động · Lv{request.current_level}
+                                        </span>
+                                    </div>
+                                    <div className="text-[9px] font-bold text-slate-400 italic">
+                                        {selectedItems.size}/{rows.length} SKU
+                                    </div>
+                                </div>
+
+                                <textarea
+                                    value={comment}
+                                    onChange={e => { setComment(e.target.value); if (commentError) setCommentError(''); }}
+                                    placeholder="Ghi chú gửi cho người đề xuất..."
+                                    rows={2}
+                                    className={`w-full bg-white border rounded-xl px-3 py-2 text-xs text-slate-700 placeholder-slate-400 outline-none focus:ring-2 resize-none transition-all font-bold ${
+                                        commentError
+                                            ? 'border-rose-400 focus:border-rose-400 focus:ring-rose-100'
+                                            : 'border-slate-200 focus:border-blue-500 focus:ring-blue-100/50 shadow-inner'
+                                    }`}
+                                />
+                                {commentError && (
+                                    <p className="flex items-center gap-1 text-[10px] text-rose-600 font-black px-1">
+                                        <i className="fas fa-circle-exclamation" />{commentError}
+                                    </p>
+                                )}
+
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => handleAction('approved')}
+                                        disabled={isSubmitting || selectedItems.size === 0}
+                                        className="flex-1 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] disabled:opacity-50 text-white font-black py-2.5 rounded-xl text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-200/50"
+                                    >
+                                        {submittingAction === 'approved'
+                                            ? <i className="fas fa-spinner fa-spin" />
+                                            : <i className="fas fa-check-double" />}
+                                        Duyệt
+                                    </button>
+
+                                    <button
+                                        onClick={() => handleAction('returned')}
+                                        disabled={isSubmitting}
+                                        className="flex-1 border-2 border-indigo-200 text-indigo-600 bg-white hover:bg-indigo-50 hover:border-indigo-400 active:scale-[0.98] disabled:opacity-50 font-black py-2.5 rounded-xl text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
+                                    >
+                                        {submittingAction === 'returned'
+                                            ? <i className="fas fa-spinner fa-spin" />
+                                            : <i className="fas fa-rotate-left" />}
+                                        Trả lại
+                                    </button>
+                                </div>
+
+                                <div className="flex gap-2">
+                                    {!confirmReject ? (
+                                        <button
+                                            onClick={() => setConfirmReject(true)}
+                                            disabled={isSubmitting}
+                                            className="flex-1 text-rose-400 hover:bg-rose-50 hover:text-rose-600 active:scale-[0.98] disabled:opacity-50 font-black py-1.5 rounded-xl text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all border border-transparent hover:border-rose-100"
+                                        >
+                                            <i className="fas fa-xmark" /> Từ chối đơn hàng
+                                        </button>
+                                    ) : (
+                                        <div className="flex-1 rounded-xl border-2 border-rose-200 bg-rose-50 p-3 space-y-2">
+                                            <p className="text-[10px] font-black text-rose-700 flex items-center gap-1.5">
+                                                <i className="fas fa-triangle-exclamation" />
+                                                Xác nhận từ chối?
+                                            </p>
+                                            <div className="flex gap-2">
+                                                <button onClick={() => handleAction('rejected')} disabled={isSubmitting}
+                                                    className="flex-1 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-black py-2 rounded-lg text-[10px] transition-colors shadow-md">
+                                                    Xác nhận
+                                                </button>
+                                                <button onClick={() => setConfirmReject(false)}
+                                                    className="px-3 border border-slate-200 text-slate-500 hover:text-slate-700 rounded-lg text-[10px] font-bold transition-colors">
+                                                    Huỷ
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {hasChanges && (
+                                        <button
+                                            onClick={() => setLocalQtys(Object.fromEntries(
+                                                Object.entries(snap.quantities).map(([k, v]) => [k, { air: v.air, sea: v.sea }])
+                                            ))}
+                                            className="text-[9px] text-amber-600 hover:text-amber-700 font-black transition-colors bg-amber-50 px-2 py-1.5 rounded-xl border border-amber-200/50"
+                                            title="Hoàn tác các thay đổi"
+                                        >
+                                            <i className="fas fa-arrow-rotate-left" />
+                                        </button>
+                                    )}
+                                </div>
+                            </>
+                        )}
+
+                        <div className="flex gap-2">
+                            {/* Print button */}
+                            <button
+                                onClick={handlePrintOrder}
+                                className="flex-1 border border-blue-200 text-blue-600 bg-white hover:bg-blue-50 hover:border-blue-400 active:scale-[0.98] font-black py-2 rounded-xl text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all"
+                            >
+                                <i className="fas fa-print" /> In phiếu
+                            </button>
+
+                            {canUnlock && (
+                                !showUnlock ? (
+                                    <button
+                                        onClick={() => setShowUnlock(true)}
+                                        className="flex-1 border border-orange-200 text-orange-600 bg-white hover:bg-orange-50 active:scale-[0.98] font-black py-2 rounded-xl text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all"
+                                    >
+                                        <i className="fas fa-lock-open" /> Mở khóa
+                                    </button>
+                                ) : (
+                                    <div className="flex-1 space-y-2">
+                                        <input
+                                            value={unlockReason}
+                                            onChange={e => setUnlockReason(e.target.value)}
+                                            placeholder="Lý do mở khóa..."
+                                            className="w-full bg-white border border-orange-200 rounded-lg px-3 py-2 text-xs text-slate-700 outline-none focus:border-orange-400 font-bold"
+                                        />
+                                        <div className="flex gap-1.5">
+                                            <button onClick={handleUnlock} disabled={isSubmitting || !unlockReason.trim()}
+                                                className="flex-1 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-black py-2 rounded-lg text-[10px] transition-colors">
+                                                Mở khóa
+                                            </button>
+                                            <button onClick={() => setShowUnlock(false)}
+                                                className="px-3 border border-slate-200 text-slate-400 hover:text-slate-600 rounded-lg text-[10px] font-black transition-colors">
+                                                Huỷ
+                                            </button>
+                                        </div>
+                                    </div>
+                                )
+                            )}
+                        </div>
+
+                        {!canAct && !canUnlock && (
+                            <div className="py-2 text-center">
+                                <p className="font-black text-slate-400 uppercase tracking-widest text-[9px]">
+                                    {request.status === 'approved' ? 'Đã hoàn tất phê duyệt'
+                                    : request.status === 'rejected' ? 'Đơn đã bị từ chối'
+                                    : 'Chế độ xem thông tin'}
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
                     {/* Middle scrollable content */}
                     <div className="flex-1 overflow-y-auto custom-scrollbar">
                         
@@ -408,165 +700,6 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
                         )}
                     </div>
 
-                    {/* ── ACTION PANEL (Pinned to bottom) ──────────── */}
-                    <div className="border-t border-slate-200 p-4 flex flex-col gap-3 shrink-0 bg-slate-50/80 backdrop-blur-md z-20">
-
-                        {canAct && (
-                            <>
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-1.5 h-5 bg-blue-600 rounded-full" />
-                                        <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest">
-                                            Hành động · Lv{request.current_level}
-                                        </span>
-                                    </div>
-                                    <div className="text-[10px] font-bold text-slate-400 italic">
-                                        {selectedItems.size}/{rows.length} SKU đã chọn
-                                    </div>
-                                </div>
-
-                                <div className="space-y-1.5 font-bold">
-                                    <textarea
-                                        value={comment}
-                                        onChange={e => { setComment(e.target.value); if (commentError) setCommentError(''); }}
-                                        placeholder="Ghi chú phản hồi cho người đề xuất..."
-                                        rows={sidebarTab === 'info' ? 3 : 2}
-                                        className={`w-full bg-white border rounded-2xl px-4 py-3 text-sm text-slate-700 placeholder-slate-400 outline-none focus:ring-4 resize-none transition-all ${
-                                            commentError
-                                                ? 'border-rose-400 focus:border-rose-400 focus:ring-rose-100'
-                                                : 'border-slate-200 focus:border-blue-500 focus:ring-blue-100/50 shadow-inner'
-                                        }`}
-                                    />
-                                    {commentError && (
-                                        <p className="flex items-center gap-1.5 text-xs text-rose-600 font-black px-1">
-                                            <i className="fas fa-circle-exclamation" />{commentError}
-                                        </p>
-                                    )}
-                                </div>
-
-                                {hasChanges && (
-                                    <button
-                                        onClick={() => setLocalQtys(Object.fromEntries(
-                                            Object.entries(snap.quantities).map(([k, v]) => [k, { air: v.air, sea: v.sea }])
-                                        ))}
-                                        className="flex items-center gap-2 text-[11px] text-amber-600 hover:text-amber-700 font-black transition-colors self-start bg-amber-50 px-3 py-2 rounded-xl border border-amber-200/50 shadow-sm"
-                                    >
-                                        <i className="fas fa-arrow-rotate-left" />
-                                        Hoàn tác các thay đổi
-                                    </button>
-                                )}
-
-                                <div className="flex flex-col gap-3">
-                                    <button
-                                        onClick={() => handleAction('approved')}
-                                        disabled={isSubmitting || selectedItems.size === 0}
-                                        className="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] disabled:opacity-50 text-white font-black py-3 rounded-2xl text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all shadow-xl shadow-emerald-200/50 border-b-4 border-emerald-800"
-                                    >
-                                        {submittingAction === 'approved'
-                                            ? <i className="fas fa-spinner fa-spin text-lg" />
-                                            : <i className="fas fa-check-double text-lg" />}
-                                        Duyệt {selectedItems.size} mã đã chọn
-                                    </button>
-
-                                    <button
-                                        onClick={() => handleAction('returned')}
-                                        disabled={isSubmitting}
-                                        className="w-full border-2 border-indigo-200 text-indigo-600 bg-white hover:bg-indigo-50 hover:border-indigo-400 active:scale-[0.98] disabled:opacity-50 font-black py-2.5 rounded-2xl text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all transition-colors"
-                                    >
-                                        {submittingAction === 'returned'
-                                            ? <i className="fas fa-spinner fa-spin" />
-                                            : <i className="fas fa-rotate-left" />}
-                                        Trả lại{hasChanges ? ' (Kèm điều chỉnh)' : ''}
-                                    </button>
-
-                                    {!confirmReject ? (
-                                        <button
-                                            onClick={() => setConfirmReject(true)}
-                                            disabled={isSubmitting}
-                                            className="w-full text-rose-400 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 active:scale-[0.98] disabled:opacity-50 font-black py-2 rounded-2xl text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all border border-transparent"
-                                        >
-                                            <i className="fas fa-trash-can" /> Từ chối đơn hàng
-                                        </button>
-                                    ) : (
-                                        <div className="rounded-2xl border-2 border-rose-200 bg-rose-50 p-4 space-y-3">
-                                            <p className="text-[11px] font-black text-rose-700 flex items-center gap-2">
-                                                <i className="fas fa-triangle-exclamation text-lg" />
-                                                Xác nhận từ chối đơn hàng này?
-                                            </p>
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => handleAction('rejected')}
-                                                    disabled={isSubmitting}
-                                                    className="flex-1 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-black py-2.5 rounded-xl text-xs transition-colors shadow-lg shadow-rose-200"
-                                                >
-                                                    Xác nhận từ chối
-                                                </button>
-                                                <button
-                                                    onClick={() => setConfirmReject(false)}
-                                                    className="px-4 border border-slate-200 text-slate-500 hover:text-slate-700 rounded-xl text-xs font-bold transition-colors"
-                                                >
-                                                    Huỷ
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </>
-                        )}
-
-                        {canUnlock && (
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-1.5 h-5 bg-orange-400 rounded-full" />
-                                    <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest">Gỡ trạng thái Duyệt</span>
-                                </div>
-                                {!showUnlock ? (
-                                    <button
-                                        onClick={() => setShowUnlock(true)}
-                                        className="w-full border-2 border-orange-200 text-orange-600 bg-white hover:bg-orange-50 active:scale-95 font-black py-4 rounded-2xl text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-md shadow-orange-100"
-                                    >
-                                        <i className="fas fa-lock-open mr-1" /> Mở khóa chỉnh sửa
-                                    </button>
-                                ) : (
-                                    <div className="space-y-3">
-                                        <input
-                                            value={unlockReason}
-                                            onChange={e => setUnlockReason(e.target.value)}
-                                            placeholder="Lý do mở khóa..."
-                                            className="w-full bg-white border border-orange-200 rounded-2xl px-4 py-3.5 text-sm text-slate-700 outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-100 transition-all font-bold shadow-inner"
-                                        />
-                                        <div className="flex gap-2">
-                                            <button onClick={handleUnlock} disabled={isSubmitting || !unlockReason.trim()}
-                                                className="flex-1 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-black py-3 rounded-2xl text-xs transition-colors flex items-center justify-center gap-2 shadow-lg shadow-orange-200">
-                                                {isSubmitting ? <i className="fas fa-spinner fa-spin" /> : null}
-                                                Mở khóa ngay
-                                            </button>
-                                            <button onClick={() => setShowUnlock(false)}
-                                                className="px-4 border border-slate-200 text-slate-400 hover:text-slate-600 rounded-2xl text-xs font-black transition-colors">
-                                                Huỷ
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {!canAct && !canUnlock && (
-                            <div className="py-6 text-center space-y-4 bg-white/50 border border-slate-100 rounded-3xl">
-                                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto border border-white shadow-sm">
-                                    <i className="fas fa-eye text-2xl text-slate-200" />
-                                </div>
-                                <div>
-                                    <p className="font-black text-slate-400 uppercase tracking-widest text-[10px]">Chế độ xem thông tin</p>
-                                    <p className="text-[11px] text-slate-400 leading-relaxed mt-2 font-medium px-6">
-                                        {request.status === 'approved' ? 'Đơn này đã được hoàn tất phê duyệt.'
-                                        : request.status === 'rejected' ? 'Đơn này đã bị từ chối.'
-                                        : 'Bạn chưa có quyền hạn xử lý đơn hàng này.'}
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
                 </div>
 
 
@@ -601,7 +734,7 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
 
                     {/* Scrollable table */}
                     <div className="flex-1 overflow-auto min-h-0 relative">
-                        <table className="w-full text-sm text-left border-separate border-spacing-0 min-w-[1600px]">
+                        <table className="w-full text-sm text-left border-separate border-spacing-0 min-w-[1200px]">
                             <thead className="bg-slate-50/95 backdrop-blur-sm border-b-2 border-slate-200 text-slate-600 sticky top-0 z-30">
                                 <tr className="text-xs uppercase font-black tracking-wider">
                                     <th className="px-4 py-3.5 w-12 text-center text-slate-400 border-b border-slate-200 sticky left-0 z-40 bg-slate-50/95 cursor-pointer hover:bg-slate-100 transition-colors" onClick={handleToggleAll}>
@@ -610,22 +743,22 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
                                             <span className="text-[8px] uppercase font-bold tracking-tighter leading-none">All</span>
                                         </div>
                                     </th>
-                                    <th className="px-4 py-3.5 min-w-[210px] sticky left-12 z-40 bg-slate-50/95 border-b border-slate-200 border-r border-slate-200">SKU Identity</th>
-                                    <th className="px-4 py-3.5 text-center border-b border-slate-200 min-w-[115px]">Demand</th>
-                                    <th className="px-3 py-3.5 min-w-[120px] text-right border-b border-slate-200">Stock Health</th>
-                                    <th className="px-4 py-3.5 text-center border-b border-slate-200 min-w-[105px]">Supply Pipeline</th>
-                                    <th className="px-4 py-3.5 text-center border-b border-slate-200 min-w-[135px]">Sales Momentum</th>
-                                    <th className="px-4 py-3.5 text-center border-b border-slate-200 min-w-[75px]">MOS</th>
-                                    <th className="px-4 py-3.5 text-center border-b border-slate-200 min-w-[95px]">Dealer & CST</th>
-                                    <th className="px-4 py-3.5 text-center border-x border-slate-200 bg-rose-50/40 border-b border-slate-200 min-w-[105px]">
-                                        <span className="text-rose-600">Air (Bù Nợ)</span>
+                                    <th className="px-2 py-2.5 min-w-[180px] sticky left-12 z-40 bg-slate-50/95 border-b border-slate-200 border-r border-slate-200">SKU Identity</th>
+                                    <th className="px-2 py-2.5 text-center border-b border-slate-200 min-w-[90px]">Demand</th>
+                                    <th className="px-2 py-2.5 min-w-[100px] text-right border-b border-slate-200">Stock Health</th>
+                                    <th className="px-2 py-2.5 text-center border-b border-slate-200 min-w-[80px]">Supply Pipeline</th>
+                                    <th className="px-2 py-2.5 text-center border-b border-slate-200 min-w-[110px]">Sales Momentum</th>
+                                    <th className="px-2 py-2.5 text-center border-b border-slate-200 min-w-[55px]">MOS</th>
+                                    <th className="px-2 py-2.5 text-center border-b border-slate-200 min-w-[72px]">Dealer & CST</th>
+                                    <th className="px-2 py-2.5 text-center border-x border-slate-200 bg-rose-50/40 border-b border-slate-200 min-w-[72px]">
+                                        <span className="text-rose-600">NB</span>
                                     </th>
-                                    <th className="px-4 py-3.5 text-center border-r border-slate-200 bg-blue-50/40 border-b border-slate-200 min-w-[105px]">
-                                        <span className="text-blue-700">Sea (Regular)</span>
+                                    <th className="px-2 py-2.5 text-center border-r border-slate-200 bg-blue-50/40 border-b border-slate-200 min-w-[72px]">
+                                        <span className="text-blue-700">BB</span>
                                     </th>
-                                    <th className="px-4 py-3.5 min-w-[130px] border-b border-slate-200">Ghi chú</th>
-                                    <th className="px-4 py-3.5 text-right border-b border-slate-200 border-l border-slate-200 min-w-[110px]">Thành Tiền</th>
-                                    <th className="px-4 py-3.5 sticky right-0 z-40 bg-slate-50/95 border-b border-slate-200 border-l border-slate-200 min-w-[90px] text-center">Trạng thái</th>
+                                    <th className="px-2 py-2.5 min-w-[100px] border-b border-slate-200">Ghi chú</th>
+                                    <th className="px-2 py-2.5 text-right border-b border-slate-200 border-l border-slate-200 min-w-[90px]">Thành Tiền</th>
+                                    <th className="px-2 py-2.5 sticky right-0 z-40 bg-slate-50/95 border-b border-slate-200 border-l border-slate-200 min-w-[78px] text-center">Trạng thái</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white">

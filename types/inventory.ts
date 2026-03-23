@@ -399,6 +399,14 @@ export interface SnapshotData {
         incomingCurrentMonth: number;
         cst: number;
         salesHistory: number[];
+        // Regional breakdown (NB/BB) + leadtime for print form
+        available_NB?: number;
+        available_BB?: number;
+        totalPO_NB?: number;
+        totalPO_BB?: number;
+        backorder_NB?: number;
+        backorder_BB?: number;
+        effectiveLT?: number; // leadtime in days from source profile
     }>;
     submitted_at: string;
     app_version: string;
