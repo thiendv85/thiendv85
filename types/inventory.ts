@@ -390,6 +390,15 @@ export interface SnapshotData {
         priorityBucket: string;
         unitCost: number;
         warnings: string[];
+        // Extended fields for rich review modal
+        m1Actual: number;
+        avgQty3M: number;
+        avgQty6M: number;
+        avgQty12M: number;
+        avgQty24M: number;
+        incomingCurrentMonth: number;
+        cst: number;
+        salesHistory: number[];
     }>;
     submitted_at: string;
     app_version: string;

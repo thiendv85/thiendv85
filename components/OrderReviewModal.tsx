@@ -1,6 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { ApprovalRequest, ApprovalAction } from '../types/inventory';
 import { ApprovalStatusBadge } from './ApprovalStatusBadge';
+import { StockProgressBar } from './StockProgressBar';
+import { SalesMomentum } from './SalesMomentum';
+import { TrendBadge } from './TrendBadge';
 import { Typography } from './Typography';
 import { useAuth } from '../utils/authContext';
 import { processApprovalAction, unlockRequest } from '../utils/supabase';
@@ -12,24 +15,7 @@ interface Props {
     onRefresh: () => void;
 }
 
-const fmt = (n?: number, dec = 0) =>
-    n == null ? '—' : n.toLocaleString('vi-VN', { maximumFractionDigits: dec });
-
-const PBadge = ({ p }: { p?: string }) => {
-    const cls = p === 'P1'
-        ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
-        : p === 'P2'
-        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-        : 'bg-slate-700/40 text-slate-400 border-slate-600/40';
-    return <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-black border ${cls}`}>{p || 'P3'}</span>;
-};
-
-const mosCls = (mos: number) => {
-    if (mos <= 0) return 'text-rose-400 font-black';
-    if (mos < 1.5) return 'text-orange-400 font-bold';
-    if (mos < 3) return 'text-amber-300';
-    return 'text-emerald-400';
-};
+const currencyVND = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 });
 
 export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props) => {
     const { user, profile } = useAuth();
@@ -52,13 +38,11 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
     const canUnlock = !!(profile?.role && ['admin', 'approver'].includes(profile.role)
         && request.status === 'approved');
 
-    // Items from snapshot that originally had quantities
-    const rows = useMemo(() => {
-        return snap.inventory_context.filter(ctx =>
+    const rows = useMemo(() =>
+        snap.inventory_context.filter(ctx =>
             (snap.quantities[ctx.itemCode]?.air || 0) > 0 ||
             (snap.quantities[ctx.itemCode]?.sea || 0) > 0
-        );
-    }, [snap]);
+        ), [snap]);
 
     const totals = useMemo(() => {
         let air = 0, sea = 0, value = 0;
@@ -71,13 +55,12 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
         return { air, sea, value };
     }, [rows, localQtys]);
 
-    const hasChanges = useMemo(() => {
-        return rows.some(ctx => {
+    const hasChanges = useMemo(() =>
+        rows.some(ctx => {
             const orig = snap.quantities[ctx.itemCode] || { air: 0, sea: 0 };
             const cur = localQtys[ctx.itemCode] || { air: 0, sea: 0 };
             return orig.air !== cur.air || orig.sea !== cur.sea;
-        });
-    }, [rows, localQtys, snap.quantities]);
+        }), [rows, localQtys, snap.quantities]);
 
     const setQty = (code: string, field: 'air' | 'sea', val: string) => {
         const n = Math.max(0, parseInt(val) || 0);
@@ -118,312 +101,338 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
     };
 
     return (
-        <div className="fixed inset-0 z-[200] bg-slate-950 flex flex-col">
+        <div className="fixed inset-0 z-[200] bg-white flex flex-col">
+
             {/* ─── Header ──────────────────────────────────────────────────────── */}
-            <div className="flex items-center justify-between px-6 py-3 bg-slate-900 border-b border-slate-700/60 shrink-0">
-                <div className="flex items-center gap-3 min-w-0">
-                    <button onClick={onClose} className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition-colors shrink-0">
-                        <i className="fas fa-arrow-left text-sm" />
-                    </button>
-                    <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <Typography variant="h3" className="text-white truncate">{request.draft_name}</Typography>
-                            <ApprovalStatusBadge status={request.status} />
-                            {request.brand && (
-                                <span className="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded">{request.brand}</span>
-                            )}
-                        </div>
-                        <div className="text-xs text-slate-500 mt-0.5">
-                            Level {request.current_level} · Gửi {new Date(request.submitted_at).toLocaleString('vi-VN')}
-                        </div>
+            <div className="flex items-center gap-4 px-6 py-3 bg-white border-b-2 border-slate-200 shrink-0 shadow-sm">
+                <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors shrink-0">
+                    <i className="fas fa-arrow-left text-sm" />
+                </button>
+
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-black text-slate-800 text-lg">{request.draft_name}</span>
+                        <ApprovalStatusBadge status={request.status} />
+                        {request.brand && <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">{request.brand}</span>}
+                        {hasChanges && (
+                            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded font-bold border border-amber-200 animate-pulse">
+                                <i className="fas fa-pencil mr-1" />Đã điều chỉnh
+                            </span>
+                        )}
+                    </div>
+                    <div className="text-xs text-slate-400 mt-0.5">
+                        Level {request.current_level} · Gửi {new Date(request.submitted_at).toLocaleString('vi-VN')}
                     </div>
                 </div>
 
-                {/* Stats */}
-                <div className="hidden md:flex items-center gap-4 text-xs shrink-0 ml-4">
-                    <span className="bg-slate-800 px-3 py-1.5 rounded-lg font-bold text-slate-300">{rows.length} SKU</span>
+                {/* Stats pills */}
+                <div className="hidden lg:flex items-center gap-2 shrink-0">
+                    <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1.5 rounded-xl font-black">{rows.length} SKU</span>
                     {totals.air > 0 && (
-                        <span className="bg-rose-500/15 text-rose-300 px-3 py-1.5 rounded-lg font-bold border border-rose-500/25">
-                            <i className="fas fa-plane mr-1.5" />Air: {totals.air}
+                        <span className="text-xs bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1.5 rounded-xl font-black">
+                            <i className="fas fa-plane mr-1" />Air: {totals.air}
                         </span>
                     )}
                     {totals.sea > 0 && (
-                        <span className="bg-cyan-500/15 text-cyan-300 px-3 py-1.5 rounded-lg font-bold border border-cyan-500/25">
-                            <i className="fas fa-ship mr-1.5" />Sea: {totals.sea}
+                        <span className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-xl font-black">
+                            <i className="fas fa-ship mr-1" />Sea: {totals.sea}
                         </span>
                     )}
-                    <span className="bg-emerald-500/15 text-emerald-300 px-3 py-1.5 rounded-lg font-bold border border-emerald-500/25">
-                        {(totals.value / 1e6).toFixed(1)}M VND
+                    <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-xl font-black">
+                        {currencyVND.format(totals.value)}
                     </span>
-                    {hasChanges && (
-                        <span className="bg-amber-500/15 text-amber-300 px-3 py-1.5 rounded-lg font-bold border border-amber-500/25 animate-pulse">
-                            <i className="fas fa-edit mr-1.5" />Đã điều chỉnh
-                        </span>
-                    )}
                 </div>
             </div>
 
             {/* ─── Table ───────────────────────────────────────────────────────── */}
             <div className="flex-1 overflow-auto min-h-0">
-                <table className="w-full text-xs border-separate border-spacing-0">
-                    <thead className="sticky top-0 z-30">
-                        <tr className="bg-slate-900/95 backdrop-blur-sm text-slate-400 text-[10px] uppercase tracking-widest">
-                            <th className="px-3 py-3 text-center w-10 sticky left-0 z-40 bg-slate-900/95 border-b border-slate-700/50">#</th>
-                            <th className="px-3 py-3 text-left min-w-[220px] sticky left-10 z-40 bg-slate-900/95 border-b border-slate-700/50 border-r border-slate-700/30">SKU / Tên</th>
-                            <th className="px-3 py-3 text-right min-w-[90px] border-b border-slate-700/50">Tồn kho</th>
-                            <th className="px-3 py-3 text-right min-w-[80px] border-b border-slate-700/50">SS / ROP</th>
-                            <th className="px-3 py-3 text-right min-w-[70px] border-b border-slate-700/50">MAX</th>
-                            <th className="px-3 py-3 text-right min-w-[70px] border-b border-slate-700/50">Pipeline</th>
-                            <th className="px-3 py-3 text-right min-w-[60px] border-b border-slate-700/50">BO</th>
-                            <th className="px-3 py-3 text-right min-w-[70px] border-b border-slate-700/50">Demand</th>
-                            <th className="px-3 py-3 text-center min-w-[55px] border-b border-slate-700/50">MOS</th>
-                            <th className="px-3 py-3 text-center min-w-[40px] border-b border-slate-700/50">P</th>
-                            <th className="px-3 py-3 text-center min-w-[80px] border-b border-slate-700/50 bg-rose-500/5 text-rose-400">
-                                <i className="fas fa-plane mr-1" />Air
+                <table className="w-full text-sm text-left border-separate border-spacing-0 min-w-[1700px]">
+                    <thead className="bg-slate-50/95 backdrop-blur-sm border-b-2 border-slate-200 text-slate-600 sticky top-0 z-30">
+                        <tr className="text-xs uppercase font-black tracking-wider">
+                            <th className="px-4 py-4 w-12 text-center text-slate-400 border-b border-slate-200 sticky left-0 z-40 bg-slate-50/95">#</th>
+                            <th className="px-4 py-4 min-w-[220px] sticky left-12 z-40 bg-slate-50/95 border-b border-slate-200 border-r border-slate-200">SKU IDENTITY</th>
+                            <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[120px]">DEMAND</th>
+                            <th className="px-4 py-4 min-w-[160px] text-right border-b border-slate-200">STOCK HEALTH</th>
+                            <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[110px]">SUPPLY PIPELINE</th>
+                            <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[140px]">SALES MOMENTUM</th>
+                            <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[80px]">MOS</th>
+                            <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[100px]">DEALER & CST</th>
+                            <th className="px-4 py-4 text-center border-x border-slate-200 bg-rose-50/30 border-b border-slate-200 min-w-[110px]">
+                                <span className="text-rose-600">AIR (BÙ NỢ)</span>
                             </th>
-                            <th className="px-3 py-3 text-center min-w-[80px] border-b border-slate-700/50 bg-cyan-500/5 text-cyan-400">
-                                <i className="fas fa-ship mr-1" />Sea
+                            <th className="px-4 py-4 text-center border-r border-slate-200 bg-blue-50/30 border-b border-slate-200 min-w-[110px]">
+                                <span className="text-blue-600">SEA (REGULAR)</span>
                             </th>
-                            <th className="px-3 py-3 text-right min-w-[100px] border-b border-slate-700/50">Ghi chú</th>
-                            <th className="px-3 py-3 text-right min-w-[90px] sticky right-0 z-40 bg-slate-900/95 border-b border-slate-700/50 border-l border-slate-700/30">Giá trị</th>
+                            <th className="px-4 py-4 min-w-[140px] border-b border-slate-200">GHI CHÚ</th>
+                            <th className="px-4 py-4 text-right sticky right-0 z-40 bg-slate-50/95 border-b border-slate-200 border-l border-slate-200">THÀNH TIỀN</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="bg-white">
                         {rows.map((ctx, idx) => {
                             const q = localQtys[ctx.itemCode] || { air: 0, sea: 0 };
                             const origQ = snap.quantities[ctx.itemCode] || { air: 0, sea: 0 };
                             const changed = q.air !== origQ.air || q.sea !== origQ.sea;
+                            const draftTotal = q.air + q.sea;
                             const note = snap.notes[ctx.itemCode] || '';
-                            const rowValue = (ctx.unitCost || 0) * (q.air + q.sea);
-
-                            // Stock bar
-                            const avail = ctx.available || 0;
-                            const ss = ctx.safetyStock || 0;
-                            const stockMax = ctx.stockMax || 1;
-                            const barPct = Math.min(100, Math.round((avail / stockMax) * 100));
-                            const barCls = avail < ss ? 'bg-rose-500' : avail < (ctx.rop || 0) ? 'bg-amber-500' : 'bg-emerald-500';
+                            const rowValue = (ctx.unitCost || 0) * draftTotal;
+                            const demandMonthly = ctx.avgQty3M || ctx.baseForecast || 0;
 
                             return (
-                                <tr
-                                    key={ctx.itemCode}
-                                    className={`border-b border-slate-800/50 transition-colors ${changed ? 'bg-amber-500/5' : 'hover:bg-slate-900/40'}`}
-                                >
-                                    <td className="px-3 py-2.5 text-center text-slate-500 font-mono font-black sticky left-0 bg-slate-950 border-r border-slate-800/40">
+                                <tr key={ctx.itemCode} className={`hover:bg-slate-50 transition-colors group ${draftTotal > 0 ? 'bg-blue-50/20' : ''} ${changed ? 'bg-amber-50/30' : ''}`}>
+                                    {/* # */}
+                                    <td className="px-4 py-3 text-center text-slate-500 font-mono text-xs font-black border-b border-slate-50 sticky left-0 z-10 bg-white group-hover:bg-slate-50">
                                         {idx + 1}
                                     </td>
 
-                                    {/* SKU */}
-                                    <td className="px-3 py-2.5 sticky left-10 bg-slate-950 border-r border-slate-700/30">
-                                        <div className="font-mono text-[11px] text-slate-200 font-bold">{ctx.itemCode}</div>
-                                        <div className="text-slate-400 text-[10px] leading-tight mt-0.5 max-w-[200px] truncate" title={ctx.itemName}>
-                                            {ctx.itemName}
+                                    {/* SKU IDENTITY */}
+                                    <td className="px-4 py-3 sticky left-12 z-10 bg-white group-hover:bg-slate-50 transition-colors border-b border-slate-50 border-r border-slate-100">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-black text-slate-800 text-sm uppercase font-mono tracking-tight">{ctx.itemCode}</span>
+                                            <span className={`px-1.5 py-0.5 rounded font-black text-[10px] leading-none shrink-0 ${
+                                                ctx.priorityBucket === 'P1' ? 'bg-rose-100 text-rose-700'
+                                                : ctx.priorityBucket === 'P2' ? 'bg-amber-100 text-amber-700'
+                                                : 'bg-slate-100 text-slate-600'
+                                            }`}>{ctx.priorityBucket || 'P3'}</span>
                                         </div>
-                                        <div className="flex items-center gap-1 mt-1 flex-wrap">
-                                            {ctx.loisGroup && (
-                                                <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-blue-500/15 text-blue-300 border border-blue-500/25">
-                                                    L{ctx.loisGroup}
+                                        <div className="text-xs text-slate-500 font-bold truncate max-w-[200px] mt-0.5">{ctx.itemName}</div>
+                                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                                            {ctx.status && (
+                                                <span className="text-xs font-black px-1.5 py-0.5 rounded uppercase bg-slate-100 text-slate-600 border border-slate-200">
+                                                    {ctx.status}
                                                 </span>
                                             )}
-                                            {ctx.trendFlag && ctx.trendFlag !== 'stable' && (
-                                                <span className={`px-1 py-0.5 rounded text-[9px] font-bold border ${
-                                                    ctx.trendFlag === 'up' ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25'
-                                                    : ctx.trendFlag === 'down' ? 'bg-rose-500/15 text-rose-300 border-rose-500/25'
-                                                    : 'bg-slate-700/40 text-slate-400 border-slate-600/40'
-                                                }`}>
-                                                    {ctx.trendFlag === 'up' ? '▲' : ctx.trendFlag === 'down' ? '▼' : '~'}
-                                                </span>
+                                            {ctx.loisGroup && (
+                                                <span className="text-xs font-black px-1.5 py-0.5 rounded uppercase bg-blue-50 text-blue-700 border border-blue-100">LOIS {ctx.loisGroup}</span>
                                             )}
                                             {ctx.typecar && (
-                                                <span className="px-1 py-0.5 rounded text-[9px] text-slate-500 bg-slate-800 border border-slate-700/40 truncate max-w-[80px]" title={ctx.typecar}>
+                                                <span className="text-[10px] font-black px-1.5 py-0.5 rounded uppercase bg-slate-100 text-slate-600 border border-slate-200 truncate max-w-[100px]" title={ctx.typecar}>
                                                     {ctx.typecar.split(' | ')[0]}
                                                 </span>
                                             )}
                                         </div>
                                     </td>
 
-                                    {/* Tồn kho */}
-                                    <td className="px-3 py-2.5 text-right">
-                                        <div className="font-bold text-slate-200">{fmt(avail)}</div>
-                                        <div className="w-full bg-slate-700/50 rounded-full h-1 mt-1">
-                                            <div className={`h-1 rounded-full ${barCls}`} style={{ width: `${barPct}%` }} />
+                                    {/* DEMAND */}
+                                    <td className="px-4 py-3 text-center border-b border-slate-50">
+                                        <div className="flex flex-col items-center gap-1">
+                                            <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200/80 shadow-sm">
+                                                <div className="flex flex-col items-start leading-tight">
+                                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">M-1</span>
+                                                    <span className="font-black text-slate-800 text-sm leading-none">{(ctx.m1Actual || 0).toLocaleString()}</span>
+                                                </div>
+                                                <div className="h-8 w-px bg-slate-200" />
+                                                <div className="flex flex-col items-start leading-tight">
+                                                    <span className="text-[9px] font-black text-emerald-500 uppercase tracking-wider">FC</span>
+                                                    <span className="font-black text-emerald-700 text-sm leading-none">
+                                                        {ctx.baseForecast ? (ctx.baseForecast >= 10 ? Math.round(ctx.baseForecast).toLocaleString() : ctx.baseForecast.toFixed(1)) : '-'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <TrendBadge trend={ctx.trendFlag} />
                                         </div>
-                                        <div className="text-slate-500 text-[9px] mt-0.5">{barPct}%</div>
                                     </td>
 
-                                    {/* SS / ROP */}
-                                    <td className="px-3 py-2.5 text-right">
-                                        <div className="text-slate-400">{fmt(ss)}</div>
-                                        <div className="text-slate-500 text-[9px]">ROP {fmt(ctx.rop)}</div>
+                                    {/* STOCK HEALTH */}
+                                    <td className="px-4 py-3 text-right border-b border-slate-50">
+                                        <div className="flex flex-col items-end">
+                                            <StockProgressBar
+                                                current={ctx.available}
+                                                rop={ctx.rop}
+                                                max={ctx.stockMax || 1}
+                                                ss={ctx.safetyStock}
+                                                onOrder={ctx.totalPO}
+                                                incoming={ctx.incomingCurrentMonth}
+                                                backorder={ctx.backorder}
+                                                draftAdd={draftTotal}
+                                                baseFc={ctx.baseForecast}
+                                            />
+                                        </div>
                                     </td>
 
-                                    {/* MAX */}
-                                    <td className="px-3 py-2.5 text-right text-slate-400">{fmt(ctx.stockMax)}</td>
-
-                                    {/* Pipeline */}
-                                    <td className="px-3 py-2.5 text-right">
-                                        <span className={ctx.totalPO ? 'text-cyan-400 font-bold' : 'text-slate-500'}>
-                                            {fmt(ctx.totalPO)}
-                                        </span>
+                                    {/* SUPPLY PIPELINE */}
+                                    <td className="px-4 py-3 text-center border-b border-slate-50">
+                                        <div className="flex flex-col items-center gap-1">
+                                            {ctx.incomingCurrentMonth > 0 ? (
+                                                <div className="flex flex-col items-center">
+                                                    <div className="text-base font-black text-blue-700">+{ctx.incomingCurrentMonth.toLocaleString()}</div>
+                                                    <div className="text-[10px] font-bold text-blue-400 uppercase leading-tight">Về tháng này</div>
+                                                </div>
+                                            ) : (
+                                                <div className="text-slate-300 font-black text-base">-</div>
+                                            )}
+                                            {ctx.totalPO > 0 && (
+                                                <div className="flex items-center gap-1 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                                                    <i className="fas fa-ship text-indigo-400 text-[9px]" />
+                                                    <span className="text-[10px] font-black text-indigo-600">PO: {ctx.totalPO.toLocaleString()}</span>
+                                                </div>
+                                            )}
+                                        </div>
                                     </td>
 
-                                    {/* BO */}
-                                    <td className="px-3 py-2.5 text-right">
-                                        <span className={ctx.backorder ? 'text-rose-400 font-bold' : 'text-slate-500'}>
-                                            {fmt(ctx.backorder)}
-                                        </span>
+                                    {/* SALES MOMENTUM */}
+                                    <td className="px-4 py-3 text-center border-b border-slate-50">
+                                        <SalesMomentum
+                                            values={[ctx.avgQty24M, ctx.avgQty12M, ctx.avgQty6M, ctx.avgQty3M]}
+                                            history={ctx.salesHistory}
+                                            forecast={ctx.baseForecast}
+                                        />
                                     </td>
-
-                                    {/* Demand */}
-                                    <td className="px-3 py-2.5 text-right text-slate-300">{fmt(ctx.baseForecast, 1)}</td>
 
                                     {/* MOS */}
-                                    <td className="px-3 py-2.5 text-center">
-                                        <span className={`font-bold ${mosCls(ctx.mos || 0)}`}>
-                                            {(ctx.mos || 0).toFixed(1)}
-                                        </span>
+                                    <td className="px-4 py-3 text-center border-b border-slate-50">
+                                        {demandMonthly <= 0 ? (
+                                            <div className="flex flex-col items-center">
+                                                <div className="text-base font-black text-slate-300">∞</div>
+                                                <div className="text-[10px] font-bold text-slate-400 uppercase">No demand</div>
+                                            </div>
+                                        ) : (
+                                            <div className={`text-base font-black ${
+                                                ctx.mos < 1 ? 'text-rose-700'
+                                                : ctx.mos > 12 ? 'text-amber-700'
+                                                : 'text-emerald-700'
+                                            }`}>
+                                                {(ctx.mos || 0).toFixed(1)} <span className="text-xs text-slate-500">M</span>
+                                            </div>
+                                        )}
                                     </td>
 
-                                    {/* Priority */}
-                                    <td className="px-3 py-2.5 text-center">
-                                        <PBadge p={ctx.priorityBucket} />
+                                    {/* DEALER & CST */}
+                                    <td className="px-4 py-3 text-center border-b border-slate-50">
+                                        <div className="text-sm font-black text-slate-800">{(ctx.dealerInventory || 0).toLocaleString()}</div>
+                                        <div className="mt-1">
+                                            <div className="text-sm font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 inline-block">
+                                                {demandMonthly <= 0 ? 'CST: ∞' : `CST: ${(ctx.cst || 0).toFixed(1)}`}
+                                            </div>
+                                        </div>
                                     </td>
 
-                                    {/* Air input */}
-                                    <td className="px-2 py-2 text-center bg-rose-500/5">
+                                    {/* AIR */}
+                                    <td className="px-4 py-3 border-x border-slate-100 bg-rose-50/10 text-center border-b border-slate-50">
                                         {canAct ? (
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                value={q.air || ''}
-                                                onChange={e => setQty(ctx.itemCode, 'air', e.target.value)}
-                                                placeholder="0"
-                                                className={`w-16 text-center rounded-lg px-1.5 py-1 text-sm font-bold outline-none border transition-colors
-                                                    ${changed && q.air !== origQ.air
-                                                        ? 'bg-amber-500/20 border-amber-400/50 text-amber-200'
-                                                        : q.air > 0
-                                                        ? 'bg-rose-500/20 border-rose-400/50 text-rose-200'
-                                                        : 'bg-slate-800/60 border-slate-600/40 text-slate-400'
-                                                    } focus:border-rose-400`}
-                                            />
+                                            <>
+                                                <input
+                                                    type="number"
+                                                    value={q.air || ''}
+                                                    onChange={e => setQty(ctx.itemCode, 'air', e.target.value)}
+                                                    placeholder="0"
+                                                    className="w-20 text-center font-black text-sm border border-rose-200 focus:border-rose-400 bg-white text-rose-700 rounded-xl p-2 outline-none transition-all"
+                                                />
+                                                {changed && q.air !== origQ.air && (
+                                                    <div className="text-[10px] text-amber-600 mt-0.5 font-bold">gốc: {origQ.air}</div>
+                                                )}
+                                            </>
                                         ) : (
-                                            <span className={q.air > 0 ? 'text-rose-300 font-bold' : 'text-slate-500'}>{q.air || '—'}</span>
-                                        )}
-                                        {changed && q.air !== origQ.air && (
-                                            <div className="text-[9px] text-amber-400 mt-0.5">gốc: {origQ.air}</div>
-                                        )}
-                                    </td>
-
-                                    {/* Sea input */}
-                                    <td className="px-2 py-2 text-center bg-cyan-500/5">
-                                        {canAct ? (
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                value={q.sea || ''}
-                                                onChange={e => setQty(ctx.itemCode, 'sea', e.target.value)}
-                                                placeholder="0"
-                                                className={`w-16 text-center rounded-lg px-1.5 py-1 text-sm font-bold outline-none border transition-colors
-                                                    ${changed && q.sea !== origQ.sea
-                                                        ? 'bg-amber-500/20 border-amber-400/50 text-amber-200'
-                                                        : q.sea > 0
-                                                        ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-200'
-                                                        : 'bg-slate-800/60 border-slate-600/40 text-slate-400'
-                                                    } focus:border-cyan-400`}
-                                            />
-                                        ) : (
-                                            <span className={q.sea > 0 ? 'text-cyan-300 font-bold' : 'text-slate-500'}>{q.sea || '—'}</span>
-                                        )}
-                                        {changed && q.sea !== origQ.sea && (
-                                            <div className="text-[9px] text-amber-400 mt-0.5">gốc: {origQ.sea}</div>
-                                        )}
-                                    </td>
-
-                                    {/* Note */}
-                                    <td className="px-3 py-2.5 text-right max-w-[120px]">
-                                        {note ? (
-                                            <span className="text-slate-400 text-[10px] italic truncate block" title={note}>{note}</span>
-                                        ) : (
-                                            <span className="text-slate-600">—</span>
-                                        )}
-                                        {(ctx.warnings || []).length > 0 && (
-                                            <span className="text-amber-400 text-[9px] block mt-0.5">
-                                                <i className="fas fa-triangle-exclamation mr-0.5" />
-                                                {ctx.warnings[0]}
+                                            <span className={q.air > 0 ? 'font-black text-rose-700' : 'text-slate-300'}>
+                                                {q.air > 0 ? q.air : '—'}
                                             </span>
                                         )}
                                     </td>
 
-                                    {/* Amount */}
-                                    <td className="px-3 py-2.5 text-right sticky right-0 bg-slate-950 border-l border-slate-800/40">
-                                        <span className={rowValue > 0 ? 'text-emerald-400 font-bold' : 'text-slate-600'}>
-                                            {rowValue > 0 ? `${(rowValue / 1e6).toFixed(2)}M` : '—'}
-                                        </span>
+                                    {/* SEA */}
+                                    <td className="px-4 py-3 border-r border-slate-100 bg-blue-50/10 text-center border-b border-slate-50">
+                                        {canAct ? (
+                                            <>
+                                                <input
+                                                    type="number"
+                                                    value={q.sea || ''}
+                                                    onChange={e => setQty(ctx.itemCode, 'sea', e.target.value)}
+                                                    placeholder="0"
+                                                    className="w-20 text-center font-black text-sm border border-blue-200 focus:border-blue-400 bg-white text-blue-700 rounded-xl p-2 outline-none transition-all"
+                                                />
+                                                {changed && q.sea !== origQ.sea && (
+                                                    <div className="text-[10px] text-amber-600 mt-0.5 font-bold">gốc: {origQ.sea}</div>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <span className={q.sea > 0 ? 'font-black text-blue-700' : 'text-slate-300'}>
+                                                {q.sea > 0 ? q.sea : '—'}
+                                            </span>
+                                        )}
+                                    </td>
+
+                                    {/* GHI CHÚ */}
+                                    <td className="px-4 py-3 border-b border-slate-50">
+                                        {note ? (
+                                            <span className="text-xs text-slate-500 italic">{note}</span>
+                                        ) : (
+                                            <span className="text-slate-300">—</span>
+                                        )}
+                                        {(ctx.warnings || []).length > 0 && (
+                                            <div className="mt-1">
+                                                {ctx.warnings.slice(0, 1).map((w, i) => (
+                                                    <span key={i} className="text-[10px] text-amber-600 font-bold block">
+                                                        <i className="fas fa-triangle-exclamation mr-1" />{w}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </td>
+
+                                    {/* THÀNH TIỀN */}
+                                    <td className="px-4 py-3 text-right font-black text-slate-900 text-base sticky right-0 z-10 bg-white group-hover:bg-slate-50 transition-colors border-b border-slate-50 border-l border-slate-200">
+                                        {draftTotal > 0 ? (
+                                            <span className={changed ? 'text-amber-700' : ''}>
+                                                {currencyVND.format(rowValue)}
+                                            </span>
+                                        ) : (
+                                            <span className="text-slate-300">-</span>
+                                        )}
                                     </td>
                                 </tr>
                             );
                         })}
-
-                        {/* Total row */}
-                        <tr className="bg-slate-900/80 border-t-2 border-slate-600/50 sticky bottom-0">
-                            <td colSpan={10} className="px-3 py-3 text-right text-slate-400 font-black text-xs uppercase tracking-widest sticky left-0 bg-slate-900/80">
-                                Tổng ({rows.length} SKU)
-                            </td>
-                            <td className="px-2 py-3 text-center bg-rose-500/10">
-                                <span className="text-rose-300 font-black text-sm">{totals.air || '—'}</span>
-                            </td>
-                            <td className="px-2 py-3 text-center bg-cyan-500/10">
-                                <span className="text-cyan-300 font-black text-sm">{totals.sea || '—'}</span>
-                            </td>
-                            <td className="px-3 py-3" />
-                            <td className="px-3 py-3 text-right sticky right-0 bg-slate-900/80 border-l border-slate-700/40">
-                                <span className="text-emerald-300 font-black">{(totals.value / 1e6).toFixed(1)}M VND</span>
-                            </td>
-                        </tr>
                     </tbody>
                 </table>
             </div>
 
-            {/* ─── Footer: Actions ─────────────────────────────────────────────── */}
-            <div className="shrink-0 bg-slate-900 border-t border-slate-700/60 px-6 py-4 space-y-3">
-
-                {/* Audit trail toggle */}
-                <div>
-                    <button
-                        onClick={() => setShowAudit(p => !p)}
-                        className="text-xs text-slate-500 hover:text-slate-300 flex items-center gap-2 transition-colors"
-                    >
-                        <i className={`fas fa-chevron-${showAudit ? 'up' : 'down'} text-[10px]`} />
-                        Lịch sử phê duyệt ({actions.length} hành động)
-                    </button>
-                    {showAudit && (
-                        <div className="mt-2 space-y-1.5 max-h-32 overflow-y-auto pr-1">
-                            {actions.length === 0 ? (
-                                <p className="text-slate-500 text-xs italic">Chưa có hành động nào.</p>
-                            ) : actions.map(a => (
-                                <div key={a.id} className={`flex items-start gap-2 text-xs rounded-lg px-2 py-1.5 ${
-                                    a.action === 'approved' ? 'bg-emerald-500/10 text-emerald-300'
-                                    : a.action === 'rejected' ? 'bg-rose-500/10 text-rose-300'
-                                    : a.action === 'returned' ? 'bg-indigo-500/10 text-indigo-300'
-                                    : 'bg-slate-800/60 text-slate-400'
-                                }`}>
-                                    <i className={`fas ${
-                                        a.action === 'approved' ? 'fa-check'
-                                        : a.action === 'rejected' ? 'fa-xmark'
-                                        : a.action === 'returned' ? 'fa-rotate-left'
-                                        : 'fa-comment'
-                                    } mt-0.5 shrink-0`} />
-                                    <span>
-                                        <span className="font-bold">{a.action.toUpperCase()}</span> Lv{a.level}
-                                        {a.comment && <span className="opacity-80 ml-1">— {a.comment}</span>}
-                                        <span className="text-slate-500 ml-1">{new Date(a.acted_at).toLocaleString('vi-VN')}</span>
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+            {/* ─── Footer ──────────────────────────────────────────────────────── */}
+            <div className="shrink-0 bg-white border-t-2 border-slate-200 px-6 py-4">
+                {/* Summary bar */}
+                <div className="flex items-center justify-between mb-3 text-xs">
+                    <div className="flex items-center gap-4 font-black text-slate-600 uppercase tracking-widest">
+                        <span>{rows.length} SKU</span>
+                        {totals.air > 0 && <span className="text-rose-600"><i className="fas fa-plane mr-1" />{totals.air}</span>}
+                        {totals.sea > 0 && <span className="text-blue-600"><i className="fas fa-ship mr-1" />{totals.sea}</span>}
+                    </div>
+                    <span className="font-black text-emerald-700 text-sm">{currencyVND.format(totals.value)}</span>
                 </div>
 
-                {/* Action area */}
+                {/* Audit toggle */}
+                <button
+                    onClick={() => setShowAudit(p => !p)}
+                    className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1.5 mb-2 transition-colors"
+                >
+                    <i className={`fas fa-chevron-${showAudit ? 'up' : 'down'} text-[10px]`} />
+                    Lịch sử phê duyệt ({actions.length})
+                </button>
+                {showAudit && (
+                    <div className="mb-3 space-y-1.5 max-h-28 overflow-y-auto border border-slate-100 rounded-xl p-2 bg-slate-50">
+                        {actions.length === 0 ? (
+                            <p className="text-slate-400 text-xs italic">Chưa có hành động nào.</p>
+                        ) : actions.map(a => (
+                            <div key={a.id} className={`flex items-start gap-2 text-xs rounded-lg px-2 py-1 ${
+                                a.action === 'approved' ? 'bg-emerald-50 text-emerald-700'
+                                : a.action === 'rejected' ? 'bg-rose-50 text-rose-700'
+                                : a.action === 'returned' ? 'bg-indigo-50 text-indigo-700'
+                                : 'bg-slate-100 text-slate-600'
+                            }`}>
+                                <i className={`fas mt-0.5 ${
+                                    a.action === 'approved' ? 'fa-check'
+                                    : a.action === 'rejected' ? 'fa-xmark'
+                                    : a.action === 'returned' ? 'fa-rotate-left'
+                                    : 'fa-comment'
+                                }`} />
+                                <span>
+                                    <span className="font-bold">{a.action.toUpperCase()}</span> Lv{a.level}
+                                    {a.comment && <span className="ml-1 opacity-80">— {a.comment}</span>}
+                                    <span className="text-slate-400 ml-1">{new Date(a.acted_at).toLocaleString('vi-VN')}</span>
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Actions */}
                 {canAct && (
                     <div className="space-y-2">
                         <textarea
@@ -431,28 +440,28 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                             onChange={e => setComment(e.target.value)}
                             placeholder="Ghi chú / lý do (bắt buộc nếu Trả lại)..."
                             rows={2}
-                            className="w-full bg-slate-800/60 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm placeholder-slate-500 outline-none focus:border-blue-400 resize-none"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-slate-800 text-sm placeholder-slate-400 outline-none focus:border-blue-400 focus:bg-white resize-none transition-colors"
                         />
                         <div className="flex gap-2">
                             <button
                                 onClick={() => handleAction('approved')}
                                 disabled={isSubmitting}
-                                className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-black py-2.5 rounded-xl text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-colors"
+                                className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black py-2.5 rounded-xl text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-colors shadow-sm"
                             >
                                 <i className="fas fa-check" />
-                                {hasChanges ? 'Duyệt (Đã điều chỉnh)' : 'Duyệt'}
+                                {hasChanges ? 'Duyệt (Lưu điều chỉnh)' : 'Duyệt'}
                             </button>
                             <button
                                 onClick={() => handleAction('rejected')}
                                 disabled={isSubmitting}
-                                className="flex-1 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white font-black py-2.5 rounded-xl text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-colors"
+                                className="flex-1 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-black py-2.5 rounded-xl text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-colors shadow-sm"
                             >
                                 <i className="fas fa-xmark" /> Từ chối
                             </button>
                             <button
                                 onClick={() => handleAction('returned')}
                                 disabled={isSubmitting}
-                                className="border border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/10 disabled:opacity-50 font-black px-4 py-2.5 rounded-xl text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-colors"
+                                className="border-2 border-indigo-300 text-indigo-600 hover:bg-indigo-50 disabled:opacity-50 font-black px-5 py-2.5 rounded-xl text-sm uppercase tracking-widest flex items-center gap-2 transition-colors"
                             >
                                 <i className="fas fa-rotate-left" /> Trả lại
                             </button>
@@ -460,47 +469,43 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                     </div>
                 )}
 
-                {/* Unlock area */}
                 {canUnlock && (
                     <div className="space-y-2">
                         {!showUnlock ? (
                             <button
                                 onClick={() => setShowUnlock(true)}
-                                className="w-full border border-orange-500/50 text-orange-300 hover:bg-orange-500/10 font-black py-2.5 rounded-xl text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-colors"
+                                className="w-full border-2 border-orange-300 text-orange-600 hover:bg-orange-50 font-black py-2.5 rounded-xl text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-colors"
                             >
                                 <i className="fas fa-lock-open" /> Mở khóa để sửa
                             </button>
                         ) : (
-                            <>
+                            <div className="flex gap-2">
                                 <input
                                     value={unlockReason}
                                     onChange={e => setUnlockReason(e.target.value)}
                                     placeholder="Lý do mở khóa..."
-                                    className="w-full bg-slate-800/60 border border-orange-500/40 rounded-xl px-4 py-2 text-white text-sm placeholder-slate-500 outline-none focus:border-orange-400"
+                                    className="flex-1 bg-slate-50 border border-orange-200 rounded-xl px-4 py-2 text-slate-800 text-sm outline-none focus:border-orange-400"
                                 />
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={handleUnlock}
-                                        disabled={isSubmitting || !unlockReason.trim()}
-                                        className="flex-1 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white font-black py-2.5 rounded-xl text-sm uppercase tracking-widest transition-colors"
-                                    >
-                                        Xác nhận mở khóa
-                                    </button>
-                                    <button
-                                        onClick={() => setShowUnlock(false)}
-                                        className="px-4 border border-slate-600 text-slate-400 hover:text-white rounded-xl text-sm font-black transition-colors"
-                                    >
-                                        Huỷ
-                                    </button>
-                                </div>
-                            </>
+                                <button
+                                    onClick={handleUnlock}
+                                    disabled={isSubmitting || !unlockReason.trim()}
+                                    className="bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-black px-4 py-2 rounded-xl text-sm transition-colors"
+                                >
+                                    Xác nhận
+                                </button>
+                                <button
+                                    onClick={() => setShowUnlock(false)}
+                                    className="px-4 border border-slate-300 text-slate-500 hover:text-slate-700 rounded-xl text-sm transition-colors"
+                                >
+                                    Hủy
+                                </button>
+                            </div>
                         )}
                     </div>
                 )}
 
-                {/* Read-only notice */}
                 {!canAct && !canUnlock && (
-                    <div className="text-center text-xs text-slate-500 py-1">
+                    <div className="text-center text-xs text-slate-400 py-1">
                         <i className="fas fa-eye mr-1.5" />Chế độ xem — không có quyền thao tác
                     </div>
                 )}
