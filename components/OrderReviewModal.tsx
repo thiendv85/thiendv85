@@ -109,26 +109,85 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
     return (
         <div className="fixed inset-0 z-[200] bg-white flex flex-col">
 
-            {/* ═══ TOP HEADER — compact, always visible ══════════════════════ */}
-            <div className="flex items-center gap-3 px-5 py-3 bg-slate-800 text-white shrink-0 border-b border-slate-700">
+            {/* ═══ TOP HEADER ══════════════════════════════════════════════════ */}
+            <div className="flex items-center gap-4 px-5 py-0 bg-slate-800 text-white shrink-0 border-b border-slate-700 h-14">
+                {/* Back */}
                 <button onClick={onClose}
                     className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-slate-300 hover:text-white shrink-0">
                     <i className="fas fa-arrow-left text-sm" />
                 </button>
-                <div className="flex-1 min-w-0 flex items-center gap-3">
-                    <span className="font-black text-base truncate">{request.draft_name}</span>
+
+                {/* Draft name + status */}
+                <div className="flex items-center gap-2.5 shrink-0 min-w-0 max-w-[260px]">
+                    <span className="font-black text-sm truncate">{request.draft_name}</span>
                     <ApprovalStatusBadge status={request.status} />
                     {request.brand && (
-                        <span className="text-xs bg-white/10 px-2 py-0.5 rounded font-bold text-slate-300">{request.brand}</span>
-                    )}
-                    {hasChanges && (
-                        <span className="text-xs bg-amber-500/20 border border-amber-400/40 text-amber-300 px-2 py-0.5 rounded font-bold">
-                            <i className="fas fa-pencil mr-1" />Đã điều chỉnh
-                        </span>
+                        <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded font-bold text-slate-300 shrink-0">{request.brand}</span>
                     )}
                 </div>
-                <div className="text-xs text-slate-400 shrink-0">
-                    Level {request.current_level} · {new Date(request.submitted_at).toLocaleDateString('vi-VN')}
+
+                {/* Divider */}
+                <div className="w-px h-6 bg-slate-600 shrink-0" />
+
+                {/* ── KPI pills (fills the empty center) ── */}
+                <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
+                    {/* SKU */}
+                    <div className="flex items-center gap-1.5 bg-white/8 border border-white/10 rounded-lg px-3 py-1.5 shrink-0">
+                        <i className="fas fa-boxes-stacked text-slate-400 text-[10px]" />
+                        <span className="text-[11px] font-black text-white">{rows.length}</span>
+                        <span className="text-[10px] text-slate-400">SKU</span>
+                    </div>
+                    {/* Air */}
+                    {totals.air > 0 && (
+                        <div className="flex items-center gap-1.5 bg-rose-500/15 border border-rose-400/25 rounded-lg px-3 py-1.5 shrink-0">
+                            <i className="fas fa-plane text-rose-400 text-[10px]" />
+                            <span className="text-[11px] font-black text-rose-300">{totals.air.toLocaleString()}</span>
+                            <span className="text-[10px] text-rose-400/70">Air</span>
+                        </div>
+                    )}
+                    {/* Sea */}
+                    {totals.sea > 0 && (
+                        <div className="flex items-center gap-1.5 bg-blue-500/15 border border-blue-400/25 rounded-lg px-3 py-1.5 shrink-0">
+                            <i className="fas fa-ship text-blue-400 text-[10px]" />
+                            <span className="text-[11px] font-black text-blue-300">{totals.sea.toLocaleString()}</span>
+                            <span className="text-[10px] text-blue-400/70">Sea</span>
+                        </div>
+                    )}
+                    {/* Value */}
+                    <div className="flex items-center gap-1.5 bg-emerald-500/15 border border-emerald-400/25 rounded-lg px-3 py-1.5 shrink-0">
+                        <i className="fas fa-circle-dollar-to-slot text-emerald-400 text-[10px]" />
+                        <span className="text-[11px] font-black text-emerald-300">{(totals.value / 1e6).toFixed(1)}M</span>
+                        <span className="text-[10px] text-emerald-400/70">VNĐ</span>
+                    </div>
+                    {/* OOS warning */}
+                    {totals.oos > 0 && (
+                        <div className="flex items-center gap-1.5 bg-rose-600/20 border border-rose-500/30 rounded-lg px-3 py-1.5 shrink-0">
+                            <i className="fas fa-circle-exclamation text-rose-400 text-[10px]" />
+                            <span className="text-[11px] font-black text-rose-300">OOS: {totals.oos}</span>
+                        </div>
+                    )}
+                    {/* Risk warning */}
+                    {totals.risk > 0 && (
+                        <div className="flex items-center gap-1.5 bg-amber-500/15 border border-amber-400/25 rounded-lg px-3 py-1.5 shrink-0">
+                            <i className="fas fa-triangle-exclamation text-amber-400 text-[10px]" />
+                            <span className="text-[11px] font-black text-amber-300">Risk: {totals.risk}</span>
+                        </div>
+                    )}
+                    {/* Changed badge */}
+                    {hasChanges && (
+                        <div className="flex items-center gap-1.5 bg-amber-500/20 border border-amber-400/30 rounded-lg px-3 py-1.5 shrink-0">
+                            <i className="fas fa-pencil text-amber-400 text-[10px]" />
+                            <span className="text-[11px] font-black text-amber-300">Đã điều chỉnh</span>
+                        </div>
+                    )}
+                </div>
+
+                {/* Right: level + date */}
+                <div className="shrink-0 flex items-center gap-2 text-[11px] text-slate-400">
+                    <span className="bg-white/8 border border-white/10 rounded-lg px-2.5 py-1 font-black text-slate-300">
+                        Level {request.current_level}
+                    </span>
+                    <span>{new Date(request.submitted_at).toLocaleDateString('vi-VN')}</span>
                 </div>
             </div>
 
