@@ -9,6 +9,7 @@ import {
     fetchPendingForApprover,
     fetchRequestById,
     fetchRequestActions,
+    listProfiles,
 } from '../utils/supabase';
 import { ApprovalRequest, ApprovalAction } from '../types/inventory';
 
@@ -20,6 +21,7 @@ export const ApprovalQueue = () => {
     const { user } = useAuth();
     const [tab, setTab] = useState<TabFilter>('pending');
     const [requests, setRequests] = useState<ApprovalRequest[]>([]);
+    const [usersMap, setUsersMap] = useState<Record<string, string>>({});
     const [isLoading, setIsLoading] = useState(true);
     const [selected, setSelected] = useState<{ req: ApprovalRequest; actions: ApprovalAction[] } | null>(null);
 
@@ -27,11 +29,36 @@ export const ApprovalQueue = () => {
         if (!user) return;
         setIsLoading(true);
         try {
-            let data: ApprovalRequest[] = [];
-            if (tab === 'pending') data = await fetchPendingForApprover(user.id);
-            else if (tab === 'mine') data = await fetchMyRequests(user.id);
-            else data = await fetchAllRequests();
-            setRequests(data);
+            let dataPromise;
+            if (tab === 'pending') dataPromise = fetchPendingForApprover(user.id);
+            else if (tab === 'mine') dataPromise = fetchMyRequests(user.id);
+            else dataPromise = fetchAllRequests();
+
+            const [dataRaw, profiles] = await Promise.all([
+                dataPromise,
+                listProfiles()
+            ]);
+
+            const pMap: Record<string, string> = {};
+            profiles.forEach(p => pMap[p.id] = p.full_name || p.email || p.id);
+            setUsersMap(pMap);
+
+            const statusOrder: Record<string, number> = {
+                pending: 1,
+                in_progress: 2,
+                returned: 3,
+                approved: 4,
+                rejected: 5
+            };
+
+            const sortedData = dataRaw.sort((a, b) => {
+                const s1 = statusOrder[a.status] || 99;
+                const s2 = statusOrder[b.status] || 99;
+                if (s1 !== s2) return s1 - s2;
+                return new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime();
+            });
+
+            setRequests(sortedData);
         } catch (e) {
             console.error(e);
         } finally {
@@ -95,6 +122,7 @@ export const ApprovalQueue = () => {
                             <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-widest">
                                 <th className="px-4 py-3 text-left font-black">Tên Draft</th>
                                 <th className="px-4 py-3 text-left font-black">Brand</th>
+                                <th className="px-4 py-3 text-left font-black">Người gửi</th>
                                 <th className="px-4 py-3 text-center font-black">SKU</th>
                                 <th className="px-4 py-3 text-center font-black">Level</th>
                                 <th className="px-4 py-3 text-center font-black">Trạng thái</th>
@@ -111,6 +139,14 @@ export const ApprovalQueue = () => {
                                     <tr key={req.id} className="border-t border-slate-100 hover:bg-slate-50/80 transition-colors cursor-pointer" onClick={() => openDetail(req)}>
                                         <td className="px-4 py-3 font-bold text-slate-800">{req.draft_name}</td>
                                         <td className="px-4 py-3 text-slate-500">{req.brand || '—'}</td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold">
+                                                    <i className="fas fa-user" />
+                                                </div>
+                                                <span className="text-slate-600 font-medium">{usersMap[req.submitted_by] || 'Unknown'}</span>
+                                            </div>
+                                        </td>
                                         <td className="px-4 py-3 text-center">
                                             <span className="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-0.5 rounded">{skuCount}</span>
                                         </td>
