@@ -168,6 +168,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
             .map(code => {
                 const item = enrichedMap?.get(code);
                 const c = item?.computed;
+                const profile = item ? resolveItemProfile(item, settings.sourceProfiles) : undefined;
                 return {
                     itemCode: code,
                     itemName: item?.ItemName || code,
@@ -196,6 +197,14 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                     incomingCurrentMonth: c?.incomingCurrentMonth || 0,
                     cst: c?.cst || 0,
                     salesHistory: item?.SalesHistory || [],
+                    // Regional breakdown + leadtime for print form
+                    available_NB: item?.QuantityInventory_NB || 0,
+                    available_BB: item?.QuantityInventory_BB || 0,
+                    totalPO_NB: item?.TotalPO_NB || 0,
+                    totalPO_BB: item?.TotalPO_BB || 0,
+                    backorder_NB: item?.Backorder_NB || 0,
+                    backorder_BB: item?.Backorder_BB || 0,
+                    effectiveLT: profile?.lt ?? settings.params.lt ?? 90,
                 };
             }),
         submitted_at: new Date().toISOString(),
