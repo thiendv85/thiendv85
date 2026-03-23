@@ -17,6 +17,7 @@ import { InventoryDistribution } from './pages/InventoryDistribution';
 import { LanguageProvider, useLanguage } from './utils/i18n';
 import { AuthProvider, useAuth } from './utils/authContext';
 import { LoginScreen } from './pages/LoginScreen';
+import { ResetPasswordScreen } from './pages/ResetPasswordScreen';
 import { ApprovalQueue } from './pages/ApprovalQueue';
 import { Typography } from './components/Typography';
 import { resolveItemProfile } from './utils/inventoryEngine';
@@ -50,7 +51,7 @@ const AppContent = () => {
         return new SupersessionGraph(supersessionMappings, itemCodes);
     }, [data, supersessionMappings]);
 
-    const { session, isLoading: authLoading, profile, signOut } = useAuth();
+    const { session, isLoading: authLoading, profile, signOut, needsPasswordReset } = useAuth();
 
     // Keep all hooks before conditional returns (Rules of Hooks)
     const [view, setView] = useState<'upload' | 'dashboard' | 'ordering' | 'backorder' | 'demand-intel' | 'log' | 'kitting' | 'supersession' | 'settings' | 'approval-queue'>('upload');
@@ -223,6 +224,7 @@ const AppContent = () => {
         </div>
     );
     if (!session) return <LoginScreen />;
+    if (needsPasswordReset) return <ResetPasswordScreen />;
 
     if (view === 'upload') return (
         <FileUpload

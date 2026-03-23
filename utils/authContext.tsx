@@ -21,6 +21,8 @@ export interface AuthContextType {
     user: User | null;
     profile: UserProfile | null;
     isLoading: boolean;
+    needsPasswordReset: boolean;
+    clearPasswordReset: () => void;
     signIn: (email: string, password: string) => Promise<{ error: string | null }>;
     signOut: () => Promise<void>;
     refreshProfile: () => Promise<void>;
@@ -35,6 +37,8 @@ export const AuthContext = createContext<AuthContextType>({
     user: null,
     profile: null,
     isLoading: true,
+    needsPasswordReset: false,
+    clearPasswordReset: () => { },
     signIn: async () => ({ error: null }),
     signOut: async () => { },
     refreshProfile: async () => { },
@@ -51,6 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [needsPasswordReset, setNeedsPasswordReset] = useState(false);
 
     const fetchProfile = async (userId: string): Promise<UserProfile | null> => {
         try {
@@ -82,11 +87,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }).catch(() => setIsLoading(false));
 
         // Lắng nghe thay đổi auth state
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
             setSession(s);
             setUser(s?.user ?? null);
             setIsLoading(false);
-            if (s?.user) {
+            if (event === 'PASSWORD_RECOVERY') {
+                setNeedsPasswordReset(true);
+            } else if (s?.user) {
                 fetchProfile(s.user.id).then(setProfile);
             } else {
                 setProfile(null);
@@ -102,6 +109,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: null };
     };
 
+    const clearPasswordReset = () => setNeedsPasswordReset(false);
+
     const signOut = async () => {
         await supabase.auth.signOut();
         setSession(null);
@@ -110,7 +119,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ session, user, profile, isLoading, signIn, signOut, refreshProfile }}>
+        <AuthContext.Provider value={{ session, user, profile, isLoading, needsPasswordReset, clearPasswordReset, signIn, signOut, refreshProfile }}>
             {children}
         </AuthContext.Provider>
     );
