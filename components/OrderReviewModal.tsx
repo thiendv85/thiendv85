@@ -109,15 +109,27 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
         <div className="fixed inset-0 z-[200] bg-white flex flex-col">
 
             {/* ═══ TOP HEADER ══════════════════════════════════════════════════ */}
-            <div className="flex items-center gap-4 px-5 py-0 bg-slate-800 text-white shrink-0 border-b border-slate-700 h-14">
+            <div
+                className="relative flex items-center gap-4 px-5 py-0 text-white shrink-0 h-14 overflow-hidden"
+                style={{ background: 'linear-gradient(to right, #0f172a 0%, #1e293b 25%, #0f2744 55%, #1e293b 80%, #0f172a 100%)' }}
+            >
+                {/* Subtle glow orb behind pills */}
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <div className="w-[480px] h-10 rounded-full opacity-10 blur-2xl"
+                        style={{ background: 'radial-gradient(ellipse, #3b82f6 0%, #6366f1 50%, transparent 80%)' }} />
+                </div>
+                {/* Bottom accent line */}
+                <div className="absolute bottom-0 left-0 right-0 h-px"
+                    style={{ background: 'linear-gradient(to right, transparent, #3b82f6 30%, #6366f1 60%, transparent)' }} />
+
                 {/* Back */}
                 <button onClick={onClose}
-                    className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-slate-300 hover:text-white shrink-0">
+                    className="relative p-1.5 rounded-lg hover:bg-white/10 transition-colors text-slate-300 hover:text-white shrink-0">
                     <i className="fas fa-arrow-left text-sm" />
                 </button>
 
                 {/* Draft name + status */}
-                <div className="flex items-center gap-2.5 shrink-0 min-w-0 max-w-[260px]">
+                <div className="relative flex items-center gap-2.5 shrink-0 min-w-0 max-w-[260px]">
                     <span className="font-black text-sm truncate">{request.draft_name}</span>
                     <ApprovalStatusBadge status={request.status} />
                     {request.brand && (
@@ -126,10 +138,10 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                 </div>
 
                 {/* Divider */}
-                <div className="w-px h-6 bg-slate-600 shrink-0" />
+                <div className="relative w-px h-6 bg-white/15 shrink-0" />
 
-                {/* ── KPI pills (fills the empty center) ── */}
-                <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
+                {/* ── KPI pills ── */}
+                <div className="relative flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
                     {/* SKU */}
                     <div className="flex items-center gap-1.5 bg-white/8 border border-white/10 rounded-lg px-3 py-1.5 shrink-0">
                         <i className="fas fa-boxes-stacked text-slate-400 text-[10px]" />
@@ -182,7 +194,7 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                 </div>
 
                 {/* Right: level + date */}
-                <div className="shrink-0 flex items-center gap-2 text-[11px] text-slate-400">
+                <div className="relative shrink-0 flex items-center gap-2 text-[11px] text-slate-400">
                     <span className="bg-white/8 border border-white/10 rounded-lg px-2.5 py-1 font-black text-slate-300">
                         Level {request.current_level}
                     </span>
