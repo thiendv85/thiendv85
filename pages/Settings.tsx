@@ -346,6 +346,7 @@ const UserManagementTab = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [newWfName, setNewWfName] = useState('');
     const [newWfBrand, setNewWfBrand] = useState<string>('');
+    const [newWfProposers, setNewWfProposers] = useState<string[]>([]);
     const [newWfLevels, setNewWfLevels] = useState<WorkflowLevel[]>([{ level: 1, approver_ids: [], require_all: false }]);
     const [showNewWfForm, setShowNewWfForm] = useState(false);
 
@@ -431,11 +432,12 @@ const UserManagementTab = () => {
             name: newWfName.trim(),
             brand: newWfBrand || null,
             levels: newWfLevels,
+            proposer_ids: newWfProposers,
             is_active: true,
             created_by: user.id,
         });
         if (id) {
-            setNewWfName(''); setNewWfBrand('');
+            setNewWfName(''); setNewWfBrand(''); setNewWfProposers([]);
             setNewWfLevels([{ level: 1, approver_ids: [], require_all: false }]);
             setShowNewWfForm(false);
             load();
@@ -598,21 +600,56 @@ const UserManagementTab = () => {
             {/* Workflows */}
             <SectionCard title="Cấu hình Workflow Phê duyệt" icon="fa-sitemap">
                 <div className="space-y-2">
-                    {workflows.map(wf => (
-                        <div key={wf.id} className="flex items-center justify-between p-3 border border-slate-200 rounded-xl hover:bg-slate-50">
-                            <div>
-                                <span className="font-bold text-slate-800 text-sm">{wf.name}</span>
-                                {wf.brand && <span className="ml-2 text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-bold">{wf.brand}</span>}
-                                <span className="ml-2 text-xs text-slate-400">{wf.levels.length} cấp</span>
+                    {workflows.map(wf => {
+                        const getName = (id: string) => users.find(u => u.id === id)?.full_name || id.slice(0, 8);
+                        return (
+                        <div key={wf.id} className="border border-slate-200 rounded-xl overflow-hidden">
+                            {/* Header */}
+                            <div className="flex items-center justify-between px-4 py-3 bg-slate-50">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-bold text-slate-800 text-sm">{wf.name}</span>
+                                    {wf.brand && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">{wf.brand}</span>}
+                                    <span className="text-xs text-slate-400">{wf.levels.length} cấp phê duyệt</span>
+                                </div>
+                                <button
+                                    onClick={() => handleToggleWorkflow(wf)}
+                                    className={`text-xs font-black px-3 py-1.5 rounded-lg border transition-all ${wf.is_active ? 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100' : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}
+                                >
+                                    {wf.is_active ? 'Tắt' : 'Bật'}
+                                </button>
                             </div>
-                            <button
-                                onClick={() => handleToggleWorkflow(wf)}
-                                className={`text-xs font-black px-3 py-1.5 rounded-lg border transition-all ${wf.is_active ? 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100' : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}
-                            >
-                                {wf.is_active ? 'Tắt' : 'Bật'}
-                            </button>
+                            {/* Detail rows */}
+                            <div className="divide-y divide-slate-100 px-4 py-2 space-y-1">
+                                {/* Proposers */}
+                                <div className="flex items-start gap-3 py-1.5">
+                                    <span className="text-xs font-black text-violet-600 w-36 shrink-0 flex items-center gap-1"><i className="fas fa-user-pen" /> Người đề xuất</span>
+                                    <div className="flex flex-wrap gap-1">
+                                        {(wf.proposer_ids ?? []).length === 0
+                                            ? <span className="text-xs text-slate-400 italic">Tất cả planner</span>
+                                            : (wf.proposer_ids ?? []).map(id => (
+                                                <span key={id} className="text-xs bg-violet-50 text-violet-700 border border-violet-200 px-2 py-0.5 rounded-full font-bold">{getName(id)}</span>
+                                            ))}
+                                    </div>
+                                </div>
+                                {/* Each level */}
+                                {wf.levels.map(lvl => (
+                                    <div key={lvl.level} className="flex items-start gap-3 py-1.5">
+                                        <span className="text-xs font-black text-blue-600 w-36 shrink-0 flex items-center gap-1">
+                                            <i className="fas fa-check-circle" /> Cấp {lvl.level} {lvl.require_all && <span className="text-[10px] text-slate-400">(tất cả)</span>}
+                                        </span>
+                                        <div className="flex flex-wrap gap-1">
+                                            {lvl.approver_ids.length === 0
+                                                ? <span className="text-xs text-slate-400 italic">Chưa chọn người duyệt</span>
+                                                : lvl.approver_ids.map(id => (
+                                                    <span key={id} className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full font-bold">{getName(id)}</span>
+                                                ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                    ))}
+                        );
+                    })}
                     {workflows.length === 0 && <p className="text-sm text-slate-400 py-4 text-center">Chưa có workflow nào.</p>}
                 </div>
                 {showNewWfForm ? (
@@ -640,6 +677,27 @@ const UserManagementTab = () => {
                                     <option value="">Tất cả</option>
                                     {AVAILABLE_BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
                                 </select>
+                            </div>
+                        </div>
+
+                        {/* Proposers */}
+                        <div>
+                            <label className="block text-xs font-black text-slate-500 mb-2">NGƯỜI ĐỀ XUẤT</label>
+                            <div className="flex flex-wrap gap-2">
+                                {users.filter(u => u.role === 'planner' || u.role === 'admin').map(u => (
+                                    <label key={u.id} className={`flex items-center gap-1.5 cursor-pointer px-2.5 py-1 rounded-lg border text-xs font-bold transition-all ${newWfProposers.includes(u.id) ? 'bg-violet-100 border-violet-300 text-violet-700' : 'border-slate-200 text-slate-500 hover:border-violet-200'}`}>
+                                        <input
+                                            type="checkbox"
+                                            checked={newWfProposers.includes(u.id)}
+                                            onChange={e => setNewWfProposers(prev => e.target.checked ? [...prev, u.id] : prev.filter(id => id !== u.id))}
+                                            className="sr-only"
+                                        />
+                                        <i className="fas fa-user text-[10px]" /> {u.full_name || u.id.slice(0, 8)}
+                                    </label>
+                                ))}
+                                {users.filter(u => u.role === 'planner' || u.role === 'admin').length === 0 && (
+                                    <span className="text-xs text-slate-400 italic">Chưa có người dùng role planner/admin</span>
+                                )}
                             </div>
                         </div>
 
@@ -707,7 +765,7 @@ const UserManagementTab = () => {
                             <button onClick={handleCreateWorkflow} disabled={!newWfName.trim()} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-2 rounded-xl text-sm font-black flex items-center gap-2">
                                 <i className="fas fa-check" /> Tạo workflow
                             </button>
-                            <button onClick={() => { setShowNewWfForm(false); setNewWfName(''); setNewWfBrand(''); setNewWfLevels([{ level: 1, approver_ids: [], require_all: false }]); }}
+                            <button onClick={() => { setShowNewWfForm(false); setNewWfName(''); setNewWfBrand(''); setNewWfProposers([]); setNewWfLevels([{ level: 1, approver_ids: [], require_all: false }]); }}
                                 className="px-4 py-2 rounded-xl text-sm font-black border border-slate-200 text-slate-500 hover:bg-slate-50">
                                 Hủy
                             </button>

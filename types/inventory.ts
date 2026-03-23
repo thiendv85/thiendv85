@@ -359,6 +359,7 @@ export interface ApprovalWorkflow {
     name: string;
     brand: string | null;
     levels: WorkflowLevel[];
+    proposer_ids: string[];
     is_active: boolean;
     created_by: string;
     created_at: string;
