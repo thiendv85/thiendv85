@@ -404,7 +404,8 @@ export async function processApprovalAction(
   requestId: string,
   actorId: string,
   action: 'approved' | 'rejected' | 'commented' | 'returned',
-  comment?: string
+  comment?: string,
+  modifiedQuantities?: Record<string, { air: number; sea: number }>
 ): Promise<{ success: boolean; newStatus: ApprovalStatus }> {
   // Look up request and workflow
   const request = await fetchRequestById(requestId);
@@ -460,14 +461,28 @@ export async function processApprovalAction(
   // Tìm level tiếp theo
   const nextLevelConfig = workflow.levels.find(l => l.level === request.current_level + 1);
   if (nextLevelConfig) {
-    await supabase.from('approval_requests').update({
+    const advanceUpdate: Record<string, unknown> = {
       current_level: request.current_level + 1,
       status: 'in_progress',
-    }).eq('id', request.id);
+    };
+    if (modifiedQuantities) {
+      advanceUpdate.snapshot_data = {
+        ...request.snapshot_data,
+        quantities: modifiedQuantities,
+      };
+    }
+    await supabase.from('approval_requests').update(advanceUpdate).eq('id', request.id);
     return { success: true, newStatus: 'in_progress' };
   } else {
     // Không còn level nào → approved hoàn toàn
-    await supabase.from('approval_requests').update({ status: 'approved' }).eq('id', request.id);
+    const approveUpdate: Record<string, unknown> = { status: 'approved' };
+    if (modifiedQuantities) {
+      approveUpdate.snapshot_data = {
+        ...request.snapshot_data,
+        quantities: modifiedQuantities,
+      };
+    }
+    await supabase.from('approval_requests').update(approveUpdate).eq('id', request.id);
     return { success: true, newStatus: 'approved' };
   }
 }
