@@ -73,28 +73,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     useEffect(() => {
-        // Lấy session hiện tại khi mount
-        supabase.auth.getSession().then(async ({ data: { session: s } }) => {
+        // Lấy session hiện tại khi mount — setIsLoading(false) ngay, load profile nền
+        supabase.auth.getSession().then(({ data: { session: s } }) => {
             setSession(s);
             setUser(s?.user ?? null);
-            if (s?.user) {
-                const p = await fetchProfile(s.user.id);
-                setProfile(p);
-            }
             setIsLoading(false);
+            if (s?.user) fetchProfile(s.user.id).then(setProfile);
         }).catch(() => setIsLoading(false));
 
         // Lắng nghe thay đổi auth state
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, s) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
             setSession(s);
             setUser(s?.user ?? null);
+            setIsLoading(false);
             if (s?.user) {
-                const p = await fetchProfile(s.user.id);
-                setProfile(p);
+                fetchProfile(s.user.id).then(setProfile);
             } else {
                 setProfile(null);
             }
-            setIsLoading(false);
         });
 
         return () => subscription.unsubscribe();
