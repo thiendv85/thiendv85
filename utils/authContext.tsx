@@ -53,13 +53,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [isLoading, setIsLoading] = useState(true);
 
     const fetchProfile = async (userId: string): Promise<UserProfile | null> => {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
-        if (error || !data) return null;
-        return data as UserProfile;
+        try {
+            const { data, error } = await Promise.race([
+                supabase.from('profiles').select('*').eq('id', userId).single(),
+                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
+            ]) as any;
+            if (error || !data) return null;
+            return data as UserProfile;
+        } catch {
+            return null;
+        }
     };
 
     const refreshProfile = async () => {
@@ -79,7 +82,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 setProfile(p);
             }
             setIsLoading(false);
-        });
+        }).catch(() => setIsLoading(false));
 
         // Lắng nghe thay đổi auth state
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, s) => {
