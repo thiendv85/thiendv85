@@ -35,10 +35,13 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
         )
     );
     const [comment, setComment] = useState('');
+    const [commentError, setCommentError] = useState('');
     const [unlockReason, setUnlockReason] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submittingAction, setSubmittingAction] = useState<string | null>(null);
     const [showUnlock, setShowUnlock] = useState(false);
     const [showMatrix, setShowMatrix] = useState(false);
+    const [confirmReject, setConfirmReject] = useState(false);
 
     const canAct = !!(profile?.role && ['admin', 'approver'].includes(profile.role)
         && ['pending', 'in_progress'].includes(request.status));
@@ -80,12 +83,17 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
 
     const handleAction = async (action: 'approved' | 'rejected' | 'returned') => {
         if (!user) return;
-        if (action === 'returned' && !comment.trim()) { alert('Vui lòng nhập lý do trả lại.'); return; }
+        if (action === 'returned' && !comment.trim()) {
+            setCommentError('Vui lòng nhập lý do trả lại trước khi gửi.');
+            return;
+        }
+        setCommentError('');
         setIsSubmitting(true);
+        setSubmittingAction(action);
         try {
             await processApprovalAction(request.id, user.id, action, comment || undefined, localQtys);
             onRefresh(); onClose();
-        } catch (e) { console.error(e); } finally { setIsSubmitting(false); }
+        } catch (e) { console.error(e); } finally { setIsSubmitting(false); setSubmittingAction(null); }
     };
 
     const handleUnlock = async () => {
@@ -199,7 +207,10 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
 
                     {/* KPI Summary */}
                     <div className="p-4 space-y-3 border-b border-slate-200">
-                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tổng quan đơn hàng</div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-1 h-4 bg-emerald-400 rounded-full" />
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Tổng quan đơn hàng</span>
+                        </div>
                         <div className="grid grid-cols-2 gap-2">
                             <KPI label="SKU" value={rows.length} />
                             <KPI label="Tổng giá trị" value={`${(totals.value / 1e6).toFixed(1)}M`} cls="text-emerald-700" />
@@ -238,22 +249,30 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                     <div className="border-b border-slate-200">
                         <button
                             onClick={() => setShowMatrix(p => !p)}
-                            className="w-full flex items-center justify-between px-4 py-3 text-xs font-black text-slate-600 uppercase tracking-widest hover:bg-slate-100 transition-colors"
+                            className="w-full flex items-center justify-between px-4 py-3 text-xs font-black text-slate-600 uppercase tracking-widest hover:bg-slate-100 active:bg-slate-200 transition-colors"
                         >
-                            <span><i className="fas fa-table-cells mr-2 text-blue-500" />Ma Trận Cung Ứng</span>
-                            <i className={`fas fa-chevron-${showMatrix ? 'up' : 'down'} text-slate-400`} />
+                            <span className="flex items-center gap-2">
+                                <i className="fas fa-table-cells text-blue-500" />
+                                Ma Trận Cung Ứng
+                                <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded normal-case tracking-normal">{rows.length} SKU</span>
+                            </span>
+                            <i className={`fas fa-chevron-down text-slate-400 transition-transform duration-200 ${showMatrix ? 'rotate-180' : ''}`} />
                         </button>
-                        {showMatrix && (
+                        <div className={`overflow-hidden transition-all duration-200 ease-in-out ${showMatrix ? 'max-h-[600px]' : 'max-h-0'}`}>
                             <div className="px-3 pb-3">
                                 <SnapshotMatrix items={rows} draftQtys={localQtys} compact />
                             </div>
-                        )}
+                        </div>
                     </div>
 
                     {/* Audit Trail */}
                     <div className="border-b border-slate-200 p-4 space-y-2">
-                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                            <i className="fas fa-clock-rotate-left mr-1.5" />Lịch sử ({actions.length})
+                        <div className="flex items-center gap-2 mb-2">
+                            <div className="w-1 h-4 bg-slate-300 rounded-full" />
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                Lịch sử
+                            </span>
+                            <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">{actions.length}</span>
                         </div>
                         {actions.length === 0 ? (
                             <p className="text-slate-400 text-xs italic">Chưa có hành động nào.</p>
@@ -282,50 +301,118 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
 
                         {canAct && (
                             <>
-                                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                    <i className="fas fa-pen-to-square mr-1.5" />Hành động — Level {request.current_level}
+                                {/* Section header */}
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1 h-4 bg-blue-500 rounded-full" />
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                        Hành động · Level {request.current_level}
+                                    </span>
                                 </div>
 
-                                <textarea
-                                    value={comment}
-                                    onChange={e => setComment(e.target.value)}
-                                    placeholder="Ghi chú / lý do trả lại (bắt buộc khi Trả lại)..."
-                                    rows={3}
-                                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 placeholder-slate-400 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 resize-none transition-colors"
-                                />
+                                {/* Comment textarea */}
+                                <div className="space-y-1">
+                                    <textarea
+                                        value={comment}
+                                        onChange={e => { setComment(e.target.value); if (commentError) setCommentError(''); }}
+                                        placeholder="Ghi chú gửi cho người đề xuất..."
+                                        rows={3}
+                                        className={`w-full bg-white border rounded-xl px-3 py-2 text-sm text-slate-700 placeholder-slate-400 outline-none focus:ring-2 resize-none transition-all ${
+                                            commentError
+                                                ? 'border-rose-400 focus:border-rose-400 focus:ring-rose-100'
+                                                : 'border-slate-200 focus:border-blue-400 focus:ring-blue-100'
+                                        }`}
+                                    />
+                                    {/* Inline error — replaces old alert() */}
+                                    {commentError && (
+                                        <p className="flex items-center gap-1.5 text-[11px] text-rose-600 font-bold">
+                                            <i className="fas fa-circle-exclamation text-[10px]" />{commentError}
+                                        </p>
+                                    )}
+                                    <p className="text-[10px] text-slate-400">
+                                        Bắt buộc khi chọn <span className="text-indigo-500 font-bold">Trả lại</span>
+                                    </p>
+                                </div>
 
+                                {/* Reset changed qtys */}
+                                {hasChanges && (
+                                    <button
+                                        onClick={() => setLocalQtys(Object.fromEntries(
+                                            Object.entries(snap.quantities).map(([k, v]) => [k, { air: v.air, sea: v.sea }])
+                                        ))}
+                                        className="flex items-center gap-1.5 text-[11px] text-amber-600 hover:text-amber-700 font-bold transition-colors self-start"
+                                    >
+                                        <i className="fas fa-arrow-rotate-left text-[10px]" />
+                                        Hoàn tác điều chỉnh số lượng
+                                    </button>
+                                )}
+
+                                {/* PRIMARY: Duyệt */}
                                 <button
                                     onClick={() => handleAction('approved')}
                                     disabled={isSubmitting}
-                                    className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black py-3 rounded-xl text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-colors shadow-sm"
+                                    className="w-full bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:opacity-50 text-white font-black py-3 rounded-xl text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-200 hover:shadow-emerald-300"
                                 >
-                                    <i className="fas fa-check" />
-                                    {hasChanges ? 'Duyệt (Lưu điều chỉnh)' : 'Duyệt'}
+                                    {submittingAction === 'approved'
+                                        ? <i className="fas fa-spinner fa-spin" />
+                                        : <i className="fas fa-check" />}
+                                    {hasChanges ? 'Duyệt & Lưu điều chỉnh' : 'Duyệt'}
                                 </button>
 
-                                <div className="grid grid-cols-2 gap-2">
+                                {/* SECONDARY: Trả lại */}
+                                <button
+                                    onClick={() => handleAction('returned')}
+                                    disabled={isSubmitting}
+                                    className="w-full border-2 border-indigo-300 text-indigo-600 hover:bg-indigo-50 active:bg-indigo-100 disabled:opacity-50 font-black py-2.5 rounded-xl text-xs uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all"
+                                >
+                                    {submittingAction === 'returned'
+                                        ? <i className="fas fa-spinner fa-spin" />
+                                        : <i className="fas fa-rotate-left" />}
+                                    Trả lại{hasChanges ? ' (Kèm điều chỉnh)' : ''}
+                                </button>
+
+                                {/* DESTRUCTIVE: Từ chối — with confirmation step */}
+                                {!confirmReject ? (
                                     <button
-                                        onClick={() => handleAction('rejected')}
+                                        onClick={() => setConfirmReject(true)}
                                         disabled={isSubmitting}
-                                        className="bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-black py-2.5 rounded-xl text-xs uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors"
+                                        className="w-full text-rose-600 hover:bg-rose-50 active:bg-rose-100 disabled:opacity-50 font-bold py-2 rounded-xl text-xs uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all border border-rose-200"
                                     >
-                                        <i className="fas fa-xmark" /> Từ chối
+                                        <i className="fas fa-xmark" /> Từ chối đơn hàng
                                     </button>
-                                    <button
-                                        onClick={() => handleAction('returned')}
-                                        disabled={isSubmitting}
-                                        className="border-2 border-indigo-300 text-indigo-600 hover:bg-indigo-50 disabled:opacity-50 font-black py-2.5 rounded-xl text-xs uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors"
-                                    >
-                                        <i className="fas fa-rotate-left" /> Trả lại
-                                    </button>
-                                </div>
+                                ) : (
+                                    <div className="rounded-xl border-2 border-rose-300 bg-rose-50 p-3 space-y-2">
+                                        <p className="text-xs font-black text-rose-700 flex items-center gap-1.5">
+                                            <i className="fas fa-triangle-exclamation" />
+                                            Xác nhận từ chối? Không thể hoàn tác.
+                                        </p>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => handleAction('rejected')}
+                                                disabled={isSubmitting}
+                                                className="flex-1 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-black py-2 rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5"
+                                            >
+                                                {submittingAction === 'rejected'
+                                                    ? <i className="fas fa-spinner fa-spin" />
+                                                    : <i className="fas fa-xmark" />}
+                                                Từ chối
+                                            </button>
+                                            <button
+                                                onClick={() => setConfirmReject(false)}
+                                                className="px-3 border border-slate-200 text-slate-500 hover:text-slate-700 rounded-lg text-xs font-bold transition-colors"
+                                            >
+                                                Huỷ
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </>
                         )}
 
                         {canUnlock && (
                             <>
-                                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                    <i className="fas fa-lock-open mr-1.5" />Mở khóa chỉnh sửa
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1 h-4 bg-orange-400 rounded-full" />
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Mở khóa chỉnh sửa</span>
                                 </div>
                                 {!showUnlock ? (
                                     <button
@@ -340,15 +427,16 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                                             value={unlockReason}
                                             onChange={e => setUnlockReason(e.target.value)}
                                             placeholder="Lý do mở khóa..."
-                                            className="w-full bg-white border border-orange-200 rounded-xl px-3 py-2 text-sm text-slate-700 outline-none focus:border-orange-400"
+                                            className="w-full bg-white border border-orange-200 rounded-xl px-3 py-2 text-sm text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-all"
                                         />
                                         <div className="flex gap-2">
                                             <button onClick={handleUnlock} disabled={isSubmitting || !unlockReason.trim()}
-                                                className="flex-1 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-black py-2 rounded-xl text-xs transition-colors">
+                                                className="flex-1 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-black py-2 rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5">
+                                                {isSubmitting ? <i className="fas fa-spinner fa-spin" /> : null}
                                                 Xác nhận
                                             </button>
                                             <button onClick={() => setShowUnlock(false)}
-                                                className="px-3 border border-slate-200 text-slate-500 hover:text-slate-700 rounded-xl text-xs">
+                                                className="px-3 border border-slate-200 text-slate-500 hover:text-slate-700 rounded-xl text-xs font-bold transition-colors">
                                                 Huỷ
                                             </button>
                                         </div>
@@ -358,9 +446,14 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                         )}
 
                         {!canAct && !canUnlock && (
-                            <div className="text-center text-xs text-slate-400 py-4 bg-white border border-slate-100 rounded-xl">
-                                <i className="fas fa-eye block text-2xl mb-2 text-slate-300" />
-                                Chế độ xem — không có quyền thao tác
+                            <div className="text-center text-xs text-slate-500 py-6 bg-white border border-slate-100 rounded-xl space-y-2">
+                                <i className="fas fa-eye block text-3xl text-slate-200 mb-1" />
+                                <p className="font-bold text-slate-400">Chế độ xem</p>
+                                <p className="text-[11px] text-slate-400 leading-relaxed px-3">
+                                    {request.status === 'approved' ? 'Đơn đã được duyệt.'
+                                    : request.status === 'rejected' ? 'Đơn đã bị từ chối.'
+                                    : 'Bạn không có quyền thao tác trên đơn này.'}
+                                </p>
                             </div>
                         )}
                     </div>
