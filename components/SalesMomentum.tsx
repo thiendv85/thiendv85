@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { SalesHistoryChart } from './SalesHistoryChart';
 
@@ -11,7 +11,7 @@ interface SalesMomentumProps {
 
 export const SalesMomentum = ({ values, history = [], forecast = 0, compact = false }: SalesMomentumProps) => {
     // --- MINI SPARKLINE CONFIG ---
-    const width = 140;
+    const width = compact ? 100 : 140;
     const height = compact ? 24 : 40;
     const padding = 8;
 

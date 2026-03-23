@@ -734,22 +734,22 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
 
                     {/* Scrollable table */}
                     <div className="flex-1 overflow-auto min-h-0 relative">
-                        <table className="w-full text-sm text-left border-separate border-spacing-0 min-w-[1200px]">
+                        <table className="w-full text-sm text-left border-separate border-spacing-0 min-w-[1150px]">
                             <thead className="bg-slate-50/95 backdrop-blur-sm border-b-2 border-slate-200 text-slate-600 sticky top-0 z-30">
                                 <tr className="text-xs uppercase font-black tracking-wider">
-                                    <th className="px-4 py-3.5 w-12 text-center text-slate-400 border-b border-slate-200 sticky left-0 z-40 bg-slate-50/95 cursor-pointer hover:bg-slate-100 transition-colors" onClick={handleToggleAll}>
+                                    <th className="px-3 py-3 w-10 text-center text-slate-400 border-b border-slate-200 sticky left-0 z-40 bg-slate-50/95 cursor-pointer hover:bg-slate-100 transition-colors" onClick={handleToggleAll}>
                                         <div className="flex flex-col items-center gap-1">
                                             <input type="checkbox" checked={selectedItems.size === rows.length && rows.length > 0} onChange={handleToggleAll} className="w-4 h-4 cursor-pointer accent-blue-600 rounded" />
                                             <span className="text-[8px] uppercase font-bold tracking-tighter leading-none">All</span>
                                         </div>
                                     </th>
-                                    <th className="px-2 py-2.5 min-w-[180px] sticky left-12 z-40 bg-slate-50/95 border-b border-slate-200 border-r border-slate-200">SKU Identity</th>
+                                    <th className="px-2 py-2.5 min-w-[160px] sticky left-10 z-40 bg-slate-50/95 border-b border-slate-200 border-r border-slate-200">SKU Identity</th>
                                     <th className="px-2 py-2.5 text-center border-b border-slate-200 min-w-[90px]">Demand</th>
                                     <th className="px-2 py-2.5 min-w-[100px] text-right border-b border-slate-200">Stock Health</th>
-                                    <th className="px-2 py-2.5 text-center border-b border-slate-200 min-w-[80px]">Supply Pipeline</th>
-                                    <th className="px-2 py-2.5 text-center border-b border-slate-200 min-w-[110px]">Sales Momentum</th>
+                                    <th className="px-2 py-2.5 text-center border-b border-slate-200 min-w-[80px]">Pipeline</th>
+                                    <th className="px-2 py-2.5 text-center border-b border-slate-200 min-w-[105px]">Momentum</th>
                                     <th className="px-2 py-2.5 text-center border-b border-slate-200 min-w-[55px]">MOS</th>
-                                    <th className="px-2 py-2.5 text-center border-b border-slate-200 min-w-[72px]">Dealer & CST</th>
+                                    <th className="px-2 py-2.5 text-center border-b border-slate-200 min-w-[72px]">DLR/CST</th>
                                     <th className="px-2 py-2.5 text-center border-x border-slate-200 bg-rose-50/40 border-b border-slate-200 min-w-[72px]">
                                         <span className="text-rose-600">NB</span>
                                     </th>
@@ -786,7 +786,7 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                                             </td>
 
                                             {/* SKU */}
-                                            <td className={`px-3 py-1.5 sticky left-12 z-10 border-b border-slate-50/80 border-r border-slate-100
+                                            <td className={`px-3 py-1 sticky left-10 z-10 border-b border-slate-50/80 border-r border-slate-100
                                                 ${!selectedItems.has(ctx.itemCode) ? 'bg-slate-50 group-hover:bg-slate-100' : 'bg-white group-hover:bg-slate-50'}`}>
                                                 <div className="flex items-center gap-1.5">
                                                     <span className="font-black text-slate-800 text-xs font-mono tracking-tight">{ctx.itemCode}</span>
@@ -797,7 +797,7 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                                                         {ctx.priorityBucket || 'P3'}
                                                     </span>
                                                 </div>
-                                                <div className="text-[10px] text-slate-500 truncate max-w-[195px] leading-tight">{ctx.itemName}</div>
+                                                <div className="text-[10px] text-slate-500 truncate max-w-[150px] leading-tight">{ctx.itemName}</div>
                                                 <div className="mt-0.5 flex flex-wrap gap-0.5">
                                                     {ctx.status && <span className="text-[8px] font-black px-1 py-0 rounded bg-slate-100 text-slate-500 uppercase leading-4">{ctx.status}</span>}
                                                     {ctx.loisGroup && <span className="text-[8px] font-black px-1 py-0 rounded bg-blue-50 text-blue-600 border border-blue-100 uppercase leading-4">L{ctx.loisGroup}</span>}
