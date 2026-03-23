@@ -252,7 +252,7 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
             <div className="flex-1 flex overflow-hidden min-h-0">
 
                 {/* ── LEFT SIDEBAR (fixed, always visible) ────────────────── */}
-                <div className="w-[300px] shrink-0 flex flex-col border-r border-slate-200/80 bg-white shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)] z-10">
+                <div className="w-[360px] shrink-0 flex flex-col border-r border-slate-200/80 bg-white shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)] z-10">
                     
                     {/* Upper scrollable content */}
                     <div className="flex-1 overflow-y-auto custom-scrollbar">
@@ -347,39 +347,39 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                     </div>
 
                     {/* ── ACTION PANEL (Pinned to bottom) ──────────── */}
-                    <div className="border-t border-slate-200/80 p-4 flex flex-col gap-3 shrink-0 bg-slate-50 shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.05)] z-20">
+                    <div className="border-t border-slate-200/80 p-6 flex flex-col gap-4 shrink-0 bg-slate-50 shadow-[0_-8px_32px_-12px_rgba(0,0,0,0.1)] z-20">
 
                         {canAct && (
                             <>
                                 {/* Section header */}
                                 <div className="flex items-center gap-2">
-                                    <div className="w-1 h-4 bg-blue-500 rounded-full" />
-                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                    <div className="w-1.5 h-5 bg-blue-600 rounded-full" />
+                                    <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
                                         Hành động · Level {request.current_level}
                                     </span>
                                 </div>
 
                                 {/* Comment textarea */}
-                                <div className="space-y-1">
+                                <div className="space-y-1.5 font-bold">
                                     <textarea
                                         value={comment}
                                         onChange={e => { setComment(e.target.value); if (commentError) setCommentError(''); }}
                                         placeholder="Ghi chú gửi cho người đề xuất..."
-                                        rows={3}
-                                        className={`w-full bg-white border rounded-xl px-3 py-2 text-sm text-slate-700 placeholder-slate-400 outline-none focus:ring-2 resize-none transition-all ${
+                                        rows={5}
+                                        className={`w-full bg-white border rounded-2xl px-4 py-3 text-sm text-slate-700 placeholder-slate-400 outline-none focus:ring-4 resize-none transition-all ${
                                             commentError
                                                 ? 'border-rose-400 focus:border-rose-400 focus:ring-rose-100'
-                                                : 'border-slate-200 focus:border-blue-400 focus:ring-blue-100'
+                                                : 'border-slate-200 focus:border-blue-500 focus:ring-blue-100/50'
                                         }`}
                                     />
                                     {/* Inline error — replaces old alert() */}
                                     {commentError && (
-                                        <p className="flex items-center gap-1.5 text-[11px] text-rose-600 font-bold">
-                                            <i className="fas fa-circle-exclamation text-[10px]" />{commentError}
+                                        <p className="flex items-center gap-1.5 text-xs text-rose-600 font-black">
+                                            <i className="fas fa-circle-exclamation" />{commentError}
                                         </p>
                                     )}
-                                    <p className="text-[10px] text-slate-400">
-                                        Bắt buộc khi chọn <span className="text-indigo-500 font-bold">Trả lại</span>
+                                    <p className="text-[10px] text-slate-400 font-medium">
+                                        Bắt buộc khi chọn <span className="text-indigo-600 font-black">Trả lại</span>
                                     </p>
                                 </div>
 
@@ -389,10 +389,10 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                                         onClick={() => setLocalQtys(Object.fromEntries(
                                             Object.entries(snap.quantities).map(([k, v]) => [k, { air: v.air, sea: v.sea }])
                                         ))}
-                                        className="flex items-center gap-1.5 text-[11px] text-amber-600 hover:text-amber-700 font-bold transition-colors self-start"
+                                        className="flex items-center gap-2 text-xs text-amber-600 hover:text-amber-700 font-black transition-colors self-start bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200/50"
                                     >
-                                        <i className="fas fa-arrow-rotate-left text-[10px]" />
-                                        Hoàn tác điều chỉnh số lượng
+                                        <i className="fas fa-arrow-rotate-left" />
+                                        Hoàn tác điều chỉnh
                                     </button>
                                 )}
 
@@ -400,11 +400,11 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                                 <button
                                     onClick={() => handleAction('approved')}
                                     disabled={isSubmitting || selectedItems.size === 0}
-                                    className="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-95 disabled:opacity-50 text-white font-black py-3 rounded-2xl text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-200 border border-emerald-700"
+                                    className="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] disabled:opacity-50 text-white font-black py-4 rounded-2xl text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all shadow-lg shadow-emerald-200/50 border-b-4 border-emerald-800"
                                 >
                                     {submittingAction === 'approved'
-                                        ? <i className="fas fa-spinner fa-spin" />
-                                        : <i className="fas fa-check-double" />}
+                                        ? <i className="fas fa-spinner fa-spin text-lg" />
+                                        : <i className="fas fa-check-double text-lg" />}
                                     Duyệt {selectedItems.size} mã đã chọn
                                 </button>
 
@@ -412,7 +412,7 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                                 <button
                                     onClick={() => handleAction('returned')}
                                     disabled={isSubmitting}
-                                    className="w-full border-2 border-indigo-300 text-indigo-600 hover:bg-indigo-50 active:scale-95 disabled:opacity-50 font-black py-2.5 rounded-2xl text-xs uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all"
+                                    className="w-full border-2 border-indigo-200 text-indigo-600 bg-white hover:bg-indigo-50 hover:border-indigo-400 active:scale-[0.98] disabled:opacity-50 font-black py-3 rounded-2xl text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
                                 >
                                     {submittingAction === 'returned'
                                         ? <i className="fas fa-spinner fa-spin" />
@@ -420,14 +420,14 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                                     Trả lại{hasChanges ? ' (Kèm điều chỉnh)' : ''}
                                 </button>
 
-                                {/* DESTRUCTIVE: Từ chối — with confirmation step */}
+                                {/* DESTRUCTIVE: Từ chối */}
                                 {!confirmReject ? (
                                     <button
                                         onClick={() => setConfirmReject(true)}
                                         disabled={isSubmitting}
-                                        className="w-full text-rose-600 hover:bg-rose-50 active:scale-95 disabled:opacity-50 font-bold py-2 rounded-2xl text-xs uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all border border-rose-200"
+                                        className="w-full text-rose-500 hover:bg-rose-50 hover:text-rose-600 active:scale-[0.98] disabled:opacity-50 font-black py-2.5 rounded-2xl text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all border border-rose-100"
                                     >
-                                        <i className="fas fa-xmark" /> Từ chối đơn hàng
+                                        <i className="fas fa-trash-can" /> Từ chối đơn hàng
                                     </button>
                                 ) : (
                                     <div className="rounded-xl border-2 border-rose-300 bg-rose-50 p-3 space-y-2">
