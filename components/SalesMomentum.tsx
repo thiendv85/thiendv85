@@ -6,12 +6,13 @@ interface SalesMomentumProps {
     values: number[]; // [24M, 12M, 6M, 3M]
     history?: number[]; // 12 months history
     forecast?: number;
+    compact?: boolean; // Dense mode for table rows
 }
 
-export const SalesMomentum = ({ values, history = [], forecast = 0 }: SalesMomentumProps) => {
+export const SalesMomentum = ({ values, history = [], forecast = 0, compact = false }: SalesMomentumProps) => {
     // --- MINI SPARKLINE CONFIG ---
     const width = 140;
-    const height = 40;
+    const height = compact ? 24 : 40;
     const padding = 8;
 
     const cleanValues = values.map(v => v || 0);
@@ -64,15 +65,26 @@ export const SalesMomentum = ({ values, history = [], forecast = 0 }: SalesMomen
                 className="relative w-full max-w-[160px]"
                 onClick={() => setIsOpen(prev => !prev)}
             >
-                {/* === ORIGINAL MINI SPARKLINE === */}
-                <div className={`flex flex-col p-2 rounded-xl transition-all duration-300 ${config.bg} border border-transparent hover:border-slate-300 hover:shadow-md cursor-help`}>
-                    <div className="flex justify-between items-center mb-2 px-1">
-                        <span className="text-2xs font-black uppercase tracking-widest text-slate-400">Momentum</span>
-                        <div className={`flex items-center gap-1 ${config.text}`}>
-                            <i className={`fas ${config.icon} text-2xs`}></i>
-                            <span className="text-2xs font-black">{Math.abs(trend).toFixed(0)}%</span>
+                {/* === MINI SPARKLINE === */}
+                <div className={`flex flex-col ${compact ? 'p-1' : 'p-2'} rounded-xl transition-all duration-300 ${config.bg} border border-transparent hover:border-slate-300 hover:shadow-md cursor-help`}>
+                    {/* Header — hidden in compact mode */}
+                    {!compact && (
+                        <div className="flex justify-between items-center mb-2 px-1">
+                            <span className="text-2xs font-black uppercase tracking-widest text-slate-400">Momentum</span>
+                            <div className={`flex items-center gap-1 ${config.text}`}>
+                                <i className={`fas ${config.icon} text-2xs`}></i>
+                                <span className="text-2xs font-black">{Math.abs(trend).toFixed(0)}%</span>
+                            </div>
                         </div>
-                    </div>
+                    )}
+
+                    {/* Trend badge inline for compact mode */}
+                    {compact && (
+                        <div className={`flex items-center gap-0.5 mb-0.5 ${config.text}`}>
+                            <i className={`fas ${config.icon} text-[9px]`}></i>
+                            <span className="text-[9px] font-black">{Math.abs(trend).toFixed(0)}%</span>
+                        </div>
+                    )}
 
                     <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
                         <defs>
@@ -89,16 +101,19 @@ export const SalesMomentum = ({ values, history = [], forecast = 0 }: SalesMomen
                         ))}
                     </svg>
 
-                    <div className="flex justify-between mt-2 px-0.5">
-                        {['24M', '12M', '6M', '3M'].map((label, i) => (
-                            <div key={label} className="flex flex-col items-center">
-                                <span className="text-2xs text-slate-400 font-bold tracking-tighter">{label}</span>
-                                <span className={`text-2xs font-black tracking-tighter ${i === 3 ? config.text : 'text-slate-600'}`}>
-                                    {cleanValues[i].toFixed(0)}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
+                    {/* Bottom labels — hidden in compact mode */}
+                    {!compact && (
+                        <div className="flex justify-between mt-2 px-0.5">
+                            {['24M', '12M', '6M', '3M'].map((label, i) => (
+                                <div key={label} className="flex flex-col items-center">
+                                    <span className="text-2xs text-slate-400 font-bold tracking-tighter">{label}</span>
+                                    <span className={`text-2xs font-black tracking-tighter ${i === 3 ? config.text : 'text-slate-600'}`}>
+                                        {cleanValues[i].toFixed(0)}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
 

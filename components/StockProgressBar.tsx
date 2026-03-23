@@ -33,6 +33,7 @@ interface StockProgressBarProps {
   baseFc?: number;
   incoming?: number;
   breakdown?: BackorderDetail[];
+  compact?: boolean; // Dense mode for table rows
 }
 
 // Updated Colors to use Tailwind Config Gradients or specific classes
@@ -254,7 +255,8 @@ export const StockProgressBar: React.FC<StockProgressBarProps> = (props) => {
     draftAdd = 0,
     baseFc = 0,
     incoming = 0,
-    breakdown = []
+    breakdown = [],
+    compact = false
   } = props;
 
   const { t } = useLanguage();
@@ -304,9 +306,9 @@ export const StockProgressBar: React.FC<StockProgressBarProps> = (props) => {
   const hasDraft = draftAdd > 0;
 
   return (
-    <div className="w-full mt-2 group/bar" role="region" aria-label="Stock status indicator">
+    <div className={`w-full ${compact ? '' : 'mt-2'} group/bar`} role="region" aria-label="Stock status indicator">
       {/* Header */}
-      <div className="flex justify-between items-end mb-2">
+      <div className={`flex justify-between items-end ${compact ? 'mb-1' : 'mb-2'}`}>
         <ActionTag
           type={actionTagType}
           shortageQty={shortageQty}
@@ -314,60 +316,74 @@ export const StockProgressBar: React.FC<StockProgressBarProps> = (props) => {
           t={t}
         />
 
-        <div className="text-xs font-bold text-slate-500 flex items-center gap-2.5">
-          {hasDraft && (
-            <>
-              <Typography
-                variant="label"
-                className="text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md flex items-center gap-1.5 border border-blue-100 font-bold"
-                title="Projected Total (Net)"
-              >
-                <i className="fas fa-arrow-trend-up text-2xs"></i>
-                <span>{Math.max(0, metrics.projectedPosition).toLocaleString()}</span>
-              </Typography>
-              <Typography variant="body-sm" className="text-slate-300 !font-light">•</Typography>
-            </>
-          )}
-
-          <Typography variant="body-sm" className="flex items-center gap-1 text-slate-500 font-semibold" title="Available Physical">
-            <i className="fas fa-boxes text-2xs text-slate-400"></i>
-            <span>{current.toLocaleString()}</span>
-          </Typography>
-          <Typography variant="body-sm" className="text-slate-300 !font-light">•</Typography>
-          <Typography variant="body-sm" className="flex items-center gap-1 text-slate-500 font-semibold" title="Total PO Pipeline">
-            <i className="fas fa-truck text-2xs text-blue-500"></i>
-            <span>{onOrder.toLocaleString()}</span>
-          </Typography>
-
-          {backorder > 0 && (
-            <>
-              <Typography variant="body-sm" className="text-slate-300 !font-light">•</Typography>
-              <BackorderPopup items={breakdown}>
-                <Typography variant="body-sm" className="text-rose-600 !font-bold flex items-center gap-1.5 cursor-help hover:scale-105 transition-transform" title="Backorder Quantity (Hover for details)">
-                  <i className="fas fa-clock text-2xs"></i>
-                  <span className="border-b border-dashed border-rose-300">{backorder}</span>
-                  {hasDraft && (
-                    <Typography
-                      as="span"
-                      variant="label"
-                      className={`px-1.5 py-0.5 rounded border !font-bold ${metrics.remainingBO === 0
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : 'bg-rose-50 text-rose-700 border-rose-200'
-                        }`}
-                    >
-                      {metrics.remainingBO === 0 ? '✓' : `${metrics.remainingBO}`}
-                    </Typography>
-                  )}
+        {/* Stock numbers — hidden in compact to save space */}
+        {!compact && (
+          <div className="text-xs font-bold text-slate-500 flex items-center gap-2.5">
+            {hasDraft && (
+              <>
+                <Typography
+                  variant="label"
+                  className="text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md flex items-center gap-1.5 border border-blue-100 font-bold"
+                  title="Projected Total (Net)"
+                >
+                  <i className="fas fa-arrow-trend-up text-2xs"></i>
+                  <span>{Math.max(0, metrics.projectedPosition).toLocaleString()}</span>
                 </Typography>
-              </BackorderPopup>
-            </>
-          )}
-        </div>
+                <Typography variant="body-sm" className="text-slate-300 !font-light">•</Typography>
+              </>
+            )}
+
+            <Typography variant="body-sm" className="flex items-center gap-1 text-slate-500 font-semibold" title="Available Physical">
+              <i className="fas fa-boxes text-2xs text-slate-400"></i>
+              <span>{current.toLocaleString()}</span>
+            </Typography>
+            <Typography variant="body-sm" className="text-slate-300 !font-light">•</Typography>
+            <Typography variant="body-sm" className="flex items-center gap-1 text-slate-500 font-semibold" title="Total PO Pipeline">
+              <i className="fas fa-truck text-2xs text-blue-500"></i>
+              <span>{onOrder.toLocaleString()}</span>
+            </Typography>
+
+            {backorder > 0 && (
+              <>
+                <Typography variant="body-sm" className="text-slate-300 !font-light">•</Typography>
+                <BackorderPopup items={breakdown}>
+                  <Typography variant="body-sm" className="text-rose-600 !font-bold flex items-center gap-1.5 cursor-help hover:scale-105 transition-transform" title="Backorder Quantity (Hover for details)">
+                    <i className="fas fa-clock text-2xs"></i>
+                    <span className="border-b border-dashed border-rose-300">{backorder}</span>
+                    {hasDraft && (
+                      <Typography
+                        as="span"
+                        variant="label"
+                        className={`px-1.5 py-0.5 rounded border !font-bold ${metrics.remainingBO === 0
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-rose-50 text-rose-700 border-rose-200'
+                          }`}
+                      >
+                        {metrics.remainingBO === 0 ? '✓' : `${metrics.remainingBO}`}
+                      </Typography>
+                    )}
+                  </Typography>
+                </BackorderPopup>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Compact mode: just show available + backorder inline */}
+        {compact && (
+          <div className="text-[9px] font-bold text-slate-500 flex items-center gap-1">
+            <i className="fas fa-boxes text-[8px] text-slate-400"></i>
+            <span>{current.toLocaleString()}</span>
+            {backorder > 0 && (
+              <span className="text-rose-600 font-black">·BO:{backorder}</span>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Progress Bar - Increased size to h-6 */}
+      {/* Progress Bar */}
       <div
-        className="relative w-full h-6 bg-slate-200/40 backdrop-blur-sm rounded-lg overflow-hidden border border-white/20 shadow-inner"
+        className={`relative w-full ${compact ? 'h-3' : 'h-6'} bg-slate-200/40 backdrop-blur-sm rounded-lg overflow-hidden border border-white/20 shadow-inner`}
         role="progressbar"
         aria-valuenow={current}
         aria-valuemin={0}
@@ -434,12 +450,21 @@ export const StockProgressBar: React.FC<StockProgressBarProps> = (props) => {
         )}
       </div>
 
-      {/* Metrics Line */}
-      <div className="flex gap-4 mt-1.5">
-        <Typography variant="label" className="text-slate-500">ROP: <Typography as="span" variant="label" className="text-slate-800 !font-bold">{Math.ceil(rop).toLocaleString()}</Typography></Typography>
-        <Typography variant="label" className="text-slate-500">Max: <Typography as="span" variant="label" className="text-slate-800 !font-bold">{Math.ceil(max).toLocaleString()}</Typography></Typography>
-        {backorder > 0 && <Typography variant="label" className="text-rose-600 !font-bold">BO: {backorder.toLocaleString()}</Typography>}
-      </div>
+      {/* Metrics Line — hidden in compact mode */}
+      {!compact && (
+        <div className="flex gap-4 mt-1.5">
+          <Typography variant="label" className="text-slate-500">ROP: <Typography as="span" variant="label" className="text-slate-800 !font-bold">{Math.ceil(rop).toLocaleString()}</Typography></Typography>
+          <Typography variant="label" className="text-slate-500">Max: <Typography as="span" variant="label" className="text-slate-800 !font-bold">{Math.ceil(max).toLocaleString()}</Typography></Typography>
+          {backorder > 0 && <Typography variant="label" className="text-rose-600 !font-bold">BO: {backorder.toLocaleString()}</Typography>}
+        </div>
+      )}
+      {/* Compact: ROP/MAX inline tiny */}
+      {compact && (
+        <div className="flex gap-2 mt-0.5">
+          <span className="text-[9px] text-slate-400">ROP:<span className="text-slate-600 font-bold ml-0.5">{Math.ceil(rop).toLocaleString()}</span></span>
+          <span className="text-[9px] text-slate-400">MAX:<span className="text-slate-600 font-bold ml-0.5">{Math.ceil(max).toLocaleString()}</span></span>
+        </div>
+      )}
     </div>
   );
 };
