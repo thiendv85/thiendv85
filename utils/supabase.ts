@@ -1,4 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
+import type { UserRole, UserProfile } from './authContext';
+import type { ApprovalWorkflow, ApprovalRequest, ApprovalAction, ApprovalStatus, SnapshotData } from '../types/inventory';
 
 const supabaseUrl = 'https://jczdnlydozcftvnqnixt.supabase.co';
 const supabaseKey = 'sb_publishable_Iahv6LF7asBI3E_u_HAZhQ_Qrb99Qjm'; // Provided by user
@@ -221,6 +223,256 @@ export async function loadLatestMonthlyData(): Promise<{ data: Record<string, an
   } catch (error) {
     console.error('Lỗi khi tải Monthly Data:', error);
     return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUTH — User management
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function fetchUserProfile(userId: string): Promise<UserProfile | null> {
+  const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+  if (error || !data) return null;
+  return data as UserProfile;
+}
+
+export async function listProfiles(): Promise<(UserProfile & { email?: string })[]> {
+  const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: true });
+  if (error || !data) return [];
+  return data as UserProfile[];
+}
+
+export async function updateProfileRole(userId: string, role: UserRole): Promise<boolean> {
+  const { error } = await supabase.from('profiles').update({ role }).eq('id', userId);
+  return !error;
+}
+
+export async function toggleUserActive(userId: string, isActive: boolean): Promise<boolean> {
+  const { error } = await supabase.from('profiles').update({ is_active: isActive }).eq('id', userId);
+  return !error;
+}
+
+export async function createUserByAdmin(email: string, password: string, fullName: string, role: UserRole): Promise<{ error: string | null }> {
+  const { error } = await supabase.functions.invoke('admin-create-user', {
+    body: { email, password, full_name: fullName, role },
+  });
+  if (error) return { error: error.message };
+  return { error: null };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// APPROVAL WORKFLOWS
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function listWorkflows(): Promise<ApprovalWorkflow[]> {
+  const { data, error } = await supabase.from('approval_workflows').select('*').eq('is_active', true).order('created_at');
+  if (error || !data) return [];
+  return data as ApprovalWorkflow[];
+}
+
+export async function createWorkflow(workflow: Omit<ApprovalWorkflow, 'id' | 'created_at'>): Promise<string | null> {
+  const { data, error } = await supabase.from('approval_workflows').insert(workflow).select('id').single();
+  if (error || !data) return null;
+  return data.id;
+}
+
+export async function updateWorkflow(id: string, updates: Partial<ApprovalWorkflow>): Promise<boolean> {
+  const { error } = await supabase.from('approval_workflows').update(updates).eq('id', id);
+  return !error;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// APPROVAL REQUESTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface SubmitRequestPayload {
+  draft_name: string;
+  brand: string | null;
+  workflow_id: string;
+  submitted_by: string;
+  snapshot_data: SnapshotData;
+}
+
+export async function submitApprovalRequest(payload: SubmitRequestPayload): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('approval_requests')
+    .insert({
+      draft_name: payload.draft_name,
+      brand: payload.brand,
+      workflow_id: payload.workflow_id,
+      current_level: 1,
+      status: 'pending',
+      submitted_by: payload.submitted_by,
+      snapshot_data: payload.snapshot_data,
+    })
+    .select('id')
+    .single();
+  if (error || !data) { console.error('submitApprovalRequest:', error); return null; }
+  return data.id;
+}
+
+export async function fetchMyRequests(userId: string): Promise<ApprovalRequest[]> {
+  const { data, error } = await supabase
+    .from('approval_requests')
+    .select('*')
+    .eq('submitted_by', userId)
+    .order('submitted_at', { ascending: false });
+  if (error || !data) return [];
+  return data as ApprovalRequest[];
+}
+
+export async function fetchPendingForApprover(_userId?: string): Promise<ApprovalRequest[]> {
+  const { data, error } = await supabase
+    .from('approval_requests')
+    .select('*')
+    .in('status', ['pending', 'in_progress'])
+    .order('submitted_at', { ascending: true });
+  if (error || !data) return [];
+  return data as ApprovalRequest[];
+}
+
+export async function fetchAllRequests(): Promise<ApprovalRequest[]> {
+  const { data, error } = await supabase
+    .from('approval_requests')
+    .select('*')
+    .order('submitted_at', { ascending: false });
+  if (error || !data) return [];
+  return data as ApprovalRequest[];
+}
+
+export async function fetchRequestById(id: string): Promise<ApprovalRequest | null> {
+  const { data, error } = await supabase.from('approval_requests').select('*').eq('id', id).single();
+  if (error || !data) return null;
+  return data as ApprovalRequest;
+}
+
+export async function fetchRequestByDraftName(draftName: string): Promise<ApprovalRequest | null> {
+  const { data, error } = await supabase
+    .from('approval_requests')
+    .select('*')
+    .eq('draft_name', draftName)
+    .order('submitted_at', { ascending: false })
+    .limit(1)
+    .single();
+  if (error || !data) return null;
+  return data as ApprovalRequest;
+}
+
+export async function fetchRequestActions(requestId: string): Promise<ApprovalAction[]> {
+  const { data, error } = await supabase
+    .from('approval_actions')
+    .select('*')
+    .eq('request_id', requestId)
+    .order('acted_at', { ascending: true });
+  if (error || !data) return [];
+  return data as ApprovalAction[];
+}
+
+/**
+ * Xử lý hành động phê duyệt:
+ * - rejected → status = 'rejected'
+ * - approved → kiểm require_all → advance level hoặc status = 'approved'
+ */
+export async function processApprovalAction(
+  requestId: string,
+  actorId: string,
+  action: 'approved' | 'rejected' | 'commented',
+  comment?: string
+): Promise<{ success: boolean; newStatus: ApprovalStatus }> {
+  // Look up request and workflow
+  const request = await fetchRequestById(requestId);
+  if (!request) return { success: false, newStatus: 'pending' };
+  const { data: wfData } = await supabase.from('approval_workflows').select('*').eq('id', request.workflow_id).single();
+  const workflow: ApprovalWorkflow | null = wfData ?? null;
+  if (!workflow) return { success: false, newStatus: request.status };
+
+  // 1. Ghi action vào audit trail
+  const { error: actionError } = await supabase.from('approval_actions').insert({
+    request_id: request.id,
+    level: request.current_level,
+    action,
+    actor_id: actorId,
+    comment: comment || null,
+  });
+  if (actionError) return { success: false, newStatus: request.status };
+
+  if (action === 'commented') return { success: true, newStatus: request.status };
+
+  if (action === 'rejected') {
+    await supabase.from('approval_requests').update({ status: 'rejected' }).eq('id', request.id);
+    return { success: true, newStatus: 'rejected' };
+  }
+
+  // action === 'approved': kiểm tra xem level hiện tại đã đủ chưa
+  const currentLevelConfig = workflow.levels.find(l => l.level === request.current_level);
+  if (!currentLevelConfig) return { success: false, newStatus: request.status };
+
+  let advance = false;
+  if (!currentLevelConfig.require_all) {
+    // Bất kỳ approver nào duyệt là đủ
+    advance = true;
+  } else {
+    // Phải đủ tất cả approver trong level này
+    const { data: actions } = await supabase
+      .from('approval_actions')
+      .select('actor_id')
+      .eq('request_id', request.id)
+      .eq('level', request.current_level)
+      .eq('action', 'approved');
+    const approvedIds = new Set((actions || []).map((a: any) => a.actor_id));
+    advance = currentLevelConfig.approver_ids.every(id => approvedIds.has(id));
+  }
+
+  if (!advance) return { success: true, newStatus: 'in_progress' };
+
+  // Tìm level tiếp theo
+  const nextLevelConfig = workflow.levels.find(l => l.level === request.current_level + 1);
+  if (nextLevelConfig) {
+    await supabase.from('approval_requests').update({
+      current_level: request.current_level + 1,
+      status: 'in_progress',
+    }).eq('id', request.id);
+    return { success: true, newStatus: 'in_progress' };
+  } else {
+    // Không còn level nào → approved hoàn toàn
+    await supabase.from('approval_requests').update({ status: 'approved' }).eq('id', request.id);
+    return { success: true, newStatus: 'approved' };
+  }
+}
+
+export async function unlockRequest(requestId: string, actorId: string, reason: string): Promise<boolean> {
+  const { error } = await supabase.from('approval_requests').update({
+    status: 'unlocked',
+    unlocked_by: actorId,
+    unlocked_at: new Date().toISOString(),
+    unlock_reason: reason,
+  }).eq('id', requestId);
+  return !error;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EMAIL NOTIFICATIONS (via Edge Function)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type EmailEvent = 'submitted' | 'level_advanced' | 'approved' | 'rejected' | 'unlocked';
+
+export async function sendApprovalEmail(payload: {
+  event: EmailEvent;
+  request_id: string;
+  recipient_ids: string[];
+  request_details: {
+    draft_name: string;
+    brand: string | null;
+    submitted_by_name: string;
+    current_level: number;
+    comment?: string;
+    unlock_reason?: string;
+  };
+}): Promise<void> {
+  try {
+    await supabase.functions.invoke('send-approval-email', { body: payload });
+  } catch (err) {
+    console.warn('sendApprovalEmail failed (non-critical):', err);
   }
 }
 

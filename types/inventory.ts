@@ -344,6 +344,71 @@ export const getDebtStatus = (item: InventoryItem): string => {
     return 'deficit_no_po';
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// APPROVAL WORKFLOW TYPES
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface WorkflowLevel {
+    level: number;
+    approver_ids: string[];
+    require_all: boolean;
+}
+
+export interface ApprovalWorkflow {
+    id: string;
+    name: string;
+    brand: string | null;
+    levels: WorkflowLevel[];
+    is_active: boolean;
+    created_by: string;
+    created_at: string;
+}
+
+export type ApprovalStatus = 'pending' | 'in_progress' | 'approved' | 'rejected' | 'unlocked';
+
+export interface SnapshotData {
+    quantities: Record<string, { air: number; sea: number }>;
+    notes: Record<string, string>;
+    inventory_context: Array<{
+        itemCode: string;
+        itemName: string;
+        available: number;
+        mos: number;
+        baseForecast: number;
+        priorityBucket: string;
+        warnings: string[];
+    }>;
+    submitted_at: string;
+    app_version: string;
+}
+
+export interface ApprovalRequest {
+    id: string;
+    draft_name: string;
+    brand: string | null;
+    workflow_id: string;
+    current_level: number;
+    status: ApprovalStatus;
+    submitted_by: string;
+    submitted_at: string;
+    snapshot_data: SnapshotData;
+    unlocked_by: string | null;
+    unlocked_at: string | null;
+    unlock_reason: string | null;
+}
+
+export interface ApprovalAction {
+    id: string;
+    request_id: string;
+    level: number;
+    action: 'approved' | 'rejected' | 'commented';
+    actor_id: string;
+    comment: string | null;
+    acted_at: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export interface DashboardSettings {
     snapshotDate: string;
     warehouseScope: 'All' | 'NB' | 'BB';

@@ -18,6 +18,10 @@ import { AppSettings } from './Settings';
 import { computeInventory, computeInventoryBatch, makeComputeParams, resolveItemProfile, MOS_LOW_STOCK_THRESHOLD } from '../utils/inventoryEngine';
 import { Typography } from '../components/Typography';
 import { CloudDraftModal } from '../components/CloudDraftModal';
+import { useAuth } from '../utils/authContext';
+import { ApprovalStatusBadge } from '../components/ApprovalStatusBadge';
+import { listWorkflows, submitApprovalRequest, fetchRequestByDraftName } from '../utils/supabase';
+import { ApprovalRequest, ApprovalWorkflow } from '../types/inventory';
 
 // --- MODULE-LEVEL CONSTANTS ---
 const PRIORITY_ORDER: Record<string, number> = { P1: 0, P2: 1, P3: 2 };
@@ -119,12 +123,67 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
     const [confirmationQueue, setConfirmationQueue] = useState<{ code: string, type: 'air' | 'sea', val: number }[]>([]);
     const [confirmedSkus, setConfirmedSkus] = useState<Set<string>>(new Set());
     const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
+    const [approvalRequest, setApprovalRequest] = useState<ApprovalRequest | null>(null);
+    const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
+    const [workflows, setWorkflows] = useState<ApprovalWorkflow[]>([]);
+    const [submitDraftName, setSubmitDraftName] = useState('');
+    const [selectedWorkflowId, setSelectedWorkflowId] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const { user, profile } = useAuth();
+    const isLocked = approvalRequest?.status === 'approved';
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const tableScrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => { if (onUpdateDraft) onUpdateDraft({ quantities: orderQuantities, notes: orderNotes }); }, [orderQuantities, orderNotes, onUpdateDraft]);
     useEffect(() => { if (onSaveState) onSaveState({ settings, filters, quantities: orderQuantities, notes: orderNotes, viewFilter, itemsPerPage }); }, [settings, filters, orderQuantities, orderNotes, viewFilter, itemsPerPage, onSaveState]);
+
+    const handleOpenSubmitModal = async () => {
+        const [wfs] = await Promise.all([listWorkflows()]);
+        setWorkflows(wfs);
+        setSubmitDraftName('');
+        setSelectedWorkflowId(wfs[0]?.id || '');
+        setIsSubmitModalOpen(true);
+    };
+
+    const handleSubmitApproval = async () => {
+        if (!user || !submitDraftName.trim() || !selectedWorkflowId) return;
+        setIsSubmitting(true);
+        const snapshot = {
+            quantities: orderQuantities,
+            notes: orderNotes,
+            inventory_context: Object.keys(orderQuantities)
+                .filter(code => (orderQuantities[code].air || 0) + (orderQuantities[code].sea || 0) > 0)
+                .map(code => {
+                    const item = enrichedMap?.get(code);
+                    return {
+                        itemCode: code,
+                        itemName: item?.ItemName || code,
+                        available: item?.computed?.available || 0,
+                        mos: item?.computed?.mos || 0,
+                        baseForecast: item?.BaseForecast || 0,
+                        priorityBucket: item?.computed?.priorityBucket || 'P3',
+                        warnings: (item?.computed?.warnings || []).map(w => w.message),
+                    };
+                }),
+            submitted_at: new Date().toISOString(),
+            app_version: '13',
+        };
+        const id = await submitApprovalRequest({
+            draft_name: submitDraftName.trim(),
+            brand: null,
+            workflow_id: selectedWorkflowId,
+            submitted_by: user.id,
+            snapshot_data: snapshot,
+        });
+        setIsSubmitting(false);
+        setIsSubmitModalOpen(false);
+        if (id) {
+            const req = await fetchRequestByDraftName(submitDraftName.trim());
+            setApprovalRequest(req);
+        }
+    };
 
     const handleMainFilterChange = (f: InventoryFilters) => {
         if (f.search !== filters.search) setSearchResult(parseInventorySearch(f.search));
@@ -544,8 +603,32 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                             <i className="fas fa-trash-alt"></i> Xóa dự thảo
                         </button>
                         <button onClick={handleExport} className="bg-blue-600 text-white hover:bg-blue-700 px-6 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2 border border-blue-700"><i className="fas fa-file-export"></i> {t('ord_export_btn')}</button>
+                        {profile?.role && ['admin', 'planner'].includes(profile.role) && (
+                            <button
+                                onClick={handleOpenSubmitModal}
+                                disabled={Object.values(orderQuantities).every((v: any) => !v.air && !v.sea)}
+                                className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2 border border-emerald-700"
+                            >
+                                <i className="fas fa-paper-plane"></i> Gửi Phê duyệt
+                            </button>
+                        )}
+                        {approvalRequest && (
+                            <div className="flex items-center gap-2">
+                                <ApprovalStatusBadge status={approvalRequest.status} size="sm" />
+                            </div>
+                        )}
                     </div>
                 </div>
+
+                {/* ─── Lock banner ─── */}
+                {isLocked && (
+                    <div className="mx-4 mb-2 flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3">
+                        <i className="fas fa-lock text-emerald-600" />
+                        <span className="text-emerald-700 font-black text-sm">Draft đã được phê duyệt và khóa. Liên hệ approver để mở khóa chỉnh sửa.</span>
+                        <span className="ml-auto text-emerald-500 text-xs font-medium">{approvalRequest?.draft_name}</span>
+                    </div>
+                )}
+
                 {/* ─── Scrollable table area (overflow-auto = both axes, scrollbar always at viewport edge) ─── */}
                 <div
                     ref={tableScrollRef}
@@ -679,13 +762,13 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                             </div>
                                         </td>
                                         <td className="px-4 py-3 border-x border-slate-100 bg-rose-50/10 text-center border-b border-slate-50">
-                                            <input type="number" value={d.air || ''} onChange={e => handleQtyChange(item.ItemCode, 'air', parseInt(e.target.value) || 0)} className="w-20 text-center font-black text-sm border border-rose-200 rounded-xl p-2 focus:border-rose-400 outline-none bg-white transition-all text-rose-700" placeholder="0" />
+                                            <input type="number" value={d.air || ''} onChange={e => !isLocked && handleQtyChange(item.ItemCode, 'air', parseInt(e.target.value) || 0)} readOnly={isLocked} className={`w-20 text-center font-black text-sm border rounded-xl p-2 outline-none transition-all ${isLocked ? 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed' : 'border-rose-200 focus:border-rose-400 bg-white text-rose-700'}`} placeholder="0" />
                                             {((item.computed?.suggestedBO || 0) > 0) && d.air === 0 && (
                                                 <button onClick={() => handleQtyChange(item.ItemCode, 'air', item.computed!.suggestedBO!)} className="block mx-auto mt-1.5 text-xs font-black text-rose-600 hover:text-rose-800 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100">BO: {item.computed.suggestedBO}</button>
                                             )}
                                         </td>
                                         <td className="px-4 py-3 border-r border-slate-100 bg-blue-50/10 text-center border-b border-slate-50">
-                                            <input type="number" value={d.sea || ''} onChange={e => handleQtyChange(item.ItemCode, 'sea', parseInt(e.target.value) || 0)} className="w-20 text-center font-black text-sm border border-blue-200 rounded-xl p-2 focus:border-blue-400 outline-none bg-white transition-all text-blue-700" placeholder="0" />
+                                            <input type="number" value={d.sea || ''} onChange={e => !isLocked && handleQtyChange(item.ItemCode, 'sea', parseInt(e.target.value) || 0)} readOnly={isLocked} className={`w-20 text-center font-black text-sm border rounded-xl p-2 outline-none transition-all ${isLocked ? 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed' : 'border-blue-200 focus:border-blue-400 bg-white text-blue-700'}`} placeholder="0" />
                                             {((item.computed?.gapOrExcess || 0) > 0) && d.sea === 0 && (
                                                 <button 
                                                     onClick={() => {
@@ -885,15 +968,60 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                 document.body
             )}
             
-            <CloudDraftModal 
-                isOpen={isCloudModalOpen} 
-                onClose={() => setIsCloudModalOpen(false)} 
-                currentDraft={{ quantities: orderQuantities, notes: orderNotes }} 
+            <CloudDraftModal
+                isOpen={isCloudModalOpen}
+                onClose={() => setIsCloudModalOpen(false)}
+                currentDraft={{ quantities: orderQuantities, notes: orderNotes }}
                 onLoadDraft={(draft) => {
                     setOrderQuantities(prev => ({ ...prev, ...draft.quantities }));
                     setOrderNotes(prev => ({ ...prev, ...draft.notes }));
                 }}
             />
+
+            {/* ─── Submit for Approval Modal ─── */}
+            {isSubmitModalOpen && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsSubmitModalOpen(false)} />
+                    <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 space-y-5 border border-slate-200">
+                        <div className="flex items-center justify-between">
+                            <Typography variant="h3" className="text-slate-800">Gửi Phê duyệt</Typography>
+                            <button onClick={() => setIsSubmitModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1"><i className="fas fa-xmark" /></button>
+                        </div>
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5">Tên Draft</label>
+                                <input
+                                    value={submitDraftName}
+                                    onChange={e => setSubmitDraftName(e.target.value)}
+                                    placeholder="VD: KIA_NB_Tháng4_2026"
+                                    className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-blue-400 text-slate-800"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5">Workflow Phê duyệt</label>
+                                {workflows.length === 0 ? (
+                                    <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5">Chưa có workflow nào. Vui lòng tạo trong Settings.</p>
+                                ) : (
+                                    <select
+                                        value={selectedWorkflowId}
+                                        onChange={e => setSelectedWorkflowId(e.target.value)}
+                                        className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-blue-400 text-slate-800 bg-white"
+                                    >
+                                        {workflows.map(wf => <option key={wf.id} value={wf.id}>{wf.name}</option>)}
+                                    </select>
+                                )}
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleSubmitApproval}
+                            disabled={isSubmitting || !submitDraftName.trim() || !selectedWorkflowId}
+                            className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black py-3 rounded-2xl text-sm uppercase tracking-widest flex items-center justify-center gap-2"
+                        >
+                            {isSubmitting ? <><i className="fas fa-circle-notch fa-spin" /> Đang gửi...</> : <><i className="fas fa-paper-plane" /> Xác nhận gửi</>}
+                        </button>
+                    </div>
+                </div>
+            )}
         </div >
     );
 };
