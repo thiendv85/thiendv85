@@ -252,9 +252,11 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
             <div className="flex-1 flex overflow-hidden min-h-0">
 
                 {/* ── LEFT SIDEBAR (fixed, always visible) ────────────────── */}
-                <div className="w-[300px] shrink-0 flex flex-col border-r border-slate-200/80 bg-white/80 backdrop-blur-sm overflow-y-auto shadow-glass">
-
-                    {/* Sức khoẻ tồn kho — không lặp header pills */}
+                <div className="w-[300px] shrink-0 flex flex-col border-r border-slate-200/80 bg-white shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)] z-10">
+                    
+                    {/* Upper scrollable content */}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar">
+                        {/* Sức khoẻ tồn kho — không lặp header pills */}
                     <div className="p-4 space-y-2 border-b border-slate-200">
                         <div className="flex items-center gap-2">
                             <div className="w-1 h-4 bg-emerald-400 rounded-full" />
@@ -342,8 +344,10 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                         )}
                     </div>
 
-                    {/* ── ACTION PANEL (always visible in sidebar) ──────────── */}
-                    <div className="flex-1 p-4 flex flex-col gap-3">
+                    </div>
+
+                    {/* ── ACTION PANEL (Pinned to bottom) ──────────── */}
+                    <div className="border-t border-slate-200/80 p-4 flex flex-col gap-3 shrink-0 bg-slate-50 shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.05)] z-20">
 
                         {canAct && (
                             <>
@@ -506,7 +510,7 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                 </div>
 
                 {/* ── RIGHT: Order Table ───────────────────────────────────── */}
-                <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+                <div className="flex-1 flex flex-col overflow-hidden min-w-0 bg-white">
 
                     {/* Table title bar */}
                     <div className="px-4 py-2 bg-white border-b border-slate-200 flex items-center justify-between shrink-0 gap-3">
