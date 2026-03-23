@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Typography } from './Typography';
-import { listOrderDrafts, saveToCloudStorage, loadFromCloudStorage } from '../utils/supabase';
+import { listOrderDrafts, saveToCloudStorage, loadFromCloudStorage, fetchAllRequests } from '../utils/supabase';
+import { ApprovalStatusBadge } from './ApprovalStatusBadge';
+import { ApprovalStatus } from '../types/inventory';
 
 interface CloudDraftModalProps {
     isOpen: boolean;
@@ -15,6 +17,7 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft }: 
     const [activeTab, setActiveTab] = useState<'LOAD' | 'SAVE'>('LOAD');
     const [drafts, setDrafts] = useState<{ id: string, updated_at: string }[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [approvalStatusMap, setApprovalStatusMap] = useState<Record<string, ApprovalStatus>>({});
 
     // Form states (Save)
     const [draftName, setDraftName] = useState('');
@@ -34,8 +37,11 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft }: 
 
     const fetchDrafts = async () => {
         setIsLoading(true);
-        const list = await listOrderDrafts();
+        const [list, approvalReqs] = await Promise.all([listOrderDrafts(), fetchAllRequests().catch(() => [])]);
         setDrafts(list);
+        const map: Record<string, ApprovalStatus> = {};
+        for (const r of approvalReqs) map[r.draft_name] = r.status;
+        setApprovalStatusMap(map);
         setIsLoading(false);
     };
 
@@ -223,6 +229,7 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft }: 
                                                             {b}
                                                         </span>
                                                         <Typography variant="body" className="font-black text-slate-800 truncate text-sm">{n}</Typography>
+                                                        {approvalStatusMap[n] && <ApprovalStatusBadge status={approvalStatusMap[n]} size="sm" />}
                                                     </div>
                                                     <Typography variant="label" className="text-slate-400 block text-[10px]"><i className="far fa-clock"></i> {dateDisplay}</Typography>
                                                 </div>

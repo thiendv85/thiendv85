@@ -13,6 +13,13 @@
 import { InventoryItem, SourceProfile } from '../types/inventory';
 
 // ─────────────────────────────────────────────────────────────────────────────
+// CONSTANTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Ngưỡng MOS phân loại "tồn thấp" / P2 priority (tháng) */
+export const MOS_LOW_STOCK_THRESHOLD = 1.5;
+
+// ─────────────────────────────────────────────────────────────────────────────
 // TYPES
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -195,7 +202,7 @@ function resolvePriority(
     // P1: Hết hàng hoặc tồn net ≤ 0 (toàn bộ đang nợ BO) hoặc MOS rất thấp
     if (available <= 0 || netAvailable <= 0 || mos < 0.5) return 'P1';
     // P2: reserve (kể cả PO) dưới ROP hoặc MOS thấp
-    if (reserve < rop || mos < 1.5) return 'P2';
+    if (reserve < rop || mos < MOS_LOW_STOCK_THRESHOLD) return 'P2';
     return 'P3';
 }
 
@@ -502,7 +509,7 @@ export function computeInventory(
         // Rebalance Trigger
         const tLT = 15;
         // Logic Guard: If both regions are healthy (Projected MOS > 1.5), don't rebalance
-        const bothHealthy = projectedMosNB > 1.5 && projectedMosBB > 1.5;
+        const bothHealthy = projectedMosNB > MOS_LOW_STOCK_THRESHOLD && projectedMosBB > MOS_LOW_STOCK_THRESHOLD;
         
         // Use projected days (including pipeline) to check if a region is actually at risk of stockout
         const isAtRisk = !bothHealthy && totalFC > 0 && (projectedDaysNB < effectiveLT + tLT || projectedDaysBB < effectiveLT + tLT);

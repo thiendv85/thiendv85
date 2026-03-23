@@ -15,6 +15,9 @@ import { SettingsPage, loadAppSettings, saveAppSettings, AppSettings } from './p
 import { UpdateLog } from './pages/UpdateLog';
 import { InventoryDistribution } from './pages/InventoryDistribution';
 import { LanguageProvider, useLanguage } from './utils/i18n';
+import { AuthProvider, useAuth } from './utils/authContext';
+import { LoginScreen } from './pages/LoginScreen';
+import { ApprovalQueue } from './pages/ApprovalQueue';
 import { Typography } from './components/Typography';
 import { resolveItemProfile } from './utils/inventoryEngine';
 import { loadFromCloudStorage, loadLatestMonthlyData } from './utils/supabase';
@@ -47,7 +50,10 @@ const AppContent = () => {
         return new SupersessionGraph(supersessionMappings, itemCodes);
     }, [data, supersessionMappings]);
 
-    const [view, setView] = useState<'upload' | 'dashboard' | 'ordering' | 'backorder' | 'demand-intel' | 'log' | 'kitting' | 'supersession' | 'settings'>('upload');
+    const { session, isLoading: authLoading, profile, signOut } = useAuth();
+
+    // Keep all hooks before conditional returns (Rules of Hooks)
+    const [view, setView] = useState<'upload' | 'dashboard' | 'ordering' | 'backorder' | 'demand-intel' | 'log' | 'kitting' | 'supersession' | 'settings' | 'approval-queue'>('upload');
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
     const [initialParams, setInitialParams] = useState<{ lt: number; sp: number; ssp: number } | undefined>(undefined);
     const [appSettings, setAppSettings] = useState<AppSettings>(loadAppSettings);
@@ -210,11 +216,19 @@ const AppContent = () => {
         setSupersessionMappings(newMappings);
     };
 
+    // Auth guard — after all hooks
+    if (authLoading) return (
+        <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+            <i className="fas fa-circle-notch fa-spin text-blue-400 text-3xl"></i>
+        </div>
+    );
+    if (!session) return <LoginScreen />;
+
     if (view === 'upload') return (
-        <FileUpload 
-            onData={handleDataUpload} 
-            monthlyData={monthlyData} 
-            isMonthlyLoading={isMonthlyLoading} 
+        <FileUpload
+            onData={handleDataUpload}
+            monthlyData={monthlyData}
+            isMonthlyLoading={isMonthlyLoading}
             monthlyDataDate={monthlyDataDate}
         />
     );
@@ -266,7 +280,10 @@ const AppContent = () => {
                             { id: 'demand-intel', label: t('nav_demand'), icon: 'fa-brain' },
                             { id: 'transfer', label: t('nav_transfer'), icon: 'fa-right-left' },
                             { id: 'kitting', label: t('nav_kitting'), icon: 'fa-boxes-stacked' },
-                            { id: 'supersession', label: t('nav_supersession'), icon: 'fa-arrows-rotate' }
+                            { id: 'supersession', label: t('nav_supersession'), icon: 'fa-arrows-rotate' },
+                            ...(profile?.role && ['admin', 'approver'].includes(profile.role)
+                                ? [{ id: 'approval-queue', label: 'Phê duyệt', icon: 'fa-clipboard-check' }]
+                                : []),
                         ].map((nav) => {
                             const isActive = view === nav.id;
                             return (
@@ -305,7 +322,7 @@ const AppContent = () => {
                         >
                             <i className="fas fa-sliders text-base md:text-lg" />
                         </button>
-                        <button onClick={handleExit} className="text-slate-400 hover:text-rose-500 transition-colors p-2 hover:bg-rose-50 rounded-lg"><i className="fas fa-power-off text-base md:text-lg"></i></button>
+                        <button onClick={() => { handleExit(); signOut(); }} title={`${profile?.full_name || 'User'} — Đăng xuất`} className="text-slate-400 hover:text-rose-500 transition-colors p-2 hover:bg-rose-50 rounded-lg"><i className="fas fa-power-off text-base md:text-lg"></i></button>
                     </div>
                 </div>
             </header >
@@ -326,6 +343,7 @@ const AppContent = () => {
                     onEditMapping={(m) => { setEditingSsMapping(m); setIsSsModalOpen(true); }}
                 />}
                 {view === 'settings' && <SettingsPage settings={appSettings} onSave={(s) => { setAppSettings(s); saveAppSettings(s); }} />}
+                {view === 'approval-queue' && <ApprovalQueue />}
             </main>
 
             <SupersessionEditModal
@@ -359,5 +377,5 @@ const AppContent = () => {
     );
 };
 
-const App = () => (<LanguageProvider><AppContent /></LanguageProvider>);
+const App = () => (<AuthProvider><LanguageProvider><AppContent /></LanguageProvider></AuthProvider>);
 export default App;

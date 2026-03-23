@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLanguage } from '../utils/i18n';
-import { saveToCloudStorage, loadFromCloudStorage, verifyAdminPin, saveMonthlyData, loadLatestMonthlyData, listMonthlyDataSnapshots } from '../utils/supabase';
+import { saveToCloudStorage, loadFromCloudStorage, verifyAdminPin, saveMonthlyData, loadLatestMonthlyData, listMonthlyDataSnapshots, listProfiles, updateProfileRole, toggleUserActive, listWorkflows, createWorkflow, updateWorkflow } from '../utils/supabase';
 import { parseMonthlyCSV } from '../utils/csvParser';
 import { Typography } from '../components/Typography';
-import { Brand, SourceProfile, AVAILABLE_BRANDS, DEFAULT_SOURCE_PROFILES } from '../types/inventory';
+import { Brand, SourceProfile, AVAILABLE_BRANDS, DEFAULT_SOURCE_PROFILES, ApprovalWorkflow, WorkflowLevel } from '../types/inventory';
+import { useAuth } from '../utils/authContext';
+import { UserProfile, UserRole } from '../utils/authContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 // SourceProfile types moved to inventory.ts
@@ -327,6 +329,157 @@ const ColCheckbox = ({ label, value, onChange }: { label: string; value: boolean
     </label>
 );
 
+// ─── User Management Tab ─────────────────────────────────────────────────────
+
+const ROLE_LABELS: Record<UserRole, string> = {
+    admin: 'Admin',
+    planner: 'Planner',
+    approver: 'Approver',
+    viewer: 'Viewer',
+};
+
+const UserManagementTab = () => {
+    const [users, setUsers] = useState<UserProfile[]>([]);
+    const [workflows, setWorkflowList] = useState<ApprovalWorkflow[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [newWfName, setNewWfName] = useState('');
+    const [showNewWfForm, setShowNewWfForm] = useState(false);
+
+    const load = useCallback(async () => {
+        setIsLoading(true);
+        const [u, w] = await Promise.all([listProfiles(), listWorkflows()]);
+        setUsers(u);
+        setWorkflowList(w);
+        setIsLoading(false);
+    }, []);
+
+    useEffect(() => { load(); }, [load]);
+
+    const handleRoleChange = async (userId: string, role: UserRole) => {
+        await updateProfileRole(userId, role);
+        setUsers(prev => prev.map(u => u.id === userId ? { ...u, role } : u));
+    };
+
+    const handleToggleActive = async (userId: string, active: boolean) => {
+        await toggleUserActive(userId, !active);
+        setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_active: !active } : u));
+    };
+
+    const handleCreateWorkflow = async () => {
+        if (!newWfName.trim()) return;
+        const id = await createWorkflow({
+            name: newWfName.trim(),
+            brand: null,
+            levels: [{ level: 1, approver_ids: [], require_all: false }],
+            is_active: true,
+            created_by: '',
+        });
+        if (id) { setNewWfName(''); setShowNewWfForm(false); load(); }
+    };
+
+    const handleToggleWorkflow = async (wf: ApprovalWorkflow) => {
+        await updateWorkflow(wf.id, { is_active: !wf.is_active });
+        load();
+    };
+
+    if (isLoading) return (
+        <div className="flex items-center justify-center py-16 text-slate-400">
+            <i className="fas fa-circle-notch fa-spin text-2xl" />
+        </div>
+    );
+
+    return (
+        <div className="space-y-6 animate-fadeIn pb-24">
+            {/* Users Table */}
+            <SectionCard title="Danh sách người dùng" icon="fa-users">
+                <div className="overflow-auto rounded-xl border border-slate-200">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-widest border-b border-slate-200">
+                                <th className="px-4 py-3 text-left font-black">Họ tên</th>
+                                <th className="px-4 py-3 text-left font-black">Role</th>
+                                <th className="px-4 py-3 text-center font-black">Trạng thái</th>
+                                <th className="px-4 py-3 text-right font-black">Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {users.map(u => (
+                                <tr key={u.id} className="border-t border-slate-100 hover:bg-slate-50">
+                                    <td className="px-4 py-3 font-bold text-slate-800">{u.full_name || <span className="text-slate-400 italic">Chưa đặt tên</span>}</td>
+                                    <td className="px-4 py-3">
+                                        <select
+                                            value={u.role}
+                                            onChange={e => handleRoleChange(u.id, e.target.value as UserRole)}
+                                            className="border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold bg-white outline-none focus:border-blue-400"
+                                        >
+                                            {(Object.keys(ROLE_LABELS) as UserRole[]).map(r => (
+                                                <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+                                            ))}
+                                        </select>
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                        <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-lg border ${u.is_active ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                                            <i className={`fas ${u.is_active ? 'fa-circle-check' : 'fa-circle-xmark'} text-[8px]`} />
+                                            {u.is_active ? 'Active' : 'Inactive'}
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-3 text-right">
+                                        <button
+                                            onClick={() => handleToggleActive(u.id, u.is_active)}
+                                            className={`text-xs font-black px-3 py-1.5 rounded-lg border transition-all ${u.is_active ? 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100' : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}
+                                        >
+                                            {u.is_active ? 'Vô hiệu hoá' : 'Kích hoạt'}
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+                <p className="text-xs text-slate-400 mt-2"><i className="fas fa-info-circle mr-1" />Để tạo user mới, dùng Supabase Dashboard → Auth → Users → Invite.</p>
+            </SectionCard>
+
+            {/* Workflows */}
+            <SectionCard title="Cấu hình Workflow Phê duyệt" icon="fa-sitemap">
+                <div className="space-y-2">
+                    {workflows.map(wf => (
+                        <div key={wf.id} className="flex items-center justify-between p-3 border border-slate-200 rounded-xl hover:bg-slate-50">
+                            <div>
+                                <span className="font-bold text-slate-800 text-sm">{wf.name}</span>
+                                <span className="ml-2 text-xs text-slate-500">{wf.levels.length} level(s)</span>
+                            </div>
+                            <button
+                                onClick={() => handleToggleWorkflow(wf)}
+                                className={`text-xs font-black px-3 py-1.5 rounded-lg border transition-all ${wf.is_active ? 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100' : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}
+                            >
+                                {wf.is_active ? 'Tắt' : 'Bật'}
+                            </button>
+                        </div>
+                    ))}
+                    {workflows.length === 0 && <p className="text-sm text-slate-400 py-4 text-center">Chưa có workflow nào.</p>}
+                </div>
+                {showNewWfForm ? (
+                    <div className="flex gap-2 mt-3">
+                        <input
+                            value={newWfName}
+                            onChange={e => setNewWfName(e.target.value)}
+                            placeholder="Tên workflow VD: Phê duyệt Kia NB"
+                            className="flex-1 border border-slate-300 rounded-xl px-4 py-2 text-sm font-bold outline-none focus:border-blue-400"
+                            onKeyDown={e => e.key === 'Enter' && handleCreateWorkflow()}
+                        />
+                        <button onClick={handleCreateWorkflow} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-black hover:bg-blue-700">Tạo</button>
+                        <button onClick={() => setShowNewWfForm(false)} className="px-4 py-2 rounded-xl text-sm font-black border border-slate-200 text-slate-500 hover:bg-slate-50">Hủy</button>
+                    </div>
+                ) : (
+                    <button onClick={() => setShowNewWfForm(true)} className="mt-3 flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-black">
+                        <i className="fas fa-plus" /> Thêm workflow mới
+                    </button>
+                )}
+            </SectionCard>
+        </div>
+    );
+};
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 interface SettingsPageProps {
     settings: AppSettings;
@@ -337,7 +490,8 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
     const { t } = useLanguage();
     const [draft, setDraft] = useState<AppSettings>(settings);
     const [saved, setSaved] = useState(false);
-    const [activeTab, setActiveTab] = useState<'inventory' | 'display' | 'export' | 'system'>('inventory');
+    const [activeTab, setActiveTab] = useState<'inventory' | 'display' | 'export' | 'system' | 'users'>('inventory');
+    const { profile: currentUserProfile } = useAuth();
     const [isSavingCloud, setIsSavingCloud] = useState(false);
     const [isLoadingCloud, setIsLoadingCloud] = useState(false);
 
@@ -493,6 +647,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
         { id: 'display', label: 'Hiển thị', icon: 'fa-palette' },
         { id: 'export', label: 'Xuất dữ liệu', icon: 'fa-file-export' },
         { id: 'system', label: 'Hệ thống', icon: 'fa-gear' },
+        ...(currentUserProfile?.role === 'admin' ? [{ id: 'users', label: 'Người dùng', icon: 'fa-users' }] : []),
     ] as const;
 
     const exportColGroups: { label: string; cols: { key: keyof AppSettings['exportColumns']; label: string }[] }[] = [
@@ -1234,6 +1389,10 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                         </div>
                     </SectionCard>
                 </div>
+            )}
+
+            {activeTab === 'users' && currentUserProfile?.role === 'admin' && (
+                <UserManagementTab />
             )}
 
             {/* Sticky Save Bar */}
