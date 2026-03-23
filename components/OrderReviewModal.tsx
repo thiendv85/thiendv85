@@ -34,6 +34,16 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
             Object.entries(snap.quantities).map(([k, v]) => [k, { air: v.air, sea: v.sea }])
         )
     );
+    const [selectedItems, setSelectedItems] = useState<Set<string>>(() => {
+        const initial = new Set<string>();
+        snap.inventory_context.forEach(ctx => {
+            const q = snap.quantities[ctx.itemCode];
+            if ((q?.air || 0) > 0 || (q?.sea || 0) > 0) {
+                initial.add(ctx.itemCode);
+            }
+        });
+        return initial;
+    });
     const [comment, setComment] = useState('');
     const [commentError, setCommentError] = useState('');
     const [unlockReason, setUnlockReason] = useState('');
@@ -59,9 +69,12 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
     const totals = useMemo(() => {
         let air = 0, sea = 0, value = 0, oos = 0, risk = 0, bo = 0;
         rows.forEach(ctx => {
-            const q = localQtys[ctx.itemCode] || { air: 0, sea: 0 };
-            air += q.air; sea += q.sea;
-            value += (ctx.unitCost || 0) * (q.air + q.sea);
+            const isSelected = selectedItems.has(ctx.itemCode);
+            if (isSelected) {
+                const q = localQtys[ctx.itemCode] || { air: 0, sea: 0 };
+                air += q.air; sea += q.sea;
+                value += (ctx.unitCost || 0) * (q.air + q.sea);
+            }
             if ((ctx.available || 0) <= 0 && ctx.baseForecast > 0.02) oos++;
             if ((ctx.available || 0) < (ctx.safetyStock || 0) && ctx.baseForecast > 0.02) risk++;
             if ((ctx.backorder || 0) > (ctx.available || 0)) bo++;
@@ -69,14 +82,17 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
         const avgMos = rows.length > 0
             ? rows.reduce((s, c) => s + (c.mos || 0), 0) / rows.length : 0;
         return { air, sea, value, oos, risk, bo, avgMos };
-    }, [rows, localQtys]);
+    }, [rows, localQtys, selectedItems]);
 
     const hasChanges = useMemo(() =>
         rows.some(ctx => {
             const orig = snap.quantities[ctx.itemCode] || { air: 0, sea: 0 };
             const cur = localQtys[ctx.itemCode] || { air: 0, sea: 0 };
-            return orig.air !== cur.air || orig.sea !== cur.sea;
-        }), [rows, localQtys, snap.quantities]);
+            const isSelected = selectedItems.has(ctx.itemCode);
+            if (!isSelected && (orig.air > 0 || orig.sea > 0)) return true;
+            if (isSelected && (orig.air !== cur.air || orig.sea !== cur.sea)) return true;
+            return false;
+        }), [rows, localQtys, selectedItems, snap.quantities]);
 
     const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
     const safePage = Math.min(currentPage, totalPages);
@@ -88,6 +104,24 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
     const setQty = (code: string, field: 'air' | 'sea', val: string) => {
         const n = Math.max(0, parseInt(val) || 0);
         setLocalQtys(prev => ({ ...prev, [code]: { ...(prev[code] || { air: 0, sea: 0 }), [field]: n } }));
+        if (n > 0) setSelectedItems(prev => new Set(prev).add(code));
+    };
+
+    const handleToggleAll = () => {
+        if (selectedItems.size === rows.length) {
+            setSelectedItems(new Set());
+        } else {
+            setSelectedItems(new Set(rows.map(r => r.itemCode)));
+        }
+    };
+    
+    const toggleItem = (code: string) => {
+        setSelectedItems(prev => {
+            const next = new Set(prev);
+            if (next.has(code)) next.delete(code);
+            else next.add(code);
+            return next;
+        });
     };
 
     const handleAction = async (action: 'approved' | 'rejected' | 'returned') => {
@@ -100,7 +134,10 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
         setIsSubmitting(true);
         setSubmittingAction(action);
         try {
-            await processApprovalAction(request.id, user.id, action, comment || undefined, localQtys);
+            const finalQtys = action === 'approved'
+                ? Object.fromEntries(Object.keys(localQtys).map(k => [k, selectedItems.has(k) ? localQtys[k] : {air: 0, sea: 0}]))
+                : localQtys;
+            await processApprovalAction(request.id, user.id, action, comment || undefined, finalQtys);
             onRefresh(); onClose();
         } catch (e) { console.error(e); } finally { setIsSubmitting(false); setSubmittingAction(null); }
     };
@@ -358,13 +395,13 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                                 {/* PRIMARY: Duyệt */}
                                 <button
                                     onClick={() => handleAction('approved')}
-                                    disabled={isSubmitting}
+                                    disabled={isSubmitting || selectedItems.size === 0}
                                     className="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-95 disabled:opacity-50 text-white font-black py-3 rounded-2xl text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-200 border border-emerald-700"
                                 >
                                     {submittingAction === 'approved'
                                         ? <i className="fas fa-spinner fa-spin" />
-                                        : <i className="fas fa-check" />}
-                                    {hasChanges ? 'Duyệt & Lưu điều chỉnh' : 'Duyệt'}
+                                        : <i className="fas fa-check-double" />}
+                                    Duyệt {selectedItems.size} mã đã chọn
                                 </button>
 
                                 {/* SECONDARY: Trả lại */}
@@ -502,8 +539,13 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                         <table className="w-full text-sm text-left border-separate border-spacing-0 min-w-[1600px]">
                             <thead className="bg-slate-50/95 backdrop-blur-sm border-b-2 border-slate-200 text-slate-600 sticky top-0 z-30">
                                 <tr className="text-xs uppercase font-black tracking-wider">
-                                    <th className="px-4 py-3.5 w-10 text-center text-slate-400 border-b border-slate-200 sticky left-0 z-40 bg-slate-50/95">#</th>
-                                    <th className="px-4 py-3.5 min-w-[210px] sticky left-10 z-40 bg-slate-50/95 border-b border-slate-200 border-r border-slate-200">SKU Identity</th>
+                                    <th className="px-4 py-3.5 w-12 text-center text-slate-400 border-b border-slate-200 sticky left-0 z-40 bg-slate-50/95 cursor-pointer hover:bg-slate-100 transition-colors" onClick={handleToggleAll}>
+                                        <div className="flex flex-col items-center gap-1">
+                                            <input type="checkbox" checked={selectedItems.size === rows.length && rows.length > 0} onChange={handleToggleAll} className="w-4 h-4 cursor-pointer accent-blue-600 rounded" />
+                                            <span className="text-[8px] uppercase font-bold tracking-tighter leading-none">All</span>
+                                        </div>
+                                    </th>
+                                    <th className="px-4 py-3.5 min-w-[210px] sticky left-12 z-40 bg-slate-50/95 border-b border-slate-200 border-r border-slate-200">SKU Identity</th>
                                     <th className="px-4 py-3.5 text-center border-b border-slate-200 min-w-[115px]">Demand</th>
                                     <th className="px-4 py-3.5 min-w-[155px] text-right border-b border-slate-200">Stock Health</th>
                                     <th className="px-4 py-3.5 text-center border-b border-slate-200 min-w-[105px]">Supply Pipeline</th>
@@ -517,7 +559,8 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                                         <span className="text-blue-700">Sea (Regular)</span>
                                     </th>
                                     <th className="px-4 py-3.5 min-w-[130px] border-b border-slate-200">Ghi chú</th>
-                                    <th className="px-4 py-3.5 text-right sticky right-0 z-40 bg-slate-50/95 border-b border-slate-200 border-l border-slate-200">Thành Tiền</th>
+                                    <th className="px-4 py-3.5 text-right border-b border-slate-200 border-l border-slate-200 min-w-[110px]">Thành Tiền</th>
+                                    <th className="px-4 py-3.5 sticky right-0 z-40 bg-slate-50/95 border-b border-slate-200 border-l border-slate-200 min-w-[90px] text-center">Trạng thái</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white">
@@ -533,15 +576,20 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
 
                                     return (
                                         <tr key={ctx.itemCode}
-                                            className={`hover:bg-slate-50 transition-colors group ${changed ? 'bg-amber-50/40' : draftTotal > 0 ? 'bg-blue-50/15' : ''}`}>
+                                            className={`transition-colors group ${!selectedItems.has(ctx.itemCode) ? 'opacity-60 grayscale-[0.8] bg-slate-50 hover:bg-slate-100 block-events-except-checkbox' : changed ? 'hover:bg-amber-50/60 bg-amber-50/30' : draftTotal > 0 ? 'hover:bg-blue-50/30 bg-blue-50/10' : 'hover:bg-slate-50'}`}>
 
-                                            {/* # */}
-                                            <td className="px-3 py-3 text-center text-slate-400 font-mono text-xs font-black border-b border-slate-50 sticky left-0 z-10 bg-white group-hover:bg-slate-50">
-                                                {globalIdx + 1}
+                                            {/* Checkbox & # */}
+                                            <td className={`px-3 py-3 text-center border-b border-slate-50/80 sticky left-0 z-10 
+                                                ${!selectedItems.has(ctx.itemCode) ? 'bg-slate-50 group-hover:bg-slate-100' : 'bg-white group-hover:bg-slate-50'}`}>
+                                                <div className="flex flex-col items-center gap-1.5 cursor-pointer" onClick={() => toggleItem(ctx.itemCode)}>
+                                                    <input type="checkbox" checked={selectedItems.has(ctx.itemCode)} onChange={() => {}} className="w-4 h-4 cursor-pointer accent-blue-600 rounded" />
+                                                    <div className="text-[9px] text-slate-400 font-black leading-none">{globalIdx + 1}</div>
+                                                </div>
                                             </td>
 
                                             {/* SKU */}
-                                            <td className="px-4 py-3 sticky left-10 z-10 bg-white group-hover:bg-slate-50 border-b border-slate-50 border-r border-slate-100">
+                                            <td className={`px-4 py-3 sticky left-12 z-10 border-b border-slate-50/80 border-r border-slate-100 
+                                                ${!selectedItems.has(ctx.itemCode) ? 'bg-slate-50 group-hover:bg-slate-100' : 'bg-white group-hover:bg-slate-50'}`}>
                                                 <div className="flex items-center gap-1.5">
                                                     <span className="font-black text-slate-800 text-sm font-mono tracking-tight">{ctx.itemCode}</span>
                                                     <span className={`px-1.5 py-0.5 rounded font-black text-[9px] shrink-0 ${
@@ -674,10 +722,28 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                                             </td>
 
                                             {/* Thành tiền */}
-                                            <td className="px-4 py-3 text-right font-black text-slate-900 sticky right-0 z-10 bg-white group-hover:bg-slate-50 border-b border-slate-50 border-l border-slate-200">
+                                            <td className="px-4 py-3 text-right font-black text-slate-900 border-b border-slate-50/80 border-l border-slate-200">
                                                 {draftTotal > 0
                                                     ? <span className={changed ? 'text-amber-700' : ''}>{currencyVND.format(rowValue)}</span>
                                                     : <span className="text-slate-300">—</span>}
+                                            </td>
+
+                                            {/* Trạng thái / Action */}
+                                            <td className={`px-3 py-3 text-center border-b border-slate-50/80 sticky right-0 z-10 border-l border-slate-200 
+                                                ${!selectedItems.has(ctx.itemCode) ? 'bg-slate-50 group-hover:bg-slate-100' : 'bg-white group-hover:bg-slate-50'}`}>
+                                                {selectedItems.has(ctx.itemCode) ? (
+                                                    <button onClick={() => toggleItem(ctx.itemCode)} className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-rose-50 hover:text-rose-600 transition-colors text-[10px] font-black w-full justify-center group/btn border border-emerald-200/50 hover:border-rose-200/50">
+                                                        <i className="fas fa-check group-hover/btn:hidden" />
+                                                        <i className="fas fa-xmark hidden group-hover/btn:inline" />
+                                                        <span className="group-hover/btn:hidden">Duyệt</span>
+                                                        <span className="hidden group-hover/btn:inline">Bỏ line</span>
+                                                    </button>
+                                                ) : (
+                                                    <button onClick={() => toggleItem(ctx.itemCode)} className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-slate-200 text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 transition-colors text-[10px] font-black w-full justify-center border border-slate-300">
+                                                        <i className="fas fa-rotate-left" />
+                                                        <span>Khôi phục</span>
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     );
