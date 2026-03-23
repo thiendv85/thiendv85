@@ -282,16 +282,22 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
         );
     };
 
-    const totalSimStockVal = Object.values(matrixData).reduce((s, m) => s + m.simStockVal, 0);
-    const totalSimPoVal = Object.values(matrixData).reduce((s, m) => s + m.simPoVal, 0);
-    const totalStockVal = Object.values(matrixData).reduce((s, m) => s + m.stockVal, 0);
-    const totalPoVal = Object.values(matrixData).reduce((s, m) => s + m.poVal, 0);
-    const totalExcessVal = Object.values(matrixData).reduce((s, m) => s + m.excessVal, 0);
-    const totalBoVal = Object.values(matrixData).reduce((s, m) => s + m.boValue, 0);
-    const totalBoItems = Object.values(matrixData).reduce((s, m) => s + m.boItems, 0);
-    const totalExcessItems = Object.values(matrixData).reduce((s, m) => s + m.excessItems, 0);
-    const totalNoStock = Object.values(matrixData).reduce((s, m) => s + m.noStock, 0);
-    const totalShort = Object.values(matrixData).reduce((s, m) => s + m.short, 0);
+    const matrixValues = Object.values(matrixData) as Array<{
+        items: number; turnover: number; noStock: number; short: number;
+        stockVal: number; poVal: number; excessItems: number; excessVal: number;
+        boItems: number; boValue: number; trendSum: number; trendCount: number;
+        simStockVal: number; simPoVal: number;
+    }>;
+    const totalSimStockVal = matrixValues.reduce((s, m) => s + m.simStockVal, 0);
+    const totalSimPoVal = matrixValues.reduce((s, m) => s + m.simPoVal, 0);
+    const totalStockVal = matrixValues.reduce((s, m) => s + m.stockVal, 0);
+    const totalPoVal = matrixValues.reduce((s, m) => s + m.poVal, 0);
+    const totalExcessVal = matrixValues.reduce((s, m) => s + m.excessVal, 0);
+    const totalBoVal = matrixValues.reduce((s, m) => s + m.boValue, 0);
+    const totalBoItems = matrixValues.reduce((s, m) => s + m.boItems, 0);
+    const totalExcessItems = matrixValues.reduce((s, m) => s + m.excessItems, 0);
+    const totalNoStock = matrixValues.reduce((s, m) => s + m.noStock, 0);
+    const totalShort = matrixValues.reduce((s, m) => s + m.short, 0);
     const totalItems = items.length;
     const activeGrandStockVal = showSim ? totalSimStockVal : totalStockVal;
     const activeGrandPoVal = showSim ? totalSimPoVal : totalPoVal;

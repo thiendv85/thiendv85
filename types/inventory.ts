@@ -423,7 +423,7 @@ export interface ApprovalAction {
     id: string;
     request_id: string;
     level: number;
-    action: 'approved' | 'rejected' | 'commented';
+    action: 'approved' | 'rejected' | 'commented' | 'returned';
     actor_id: string;
     comment: string | null;
     acted_at: string;

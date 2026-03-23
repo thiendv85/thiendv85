@@ -104,7 +104,8 @@ export const ApprovalQueue = () => {
                         </thead>
                         <tbody>
                             {requests.map(req => {
-                                const skuCount = Object.values(req.snapshot_data?.quantities || {})
+                                const qs = req.snapshot_data?.quantities || {};
+                                const skuCount = Object.values(qs as Record<string, { air: number; sea: number }>)
                                     .filter(q => q.air > 0 || q.sea > 0).length;
                                 return (
                                     <tr key={req.id} className="border-t border-slate-100 hover:bg-slate-50/80 transition-colors cursor-pointer" onClick={() => openDetail(req)}>
