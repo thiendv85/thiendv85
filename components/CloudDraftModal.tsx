@@ -264,7 +264,7 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
                                                         </div>
                                                         <div className="flex items-center gap-3 text-[10px] text-slate-500">
                                                             <span><i className="fas fa-box mr-1"></i>{itemCount} mã hàng</span>
-                                                            <span><i className="far fa-clock mr-1"></i>{new Date(req.submitted_at).toLocaleDateString('vi-VN')}</span>
+                                                            <span><i className="far fa-clock mr-1"></i>{new Date(req.submitted_at).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                                                             {req.brand && <span className="font-bold">{req.brand}</span>}
                                                         </div>
                                                     </div>

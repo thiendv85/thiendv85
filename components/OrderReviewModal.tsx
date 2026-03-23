@@ -244,7 +244,7 @@ export const OrderReviewModal = ({ request, actions, onClose, onRefresh }: Props
                     <span className="bg-white/8 border border-white/10 rounded-lg px-2.5 py-1 font-black text-slate-300">
                         Level {request.current_level}
                     </span>
-                    <span>{new Date(request.submitted_at).toLocaleDateString('vi-VN')}</span>
+                    <span>{new Date(request.submitted_at).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
             </div>
 

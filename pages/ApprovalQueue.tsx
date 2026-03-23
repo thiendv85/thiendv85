@@ -116,7 +116,7 @@ export const ApprovalQueue = () => {
                                         </td>
                                         <td className="px-4 py-3 text-center text-slate-500 font-bold">{req.current_level}</td>
                                         <td className="px-4 py-3 text-center"><ApprovalStatusBadge status={req.status} size="sm" /></td>
-                                        <td className="px-4 py-3 text-slate-400 text-xs">{new Date(req.submitted_at).toLocaleDateString('vi-VN')}</td>
+                                        <td className="px-4 py-3 text-slate-400 text-xs">{new Date(req.submitted_at).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                                         <td className="px-4 py-3 text-right">
                                             <span className="text-blue-500 text-xs font-black uppercase tracking-widest">
                                                 Xem & Duyệt <i className="fas fa-chevron-right ml-1" />
