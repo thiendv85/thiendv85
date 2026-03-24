@@ -6,7 +6,10 @@ import { SalesMomentum } from './SalesMomentum';
 import { TrendBadge } from './TrendBadge';
 import { SnapshotMatrix } from './SnapshotMatrix';
 import { useAuth } from '../utils/authContext';
+import { useApprovalAuth } from '../hooks/useApprovalAuth';
 import { processApprovalAction, unlockRequest } from '../utils/supabase';
+import { validateReason, getAvailableActions } from '../utils/approval-validation';
+import { validatePreApproval } from '../utils/approval-rules';
 
 interface Props {
     request: ApprovalRequest;
@@ -28,6 +31,7 @@ const ACTION_STYLE: Record<string, { icon: string; cls: string }> = {
 
 export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefresh }: Props) => {
     const { user, profile } = useAuth();
+    const { canApproveLevel, allowedLevels, canUnlock: canUnlockRole } = useApprovalAuth();
     const snap = request.snapshot_data;
     const proposerName = usersMap[request.submitted_by] || 'N/A';
 
@@ -48,20 +52,34 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
     });
     const [comment, setComment] = useState('');
     const [commentError, setCommentError] = useState('');
+    const [rejectionReason, setRejectionReason] = useState(''); // Phase 3
+    const [returnReason, setReturnReason] = useState('');       // Phase 3
     const [unlockReason, setUnlockReason] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submittingAction, setSubmittingAction] = useState<string | null>(null);
     const [showUnlock, setShowUnlock] = useState(false);
     const [showMatrix, setShowMatrix] = useState(false);
     const [confirmReject, setConfirmReject] = useState(false);
+    const [showValidationWarnings, setShowValidationWarnings] = useState(true); // Phase 7
     const [sidebarTab, setSidebarTab] = useState<'info' | 'history' | 'matrix'>('info');
     const [pageSize, setPageSize] = useState(25);
     const [currentPage, setCurrentPage] = useState(1);
+    const [inspectingItem, setInspectingItem] = useState<any>(null);
 
+    // Phase 1: Level-aware authorization
     const canAct = !!(profile?.role && ['admin', 'approver'].includes(profile.role)
-        && ['pending', 'in_progress'].includes(request.status));
-    const canUnlock = !!(profile?.role && ['admin', 'approver'].includes(profile.role)
-        && request.status === 'approved');
+        && ['pending', 'in_progress'].includes(request.status)
+        && canApproveLevel(request.current_level));
+    const canUnlock = canUnlockRole && request.status === 'approved';
+
+    // Phase 2: Available actions based on state + role
+    const availableActions = useMemo(() =>
+        getAvailableActions(request.status, profile?.role || 'viewer', allowedLevels, request.current_level),
+        [request.status, profile?.role, allowedLevels, request.current_level]
+    );
+
+    // Phase 7: Pre-approval validation
+    const preApprovalResult = useMemo(() => validatePreApproval(request), [request]);
 
     const rows = useMemo(() =>
         snap.inventory_context.filter(ctx =>
@@ -129,10 +147,17 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
 
     const handleAction = async (action: 'approved' | 'rejected' | 'returned') => {
         if (!user) return;
-        if (action === 'returned' && !comment.trim()) {
-            setCommentError('Vui lòng nhập lý do trả lại trước khi gửi.');
-            return;
+
+        // Phase 3: Validate reason for reject/return
+        if (action === 'rejected') {
+            const rv = validateReason('rejected', rejectionReason);
+            if (!rv.valid) { setCommentError(rv.error || ''); return; }
         }
+        if (action === 'returned') {
+            const rv = validateReason('returned', returnReason);
+            if (!rv.valid) { setCommentError(rv.error || ''); return; }
+        }
+
         setCommentError('');
         setIsSubmitting(true);
         setSubmittingAction(action);
@@ -140,7 +165,16 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
             const finalQtys = action === 'approved'
                 ? Object.fromEntries(Object.keys(localQtys).map(k => [k, selectedItems.has(k) ? localQtys[k] : {air: 0, sea: 0}]))
                 : localQtys;
-            await processApprovalAction(request.id, user.id, action, comment || undefined, finalQtys);
+            // Phase 3: pass dedicated reason; Phase 5: pass version for optimistic locking
+            const reason = action === 'rejected' ? rejectionReason : action === 'returned' ? returnReason : undefined;
+            const result = await processApprovalAction(
+                request.id, user.id, action, comment || undefined, finalQtys,
+                reason, request.version
+            );
+            if (!result.success && result.error) {
+                setCommentError(result.error);
+                return;
+            }
             onRefresh(); onClose();
         } catch (e) { console.error(e); } finally { setIsSubmitting(false); setSubmittingAction(null); }
     };
@@ -295,7 +329,12 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
     };
 
     return (
-        <div className="fixed inset-0 z-[200] bg-atp-background flex flex-col">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 sm:p-2 md:p-3 overflow-hidden">
+            {/* Backdrop with blur */}
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
+            
+            {/* Main Modal Container — Styled like SkuDetail but maximized */}
+            <div className="relative w-full max-w-[1850px] h-[98vh] bg-white rounded-t-[32px] sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fadeIn border border-white/20">
 
             {/* ═══ TOP HEADER ══════════════════════════════════════════════════ */}
             <div
@@ -401,315 +440,202 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                 </div>
             </div>
 
-            {/* ═══ BODY: sidebar + table ══════════════════════════════════════ */}
-            <div className="flex-1 flex overflow-hidden min-h-0">
+            {/* ═══ BODY: Top Actions/Tabs + Table ══════════════════════════════════════ */}
+            <div className="flex-1 flex flex-col overflow-hidden min-h-0 bg-white">
 
-                {/* ── LEFT SIDEBAR (fixed, always visible) ────────────────── */}
-                <div className="w-[420px] shrink-0 flex flex-col border-r border-slate-200 bg-white shadow-[8px_0_32px_-16px_rgba(0,0,0,0.1)] z-10 transition-all duration-300">
+                {/* ── NEW TOP NAVIGATION & ACTION BAR ────────────────── */}
+                <div className="shrink-0 flex flex-col border-b border-slate-200 bg-white shadow-sm z-20">
                     
-                    {/* ── Sidebar Tabs ── */}
-                    <div className="flex bg-slate-50 border-b border-slate-200 p-1.5 gap-1 shrink-0">
-                        <button 
-                            onClick={() => setSidebarTab('info')}
-                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${sidebarTab === 'info' ? 'bg-white text-blue-600 shadow-md border border-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
-                        >
-                            <i className="fas fa-circle-info" /> Duyệt đơn
-                        </button>
-                        <button 
-                            onClick={() => setSidebarTab('history')}
-                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${sidebarTab === 'history' ? 'bg-white text-blue-600 shadow-md border border-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
-                        >
-                            <i className="fas fa-clock-rotate-left" /> Lịch sử
-                            {actions.length > 0 && <span className="text-[8px] bg-slate-200 px-1.5 py-0.5 rounded-full text-slate-500">{actions.length}</span>}
-                        </button>
-                        <button 
-                            onClick={() => setSidebarTab('matrix')}
-                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${sidebarTab === 'matrix' ? 'bg-white text-blue-600 shadow-md border border-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
-                        >
-                            <i className="fas fa-table-cells" /> Ma trận
-                        </button>
-                    </div>
-
-                    {/* ── ACTION PANEL (Top, before content) ──────────── */}
-                    <div className="border-b border-slate-200 p-3 flex flex-col gap-2 shrink-0 bg-slate-50/80 backdrop-blur-md z-20">
-
-                        {canAct && (
-                            <>
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-1.5 h-4 bg-blue-600 rounded-full" />
-                                        <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">
-                                            Hành động · Lv{request.current_level}
-                                        </span>
-                                    </div>
-                                    <div className="text-[9px] font-bold text-slate-400 italic">
-                                        {selectedItems.size}/{rows.length} SKU
-                                    </div>
-                                </div>
-
-                                <textarea
-                                    value={comment}
-                                    onChange={e => { setComment(e.target.value); if (commentError) setCommentError(''); }}
-                                    placeholder="Ghi chú gửi cho người đề xuất..."
-                                    rows={2}
-                                    className={`w-full bg-white border rounded-xl px-3 py-2 text-xs text-slate-700 placeholder-slate-400 outline-none focus:ring-2 resize-none transition-all font-bold ${
-                                        commentError
-                                            ? 'border-rose-400 focus:border-rose-400 focus:ring-rose-100'
-                                            : 'border-slate-200 focus:border-blue-500 focus:ring-blue-100/50 shadow-inner'
-                                    }`}
-                                />
-                                {commentError && (
-                                    <p className="flex items-center gap-1 text-[10px] text-rose-600 font-black px-1">
-                                        <i className="fas fa-circle-exclamation" />{commentError}
-                                    </p>
-                                )}
-
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => handleAction('approved')}
-                                        disabled={isSubmitting || selectedItems.size === 0}
-                                        className="flex-1 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] disabled:opacity-50 text-white font-black py-2.5 rounded-xl text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-200/50"
-                                    >
-                                        {submittingAction === 'approved'
-                                            ? <i className="fas fa-spinner fa-spin" />
-                                            : <i className="fas fa-check-double" />}
-                                        Duyệt
-                                    </button>
-
-                                    <button
-                                        onClick={() => handleAction('returned')}
-                                        disabled={isSubmitting}
-                                        className="flex-1 border-2 border-indigo-200 text-indigo-600 bg-white hover:bg-indigo-50 hover:border-indigo-400 active:scale-[0.98] disabled:opacity-50 font-black py-2.5 rounded-xl text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
-                                    >
-                                        {submittingAction === 'returned'
-                                            ? <i className="fas fa-spinner fa-spin" />
-                                            : <i className="fas fa-rotate-left" />}
-                                        Trả lại
-                                    </button>
-                                </div>
-
-                                <div className="flex gap-2">
-                                    {!confirmReject ? (
-                                        <button
-                                            onClick={() => setConfirmReject(true)}
-                                            disabled={isSubmitting}
-                                            className="flex-1 text-rose-400 hover:bg-rose-50 hover:text-rose-600 active:scale-[0.98] disabled:opacity-50 font-black py-1.5 rounded-xl text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all border border-transparent hover:border-rose-100"
-                                        >
-                                            <i className="fas fa-xmark" /> Từ chối đơn hàng
-                                        </button>
-                                    ) : (
-                                        <div className="flex-1 rounded-xl border-2 border-rose-200 bg-rose-50 p-3 space-y-2">
-                                            <p className="text-[10px] font-black text-rose-700 flex items-center gap-1.5">
-                                                <i className="fas fa-triangle-exclamation" />
-                                                Xác nhận từ chối?
-                                            </p>
-                                            <div className="flex gap-2">
-                                                <button onClick={() => handleAction('rejected')} disabled={isSubmitting}
-                                                    className="flex-1 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-black py-2 rounded-lg text-[10px] transition-colors shadow-md">
-                                                    Xác nhận
-                                                </button>
-                                                <button onClick={() => setConfirmReject(false)}
-                                                    className="px-3 border border-slate-200 text-slate-500 hover:text-slate-700 rounded-lg text-[10px] font-bold transition-colors">
-                                                    Huỷ
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {hasChanges && (
-                                        <button
-                                            onClick={() => setLocalQtys(Object.fromEntries(
-                                                Object.entries(snap.quantities).map(([k, v]) => [k, { air: v.air, sea: v.sea }])
-                                            ))}
-                                            className="text-[9px] text-amber-600 hover:text-amber-700 font-black transition-colors bg-amber-50 px-2 py-1.5 rounded-xl border border-amber-200/50"
-                                            title="Hoàn tác các thay đổi"
-                                        >
-                                            <i className="fas fa-arrow-rotate-left" />
-                                        </button>
-                                    )}
-                                </div>
-                            </>
-                        )}
-
-                        <div className="flex gap-2">
-                            {/* Print button */}
-                            <button
-                                onClick={handlePrintOrder}
-                                className="flex-1 border border-blue-200 text-blue-600 bg-white hover:bg-blue-50 hover:border-blue-400 active:scale-[0.98] font-black py-2 rounded-xl text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all"
-                            >
-                                <i className="fas fa-print" /> In phiếu
-                            </button>
-
-                            {canUnlock && (
-                                !showUnlock ? (
-                                    <button
-                                        onClick={() => setShowUnlock(true)}
-                                        className="flex-1 border border-orange-200 text-orange-600 bg-white hover:bg-orange-50 active:scale-[0.98] font-black py-2 rounded-xl text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all"
-                                    >
-                                        <i className="fas fa-lock-open" /> Mở khóa
-                                    </button>
-                                ) : (
-                                    <div className="flex-1 space-y-2">
-                                        <input
-                                            value={unlockReason}
-                                            onChange={e => setUnlockReason(e.target.value)}
-                                            placeholder="Lý do mở khóa..."
-                                            className="w-full bg-white border border-orange-200 rounded-lg px-3 py-2 text-xs text-slate-700 outline-none focus:border-orange-400 font-bold"
-                                        />
-                                        <div className="flex gap-1.5">
-                                            <button onClick={handleUnlock} disabled={isSubmitting || !unlockReason.trim()}
-                                                className="flex-1 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-black py-2 rounded-lg text-[10px] transition-colors">
-                                                Mở khóa
-                                            </button>
-                                            <button onClick={() => setShowUnlock(false)}
-                                                className="px-3 border border-slate-200 text-slate-400 hover:text-slate-600 rounded-lg text-[10px] font-black transition-colors">
-                                                Huỷ
-                                            </button>
-                                        </div>
-                                    </div>
-                                )
-                            )}
+                    {/* Upper Row: Tabs & General Actions */}
+                    <div className="flex items-center justify-between px-4 py-2 bg-slate-50/50 border-b border-slate-100 gap-4">
+                        {/* Tabs */}
+                        <div className="flex bg-slate-100/50 p-1 rounded-xl gap-1 shrink-0 border border-slate-200/60">
+                            {[
+                                { id: 'info', icon: 'fa-circle-info', label: 'Duyệt đơn' },
+                                { id: 'history', icon: 'fa-clock-rotate-left', label: 'Lịch sử', count: actions.length },
+                                { id: 'matrix', icon: 'fa-table-cells', label: 'Ma trận' }
+                            ].map(tab => (
+                                <button 
+                                    key={tab.id}
+                                    onClick={() => setSidebarTab(tab.id as any)}
+                                    className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${sidebarTab === tab.id ? 'bg-white text-blue-600 shadow-sm border border-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+                                >
+                                    <i className={`fas ${tab.icon}`} /> {tab.label}
+                                    {tab.count !== undefined && tab.count > 0 && <span className="text-[10px] bg-slate-200 px-1.5 py-0.5 rounded-full text-slate-500">{tab.count}</span>}
+                                </button>
+                            ))}
                         </div>
 
-                        {!canAct && !canUnlock && (
-                            <div className="py-2 text-center">
-                                <p className="font-black text-slate-400 uppercase tracking-widest text-[9px]">
-                                    {request.status === 'approved' ? 'Đã hoàn tất phê duyệt'
-                                    : request.status === 'rejected' ? 'Đơn đã bị từ chối'
-                                    : 'Chế độ xem thông tin'}
-                                </p>
+                        {/* Quick Action Stats (Visible always in info tab or as header) */}
+                        <div className="flex items-center gap-4">
+                            {canAct && (
+                                <div className="flex items-center gap-3">
+                                    <textarea
+                                        value={comment}
+                                        onChange={e => { setComment(e.target.value); if (commentError) setCommentError(''); }}
+                                        placeholder="Ghi chú gửi cho người đề xuất..."
+                                        rows={1}
+                                        className={`w-[300px] xl:w-[450px] bg-white border rounded-lg px-3 py-1.5 text-sm text-slate-700 placeholder-slate-400 outline-none focus:ring-2 resize-none transition-all font-bold ${
+                                            commentError ? 'border-rose-400 focus:ring-rose-100' : 'border-slate-200 focus:ring-blue-100/50 shadow-inner'
+                                        }`}
+                                    />
+                                    <div className="flex gap-1.5">
+                                        <button
+                                            onClick={() => handleAction('approved')}
+                                            disabled={isSubmitting || selectedItems.size === 0}
+                                            className="bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] disabled:opacity-50 text-white font-black px-5 py-1.5 rounded-lg text-xs uppercase tracking-widest flex items-center gap-2 transition-all shadow-md shadow-emerald-200/50"
+                                        >
+                                            {submittingAction === 'approved' ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-check-double" />}
+                                            Duyệt
+                                        </button>
+                                        <button
+                                            onClick={() => handleAction('returned')}
+                                            disabled={isSubmitting}
+                                            className="border border-indigo-200 text-indigo-600 bg-white hover:bg-indigo-50 active:scale-[0.98] disabled:opacity-50 font-black px-4 py-1.5 rounded-lg text-xs uppercase tracking-widest flex items-center gap-2 transition-all"
+                                        >
+                                            {submittingAction === 'returned' ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-rotate-left" />}
+                                            Trả lời
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex gap-1.5">
+                                <button onClick={handlePrintOrder} className="border border-blue-200 text-blue-600 bg-white hover:bg-blue-50 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest flex items-center gap-1.5 transition-all">
+                                    <i className="fas fa-print" /> In phiếu
+                                </button>
+                                {canAct && !confirmReject && (
+                                    <button onClick={() => setConfirmReject(true)} className="text-rose-400 hover:bg-rose-50 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border border-transparent hover:border-rose-100 transition-all">
+                                        Từ chối
+                                    </button>
+                                )}
                             </div>
-                        )}
+                        </div>
                     </div>
 
-                    {/* Middle scrollable content */}
-                    <div className="flex-1 overflow-y-auto custom-scrollbar">
-                        
+                    {/* Lower Row: Tab-Specific Content (Stats, History, Matrix) */}
+                    <div className={`overflow-hidden transition-all duration-300 ${sidebarTab === 'info' ? 'bg-white' : 'bg-slate-50 border-t border-slate-100'}`}>
                         {sidebarTab === 'info' && (
-                            <div className="p-6 space-y-5">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-5 bg-emerald-500 rounded-full" />
-                                    <span className="text-xs font-black text-slate-600 uppercase tracking-widest">Sức khoẻ tồn kho</span>
-                                </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                    {totals.oos > 0 && (
-                                        <div className="flex flex-col p-4 rounded-2xl bg-rose-50 border border-rose-100 shadow-sm">
-                                            <span className="text-[10px] font-black text-rose-400 uppercase">Hết hàng (OOS)</span>
-                                            <span className="text-xl font-black text-rose-600 leading-tight">{totals.oos}</span>
+                            <div className="px-5 py-3 flex items-center justify-between gap-6 border-b border-slate-100 bg-slate-50/30">
+                                <div className="flex items-center gap-4 shrink-0">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-1.5 h-4 bg-emerald-500 rounded-full" />
+                                        <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Sức khoẻ tồn kho</span>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        {totals.oos > 0 && (
+                                            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-rose-50 border border-rose-100">
+                                                <span className="text-[10px] font-black text-rose-400 uppercase">OOS</span>
+                                                <span className="text-sm font-black text-rose-600">{totals.oos}</span>
+                                            </div>
+                                        )}
+                                        {totals.risk > 0 && (
+                                            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-100">
+                                                <span className="text-[10px] font-black text-amber-500 uppercase">Risk</span>
+                                                <span className="text-sm font-black text-amber-600">{totals.risk}</span>
+                                            </div>
+                                        )}
+                                        {totals.bo > 0 && (
+                                            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100">
+                                                <span className="text-[10px] font-black text-indigo-400 uppercase">BO</span>
+                                                <span className="text-sm font-black text-indigo-600">{totals.bo}</span>
+                                            </div>
+                                        )}
+                                        <div className={`flex items-center gap-2 px-3 py-1 rounded-full border ${totals.avgMos < 1 ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-emerald-50 border-emerald-100 text-emerald-600'}`}>
+                                            <span className="text-[10px] font-black uppercase opacity-60">MOS</span>
+                                            <span className="text-sm font-black">{totals.avgMos.toFixed(1)}M</span>
                                         </div>
-                                    )}
-                                    {totals.risk > 0 && (
-                                        <div className="flex flex-col p-4 rounded-2xl bg-amber-50 border border-amber-100 shadow-sm">
-                                            <span className="text-[10px] font-black text-amber-500 uppercase">Rủi ro (Risk)</span>
-                                            <span className="text-xl font-black text-amber-600 leading-tight">{totals.risk}</span>
-                                        </div>
-                                    )}
-                                    {totals.bo > 0 && (
-                                        <div className="flex flex-col p-4 rounded-2xl bg-indigo-50 border border-indigo-100 shadow-sm">
-                                            <span className="text-[10px] font-black text-indigo-400 uppercase">Nợ BO</span>
-                                            <span className="text-xl font-black text-indigo-600 leading-tight">{totals.bo}</span>
-                                        </div>
-                                    )}
-                                    <div className={`flex flex-col p-4 rounded-2xl border shadow-sm ${
-                                        totals.avgMos < 1 ? 'bg-rose-50 border-rose-100 text-rose-600'
-                                        : totals.avgMos > 6 ? 'bg-amber-50 border-amber-100 text-amber-600'
-                                        : 'bg-emerald-50 border-emerald-100 text-emerald-600'
-                                    }`}>
-                                        <span className={`text-[10px] font-black uppercase opacity-60`}>Tồn kho (MOS)</span>
-                                        <span className="text-xl font-black leading-tight">{totals.avgMos.toFixed(1)}M</span>
                                     </div>
                                 </div>
+
+                                {confirmReject && (
+                                    <div className="flex items-center gap-3 bg-rose-50 px-4 py-1.5 rounded-xl border border-rose-200 animate-fadeIn">
+                                        <span className="text-[10px] font-black text-rose-700 flex items-center gap-1.5 shrink-0">
+                                            <i className="fas fa-triangle-exclamation" /> Xác nhận từ chối đơn hàng?
+                                        </span>
+                                        <div className="flex gap-2">
+                                            <button onClick={() => handleAction('rejected')} className="bg-rose-600 hover:bg-rose-700 text-white font-black px-3 py-1 rounded-lg text-[9px] uppercase transition-colors">Xác nhận</button>
+                                            <button onClick={() => setConfirmReject(false)} className="text-slate-500 hover:text-slate-700 font-bold px-2 py-1 text-[9px]">Huỷ</button>
+                                        </div>
+                                    </div>
+                                )}
                                 
-                                {canAct && (
-                                    <div className="mt-4 p-4 bg-blue-50/50 border border-blue-100 rounded-2xl">
-                                        <p className="text-[11px] text-blue-600 font-bold leading-relaxed italic">
-                                            <i className="fas fa-circle-info mr-1" />
-                                            Kiểm tra kỹ các mã hàng trước khi phê duyệt. Bạn có thể thay đổi số lượng trực tiếp trên bảng.
-                                        </p>
+                                <div className="ml-auto flex items-center gap-6">
+                                    <div className="flex items-center gap-2 text-xs font-bold text-slate-400 italic">
+                                        <i className="fas fa-circle-check text-blue-500" />
+                                        Đã chọn {selectedItems.size}/{rows.length} SKU
                                     </div>
-                                )}
+                                    {hasChanges && (
+                                        <button onClick={() => setLocalQtys(Object.fromEntries(Object.entries(snap.quantities).map(([k, v]) => [k, { air: v.air, sea: v.sea }])))}
+                                            className="text-[10px] text-amber-600 hover:text-amber-700 font-black bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200/50 flex items-center gap-1.5 transition-colors">
+                                            <i className="fas fa-arrow-rotate-left" /> Hoàn tác thay đổi
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         )}
 
-                        {sidebarTab === 'history' && (
-                            <div className="p-6 space-y-6">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-5 bg-slate-400 rounded-full" />
-                                    <span className="text-xs font-black text-slate-600 uppercase tracking-widest">Lịch sử phê duyệt</span>
-                                </div>
-                                {actions.length === 0 ? (
-                                    <div className="text-center py-20 px-6">
-                                        <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
-                                            <i className="fas fa-clock-rotate-left text-3xl text-slate-200" />
+                        {(sidebarTab === 'history' || sidebarTab === 'matrix') && (
+                            <div className="max-h-[300px] overflow-y-auto custom-scrollbar p-6">
+                                {sidebarTab === 'history' && (
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <div className="w-2 h-5 bg-slate-400 rounded-full" />
+                                            <span className="text-xs font-black text-slate-600 uppercase tracking-widest">Lịch sử phê duyệt</span>
                                         </div>
-                                        <p className="text-slate-400 text-sm font-bold leading-relaxed">Chưa có hành động nào.</p>
-                                    </div>
-                                ) : (
-                                    <div className="relative pl-4 border-l-2 border-slate-100 space-y-8">
-                                        {actions.map(a => {
-                                            const s = ACTION_STYLE[a.action] || ACTION_STYLE.commented;
-                                            const actorName = usersMap[a.actor_id] || 'N/A';
-                                            const actionLabels: Record<string, string> = {
-                                                approved: 'Đã duyệt',
-                                                returned: 'Trả lại',
-                                                rejected: 'Từ chối',
-                                                commented: 'Bình luận'
-                                            };
-                                            const actionLabel = actionLabels[a.action] || a.action;
-
-                                            return (
-                                                <div key={a.id} className="relative">
-                                                    <div className={`absolute -left-[25px] top-1 w-5 h-5 rounded-full border-2 border-white shadow-md flex items-center justify-center ${s.cls.replace('text-', 'bg-')}`}>
-                                                        <i className={`fas ${s.icon} text-[8px] text-white`} />
-                                                    </div>
-                                                    <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
-                                                        <div className="flex items-center justify-between mb-2">
-                                                            <span className={`text-xs font-black uppercase tracking-wider ${s.cls}`}>{actionLabel}</span>
-                                                            <span className="text-[10px] font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full">Lv{a.level}</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-2 mb-2">
-                                                            <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[9px] text-slate-500 border border-slate-200">
-                                                                <i className="fas fa-user" />
+                                        {actions.length === 0 ? (
+                                            <p className="text-center py-10 text-slate-400 text-sm font-bold">Chưa có hành động nào.</p>
+                                        ) : (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                {actions.map(a => {
+                                                    const s = ACTION_STYLE[a.action] || ACTION_STYLE.commented;
+                                                    const actorName = usersMap[a.actor_id] || 'N/A';
+                                                    const actionLabels: Record<string, string> = { approved: 'Đã duyệt', returned: 'Trả lại', rejected: 'Từ chối', commented: 'Bình luận' };
+                                                    return (
+                                                        <div key={a.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm relative pl-10 overflow-hidden">
+                                                            <div className={`absolute left-0 top-0 bottom-0 w-8 flex items-center justify-center ${s.cls.replace('text-', 'bg-')}/10 border-r border-slate-100`}>
+                                                                <i className={`fas ${s.icon} ${s.cls} text-sm`} />
                                                             </div>
-                                                            <span className="text-xs font-bold text-slate-700">{actorName}</span>
+                                                            <div className="flex justify-between items-start mb-1">
+                                                                <span className={`text-xs font-black uppercase ${s.cls}`}>{actionLabels[a.action] || a.action}</span>
+                                                                <span className="text-[10px] font-black text-slate-400">Lv{a.level}</span>
+                                                            </div>
+                                                            <div className="text-xs font-bold text-slate-700 mb-1">{actorName}</div>
+                                                            {a.comment && <p className="text-xs text-slate-500 italic mb-2">"{a.comment}"</p>}
+                                                            <div className="text-[10px] text-slate-400 font-bold border-t border-slate-50 pt-2">
+                                                                {new Date(a.acted_at).toLocaleString('vi-VN')}
+                                                            </div>
                                                         </div>
-                                                        {a.comment && <p className="text-sm text-slate-600 font-medium leading-relaxed my-3 italic">"{a.comment}"</p>}
-                                                        <div className="flex items-center justify-between text-[11px] text-slate-400 font-bold border-t border-slate-50 pt-3 mt-3">
-                                                            <span>Cấp độ {a.level}</span>
-                                                            <span>{new Date(a.acted_at).toLocaleDateString('vi-VN')} {new Date(a.acted_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
-                            </div>
-                        )}
-
-                        {sidebarTab === 'matrix' && (
-                            <div className="p-6 space-y-5">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-5 bg-blue-500 rounded-full" />
-                                    <span className="text-xs font-black text-slate-600 uppercase tracking-widest">Ma trận cung ứng</span>
-                                </div>
-                                <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
-                                    <SnapshotMatrix items={rows} draftQtys={localQtys} compact />
-                                </div>
+                                {sidebarTab === 'matrix' && (
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <div className="w-2 h-5 bg-blue-500 rounded-full" />
+                                            <span className="text-xs font-black text-slate-600 uppercase tracking-widest">Ma trận cung ứng</span>
+                                        </div>
+                                        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm p-4">
+                                            <SnapshotMatrix items={rows} draftQtys={localQtys} compact />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
-
                 </div>
 
+                {/* ── MAIN CONTENT: Order Table ───────────────────────────────────── */}
+                <div className="flex-1 flex flex-col overflow-hidden min-w-0 min-h-[60vh] bg-white">
 
-                {/* ── RIGHT: Order Table ───────────────────────────────────── */}
-                <div className="flex-1 flex flex-col overflow-hidden min-w-0 bg-white">
 
                     {/* Table title bar */}
-                    <div className="px-4 py-2 bg-white border-b border-slate-200 flex items-center justify-between shrink-0 gap-3">
+                    <div className="px-4 py-2.5 bg-white border-b border-slate-200 flex items-center justify-between shrink-0 gap-3">
                         <div className="flex items-center gap-2.5 shrink-0">
-                            <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Chi tiết đặt hàng</span>
+                            <span className="text-sm font-black text-slate-500 uppercase tracking-widest">Chi tiết đặt hàng</span>
                             <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">{rows.length} mã</span>
                         </div>
                         <div className="flex items-center gap-3">
@@ -734,31 +660,28 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
 
                     {/* Scrollable table */}
                     <div className="flex-1 overflow-auto min-h-0 relative">
-                        <table className="w-full text-sm text-left border-separate border-spacing-0 min-w-[1150px]">
+                        <table className="w-full text-sm text-left border-separate border-spacing-0 min-w-[1200px]">
                             <thead className="bg-slate-50/95 backdrop-blur-sm border-b-2 border-slate-200 text-slate-600 sticky top-0 z-30">
-                                <tr className="text-xs uppercase font-black tracking-wider">
-                                    <th className="px-3 py-3 w-10 text-center text-slate-400 border-b border-slate-200 sticky left-0 z-40 bg-slate-50/95 cursor-pointer hover:bg-slate-100 transition-colors" onClick={handleToggleAll}>
+                                <tr className="text-xs uppercase font-black tracking-wider text-slate-400">
+                                    <th className="px-3 py-3 w-10 text-center border-b border-slate-200 sticky left-0 z-40 bg-slate-50/95">
                                         <div className="flex flex-col items-center gap-1">
                                             <input type="checkbox" checked={selectedItems.size === rows.length && rows.length > 0} onChange={handleToggleAll} className="w-4 h-4 cursor-pointer accent-blue-600 rounded" />
                                             <span className="text-[8px] uppercase font-bold tracking-tighter leading-none">All</span>
                                         </div>
                                     </th>
-                                    <th className="px-2 py-2.5 min-w-[160px] sticky left-10 z-40 bg-slate-50/95 border-b border-slate-200 border-r border-slate-200">SKU Identity</th>
-                                    <th className="px-2 py-2.5 text-center border-b border-slate-200 min-w-[90px]">Demand</th>
-                                    <th className="px-2 py-2.5 min-w-[100px] text-right border-b border-slate-200">Stock Health</th>
-                                    <th className="px-2 py-2.5 text-center border-b border-slate-200 min-w-[80px]">Pipeline</th>
-                                    <th className="px-2 py-2.5 text-center border-b border-slate-200 min-w-[105px]">Momentum</th>
-                                    <th className="px-2 py-2.5 text-center border-b border-slate-200 min-w-[55px]">MOS</th>
-                                    <th className="px-2 py-2.5 text-center border-b border-slate-200 min-w-[72px]">DLR/CST</th>
-                                    <th className="px-2 py-2.5 text-center border-x border-slate-200 bg-rose-50/40 border-b border-slate-200 min-w-[72px]">
-                                        <span className="text-rose-600">NB</span>
+                                    <th className="px-3 py-2.5 min-w-[200px] sticky left-10 z-40 bg-slate-50/95 border-b border-slate-200 border-r border-slate-200">SKU Identity</th>
+                                    <th className="px-3 py-2.5 text-center border-b border-slate-200 min-w-[110px]">Health & MOS</th>
+                                    <th className="px-3 py-2.5 text-center border-b border-slate-200 min-w-[100px]">Nhu cầu (M1/FC)</th>
+                                    <th className="px-3 py-2.5 text-right border-b border-slate-200 min-w-[110px]">Kho & Đại lý</th>
+                                    <th className="px-2 py-2.5 text-center border-x border-slate-200 bg-rose-50/30 border-b border-slate-200 min-w-[85px]">
+                                        <span className="text-rose-600">Air Qty</span>
                                     </th>
-                                    <th className="px-2 py-2.5 text-center border-r border-slate-200 bg-blue-50/40 border-b border-slate-200 min-w-[72px]">
-                                        <span className="text-blue-700">BB</span>
+                                    <th className="px-2 py-2.5 text-center border-r border-slate-200 bg-blue-50/30 border-b border-slate-200 min-w-[85px]">
+                                        <span className="text-blue-700">Sea Qty</span>
                                     </th>
-                                    <th className="px-2 py-2.5 min-w-[100px] border-b border-slate-200">Ghi chú</th>
-                                    <th className="px-2 py-2.5 text-right border-b border-slate-200 border-l border-slate-200 min-w-[90px]">Thành Tiền</th>
-                                    <th className="px-2 py-2.5 sticky right-0 z-40 bg-slate-50/95 border-b border-slate-200 border-l border-slate-200 min-w-[78px] text-center">Trạng thái</th>
+                                    <th className="px-3 py-2.5 min-w-[150px] border-b border-slate-200">Warnings / Notes</th>
+                                    <th className="px-3 py-2.5 text-right border-b border-slate-200 border-l border-slate-200 min-w-[110px]">Thành Tiền</th>
+                                    <th className="px-3 py-2.5 sticky right-0 z-40 bg-slate-50/95 border-b border-slate-200 border-l border-slate-200 min-w-[85px] text-center">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white">
@@ -767,183 +690,90 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                                     const q = localQtys[ctx.itemCode] || { air: 0, sea: 0 };
                                     const origQ = snap.quantities[ctx.itemCode] || { air: 0, sea: 0 };
                                     const changed = q.air !== origQ.air || q.sea !== origQ.sea;
-                                    const draftTotal = q.air + q.sea;
-                                    const note = snap.notes[ctx.itemCode] || '';
-                                    const rowValue = (ctx.unitCost || 0) * draftTotal;
-                                    const demandMonthly = ctx.avgQty3M || ctx.baseForecast || 0;
+                                    const isSelected = selectedItems.has(ctx.itemCode);
+                                    const rowValue = (ctx.unitCost || 0) * (q.air + q.sea);
 
                                     return (
                                         <tr key={ctx.itemCode}
-                                            className={`transition-colors group ${!selectedItems.has(ctx.itemCode) ? 'opacity-60 grayscale-[0.8] bg-slate-50 hover:bg-slate-100 block-events-except-checkbox' : changed ? 'hover:bg-amber-50/60 bg-amber-50/30' : draftTotal > 0 ? 'hover:bg-blue-50/30 bg-blue-50/10' : 'hover:bg-slate-50'}`}>
-
-                                            {/* Checkbox & # */}
-                                            <td className={`px-3 py-1.5 text-center border-b border-slate-50/80 sticky left-0 z-10
-                                                ${!selectedItems.has(ctx.itemCode) ? 'bg-slate-50 group-hover:bg-slate-100' : 'bg-white group-hover:bg-slate-50'}`}>
-                                                <div className="flex flex-col items-center gap-1 cursor-pointer" onClick={() => toggleItem(ctx.itemCode)}>
-                                                    <input type="checkbox" checked={selectedItems.has(ctx.itemCode)} onChange={() => {}} className="w-4 h-4 cursor-pointer accent-blue-600 rounded" />
-                                                    <div className="text-[9px] text-slate-400 font-black leading-none">{globalIdx + 1}</div>
+                                            onClick={() => setInspectingItem(ctx)}
+                                            className={`transition-all group cursor-pointer border-b border-slate-50 hover:bg-blue-50/20 ${!isSelected ? 'opacity-40 grayscale-[0.5]' : changed ? 'bg-amber-50/10' : ''}`}>
+                                            
+                                            <td className="px-3 py-3 text-center sticky left-0 z-10 bg-inherit" onClick={e => e.stopPropagation()}>
+                                                <div className="flex flex-col items-center gap-1">
+                                                    <input type="checkbox" checked={isSelected} onChange={() => toggleItem(ctx.itemCode)} className="w-4 h-4 cursor-pointer accent-blue-600 rounded" />
+                                                    <div className="text-[10px] text-slate-400 font-black">{globalIdx + 1}</div>
                                                 </div>
                                             </td>
 
-                                            {/* SKU */}
-                                            <td className={`px-3 py-1 sticky left-10 z-10 border-b border-slate-50/80 border-r border-slate-100
-                                                ${!selectedItems.has(ctx.itemCode) ? 'bg-slate-50 group-hover:bg-slate-100' : 'bg-white group-hover:bg-slate-50'}`}>
+                                            <td className="px-3 py-2 sticky left-10 z-10 bg-inherit border-r border-slate-100">
                                                 <div className="flex items-center gap-1.5">
-                                                    <span className="font-black text-slate-800 text-xs font-mono tracking-tight">{ctx.itemCode}</span>
-                                                    <span className={`px-1.5 py-0.5 rounded font-black text-[9px] shrink-0 ${
-                                                        ctx.priorityBucket === 'P1' ? 'bg-rose-100 text-rose-700'
-                                                        : ctx.priorityBucket === 'P2' ? 'bg-amber-100 text-amber-700'
-                                                        : 'bg-slate-100 text-slate-500'}`}>
+                                                    <span className="font-black text-slate-800 text-sm font-mono tracking-tight">{ctx.itemCode}</span>
+                                                    <span className={`px-1.5 py-0.5 rounded font-black text-[10px] ${ctx.priorityBucket === 'P1' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-500'}`}>
                                                         {ctx.priorityBucket || 'P3'}
                                                     </span>
                                                 </div>
-                                                <div className="text-[10px] text-slate-500 truncate max-w-[150px] leading-tight">{ctx.itemName}</div>
-                                                <div className="mt-0.5 flex flex-wrap gap-0.5">
-                                                    {ctx.status && <span className="text-[8px] font-black px-1 py-0 rounded bg-slate-100 text-slate-500 uppercase leading-4">{ctx.status}</span>}
-                                                    {ctx.loisGroup && <span className="text-[8px] font-black px-1 py-0 rounded bg-blue-50 text-blue-600 border border-blue-100 uppercase leading-4">L{ctx.loisGroup}</span>}
-                                                    {ctx.typecar && <span className="text-[8px] font-black px-1 py-0 rounded bg-slate-100 text-slate-500 truncate max-w-[70px] leading-4" title={ctx.typecar}>{ctx.typecar.split(' | ')[0]}</span>}
-                                                </div>
+                                                <div className="text-[11px] text-slate-500 truncate max-w-[170px] font-bold leading-tight mt-0.5">{ctx.itemName}</div>
                                             </td>
 
-                                            {/* Demand — compact inline, no card wrapper */}
-                                            <td className="px-3 py-1.5 text-center border-b border-slate-50">
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <div className="flex items-center gap-1">
-                                                        <span className="text-[9px] font-black text-slate-400 uppercase">M1</span>
-                                                        <span className="font-black text-slate-800 text-xs">{(ctx.m1Actual || 0).toLocaleString()}</span>
+                                            <td className="px-3 py-2 text-center">
+                                                <div className="flex flex-col items-center">
+                                                    <div className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                                                        ctx.available < ctx.rop ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                                                        : ctx.available < ctx.safetyStock ? 'bg-amber-100 text-amber-700 border border-amber-200'
+                                                        : 'bg-emerald-100 text-emerald-700 border border-emerald-200'}`}>
+                                                        {ctx.available <= 0 ? 'OOS' : ctx.available < ctx.rop ? 'RISK' : 'OK'}
                                                     </div>
-                                                    <div className="w-px h-3 bg-slate-200" />
-                                                    <div className="flex items-center gap-1">
-                                                        <span className="text-[9px] font-black text-emerald-500 uppercase">FC</span>
-                                                        <span className="font-black text-emerald-700 text-xs">
-                                                            {ctx.baseForecast ? (ctx.baseForecast >= 10 ? Math.round(ctx.baseForecast).toLocaleString() : ctx.baseForecast.toFixed(1)) : '-'}
-                                                        </span>
+                                                    <div className="flex items-center gap-1.5 mt-1.5">
+                                                        <span className={`text-sm font-black ${ctx.mos < 1 ? 'text-rose-600' : 'text-slate-700'}`}>{(ctx.mos || 0).toFixed(1)}M</span>
+                                                        <TrendBadge trend={ctx.trendFlag} size="sm" />
                                                     </div>
                                                 </div>
-                                                <div className="mt-0.5 flex justify-center">
-                                                    <TrendBadge trend={ctx.trendFlag} />
-                                                </div>
                                             </td>
 
-                                            {/* Stock Health — compact mode */}
-                                            <td className="px-3 py-1.5 text-right border-b border-slate-50">
-                                                <StockProgressBar
-                                                    current={ctx.available} rop={ctx.rop}
-                                                    max={ctx.stockMax || 1} ss={ctx.safetyStock}
-                                                    onOrder={ctx.totalPO} incoming={ctx.incomingCurrentMonth}
-                                                    backorder={ctx.backorder} draftAdd={draftTotal}
-                                                    baseFc={ctx.baseForecast}
-                                                    compact
-                                                />
+                                            <td className="px-3 py-2 text-center">
+                                                <div className="text-xs font-bold text-slate-400">M1: <span className="text-slate-800 font-black">{(ctx.m1Actual || 0).toLocaleString()}</span></div>
+                                                <div className="text-xs font-bold text-slate-400 mt-1">FC: <span className="text-emerald-700 font-black">{(ctx.baseForecast || 0).toLocaleString()}</span></div>
                                             </td>
 
-                                            {/* Supply Pipeline */}
-                                            <td className="px-3 py-1.5 text-center border-b border-slate-50">
-                                                <div className="flex flex-col items-center gap-0.5">
-                                                    {ctx.incomingCurrentMonth > 0 ? (
-                                                        <div className="flex items-center gap-1">
-                                                            <span className="text-sm font-black text-blue-700">+{ctx.incomingCurrentMonth.toLocaleString()}</span>
-                                                            <span className="text-[9px] font-bold text-blue-400 uppercase">tháng này</span>
-                                                        </div>
-                                                    ) : <span className="text-slate-300 font-black">-</span>}
-                                                    {ctx.totalPO > 0 && (
-                                                        <div className="flex items-center gap-1 bg-indigo-50 px-1.5 py-0 rounded border border-indigo-100">
-                                                            <i className="fas fa-ship text-indigo-400 text-[8px]" />
-                                                            <span className="text-[9px] font-black text-indigo-600">PO: {ctx.totalPO.toLocaleString()}</span>
-                                                        </div>
-                                                    )}
-                                                </div>
+                                            <td className="px-3 py-2 text-right">
+                                                <div className="text-sm font-black text-slate-800">Tồn: {(ctx.available || 0).toLocaleString()}</div>
+                                                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wide mt-0.5">Đại lý: {(ctx.dealerInventory || 0).toLocaleString()}</div>
                                             </td>
 
-                                            {/* Sales Momentum — compact mode */}
-                                            <td className="px-3 py-1.5 text-center border-b border-slate-50">
-                                                <SalesMomentum
-                                                    values={[ctx.avgQty24M, ctx.avgQty12M, ctx.avgQty6M, ctx.avgQty3M]}
-                                                    history={ctx.salesHistory} forecast={ctx.baseForecast}
-                                                    compact
-                                                />
+                                            <td className="px-2 py-2 bg-rose-50/20 text-center border-x border-slate-100" onClick={e => e.stopPropagation()}>
+                                                <input type="number" value={q.air || ''} 
+                                                    onChange={e => setQty(ctx.itemCode, 'air', e.target.value)}
+                                                    className="w-16 text-center font-black text-sm border border-rose-200 rounded-lg py-1.5 outline-none focus:ring-2 focus:ring-rose-200 transition-all" />
                                             </td>
 
-                                            {/* MOS */}
-                                            <td className="px-3 py-1.5 text-center border-b border-slate-50">
-                                                {demandMonthly <= 0 ? (
-                                                    <div className="text-slate-300 font-black">∞</div>
-                                                ) : (
-                                                    <div className={`text-sm font-black ${ctx.mos < 1 ? 'text-rose-700' : ctx.mos > 12 ? 'text-amber-700' : 'text-emerald-700'}`}>
-                                                        {(ctx.mos || 0).toFixed(1)}<span className="text-xs text-slate-400 ml-0.5">M</span>
-                                                    </div>
-                                                )}
+                                            <td className="px-2 py-2 bg-blue-50/20 text-center border-r border-slate-100" onClick={e => e.stopPropagation()}>
+                                                <input type="number" value={q.sea || ''} 
+                                                    onChange={e => setQty(ctx.itemCode, 'sea', e.target.value)}
+                                                    className="w-16 text-center font-black text-sm border border-blue-200 rounded-lg py-1.5 outline-none focus:ring-2 focus:ring-blue-200 transition-all" />
                                             </td>
 
-                                            {/* Dealer & CST */}
-                                            <td className="px-3 py-1.5 text-center border-b border-slate-50">
-                                                <div className="text-xs font-black text-slate-800">{(ctx.dealerInventory || 0).toLocaleString()}</div>
-                                                <div className="mt-0.5 inline-block text-[9px] font-black px-1.5 py-0 rounded-full bg-slate-100 text-slate-600 border border-slate-200 leading-4">
-                                                    {demandMonthly <= 0 ? 'CST: ∞' : `CST: ${(ctx.cst || 0).toFixed(1)}`}
-                                                </div>
-                                            </td>
-
-                                            {/* Air */}
-                                            <td className="px-2 py-1.5 border-x border-slate-100 bg-rose-50/20 text-center border-b border-slate-50">
-                                                {canAct ? (
-                                                    <>
-                                                        <input type="number" value={q.air || ''} onChange={e => setQty(ctx.itemCode, 'air', e.target.value)}
-                                                            placeholder="0"
-                                                            className="w-16 text-center font-black text-sm border border-rose-200 focus:border-rose-400 bg-white text-rose-700 rounded-lg px-1 py-1 outline-none transition-all" />
-                                                        {changed && q.air !== origQ.air && <div className="text-[9px] text-amber-600 mt-0.5 font-bold">gốc: {origQ.air}</div>}
-                                                    </>
-                                                ) : (
-                                                    <span className={q.air > 0 ? 'font-black text-rose-700 text-sm' : 'text-slate-300'}>{q.air > 0 ? q.air : '—'}</span>
-                                                )}
-                                            </td>
-
-                                            {/* Sea */}
-                                            <td className="px-2 py-1.5 border-r border-slate-100 bg-blue-50/20 text-center border-b border-slate-50">
-                                                {canAct ? (
-                                                    <>
-                                                        <input type="number" value={q.sea || ''} onChange={e => setQty(ctx.itemCode, 'sea', e.target.value)}
-                                                            placeholder="0"
-                                                            className="w-16 text-center font-black text-sm border border-blue-200 focus:border-blue-400 bg-white text-blue-700 rounded-lg px-1 py-1 outline-none transition-all" />
-                                                        {changed && q.sea !== origQ.sea && <div className="text-[9px] text-amber-600 mt-0.5 font-bold">gốc: {origQ.sea}</div>}
-                                                    </>
-                                                ) : (
-                                                    <span className={q.sea > 0 ? 'font-black text-blue-700 text-sm' : 'text-slate-300'}>{q.sea > 0 ? q.sea : '—'}</span>
-                                                )}
-                                            </td>
-
-                                            {/* Ghi chú */}
-                                            <td className="px-3 py-1.5 border-b border-slate-50">
-                                                {note ? <span className="text-[10px] text-slate-500 italic">{note}</span> : <span className="text-slate-300 text-xs">—</span>}
+                                            <td className="px-3 py-2 max-w-[150px]">
                                                 {(ctx.warnings || []).slice(0, 1).map((w, i) => (
-                                                    <div key={i} className="text-[9px] text-amber-600 font-bold mt-0.5 leading-tight">
-                                                        <i className="fas fa-triangle-exclamation mr-0.5" />{w}
+                                                    <div key={i} className="text-[10px] text-rose-600 font-black leading-tight flex items-center gap-1">
+                                                        <i className="fas fa-triangle-exclamation" /> {w}
                                                     </div>
                                                 ))}
-                                            </td>
-
-                                            {/* Thành tiền */}
-                                            <td className="px-3 py-1.5 text-right font-black text-slate-900 border-b border-slate-50/80 border-l border-slate-200 text-xs">
-                                                {draftTotal > 0
-                                                    ? <span className={changed ? 'text-amber-700' : ''}>{currencyVND.format(rowValue)}</span>
-                                                    : <span className="text-slate-300">—</span>}
-                                            </td>
-
-                                            {/* Trạng thái / Action */}
-                                            <td className={`px-2 py-1.5 text-center border-b border-slate-50/80 sticky right-0 z-10 border-l border-slate-200
-                                                ${!selectedItems.has(ctx.itemCode) ? 'bg-slate-50 group-hover:bg-slate-100' : 'bg-white group-hover:bg-slate-50'}`}>
-                                                {selectedItems.has(ctx.itemCode) ? (
-                                                    <button onClick={() => toggleItem(ctx.itemCode)} className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-rose-50 hover:text-rose-600 transition-colors text-[10px] font-black w-full justify-center group/btn border border-emerald-200/50 hover:border-rose-200/50">
-                                                        <i className="fas fa-check group-hover/btn:hidden" />
-                                                        <i className="fas fa-xmark hidden group-hover/btn:inline" />
-                                                        <span className="group-hover/btn:hidden">Duyệt</span>
-                                                        <span className="hidden group-hover/btn:inline">Bỏ line</span>
-                                                    </button>
-                                                ) : (
-                                                    <button onClick={() => toggleItem(ctx.itemCode)} className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-slate-200 text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 transition-colors text-[10px] font-black w-full justify-center border border-slate-300">
-                                                        <i className="fas fa-rotate-left" />
-                                                        <span>Khôi phục</span>
-                                                    </button>
+                                                {snap.notes[ctx.itemCode] && (
+                                                    <div className="text-[10px] text-slate-500 italic mt-1 truncate" title={snap.notes[ctx.itemCode]}>
+                                                        "{snap.notes[ctx.itemCode]}"
+                                                    </div>
                                                 )}
+                                            </td>
+
+                                            <td className="px-3 py-2 text-right font-black text-slate-900 bg-slate-50/30 border-l border-slate-100 text-sm">
+                                                {currencyVND.format(rowValue)}
+                                            </td>
+
+                                            <td className="px-3 py-2 text-center sticky right-0 z-10 bg-inherit border-l border-slate-100" onClick={e => e.stopPropagation()}>
+                                                <button onClick={() => toggleItem(ctx.itemCode)} 
+                                                    className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all ${isSelected ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200' : 'bg-slate-100 text-slate-400 border-slate-200'}`}>
+                                                    <i className={`fas ${isSelected ? 'fa-check' : 'fa-x'}`} />
+                                                </button>
                                             </td>
                                         </tr>
                                     );
@@ -952,62 +782,123 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                         </table>
                     </div>
 
-                    {/* ── Pagination footer — dùng pagination-pill như Ordering.tsx ── */}
+                    {/* Pagination */}
                     {totalPages > 1 && (
-                        <div className="shrink-0 border-t border-slate-200 bg-white px-4 py-2 flex items-center justify-between gap-3">
-                            {/* Info */}
-                            <span className="text-xs text-slate-400 font-bold shrink-0">
-                                {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, rows.length)}
-                                <span className="text-slate-300 mx-1">/</span>
-                                {rows.length} mã
-                            </span>
-
-                            {/* Page pills — identical pattern to Ordering.tsx */}
-                            <div className="flex items-center gap-0.5">
-                                <button onClick={() => goToPage(safePage - 1)} disabled={safePage === 1}
-                                    className="pagination-pill text-slate-600">
+                        <div className="shrink-0 border-t border-slate-200 bg-slate-50 px-5 py-3 flex items-center justify-between">
+                            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Trang {safePage} / {totalPages}</span>
+                            <div className="flex items-center gap-1">
+                                <button onClick={() => goToPage(safePage - 1)} disabled={safePage === 1} className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-400 disabled:opacity-30 hover:bg-slate-100 transition-all">
                                     <i className="fas fa-chevron-left text-xs" />
                                 </button>
-                                {(() => {
-                                    const pages: (number | '...')[] = [];
-                                    if (totalPages <= 7) {
-                                        for (let i = 1; i <= totalPages; i++) pages.push(i);
-                                    } else {
-                                        pages.push(1);
-                                        if (safePage > 3) pages.push('...');
-                                        for (let i = Math.max(2, safePage - 1); i <= Math.min(totalPages - 1, safePage + 1); i++) pages.push(i);
-                                        if (safePage < totalPages - 2) pages.push('...');
-                                        pages.push(totalPages);
-                                    }
-                                    return pages.map((p, i) =>
-                                        p === '...'
-                                            ? <span key={`e${i}`} className="px-1 text-slate-300 text-xs">…</span>
-                                            : <button key={p} onClick={() => goToPage(p as number)}
-                                                className={`pagination-pill ${p === safePage ? 'active' : 'text-slate-600'}`}>{p}</button>
-                                    );
-                                })()}
-                                <button onClick={() => goToPage(safePage + 1)} disabled={safePage === totalPages}
-                                    className="pagination-pill text-slate-600">
+                                <button onClick={() => goToPage(safePage + 1)} disabled={safePage === totalPages} className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-400 disabled:opacity-30 hover:bg-slate-100 transition-all">
                                     <i className="fas fa-chevron-right text-xs" />
                                 </button>
                             </div>
-
-                            {/* Jump to page */}
-                            <div className="flex items-center gap-1.5 shrink-0">
-                                <span className="text-xs text-slate-400 font-bold">Đến trang</span>
-                                <input
-                                    type="number" min={1} max={totalPages}
-                                    defaultValue={safePage} key={safePage}
-                                    onBlur={e => goToPage(parseInt(e.target.value) || 1)}
-                                    onKeyDown={e => { if (e.key === 'Enter') goToPage(parseInt((e.target as HTMLInputElement).value) || 1); }}
-                                    className="w-12 text-center text-xs font-black border border-slate-200 rounded-xl py-1.5 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all bg-slate-50"
-                                />
-                                <span className="text-xs text-slate-400">/ {totalPages}</span>
-                            </div>
                         </div>
                     )}
+
                 </div>
             </div>
         </div>
-    );
+
+        {/* ── INSPECTION POPUP: Detail Calculation ──────────────────────────── */}
+        {inspectingItem && (
+            <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md animate-fadeIn" onClick={() => setInspectingItem(null)} />
+                <div className="relative w-full max-w-[1000px] bg-white rounded-[32px] shadow-2xl overflow-hidden animate-slideUp flex flex-col max-h-[90vh]">
+                    {/* Header */}
+                    <div className="px-8 py-6 bg-slate-900 text-white flex items-center justify-between shrink-0">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-white/10 rounded-2xl">
+                                <i className="fas fa-magnifying-glass-chart text-blue-400 text-xl" />
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-3">
+                                    <span className="font-black text-2xl font-mono tracking-tight">{inspectingItem.itemCode}</span>
+                                    <span className={`px-2 py-0.5 rounded-lg text-xs font-black ${inspectingItem.priorityBucket === 'P1' ? 'bg-rose-500 text-white' : 'bg-white/20 text-slate-300'}`}>
+                                        {inspectingItem.priorityBucket || 'P3'}
+                                    </span>
+                                </div>
+                                <div className="text-slate-400 font-bold text-sm mt-0.5">{inspectingItem.itemName}</div>
+                            </div>
+                        </div>
+                        <button onClick={() => setInspectingItem(null)} className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all">
+                            <i className="fas fa-xmark text-lg" />
+                        </button>
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 overflow-auto p-8 space-y-10 custom-scrollbar">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                            {/* Stock Logic */}
+                            <div className="space-y-6">
+                                <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                                    <div className="w-1.5 h-4 bg-emerald-500 rounded-full" /> Logic Tồn kho & Cung ứng
+                                </h3>
+                                <div className="bg-slate-50 p-8 rounded-[32px] border border-slate-200/60 shadow-inner">
+                                    <StockProgressBar
+                                        current={inspectingItem.available} rop={inspectingItem.rop}
+                                        max={inspectingItem.stockMax || 1} ss={inspectingItem.safetyStock}
+                                        onOrder={inspectingItem.totalPO} incoming={inspectingItem.incomingCurrentMonth}
+                                        backorder={inspectingItem.backorder} 
+                                        draftAdd={(localQtys[inspectingItem.itemCode]?.air || 0) + (localQtys[inspectingItem.itemCode]?.sea || 0)}
+                                        baseFc={inspectingItem.baseForecast}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div className="bg-rose-50 p-4 rounded-2xl border border-rose-100/50">
+                                        <div className="text-[10px] text-rose-500 font-black uppercase mb-1">Safety Stock</div>
+                                        <div className="text-lg font-black text-rose-700">{(inspectingItem.safetyStock || 0).toLocaleString()}</div>
+                                    </div>
+                                    <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100/50">
+                                        <div className="text-[10px] text-amber-500 font-black uppercase mb-1">Re-Order Point</div>
+                                        <div className="text-lg font-black text-amber-700">{(inspectingItem.rop || 0).toLocaleString()}</div>
+                                    </div>
+                                    <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100/50">
+                                        <div className="text-[10px] text-emerald-500 font-black uppercase mb-1">Stock Max</div>
+                                        <div className="text-lg font-black text-emerald-700">{(inspectingItem.stockMax || 0).toLocaleString()}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Demand & Momentum */}
+                            <div className="space-y-6">
+                                <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                                    <div className="w-1.5 h-4 bg-blue-500 rounded-full" /> Nhu cầu & Xu hướng
+                                </h3>
+                                <div className="bg-slate-50 p-8 rounded-[32px] border border-slate-200/60 h-[280px] flex items-center justify-center shadow-inner">
+                                    <SalesMomentum
+                                        values={[inspectingItem.avgQty24M, inspectingItem.avgQty12M, inspectingItem.avgQty6M, inspectingItem.avgQty3M]}
+                                        history={inspectingItem.salesHistory} forecast={inspectingItem.baseForecast}
+                                    />
+                                </div>
+                                <div className="bg-blue-50/50 p-5 rounded-2xl border border-blue-100/50 flex items-center justify-between">
+                                    <div>
+                                        <div className="text-[10px] text-blue-500 font-black uppercase">Xu hướng dự báo</div>
+                                        <div className="text-sm font-black text-blue-800 mt-1 flex items-center gap-2">
+                                            <TrendBadge trend={inspectingItem.trendFlag} />
+                                            {inspectingItem.trendFlag === 'up' ? 'Tăng trưởng' : inspectingItem.trendFlag === 'down' ? 'Giảm dần' : 'Ổn định'}
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-[10px] text-blue-500 font-black uppercase">Dự báo (FC)</div>
+                                        <div className="text-xl font-black text-blue-900">{(inspectingItem.baseForecast || 0).toLocaleString()}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="px-8 py-6 bg-slate-50 border-t border-slate-200 flex justify-end shrink-0">
+                        <button onClick={() => setInspectingItem(null)} 
+                            className="px-10 py-3 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-95">
+                            Hoàn tất kiểm tra
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+    </div>
+);
 };

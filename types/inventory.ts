@@ -425,6 +425,15 @@ export interface ApprovalRequest {
     unlocked_by: string | null;
     unlocked_at: string | null;
     unlock_reason: string | null;
+    // Phase 3: Rejection/Return reasons
+    rejection_reason: string | null;
+    returned_reason: string | null;
+    // Phase 5: Optimistic locking
+    version: number;
+    // Phase 8: Escalation & Deadline
+    deadline: string | null;
+    escalated_at: string | null;
+    escalated_to: string | null;
 }
 
 export interface ApprovalAction {
@@ -435,6 +444,17 @@ export interface ApprovalAction {
     actor_id: string;
     comment: string | null;
     acted_at: string;
+    // Phase 6: Audit metadata
+    metadata?: {
+        old_status?: ApprovalStatus;
+        new_status?: ApprovalStatus;
+        old_level?: number;
+        new_level?: number;
+        changed_fields?: string[];
+        version_before?: number;
+        version_after?: number;
+        reason?: string;
+    };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
