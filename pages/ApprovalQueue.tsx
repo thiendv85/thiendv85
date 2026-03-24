@@ -135,7 +135,7 @@ export const ApprovalQueue = () => {
             let successCount = 0;
             
             for (const id of idsArray) {
-                const res = await processApprovalAction(id, user.id, action);
+                const res = await processApprovalAction(id as string, user.id as string, action);
                 if (res.success) successCount++;
             }
             
@@ -242,7 +242,7 @@ export const ApprovalQueue = () => {
     return (
         <div className="flex flex-col min-h-screen bg-[#f8fafc] overflow-hidden relative">
             {/* ═══ 1. VIBRANT PREMIUM HEADER ══════════════════════════════════ */}
-            <div className="shrink-0 relative px-8 pt-10 pb-16 text-white overflow-hidden shadow-2xl"
+            <div className="shrink-0 relative px-8 pt-8 pb-12 text-white overflow-hidden shadow-2xl"
                 style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #0f2744 100%)' }}>
                 
                 <div className="absolute inset-0 opacity-20 pointer-events-none"
@@ -250,74 +250,74 @@ export const ApprovalQueue = () => {
                 
                 <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                     <div>
-                        <div className="flex items-center gap-4 mb-2">
-                           <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-xl border border-white/20 shadow-2xl">
-                               <i className="fas fa-check-double text-blue-400 text-xl"></i>
+                        <div className="flex items-center gap-3 mb-1">
+                           <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center backdrop-blur-xl border border-white/20 shadow-xl">
+                               <i className="fas fa-check-double text-blue-400 text-lg"></i>
                            </div>
-                           <h1 className="text-3xl font-black tracking-tight text-white drop-shadow-md">
+                           <h1 className="text-2xl font-black tracking-tight text-white drop-shadow-md">
                                Phê duyệt Đặt hàng
                            </h1>
                         </div>
-                        <p className="text-blue-100/70 font-bold ml-16 text-sm uppercase tracking-widest opacity-80">
+                        <p className="text-blue-100/70 font-bold ml-13 text-[10px] uppercase tracking-widest opacity-80">
                             Executive Governance Dashboard
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                        <div className="flex bg-white/5 backdrop-blur-2xl p-1.5 rounded-[22px] border border-white/10 shadow-inner">
+                    <div className="flex items-center gap-3">
+                        <div className="flex bg-white/5 backdrop-blur-2xl p-1 rounded-[18px] border border-white/10 shadow-inner">
                             {TABS.map(t => (
                                 <button
                                     key={t.id}
                                     onClick={() => setActiveTab(t.id)}
-                                    className={`relative px-6 py-2.5 rounded-[16px] text-[11px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 group ${
+                                    className={`relative px-4 py-2 rounded-[14px] text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 group ${
                                         activeTab === t.id ? 'bg-white text-slate-900 shadow-xl scale-[1.02]' : 'text-white/60 hover:text-white hover:bg-white/5'
                                     }`}
                                 >
-                                    <i className={`fas ${t.icon} text-[10px] ${activeTab === t.id ? 'text-blue-600' : 'opacity-50'}`} />
+                                    <i className={`fas ${t.icon} text-[9px] ${activeTab === t.id ? 'text-blue-600' : 'opacity-50'}`} />
                                     {t.label}
                                 </button>
                             ))}
                         </div>
 
-                        <button onClick={loadRequests} disabled={isLoading} className="w-12 h-12 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all flex items-center justify-center backdrop-blur-xl group">
-                            <i className={`fas fa-arrows-rotate text-blue-400 group-hover:rotate-180 transition-transform duration-500 ${isLoading ? 'fa-spin' : ''}`} />
+                        <button onClick={loadRequests} disabled={isLoading} className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all flex items-center justify-center backdrop-blur-xl group">
+                            <i className={`fas fa-arrows-rotate text-blue-400 text-sm group-hover:rotate-180 transition-transform duration-500 ${isLoading ? 'fa-spin' : ''}`} />
                         </button>
                     </div>
                 </div>
 
-                <div className="mt-10 grid grid-cols-2 lg:grid-cols-5 gap-4">
-                    <StatCard label="Tổng cộng" value={stats.total} icon="fa-boxes-packing" color="blue" />
+                <div className="mt-10 grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <StatCard label="Tổng cộng" value={stats.total} icon="fa-boxes-stacked" color="blue" />
                     <StatCard label="Cần duyệt" value={stats.pending} icon="fa-hourglass-half" color="amber" />
-                    <StatCard label="Đang xử lý" value={stats.inProgress} icon="fa-spinner" color="indigo" />
+                    <StatCard label="Đang xử lý" value={stats.processing} icon="fa-circle-notch" color="indigo" />
                     <StatCard label="Đã duyệt" value={stats.approved} icon="fa-check-double" color="emerald" />
                     <StatCard label="Từ chối" value={stats.rejected} icon="fa-ban" color="rose" />
                 </div>
             </div>
 
             {/* ═══ 2. TOOLBELT & ADVANCED FILTERS ═════════════════════════════ */}
-            <div className="shrink-0 bg-white border-b border-slate-200 px-8 py-5 flex flex-col gap-4 shadow-sm z-20">
-                <div className="flex flex-col lg:flex-row gap-4 items-center">
+            <div className="shrink-0 bg-white border-b border-slate-200 px-8 py-3.5 flex flex-col gap-3 shadow-sm z-20">
+                <div className="flex flex-col lg:flex-row gap-3 items-center">
                     <div className="flex-1 relative w-full">
-                        <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
                         <input 
                             type="text"
-                            placeholder="Tìm theo tên Draft, thương hiệu hoặc người gửi..."
+                            placeholder="Tìm kiếm nhanh..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all text-sm font-bold shadow-sm"
+                            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-[14px] focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all text-xs font-bold shadow-sm"
                         />
                     </div>
-                    <div className="flex items-center gap-3 shrink-0 w-full lg:w-auto overflow-x-auto pb-1 lg:pb-0">
+                    <div className="flex items-center gap-2 shrink-0 w-full lg:w-auto">
                         <button 
                             onClick={() => setIsFilterOpen(!isFilterOpen)}
-                            className={`px-5 py-3.5 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all flex items-center gap-2 ${isFilterOpen ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                            className={`px-4 py-2.5 rounded-[14px] font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 ${isFilterOpen ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                         >
-                            <i className="fas fa-filter"></i> Bộ lọc {isFilterOpen ? 'đang mở' : ''}
+                            <i className="fas fa-filter"></i> Bộ lọc
                         </button>
                         <select 
                             value={sortConfig.key}
                             onChange={(e) => setSortConfig(prev => ({ ...prev, key: e.target.value }))}
-                            className="bg-slate-100 px-5 py-3.5 rounded-2xl font-black text-[11px] uppercase tracking-widest text-slate-600 outline-none hover:bg-slate-200"
+                            className="bg-slate-100 px-4 py-2.5 rounded-[14px] font-black text-[10px] uppercase tracking-widest text-slate-600 outline-none hover:bg-slate-200"
                         >
                             <option value="submitted_at">Mới nhất</option>
                             <option value="draft_name">Tên Draft</option>
@@ -325,9 +325,9 @@ export const ApprovalQueue = () => {
                         </select>
                         <button 
                             onClick={() => setSortConfig(prev => ({ ...prev, direction: prev.direction === 'asc' ? 'desc' : 'asc' }))}
-                            className="p-3.5 bg-slate-100 rounded-2xl hover:bg-slate-200 text-slate-600 transition-colors"
+                            className="p-2.5 bg-slate-100 rounded-[14px] hover:bg-slate-200 text-slate-600 transition-colors"
                         >
-                            <i className={`fas fa-sort-amount-${sortConfig.direction === 'asc' ? 'up' : 'down'}`}></i>
+                            <i className={`fas fa-sort-amount-${sortConfig.direction === 'asc' ? 'up' : 'down'} text-xs`}></i>
                         </button>
                     </div>
                 </div>
@@ -405,28 +405,28 @@ export const ApprovalQueue = () => {
                                 <div key={status} className="group/section relative">
                                     <div 
                                         onClick={() => toggleSection(status)}
-                                        className={`sticky top-0 z-30 flex items-center justify-between py-5 group cursor-pointer border-b-2 transition-all ${config.border} bg-white/80 backdrop-blur-xl mb-8 rounded-t-3xl px-4`}
+                                        className={`sticky top-0 z-30 flex items-center justify-between py-2.5 group cursor-pointer border-b-2 transition-all ${config.border} bg-white/80 backdrop-blur-xl mb-4 rounded-t-3xl px-6`}
                                     >
-                                        <div className="flex items-center gap-6">
+                                        <div className="flex items-center gap-4">
                                             {/* Select All Checkbox */}
                                             <div 
                                                 onClick={(e) => { e.stopPropagation(); toggleSelectAll(list.map(r => r.id)); }}
-                                                className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${allSelected && list.length > 0 ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300 hover:border-blue-400'}`}
+                                                className={`w-4 h-4 rounded-md border-2 flex items-center justify-center transition-all ${allSelected && list.length > 0 ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300 hover:border-blue-400'}`}
                                             >
-                                                {allSelected && list.length > 0 && <i className="fas fa-check text-white text-[10px]" />}
+                                                {allSelected && list.length > 0 && <i className="fas fa-check text-white text-[7px]" />}
                                             </div>
-                                            <div className="flex items-center gap-4">
-                                                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shadow-md border border-black/5 ${config.cls}`}>
-                                                    <i className={`fas ${config.icon} text-lg`}></i>
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-md border border-black/5 ${config.cls}`}>
+                                                    <i className={`fas ${config.icon} text-sm`}></i>
                                                 </div>
                                                 <div>
-                                                    <h3 className={`text-base font-black uppercase tracking-widest ${config.cls.split(' ')[0]}`}>{config.label}</h3>
-                                                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-0.5">{list.length} Yêu cầu trong danh sách</p>
+                                                    <h3 className={`text-xs font-black uppercase tracking-widest ${config.cls.split(' ')[0]}`}>{config.label}</h3>
+                                                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0">{list.length} Yêu cầu</p>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isCollapsed ? 'bg-slate-100 text-slate-400 shadow-inner' : 'bg-slate-900 text-white shadow-2xl scale-110'}`}>
-                                            <i className={`fas fa-chevron-${isCollapsed ? 'down' : 'up'} text-xs transform transition-transform duration-500 ${isCollapsed ? '' : 'rotate-180'}`} />
+                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${isCollapsed ? 'bg-slate-100 text-slate-400 shadow-inner' : 'bg-slate-900 text-white shadow-2xl scale-105'}`}>
+                                            <i className={`fas fa-chevron-${isCollapsed ? 'down' : 'up'} text-[9px] transform transition-transform duration-500 ${isCollapsed ? '' : 'rotate-180'}`} />
                                         </div>
                                     </div>
 
@@ -441,81 +441,81 @@ export const ApprovalQueue = () => {
                                                 return (
                                                     <div 
                                                         key={req.id} 
-                                                        className={`relative bg-white border-2 rounded-[32px] p-6 flex flex-col xl:flex-row items-center justify-between gap-8 transition-all hover:shadow-3xl group animate-fadeIn ${isSel ? 'border-blue-500 shadow-blue-500/10 scale-[1.01] z-10' : 'border-slate-100 hover:border-blue-200'}`}
+                                                        className={`relative bg-white border rounded-2xl py-2.5 px-4 flex flex-col xl:flex-row items-center justify-between gap-4 transition-all hover:shadow-lg group animate-fadeIn ${isSel ? 'border-blue-500 bg-blue-50/10 shadow-blue-500/5 scale-[1.002] z-10' : 'border-slate-100 hover:border-blue-200'}`}
                                                     >
-                                                        <div className="flex items-center gap-6 flex-1 min-w-0">
+                                                        <div className="flex items-center gap-3 flex-1 min-w-0">
                                                             {/* Checkbox */}
                                                             <div 
                                                                 onClick={() => toggleSelectOne(req.id)}
-                                                                className={`w-7 h-7 rounded-xl border-2 shrink-0 flex items-center justify-center cursor-pointer transition-all ${isSel ? 'bg-blue-600 border-blue-600 shadow-lg shadow-blue-500/40' : 'bg-slate-50 border-slate-200 hover:border-blue-400 group-hover:bg-blue-50'}`}
+                                                                className={`w-4 h-4 rounded-md border-2 shrink-0 flex items-center justify-center cursor-pointer transition-all ${isSel ? 'bg-blue-600 border-blue-600 shadow-md shadow-blue-500/40' : 'bg-slate-50 border-slate-200 hover:border-blue-400 group-hover:bg-blue-50'}`}
                                                             >
-                                                                {isSel && <i className="fas fa-check text-white text-xs" />}
+                                                                 {isSel && <i className="fas fa-check text-white text-[8px]" />}
                                                             </div>
-                                                            <div className="flex items-center gap-5 flex-1 min-w-0 cursor-pointer" onClick={() => openDetail(req)}>
-                                                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border transition-all shadow-sm ${isSel ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 border-blue-100 group-hover:bg-blue-500 group-hover:text-white'}`}>
-                                                                    <i className="fas fa-file-invoice text-2xl" />
+                                                            <div className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer" onClick={() => openDetail(req)}>
+                                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all shadow-sm shrink-0 ${isSel ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 border-blue-100 group-hover:bg-blue-500 group-hover:text-white'}`}>
+                                                                    <i className="fas fa-file-invoice text-lg" />
                                                                 </div>
                                                                 <div className="min-w-0">
-                                                                    <div className="text-xl font-black text-slate-900 truncate tracking-tight group-hover:text-blue-700 transition-colors">
+                                                                    <div className="text-[15px] font-black text-slate-900 truncate tracking-tight group-hover:text-blue-700 transition-colors">
                                                                         {req.draft_name}
                                                                     </div>
-                                                                    <div className="flex items-center gap-3 mt-1.5">
-                                                                        <span className="text-[11px] bg-slate-900 text-white px-3 py-1 rounded-full font-black uppercase tracking-wider">{req.brand || 'NO BRAND'}</span>
-                                                                        <span className="text-[11px] bg-blue-50 text-blue-700 px-3 py-1 rounded-full font-black uppercase tracking-wider border border-blue-100">Cấp {req.current_level}</span>
+                                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                                        <span className="text-[9px] bg-slate-900 text-white px-2 py-0.5 rounded-full font-black uppercase tracking-wider">{req.brand || 'NO BRAND'}</span>
+                                                                        <span className="text-[9px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-black uppercase tracking-wider border border-blue-100">Cấp {req.current_level}</span>
                                                                     </div>
                                                                 </div>
                                                             </div>
                                                         </div>
 
-                                                        <div className="flex items-center gap-10 px-8 border-x border-slate-100 shrink-0 hidden md:flex">
+                                                        <div className="flex items-center gap-6 px-4 border-x border-slate-100 shrink-0 hidden md:flex">
                                                             <div className="text-center">
-                                                                <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2">SKU Impact</div>
-                                                                <div className="text-2xl font-black text-slate-800">{skuCount}</div>
+                                                                <div className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1">SKU Impact</div>
+                                                                <div className="text-base font-black text-slate-800">{skuCount}</div>
                                                             </div>
                                                             <div className="text-center">
-                                                                <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2">Tiến độ</div>
-                                                                <ApprovalStatusBadge status={req.status} size="lg" />
+                                                                <div className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1">Tiến độ</div>
+                                                                <ApprovalStatusBadge status={req.status} size="sm" />
                                                             </div>
                                                         </div>
 
-                                                        <div className="flex items-center gap-4 shrink-0">
+                                                        <div className="flex items-center gap-3 shrink-0">
                                                             <div className="text-right">
-                                                                <div className="text-sm font-black text-slate-800">{usersMap[req.submitted_by] || 'Unknown'}</div>
-                                                                <div className="text-xs font-bold text-slate-400 flex items-center justify-end gap-1.5 mt-1">
+                                                                <div className="text-xs font-black text-slate-800 leading-none">{usersMap[req.submitted_by] || 'Unknown'}</div>
+                                                                <div className="text-[10px] font-bold text-slate-400 flex items-center justify-end gap-1 mt-0.5">
                                                                     <i className="far fa-calendar-alt" /> {new Date(req.submitted_at).toLocaleDateString('vi-VN')}
                                                                 </div>
                                                             </div>
-                                                            <div className="w-12 h-12 rounded-full bg-slate-100 border-2 border-white shadow-xl flex items-center justify-center text-slate-400 ring-4 ring-slate-50 relative">
-                                                                <i className="fas fa-user text-lg" />
-                                                                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-2 border-white rounded-full"></div>
+                                                            <div className="w-8 h-8 rounded-full bg-slate-100 border border-white shadow-md flex items-center justify-center text-slate-400 ring-1 ring-slate-50 relative shrink-0">
+                                                                <i className="fas fa-user text-xs" />
+                                                                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border border-white rounded-full"></div>
                                                             </div>
                                                         </div>
 
-                                                        <div className="shrink-0 flex items-center gap-3">
+                                                        <div className="shrink-0 flex items-center gap-2">
                                                             {req.status === 'pending' || req.status === 'in_progress' ? (
                                                                 <>
                                                                     <button 
                                                                         onClick={(e) => { e.stopPropagation(); handleAction(req.id, 'approved'); }}
                                                                         disabled={isThisProcessing !== null}
-                                                                        className="h-12 px-6 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.1em] transition-all shadow-xl shadow-emerald-500/30 flex items-center gap-2 hover:scale-105"
+                                                                        className="h-8 px-3.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-1.5"
                                                                     >
                                                                         {isThisProcessing ? <i className="fas fa-circle-notch fa-spin"></i> : <i className="fas fa-check"></i>}
-                                                                        Duyệt nhanh
+                                                                        Duyệt
                                                                     </button>
                                                                     <button 
                                                                         onClick={(e) => { e.stopPropagation(); handleAction(req.id, 'rejected'); }}
                                                                         disabled={isThisProcessing !== null}
-                                                                        className="h-12 w-12 bg-rose-50 hover:bg-rose-500 hover:text-white text-rose-500 rounded-2xl border border-rose-200 transition-all flex items-center justify-center shadow-sm"
+                                                                        className="h-8 w-8 bg-rose-50 hover:bg-rose-500 hover:text-white text-rose-500 rounded-xl border border-rose-100 transition-all flex items-center justify-center shadow-sm"
                                                                     >
-                                                                        <i className="fas fa-times"></i>
+                                                                        <i className="fas fa-times text-[10px]"></i>
                                                                     </button>
                                                                 </>
                                                             ) : (
                                                                 <button 
                                                                     onClick={() => openDetail(req)}
-                                                                    className="h-12 px-6 bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 rounded-2xl text-[11px] font-black uppercase tracking-wider transition-all flex items-center gap-2 border border-slate-200"
+                                                                    className="h-8 px-3.5 bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 border border-slate-200"
                                                                 >
-                                                                    Chi tiết <i className="fas fa-chevron-right text-[10px]"></i>
+                                                                    Chi tiết <i className="fas fa-chevron-right text-[7px]"></i>
                                                                 </button>
                                                             )}
                                                         </div>
@@ -609,13 +609,13 @@ const StatCard = ({ label, value, icon, color }: { label: string; value: number;
     };
     
     return (
-        <div className={`bg-gradient-to-br ${colors[color]} rounded-[28px] p-6 text-white shadow-xl transition-all hover:scale-[1.03] duration-300 relative overflow-hidden group`}>
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <i className={`fas ${icon} text-5xl transform rotate-12`}></i>
+        <div className={`bg-gradient-to-br ${colors[color]} rounded-3xl py-4 px-6 text-white shadow-lg transition-all hover:scale-[1.03] duration-300 relative overflow-hidden group`}>
+            <div className="absolute top-0 right-0 p-4 opacity-15 group-hover:opacity-25 transition-opacity">
+                <i className={`fas ${icon} text-3xl transform rotate-12`}></i>
             </div>
             <div className="relative z-10">
-                <div className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">{label}</div>
-                <div className="text-4xl font-black drop-shadow-sm">{value}</div>
+                <div className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1.5">{label}</div>
+                <div className="text-2xl font-black drop-shadow-sm leading-none">{value}</div>
             </div>
         </div>
     );
