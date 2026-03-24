@@ -6,7 +6,10 @@ import { SalesMomentum } from './SalesMomentum';
 import { TrendBadge } from './TrendBadge';
 import { SnapshotMatrix } from './SnapshotMatrix';
 import { useAuth } from '../utils/authContext';
+import { useApprovalAuth } from '../hooks/useApprovalAuth';
 import { processApprovalAction, unlockRequest } from '../utils/supabase';
+import { validateReason, getAvailableActions } from '../utils/approval-validation';
+import { validatePreApproval } from '../utils/approval-rules';
 
 interface Props {
     request: ApprovalRequest;
@@ -28,6 +31,7 @@ const ACTION_STYLE: Record<string, { icon: string; cls: string }> = {
 
 export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefresh }: Props) => {
     const { user, profile } = useAuth();
+    const { canApproveLevel, allowedLevels, canUnlock: canUnlockRole } = useApprovalAuth();
     const snap = request.snapshot_data;
     const proposerName = usersMap[request.submitted_by] || 'N/A';
 
@@ -48,20 +52,34 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
     });
     const [comment, setComment] = useState('');
     const [commentError, setCommentError] = useState('');
+    const [rejectionReason, setRejectionReason] = useState(''); // Phase 3
+    const [returnReason, setReturnReason] = useState('');       // Phase 3
     const [unlockReason, setUnlockReason] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submittingAction, setSubmittingAction] = useState<string | null>(null);
     const [showUnlock, setShowUnlock] = useState(false);
     const [showMatrix, setShowMatrix] = useState(false);
     const [confirmReject, setConfirmReject] = useState(false);
+    const [showValidationWarnings, setShowValidationWarnings] = useState(true); // Phase 7
     const [sidebarTab, setSidebarTab] = useState<'info' | 'history' | 'matrix'>('info');
     const [pageSize, setPageSize] = useState(25);
     const [currentPage, setCurrentPage] = useState(1);
     const [inspectingItem, setInspectingItem] = useState<any>(null);
+
+    // Phase 1: Level-aware authorization
     const canAct = !!(profile?.role && ['admin', 'approver'].includes(profile.role)
-        && ['pending', 'in_progress'].includes(request.status));
-    const canUnlock = !!(profile?.role && ['admin', 'approver'].includes(profile.role)
-        && request.status === 'approved');
+        && ['pending', 'in_progress'].includes(request.status)
+        && canApproveLevel(request.current_level));
+    const canUnlock = canUnlockRole && request.status === 'approved';
+
+    // Phase 2: Available actions based on state + role
+    const availableActions = useMemo(() =>
+        getAvailableActions(request.status, profile?.role || 'viewer', allowedLevels, request.current_level),
+        [request.status, profile?.role, allowedLevels, request.current_level]
+    );
+
+    // Phase 7: Pre-approval validation
+    const preApprovalResult = useMemo(() => validatePreApproval(request), [request]);
 
     const rows = useMemo(() =>
         snap.inventory_context.filter(ctx =>
@@ -129,10 +147,17 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
 
     const handleAction = async (action: 'approved' | 'rejected' | 'returned') => {
         if (!user) return;
-        if (action === 'returned' && !comment.trim()) {
-            setCommentError('Vui lòng nhập lý do trả lại trước khi gửi.');
-            return;
+
+        // Phase 3: Validate reason for reject/return
+        if (action === 'rejected') {
+            const rv = validateReason('rejected', rejectionReason);
+            if (!rv.valid) { setCommentError(rv.error || ''); return; }
         }
+        if (action === 'returned') {
+            const rv = validateReason('returned', returnReason);
+            if (!rv.valid) { setCommentError(rv.error || ''); return; }
+        }
+
         setCommentError('');
         setIsSubmitting(true);
         setSubmittingAction(action);
@@ -140,7 +165,16 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
             const finalQtys = action === 'approved'
                 ? Object.fromEntries(Object.keys(localQtys).map(k => [k, selectedItems.has(k) ? localQtys[k] : {air: 0, sea: 0}]))
                 : localQtys;
-            await processApprovalAction(request.id, user.id, action, comment || undefined, finalQtys);
+            // Phase 3: pass dedicated reason; Phase 5: pass version for optimistic locking
+            const reason = action === 'rejected' ? rejectionReason : action === 'returned' ? returnReason : undefined;
+            const result = await processApprovalAction(
+                request.id, user.id, action, comment || undefined, finalQtys,
+                reason, request.version
+            );
+            if (!result.success && result.error) {
+                setCommentError(result.error);
+                return;
+            }
             onRefresh(); onClose();
         } catch (e) { console.error(e); } finally { setIsSubmitting(false); setSubmittingAction(null); }
     };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../utils/authContext';
+import { useApprovalAuth } from '../hooks/useApprovalAuth';
 import { ApprovalStatusBadge } from '../components/ApprovalStatusBadge';
 import { OrderReviewModal } from '../components/OrderReviewModal';
 import { Typography } from '../components/Typography';
@@ -18,7 +19,8 @@ type TabFilter = 'pending' | 'mine' | 'all';
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export const ApprovalQueue = () => {
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
+    const { hasApprovalRole, allowedLevels } = useApprovalAuth();
     const [activeTab, setActiveTab] = useState<TabFilter>('pending');
     const [requests, setRequests] = useState<ApprovalRequest[]>([]);
     const [usersMap, setUsersMap] = useState<Record<string, string>>({});
@@ -50,7 +52,7 @@ export const ApprovalQueue = () => {
         setIsLoading(true);
         try {
             let dataPromise;
-            if (activeTab === 'pending') dataPromise = fetchPendingForApprover(user.id);
+            if (activeTab === 'pending') dataPromise = fetchPendingForApprover(user.id, allowedLevels.length > 0 ? allowedLevels : undefined);
             else if (activeTab === 'mine') dataPromise = fetchMyRequests(user.id);
             else dataPromise = fetchAllRequests();
 
@@ -258,9 +260,23 @@ export const ApprovalQueue = () => {
                                Phê duyệt Đặt hàng
                            </h1>
                         </div>
-                        <p className="text-blue-100/70 font-bold ml-13 text-[10px] uppercase tracking-widest opacity-80">
-                            Executive Governance Dashboard
-                        </p>
+                        <div className="flex items-center gap-3 ml-[52px]">
+                            <Typography variant="body" className="text-blue-100/80 font-medium">
+                                Quản lý và phê duyệt các yêu cầu đặt hàng.
+                            </Typography>
+                            {hasApprovalRole && allowedLevels.length > 0 && (
+                                <span className="text-[10px] font-black bg-white/15 border border-white/20 px-2.5 py-1 rounded-lg text-blue-200 uppercase tracking-widest">
+                                    <i className="fas fa-shield-halved mr-1" />
+                                    Level {allowedLevels.join(', ')}
+                                </span>
+                            )}
+                            {profile?.department && (
+                                <span className="text-[10px] font-black bg-white/10 border border-white/15 px-2.5 py-1 rounded-lg text-blue-300 uppercase tracking-widest">
+                                    <i className="fas fa-building mr-1" />
+                                    {profile.department}
+                                </span>
+                            )}
+                        </div>
                     </div>
 
                     <div className="flex items-center gap-3">

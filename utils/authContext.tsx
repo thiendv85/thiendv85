@@ -14,6 +14,8 @@ export interface UserProfile {
     role: UserRole;
     is_active: boolean;
     created_at: string;
+    approval_levels: number[];    // which workflow levels this user can approve
+    department: string | null;    // user department for filtering
 }
 
 export interface AuthContextType {
