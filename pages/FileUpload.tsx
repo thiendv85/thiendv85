@@ -79,8 +79,8 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
 
                         return {
                             ...item,
-                            // Ưu tiên tổng từ file Master nếu nó lớn hơn 0
-                            Backorder: item.Backorder > 0 ? item.Backorder : totalBO,
+                            // Ưu tiên tổng từ file BO chi tiết nếu có
+                            Backorder: totalBO > 0 ? totalBO : item.Backorder,
                             Backorder_NB: boNB,
                             Backorder_BB: boBB,
                             BackorderBreakdown: details

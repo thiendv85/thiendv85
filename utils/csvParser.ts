@@ -104,7 +104,7 @@ export const parseDealerStockCSV = (text: string): Record<string, DealerDetail[]
         const row = parseLine(line, delimiter);
         if (row.length < 2) return;
 
-        const itemCode = row[idxCode]?.trim();
+        const itemCode = row[idxCode]?.trim()?.toUpperCase();
         const qty = parseFloat(row[idxQty]?.replace(/,/g, '') || '0');
         const branchName = idxBranch > -1 ? row[idxBranch]?.trim() : 'Unknown';
         const showroom = idxShowroom > -1 ? row[idxShowroom]?.trim() : branchName;
@@ -155,7 +155,7 @@ export const parseBackorderCSV = (text: string): Record<string, BackorderDetail[
         const row = parseLine(line, delimiter);
         if (row.length < headers.length && row.length < 2) return;
 
-        const itemCode = row[idxMap.ItemCode]?.trim();
+        const itemCode = row[idxMap.ItemCode]?.trim()?.toUpperCase();
         const qty = parseFloat(row[idxMap.Qty]?.replace(/,/g, '') || '0');
 
         if (itemCode && qty > 0) {

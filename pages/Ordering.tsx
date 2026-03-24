@@ -14,6 +14,7 @@ import { SupersessionWarning } from '../components/SupersessionWarning';
 import { SupersessionIndicator } from '../components/SupersessionIndicator';
 import { DebtStatusBadge } from '../components/DebtStatusBadge';
 import { ConsolidatedStockCell } from '../components/ConsolidatedStockCell';
+import { DealerStockPopup } from '../components/DealerStockPopup';
 import { AppSettings } from './Settings';
 import { computeInventory, computeInventoryBatch, makeComputeParams, resolveItemProfile, MOS_LOW_STOCK_THRESHOLD } from '../utils/inventoryEngine';
 import { Typography } from '../components/Typography';
@@ -204,6 +205,8 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                     totalPO_BB: item?.TotalPO_BB || 0,
                     backorder_NB: item?.Backorder_NB || 0,
                     backorder_BB: item?.Backorder_BB || 0,
+                    backorderBreakdown: item?.BackorderBreakdown || [],
+                    dealerBreakdown: item?.DealerBreakdown || [],
                     effectiveLT: profile?.lt ?? settings.params.lt ?? 90,
                 };
             }),
@@ -842,9 +845,11 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                             )}
                                         </td>
                                         <td className="px-4 py-3 text-center border-b border-slate-50">
-                                            <div className="text-sm font-black text-slate-800">{(item.DealerInventory || 0).toLocaleString()}</div>
                                             <div className="mt-1 flex flex-col items-center">
-                                                <div className={`text-sm font-black px-2 py-0.5 rounded-full transition-all duration-500 ${isCstImproved ? 'bg-blue-600 text-white border border-blue-700 scale-110' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
+                                                <DealerStockPopup items={item.DealerBreakdown || []}>
+                                                    <div className="text-sm font-black text-slate-800 cursor-help border-b border-dashed border-slate-300 inline-block">{(item.DealerInventory || 0).toLocaleString()}</div>
+                                                </DealerStockPopup>
+                                                <div className={`text-sm font-black px-2 py-0.5 rounded-full mt-1.5 transition-all duration-500 ${isCstImproved ? 'bg-blue-600 text-white border border-blue-700 scale-110' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
                                                     {demandMonthly <= 0 ? 'CST: ∞' : `CST: ${(displayCst || 0).toFixed(1)}`}
                                                 </div>
                                             </div>

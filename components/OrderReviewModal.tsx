@@ -5,6 +5,8 @@ import { StockProgressBar } from './StockProgressBar';
 import { SalesMomentum } from './SalesMomentum';
 import { TrendBadge } from './TrendBadge';
 import { SnapshotMatrix } from './SnapshotMatrix';
+import { BackorderPopup } from './BackorderPopup';
+import { DealerStockPopup } from './DealerStockPopup';
 import { useAuth } from '../utils/authContext';
 import { useApprovalAuth } from '../hooks/useApprovalAuth';
 import { processApprovalAction, unlockRequest } from '../utils/supabase';
@@ -737,7 +739,11 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
 
                                             <td className="px-3 py-2 text-right">
                                                 <div className="text-sm font-black text-slate-800">Tồn: {(ctx.available || 0).toLocaleString()}</div>
-                                                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wide mt-0.5">Đại lý: {(ctx.dealerInventory || 0).toLocaleString()}</div>
+                                                <DealerStockPopup items={ctx.dealerBreakdown || []}>
+                                                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wide mt-0.5 cursor-help border-b border-dashed border-slate-300 inline-block">
+                                                        Đại lý: {(ctx.dealerInventory || 0).toLocaleString()}
+                                                    </div>
+                                                </DealerStockPopup>
                                             </td>
 
                                             <td className="px-2 py-2 bg-rose-50/20 text-center border-x border-slate-100" onClick={e => e.stopPropagation()}>
@@ -841,6 +847,7 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                                         max={inspectingItem.stockMax || 1} ss={inspectingItem.safetyStock}
                                         onOrder={inspectingItem.totalPO} incoming={inspectingItem.incomingCurrentMonth}
                                         backorder={inspectingItem.backorder} 
+                                        breakdown={inspectingItem.backorderBreakdown || []}
                                         draftAdd={(localQtys[inspectingItem.itemCode]?.air || 0) + (localQtys[inspectingItem.itemCode]?.sea || 0)}
                                         baseFc={inspectingItem.baseForecast}
                                     />

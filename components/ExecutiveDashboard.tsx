@@ -293,7 +293,7 @@ export const ExecutiveDashboard = ({ filteredData, allData, onItemSelect, settin
                                         <td className="px-4 py-3 border-b border-slate-50">
                                             <div className="flex flex-col items-end">
                                                 <ConsolidatedStockCell item={item} allItems={inventorySource} graph={graph} />
-                                                <StockProgressBar current={item.computed?.available || 0} rop={item.computed?.rop || 0} max={item.computed?.isStopBiz ? 0 : (item.computed?.stockMax || 1)} ss={item.computed?.safetyStock} onOrder={item.TotalPO} incoming={incomingThisMonth} backorder={item.Backorder} backorderBreakdown={item.BackorderBreakdown} draftAdd={draftQty} baseFc={item.BaseForecast} />
+                                                <StockProgressBar current={item.computed?.available || 0} rop={item.computed?.rop || 0} max={item.computed?.isStopBiz ? 0 : (item.computed?.stockMax || 1)} ss={item.computed?.safetyStock} onOrder={item.TotalPO} incoming={incomingThisMonth} backorder={item.Backorder} breakdown={item.BackorderBreakdown} draftAdd={draftQty} baseFc={item.BaseForecast} />
                                             </div>
                                         </td>
 
