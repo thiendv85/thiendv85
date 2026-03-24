@@ -12,15 +12,23 @@ const CONFIG: Record<ApprovalStatus, { label: string; icon: string; cls: string 
 
 interface Props {
     status: ApprovalStatus;
-    size?: 'sm' | 'md';
+    size?: 'xs' | 'sm' | 'md';
 }
 
 export const ApprovalStatusBadge = ({ status, size = 'md' }: Props) => {
     const { label, icon, cls } = CONFIG[status] ?? CONFIG.pending;
-    const textSize = size === 'sm' ? 'text-[9px]' : 'text-[10px]';
+    
+    const sizeConfig = {
+        xs: 'text-[7px] px-1 py-0',
+        sm: 'text-[9px] px-2 py-0.5',
+        md: 'text-[10px] px-2 py-0.5'
+    };
+    
+    const sizeCls = sizeConfig[size];
+
     return (
-        <span className={`inline-flex items-center gap-1 border rounded-lg px-2 py-0.5 font-black uppercase tracking-widest ${textSize} ${cls}`}>
-            <i className={`fas ${icon} text-[8px]`} />
+        <span className={`inline-flex items-center gap-1 border rounded-md font-black uppercase tracking-widest ${sizeCls} ${cls}`}>
+            <i className={`fas ${icon} text-[7px]`} />
             {label}
         </span>
     );

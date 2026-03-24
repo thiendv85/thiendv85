@@ -22,15 +22,15 @@ export const Typography: React.FC<TypographyProps> = ({
     uppercase = false
 }) => {
     const variants: Record<TypographyVariant, string> = {
-        'h1': 'font-heading text-4xl font-black tracking-tight leading-tight',
-        'h2': 'font-heading text-3xl font-black tracking-tight leading-tight',
-        'h3': 'font-heading text-2xl font-extrabold leading-tight',
-        'body': 'font-sans text-base font-semibold',
-        'body-sm': 'font-sans text-sm font-semibold',
-        'label': 'font-sans text-xs font-black uppercase tracking-wider',
-        'label-muted': 'font-sans text-xs font-bold uppercase tracking-wider opacity-85',
-        'mono': 'font-mono text-sm font-bold',
-        'mono-sm': 'font-mono text-xs font-bold'
+        'h1': 'font-heading text-2xl font-black tracking-tight leading-tight',
+        'h2': 'font-heading text-xl font-black tracking-tight leading-tight',
+        'h3': 'font-heading text-lg font-extrabold leading-tight',
+        'body': 'font-sans text-sm font-semibold',
+        'body-sm': 'font-sans text-[13px] font-semibold',
+        'label': 'font-sans text-[10px] font-black uppercase tracking-wider',
+        'label-muted': 'font-sans text-[10px] font-bold uppercase tracking-wider opacity-85',
+        'mono': 'font-mono text-xs font-bold',
+        'mono-sm': 'font-mono text-[10px] font-bold'
     };
 
     // Không ép màu mặc định để Typography có thể kế thừa màu sắc từ parent (ví dụ: MetricCard)
