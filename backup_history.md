@@ -15,3 +15,4 @@
 | 2026-03-24 13:32 | Hoàn thiện Phase 1 & 2 Dashboard Phê duyệt: Bento-Grid, Filters, Bulk Actions & Toasts |
 | 2026-03-24 13:48 | Tối ưu hóa UI Approval Queue: Bento-Grid High-Density, Premium Rounded UI & Fix Lints |
 | 2026-03-24 15:10 | Fix Dashboard Stock Bar (prop mismatch) & CSV Backorder/Dealer Mapping (casing & priority) |
+| 2026-03-24 17:28 | Fix bug quy trình phê duyệt: Cho phép pending -> approved và cập nhật in_progress khi đủ điều kiện |

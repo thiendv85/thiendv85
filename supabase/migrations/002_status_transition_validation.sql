@@ -6,7 +6,7 @@ CREATE OR REPLACE FUNCTION validate_status_transition(
 ) RETURNS BOOLEAN AS $$
 BEGIN
   RETURN CASE p_current_status
-    WHEN 'pending'     THEN p_new_status IN ('in_progress', 'rejected', 'returned')
+    WHEN 'pending'     THEN p_new_status IN ('in_progress', 'rejected', 'returned', 'approved')
     WHEN 'in_progress' THEN p_new_status IN ('in_progress', 'approved', 'rejected', 'returned')
     WHEN 'approved'    THEN p_new_status IN ('unlocked')
     WHEN 'unlocked'    THEN p_new_status IN ('pending')

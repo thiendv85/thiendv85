@@ -433,10 +433,10 @@ export async function processApprovalAction(
 ): Promise<{ success: boolean; newStatus: ApprovalStatus; error?: string }> {
   // Look up request and workflow
   const request = await fetchRequestById(requestId);
-  if (!request) return { success: false, newStatus: 'pending', error: 'Request not found' };
+  if (!request) return { success: false, newStatus: 'pending', error: 'Không tìm thấy yêu cầu' };
   const { data: wfData } = await supabase.from('approval_workflows').select('*').eq('id', request.workflow_id).single();
   const workflow: ApprovalWorkflow | null = wfData ?? null;
-  if (!workflow) return { success: false, newStatus: request.status, error: 'Workflow not found' };
+  if (!workflow) return { success: false, newStatus: request.status, error: 'Không tìm thấy quy trình phê duyệt' };
 
   // Phase 5: Optimistic locking — check version matches
   if (expectedVersion !== undefined && request.version !== expectedVersion) {
@@ -451,16 +451,10 @@ export async function processApprovalAction(
   // Phase 4: Check approver is authorized for this level
   const currentLevelConfig = workflow.levels.find(l => l.level === request.current_level);
   if (action !== 'commented' && currentLevelConfig) {
-    // Check if actor is in the approver_ids for current level (skip for admin — handled in UI)
     if (!currentLevelConfig.approver_ids.includes(actorId)) {
-      // Allow if any of the actor's approval_levels match the request's current_level
-      // This is a soft check — the main gating is in the UI via useApprovalAuth
       console.warn(`Actor ${actorId} not in approver_ids for level ${request.current_level}, allowing via role-based access`);
     }
   }
-
-  // Determine the new status based on action
-  let newStatus: ApprovalStatus = request.status;
 
   // Phase 6: Build audit metadata
   const metadata: Record<string, unknown> = {
@@ -470,7 +464,7 @@ export async function processApprovalAction(
     version_after: nextVersion,
   };
 
-  // 1. Ghi action vào audit trail (Phase 6: with metadata)
+  // 1. Ghi action vào audit trail
   const { error: actionError } = await supabase.from('approval_actions').insert({
     request_id: request.id,
     level: request.current_level,
@@ -479,23 +473,22 @@ export async function processApprovalAction(
     comment: comment || null,
     metadata: { ...metadata, reason: reason || null },
   });
-  if (actionError) return { success: false, newStatus: request.status, error: 'Failed to record action' };
+  if (actionError) return { success: false, newStatus: request.status, error: 'Không thể ghi nhận hành động phê duyệt' };
 
   if (action === 'commented') return { success: true, newStatus: request.status };
 
   if (action === 'rejected') {
-    // Phase 3: Write rejection_reason
     const update: Record<string, unknown> = {
       status: 'rejected',
       version: nextVersion,
     };
     if (reason) update.rejection_reason = reason;
-    await supabase.from('approval_requests').update(update).eq('id', request.id);
+    const { error: updErr } = await supabase.from('approval_requests').update(update).eq('id', request.id);
+    if (updErr) return { success: false, newStatus: request.status, error: 'Lỗi khi từ chối đơn hàng: ' + updErr.message };
     return { success: true, newStatus: 'rejected' };
   }
 
   if (action === 'returned') {
-    // Phase 3: Write returned_reason
     const returnUpdate: Record<string, unknown> = {
       status: 'returned',
       current_level: 1,
@@ -508,12 +501,13 @@ export async function processApprovalAction(
         quantities: modifiedQuantities,
       };
     }
-    await supabase.from('approval_requests').update(returnUpdate).eq('id', request.id);
+    const { error: updErr } = await supabase.from('approval_requests').update(returnUpdate).eq('id', request.id);
+    if (updErr) return { success: false, newStatus: request.status, error: 'Lỗi khi trả lại đơn hàng: ' + updErr.message };
     return { success: true, newStatus: 'returned' };
   }
 
   // action === 'approved': kiểm tra xem level hiện tại đã đủ chưa
-  if (!currentLevelConfig) return { success: false, newStatus: request.status, error: 'Level config not found' };
+  if (!currentLevelConfig) return { success: false, newStatus: request.status, error: 'Không tìm thấy cấu hình cấp bậc' };
 
   let advance = false;
   if (!currentLevelConfig.require_all) {
@@ -529,9 +523,20 @@ export async function processApprovalAction(
     advance = currentLevelConfig.approver_ids.every(id => approvedIds.has(id));
   }
 
-  if (!advance) return { success: true, newStatus: 'in_progress' };
+  if (!advance) {
+    // Nếu chưa đủ người duyệt nhưng đang ở trạng thái pending, chuyển sang in_progress
+    if (request.status === 'pending') {
+      const { error: updErr } = await supabase
+        .from('approval_requests')
+        .update({ status: 'in_progress', version: nextVersion })
+        .eq('id', request.id);
+      if (updErr) return { success: false, newStatus: 'pending', error: 'Lỗi khi cập nhật trạng thái đơn hàng' };
+      return { success: true, newStatus: 'in_progress' };
+    }
+    return { success: true, newStatus: 'in_progress' };
+  }
 
-  // Tìm level tiếp theo (Phase 4: sequential, always +1)
+  // Tìm level tiếp theo
   const nextLevelConfig = workflow.levels.find(l => l.level === request.current_level + 1);
   if (nextLevelConfig) {
     const advanceUpdate: Record<string, unknown> = {
@@ -542,7 +547,8 @@ export async function processApprovalAction(
     if (modifiedQuantities) {
       advanceUpdate.snapshot_data = { ...request.snapshot_data, quantities: modifiedQuantities };
     }
-    await supabase.from('approval_requests').update(advanceUpdate).eq('id', request.id);
+    const { error: updErr } = await supabase.from('approval_requests').update(advanceUpdate).eq('id', request.id);
+    if (updErr) return { success: false, newStatus: request.status, error: 'Lỗi khi chuyển cấp bậc phê duyệt' };
     return { success: true, newStatus: 'in_progress' };
   } else {
     const approveUpdate: Record<string, unknown> = {
@@ -552,7 +558,8 @@ export async function processApprovalAction(
     if (modifiedQuantities) {
       approveUpdate.snapshot_data = { ...request.snapshot_data, quantities: modifiedQuantities };
     }
-    await supabase.from('approval_requests').update(approveUpdate).eq('id', request.id);
+    const { error: updErr } = await supabase.from('approval_requests').update(approveUpdate).eq('id', request.id);
+    if (updErr) return { success: false, newStatus: request.status, error: 'Lỗi khi phê duyệt đơn hàng: ' + updErr.message };
     return { success: true, newStatus: 'approved' };
   }
 }
