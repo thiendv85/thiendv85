@@ -12,3 +12,4 @@
 | 2026-03-23 09:25 | Backup công việc hiện tại và track thư mục .claude |
 | 2026-03-23 15:59 | Thêm tính năng duyệt đơn hàng theo từng dòng (Line-by-line Approval) trên OrderReviewModal |
 | 2026-03-23 22:50 | Tối ưu hóa bề ngang OrderReviewModal, thu gọn các cột để tránh scroll ngang |
+| 2026-03-24 13:32 | Hoàn thiện Phase 1 & 2 Dashboard Phê duyệt: Bento-Grid, Filters, Bulk Actions & Toasts |
