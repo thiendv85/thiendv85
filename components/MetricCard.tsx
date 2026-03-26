@@ -1,8 +1,8 @@
-﻿
+
 import React from 'react';
 import { Typography } from './Typography';
 
-// Modern Gradient Palette Map
+// Modern Gradient Palette Map aligned with ATP Design Tokens
 const styleConfig = {
   blue: {
     iconBg: 'bg-white/10 shadow-lg shadow-slate-900/10',
@@ -12,8 +12,9 @@ const styleConfig = {
     cardGlow: 'shadow-glow-blue',
     valueText: 'text-white',
     labelText: 'text-[#F5F5F5]',
-    subText: 'text-[#E0E0E0]',
-    accentLine: 'bg-blue-400/50',
+    subText: 'text-[#E2E8F0]',
+    accentLine: 'bg-atp-accent/50',
+    innerGlow: 'shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]',
   },
   emerald: {
     iconBg: 'bg-white/10 shadow-lg shadow-slate-900/10',
@@ -23,8 +24,9 @@ const styleConfig = {
     cardGlow: 'shadow-glow-emerald',
     valueText: 'text-white',
     labelText: 'text-[#F5F5F5]',
-    subText: 'text-[#E0E0E0]',
+    subText: 'text-[#E2E8F0]',
     accentLine: 'bg-emerald-400/50',
+    innerGlow: 'shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]',
   },
   rose: {
     iconBg: 'bg-white/10 shadow-lg shadow-slate-900/10',
@@ -34,8 +36,9 @@ const styleConfig = {
     cardGlow: 'shadow-glow-rose',
     valueText: 'text-white',
     labelText: 'text-[#F5F5F5]',
-    subText: 'text-[#E0E0E0]',
+    subText: 'text-[#E2E8F0]',
     accentLine: 'bg-rose-400/50',
+    innerGlow: 'shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]',
   },
   amber: {
     iconBg: 'bg-white/10 shadow-lg shadow-slate-900/10',
@@ -45,19 +48,21 @@ const styleConfig = {
     cardGlow: 'shadow-glow-amber',
     valueText: 'text-white',
     labelText: 'text-[#F5F5F5]',
-    subText: 'text-[#E0E0E0]',
+    subText: 'text-[#E2E8F0]',
     accentLine: 'bg-amber-400/50',
+    innerGlow: 'shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]',
   },
   slate: {
-    iconBg: 'bg-white/10 shadow-lg shadow-slate-900/10',
-    cardBg: 'bg-gradient-slate border-white/10',
+    iconBg: 'bg-white/20 shadow-lg shadow-slate-900/10',
+    cardBg: 'bg-atp-secondary border-white/10',
     cardBorder: 'border-white/10',
     cardHoverBorder: 'group-hover:border-white/30',
     cardGlow: 'shadow-glass',
     valueText: 'text-white',
-    labelText: 'text-[#F5F5F5]',
-    subText: 'text-[#E0E0E0]',
+    labelText: 'text-slate-100',
+    subText: 'text-slate-300',
     accentLine: 'bg-slate-400/50',
+    innerGlow: 'shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]',
   },
   professional: {
     iconBg: 'bg-white/10 shadow-lg shadow-slate-900/20',
@@ -67,8 +72,9 @@ const styleConfig = {
     cardGlow: 'shadow-glow-blue',
     valueText: 'text-white',
     labelText: 'text-[#F5F5F5]',
-    subText: 'text-[#E0E0E0]',
-    accentLine: 'bg-slate-400/50',
+    subText: 'text-[#E2E8F0]',
+    accentLine: 'bg-atp-accent/50',
+    innerGlow: 'shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]',
   },
 };
 
@@ -101,7 +107,7 @@ export const MetricCard = ({ label, value, subValue, icon, color = 'slate', onCl
       onClick={onClick}
       className={`
         group relative p-4 rounded-2xl border transition-all duration-300 overflow-hidden backdrop-blur-md
-        ${style.cardBg} ${style.cardGlow}
+        ${style.cardBg} ${style.cardGlow} ${style.innerGlow}
         ${isActive
           ? 'ring-2 ring-white/50 translate-y-[-2px] border-white/40'
           : 'border-white/10 hover:border-white/20 hover:translate-y-[-2px] shadow-glass'}

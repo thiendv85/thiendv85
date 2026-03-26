@@ -41,7 +41,11 @@ Dưới đây là tổng hợp danh sách các file Markdown (Ghi chú, Kỹ nă
 
 - 🕰️ **[Nhật ký Sao lưu (Backup History)](../../../backup_history.md)**
   - **Đường dẫn:** `backup_history.md` (Thư mục gốc)
-  - **Nội dung:** Một bảng log cực trực quan chứa tất cả những mốc push code lịch sử. (Bao gồm cả dòng log vừa được lưu chiều nay: *"Fix lỗi Gợi ý đặt hàng bị đè số, chỉnh formula cột RUNWAY và cập nhật nhãn Source ID cho Dashboard/Order"*).
+  - **Nội dung:** Một bảng log chứa các mốc push code lịch sử.
+
+- 🎨 **Lịch sử Nâng cấp UI Dashboard VIP (2026-03)**
+  - **[Task List](history/task-ui-refinement-2026-03.md)** | **[Kế hoạch](history/plan-ui-refinement-2026-03.md)** | **[Walkthrough](history/walkthrough-ui-refinement-2026-03.md)**
+  - **Nội dung:** Chi tiết quá trình nâng cấp giao diện 3D Button và Glassmorphism cho Dashboard.
 
 ---
 > 💡 **Mẹo:** Từ màn hình này, anh có thể dùng `Ctrl + Click` vào đường dẫn để mở thẳng file ra xem nhé! Thay vì ghi nhớ thư mục lòng vòng, mình sẽ dùng cái "Mục lục" này để đi tới mọi nơi.

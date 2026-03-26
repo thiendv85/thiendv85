@@ -22,6 +22,13 @@ import { ApprovalQueue } from './pages/ApprovalQueue';
 import { Typography } from './components/Typography';
 import { resolveItemProfile } from './utils/inventoryEngine';
 import { loadFromCloudStorage, loadLatestMonthlyData } from './utils/supabase';
+import { 
+    cacheMonthlyData, 
+    getCachedMonthlyData, 
+    cacheUploadedData, 
+    getCachedUploadedData, 
+    clearCachedUploadedData 
+} from './utils/db';
 
 const AppContent = () => {
     const [data, setData] = useState<InventoryItem[]>([]);
@@ -74,10 +81,26 @@ const AppContent = () => {
 
                 // Load monthly coefficient data (File B)
                 setIsMonthlyLoading(true);
-                const monthly = await loadLatestMonthlyData();
-                if (monthly?.data) {
+
+                // Try loading from cache first
+                const cachedMonthly = await getCachedMonthlyData();
+                let lastTimestamp: string | undefined = undefined;
+
+                if (cachedMonthly) {
+                    setMonthlyData(cachedMonthly.data);
+                    setMonthlyDataDate(cachedMonthly.date);
+                    lastTimestamp = cachedMonthly.updatedAt;
+                    setIsMonthlyLoading(false);
+                }
+
+                const monthly = await loadLatestMonthlyData(lastTimestamp);
+                
+                if (monthly && !monthly.isUpToDate && monthly.data) {
+                    const updatedAtDate = monthly.updatedAt.slice(0, 10);
+                    // Update state and cache
                     setMonthlyData(monthly.data);
-                    setMonthlyDataDate(monthly.updatedAt.slice(0, 10));
+                    setMonthlyDataDate(updatedAtDate);
+                    await cacheMonthlyData(monthly.data, updatedAtDate, monthly.updatedAt);
                 }
                 setIsMonthlyLoading(false);
             } catch (err) {
@@ -159,7 +182,11 @@ const AppContent = () => {
         const lt = profile?.lt ?? 90;
         const sp = profile?.sp ?? 30;
         const ssp = profile?.ssp ?? 15;
-        setInitialParams({ lt, sp, ssp });
+        const params = { lt, sp, ssp };
+        setInitialParams(params);
+
+        // Persistent cache for uploaded data
+        cacheUploadedData(uploadedData, params);
 
         // Reset page states to ensure clean initialization with new data
         pageStates.current = {
@@ -183,6 +210,7 @@ const AppContent = () => {
         setSelectedItem(null);
         setView('upload');
         setInitialParams(undefined);
+        clearCachedUploadedData(); // Clear cache when explicitly exiting
     };
 
     const handleNavigateToPackage = (code: string) => {
@@ -204,6 +232,19 @@ const AppContent = () => {
         const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') handleCloseDetail(); };
         window.addEventListener('keydown', handleEsc);
         return () => window.removeEventListener('keydown', handleEsc);
+    }, []);
+
+    // Load cached uploaded data on startup
+    useEffect(() => {
+        const restoreData = async () => {
+            const cached = await getCachedUploadedData();
+            if (cached && cached.data && cached.data.length > 0) {
+                setData(cached.data);
+                setInitialParams(cached.params);
+                setView('dashboard');
+            }
+        };
+        restoreData();
     }, []);
 
     const handleSaveSsMapping = (oldPart: string, newPart: string, interchangeable: boolean) => {

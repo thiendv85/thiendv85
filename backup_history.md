@@ -16,3 +16,4 @@
 | 2026-03-24 13:48 | Tối ưu hóa UI Approval Queue: Bento-Grid High-Density, Premium Rounded UI & Fix Lints |
 | 2026-03-24 15:10 | Fix Dashboard Stock Bar (prop mismatch) & CSV Backorder/Dealer Mapping (casing & priority) |
 | 2026-03-24 17:28 | Fix bug quy trình phê duyệt: Cho phép pending -> approved và cập nhật in_progress khi đủ điều kiện |
+| 2026-03-26 09:45 | Nâng cấp toàn diện giao diện Vibrant Premium: Glassmorphism, 3D Segment Badges, Thống nhất ATP Palette & Sơ đồ Logic/Architecture |

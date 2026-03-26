@@ -1,4 +1,4 @@
-﻿
+
 import React, { useMemo, useState, useEffect } from 'react';
 import { InventoryItem, DashboardSettings, InventoryFilters, DEFAULT_FILTERS, COST_RANGES, FOB_COST_RANGES, getDebtStatus, OrderingDraft } from '../types/inventory';
 import { FilterPanel } from '../components/FilterPanel';
@@ -260,13 +260,28 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
         const excessOk = targetExcess ? excessPct <= targetExcess : null;
 
         return (
-            <tr key={label} onClick={() => !isHeader && subKeys.length === 1 && setSelectedSubgroup(isActive ? null : subKeys[0])} className={`${isHeader ? 'bg-slate-50/50' : (isActive ? 'bg-blue-50' : 'bg-white hover:bg-slate-50/50')} border-b border-slate-100 transition-all cursor-pointer text-sm hover:translate-x-1 duration-200`}>
-                <td className={`px-3 py-2 border-r border-slate-100 ${isHeader ? 'text-slate-900' : 'text-slate-700 font-bold'}`}>
+            <tr key={label} onClick={() => !isHeader && subKeys.length === 1 && setSelectedSubgroup(isActive ? null : subKeys[0])} className={`${isHeader ? 'bg-slate-50/50 uppercase tracking-widest' : (isActive ? 'bg-blue-50/80 shadow-inner' : 'bg-white hover:bg-slate-50/80')} border-b border-slate-100 transition-all cursor-pointer text-sm hover:translate-x-1 duration-200`}>
+                <td className={`px-3 py-2 border-r border-slate-100 ${isHeader ? 'text-slate-900 font-black' : 'text-slate-700'}`}>
                     <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
-                        {isHeader && groupColor && <div className={`w-1.5 h-3 ${groupColor} rounded-full shadow-sm flex-shrink-0`}></div>}
-                        <Typography variant={isHeader ? "body" : "body-sm"} className={`${isHeader ? "font-bold" : "font-semibold"} truncate`}>
-                            {label} {!isHeader && SUBGROUP_DESC[label] && <span className="text-slate-400 font-normal ml-1.5 text-[10px] tracking-tight">— {SUBGROUP_DESC[label]}</span>}
-                        </Typography>
+                        {isHeader ? (
+                            <>
+                                <div className={`w-1.5 h-3.5 ${groupColor} rounded-full shadow-sm flex-shrink-0`}></div>
+                                <Typography variant="body" className="font-black truncate">
+                                    {label}
+                                </Typography>
+                            </>
+                        ) : (
+                            <div className={`segment-pill ${
+                                row.noStock > 0 ? 'segment-pill-alert' : 
+                                row.short > 0 ? 'segment-pill-warning' : 
+                                'segment-pill-success'
+                            }`}>
+                                {label}
+                            </div>
+                        )}
+                        {!isHeader && SUBGROUP_DESC[label] && (
+                            <span className="text-slate-400 font-bold ml-1.5 text-[9px] tracking-tight truncate opacity-70">— {SUBGROUP_DESC[label]}</span>
+                        )}
                     </div>
                 </td>
                 <td className="px-3 py-1.5 text-right font-bold text-slate-800">

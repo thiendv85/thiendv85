@@ -172,7 +172,7 @@ export async function saveMonthlyData(monthlyMap: Record<string, any>): Promise<
  * Finds the most recent snapshot_month, loads all rows for it,
  * rebuilds a Record<ItemCode, MonthlyData> map in memory.
  */
-export async function loadLatestMonthlyData(): Promise<{ data: Record<string, any>; updatedAt: string } | null> {
+export async function loadLatestMonthlyData(lastUpdatedAt?: string | null): Promise<{ data: Record<string, any>; updatedAt: string; isUpToDate?: boolean } | null> {
   try {
     // Step 1: Find the latest snapshot_month
     const { data: monthRows, error: mErr } = await supabase
@@ -184,6 +184,12 @@ export async function loadLatestMonthlyData(): Promise<{ data: Record<string, an
     if (mErr || !monthRows || monthRows.length === 0) return null;
     const latestMonth = monthRows[0].snapshot_month as string;
     const updatedAt = monthRows[0].updated_at as string;
+
+    // Phase: Version Check Optimization
+    // If client provides a timestamp and it matches current Cloud timestamp, skip downloading 80k rows.
+    if (lastUpdatedAt && updatedAt === lastUpdatedAt) {
+        return { data: {}, updatedAt, isUpToDate: true };
+    }
 
     // Step 2: Load all rows for that month in pages of 1000
     const result: Record<string, any> = {};

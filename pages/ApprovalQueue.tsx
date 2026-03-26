@@ -550,7 +550,7 @@ export const ApprovalQueue = () => {
             {/* ═══ 4. FLOATING BULK ACTION BAR ═══════════════════════════════ */}
             {selectedIds.size > 0 && (
                 <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 animate-bounceIn">
-                    <div className="bg-slate-900/90 backdrop-blur-2xl px-8 py-5 rounded-[40px] border border-white/20 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] flex items-center gap-10">
+                    <div className="glass-premium px-8 py-5 rounded-[40px] border border-white/20 shadow-2xl flex items-center gap-10">
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-black text-xl shadow-lg ring-4 ring-blue-500/30">
                                 {selectedIds.size}
@@ -617,21 +617,22 @@ export const ApprovalQueue = () => {
 
 const StatCard = ({ label, value, icon, color }: { label: string; value: number; icon: string; color: string }) => {
     const colors: Record<string, string> = {
-        blue: 'from-blue-500 to-blue-600 shadow-blue-500/20',
-        amber: 'from-amber-400 to-amber-500 shadow-amber-500/20',
-        indigo: 'from-indigo-500 to-indigo-600 shadow-indigo-500/20',
-        emerald: 'from-emerald-500 to-emerald-600 shadow-emerald-500/20',
-        rose: 'from-rose-500 to-rose-600 shadow-rose-500/20'
+        blue: 'from-atp-primary to-[#2e3b4e] shadow-blue-900/10 border-white/10',
+        amber: 'from-amber-500 to-amber-600 shadow-amber-900/10 border-white/10',
+        indigo: 'from-indigo-600 to-atp-secondary shadow-indigo-900/10 border-white/10',
+        emerald: 'from-emerald-600 to-atp-success shadow-emerald-900/10 border-white/10',
+        rose: 'from-rose-600 to-atp-action shadow-rose-900/10 border-white/10'
     };
     
     return (
-        <div className={`bg-gradient-to-br ${colors[color]} rounded-3xl py-4 px-6 text-white shadow-lg transition-all hover:scale-[1.03] duration-300 relative overflow-hidden group`}>
-            <div className="absolute top-0 right-0 p-4 opacity-15 group-hover:opacity-25 transition-opacity">
-                <i className={`fas ${icon} text-3xl transform rotate-12`}></i>
+        <div className={`bg-gradient-to-br ${colors[color]} rounded-3xl py-4 px-6 text-white shadow-lg transition-all hover:scale-[1.03] duration-300 relative overflow-hidden group border shadow-premium`}>
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-25 transition-opacity pointer-events-none">
+                <div className="w-16 h-16 bg-white/20 rounded-full blur-2xl absolute -top-8 -right-8" />
+                <i className={`fas ${icon} text-3xl transform rotate-12 transition-transform group-hover:rotate-0 duration-500`}></i>
             </div>
             <div className="relative z-10">
-                <div className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1.5">{label}</div>
-                <div className="text-2xl font-black drop-shadow-sm leading-none">{value}</div>
+                <div className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-1.5">{label}</div>
+                <div className="text-2xl font-black drop-shadow-md leading-none">{value}</div>
             </div>
         </div>
     );

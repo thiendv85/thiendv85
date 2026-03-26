@@ -333,7 +333,7 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 sm:p-2 md:p-3 overflow-hidden">
             {/* Backdrop with blur */}
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md transition-all duration-500 opacity-100" onClick={onClose} />
             
             {/* Main Modal Container — Styled like SkuDetail but maximized */}
             <div className="relative w-full max-w-[1850px] h-[98vh] bg-white rounded-t-[32px] sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fadeIn border border-white/20">
@@ -449,7 +449,7 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                 <div className="shrink-0 flex flex-col border-b border-slate-200 bg-white shadow-sm z-20">
                     
                     {/* Upper Row: Tabs & General Actions */}
-                    <div className="flex items-center justify-between px-4 py-2 bg-slate-50/50 border-b border-slate-100 gap-4">
+                    <div className="flex items-center justify-between px-4 py-2 bg-slate-50/80 backdrop-blur-md border-b border-slate-100 gap-4">
                         {/* Tabs */}
                         <div className="flex bg-slate-100/50 p-1 rounded-xl gap-1 shrink-0 border border-slate-200/60">
                             {[
@@ -635,7 +635,7 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
 
 
                     {/* Table title bar */}
-                    <div className="px-4 py-2.5 bg-white border-b border-slate-200 flex items-center justify-between shrink-0 gap-3">
+                    <div className="px-4 py-2.5 bg-slate-50/40 backdrop-blur-sm border-b border-slate-200 flex items-center justify-between shrink-0 gap-3">
                         <div className="flex items-center gap-2.5 shrink-0">
                             <span className="text-sm font-black text-slate-500 uppercase tracking-widest">Chi tiết đặt hàng</span>
                             <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">{rows.length} mã</span>
@@ -698,7 +698,7 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                                     return (
                                         <tr key={ctx.itemCode}
                                             onClick={() => setInspectingItem(ctx)}
-                                            className={`transition-all group cursor-pointer border-b border-slate-50 hover:bg-blue-50/20 ${!isSelected ? 'opacity-40 grayscale-[0.5]' : changed ? 'bg-amber-50/10' : ''}`}>
+                                            className={`transition-all duration-300 group cursor-pointer border-b border-slate-50 hover:bg-blue-50/40 ${!isSelected ? 'opacity-40 grayscale-[0.5]' : changed ? 'bg-amber-50/10' : ''}`}>
                                             
                                             <td className="px-3 py-3 text-center sticky left-0 z-10 bg-inherit" onClick={e => e.stopPropagation()}>
                                                 <div className="flex flex-col items-center gap-1">
