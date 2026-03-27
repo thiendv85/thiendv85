@@ -1,8 +1,10 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { InventoryItem, MonthlyData } from '../types/inventory';
 import { parseCSV, parseDealerStockCSV, parseBackorderCSV } from '../utils/csvParser';
 import { useLanguage } from '../utils/i18n';
+import { uploadSnapshot, listSnapshots, loadSnapshot, deleteSnapshot, getStorageUsage, SnapshotMetadataRow } from '../utils/supabase';
+import { useAuth } from '../utils/authContext';
 
 
 export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataDate }: {
@@ -17,11 +19,62 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
     const [isLoading, setIsLoading] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
 
+    // Auth
+    const { profile } = useAuth();
+
+    // Cloud snapshot states
+    const [mode, setMode] = useState<'upload' | 'history'>('upload');
+    const [snapshots, setSnapshots] = useState<SnapshotMetadataRow[]>([]);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+    const [loadingSnapshotId, setLoadingSnapshotId] = useState<string | null>(null);
+    const [uploadStatus, setUploadStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+    const [storageUsed, setStorageUsed] = useState(0);
 
     const mainInputRef = useRef<HTMLInputElement>(null);
     const dealerInputRef = useRef<HTMLInputElement>(null);
     const boInputRef = useRef<HTMLInputElement>(null);
     const { t } = useLanguage();
+
+    // Auto-clear upload status toast after 5s
+    useEffect(() => {
+        if (uploadStatus) {
+            const timer = setTimeout(() => setUploadStatus(null), 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [uploadStatus]);
+
+    // Fetch snapshots when switching to history mode
+    useEffect(() => {
+        if (mode === 'history') fetchSnapshots();
+    }, [mode]);
+
+    const fetchSnapshots = async () => {
+        setIsLoadingHistory(true);
+        const brandFilter = profile?.role === 'admin' ? null : (profile?.department || null);
+        const list = await listSnapshots(50, brandFilter);
+        setSnapshots(list);
+        const usage = await getStorageUsage();
+        setStorageUsed(usage.usedBytes);
+        setIsLoadingHistory(false);
+    };
+
+    const handleLoadSnapshot = async (snap: SnapshotMetadataRow) => {
+        setLoadingSnapshotId(snap.id);
+        const data = await loadSnapshot(snap.storage_path);
+        setLoadingSnapshotId(null);
+        if (data && data.length > 0) {
+            onData(data, snap.filename, '');
+        } else {
+            alert('Không thể tải snapshot. Vui lòng thử lại.');
+        }
+    };
+
+    const handleDeleteSnapshot = async (snap: SnapshotMetadataRow) => {
+        if (!confirm(`Xóa snapshot "${snap.filename}" (${snap.row_count.toLocaleString()} SKUs)?`)) return;
+        const ok = await deleteSnapshot(snap.id, snap.storage_path);
+        if (ok) setSnapshots(prev => prev.filter(s => s.id !== snap.id));
+        else alert('Lỗi khi xóa snapshot.');
+    };
 
     const handleMainFileDrop = (e: React.DragEvent) => {
         e.preventDefault();
@@ -36,6 +89,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
     const processFiles = async () => {
         if (!mainFile) return;
         setIsLoading(true);
+        setUploadStatus(null);
 
         const readFile = (file: File) => new Promise<string>((resolve) => {
             const reader = new FileReader();
@@ -72,14 +126,11 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                     if (details && details.length > 0) {
                         const totalBO = details.reduce((sum, d) => sum + d.Qty, 0);
 
-                        // CẢI TIẾN: Chỉ ghi đè số lượng kho nếu giá trị từ file Master là 0
-                        // Nếu Master đã có số (vd: 20), chúng ta giữ 20 và chỉ thêm breakdown chi tiết.
                         const boNB = (item.Backorder_NB > 0) ? item.Backorder_NB : details.filter(d => d.Warehouse && (d.Warehouse.includes('NB') || d.Warehouse.includes('Nam'))).reduce((s, d) => s + d.Qty, 0);
                         const boBB = (item.Backorder_BB > 0) ? item.Backorder_BB : details.filter(d => d.Warehouse && (d.Warehouse.includes('BB') || d.Warehouse.includes('Bắc'))).reduce((s, d) => s + d.Qty, 0);
 
                         return {
                             ...item,
-                            // Ưu tiên tổng từ file BO chi tiết nếu có
                             Backorder: totalBO > 0 ? totalBO : item.Backorder,
                             Backorder_NB: boNB,
                             Backorder_BB: boBB,
@@ -91,7 +142,21 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
             }
 
             if (inventoryData.length > 0) {
+                // Phân tích ngay (không chờ upload)
                 onData(inventoryData, mainFile.name, '');
+
+                // Upload cloud song song (non-blocking)
+                uploadSnapshot(inventoryData, mainFile.name).then(result => {
+                    if (result.deduplicated) {
+                        setUploadStatus({ type: 'success', msg: 'Dữ liệu đã tồn tại trên Cloud (bỏ qua upload trùng)' });
+                    } else if (result.success) {
+                        setUploadStatus({ type: 'success', msg: `Đã lưu ${inventoryData.length.toLocaleString()} SKUs lên Cloud` });
+                    } else {
+                        setUploadStatus({ type: 'error', msg: `Cảnh báo: Không thể lưu bản sao lên Cloud. ${result.error || ''}` });
+                    }
+                }).catch(() => {
+                    setUploadStatus({ type: 'error', msg: 'Cảnh báo: Đã nạp dữ liệu nhưng không thể lưu bản sao lên Cloud' });
+                });
             } else {
                 alert("Không tìm thấy dữ liệu hợp lệ trong file chính.");
             }
@@ -107,6 +172,18 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
     const onDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
     const onDragLeave = () => setIsDragging(false);
 
+    const formatFileSize = (bytes: number | null) => {
+        if (!bytes) return '—';
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    };
+
+    const formatDate = (dateStr: string) => {
+        const d = new Date(dateStr);
+        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    };
+
     return (
         <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-slate-900 font-sans selection:bg-blue-500/30">
 
@@ -117,11 +194,22 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                     alt="Auto Parts Background"
                     className="w-full h-full object-cover opacity-60 mix-blend-overlay"
                 />
-                {/* Enhanced Gradient Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-slate-900/95 to-slate-900/70"></div>
-                {/* Subtle Grid Pattern Overlay */}
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:32px_32px]"></div>
             </div>
+
+            {/* Upload Status Toast */}
+            {uploadStatus && (
+                <div className={`fixed top-6 right-6 z-50 px-5 py-3 rounded-xl border backdrop-blur-xl shadow-2xl flex items-center gap-3 animate-fadeIn text-sm font-bold ${
+                    uploadStatus.type === 'success'
+                        ? 'bg-emerald-500/20 border-emerald-400/40 text-emerald-300'
+                        : 'bg-amber-500/20 border-amber-400/40 text-amber-300'
+                }`}>
+                    <i className={`fas ${uploadStatus.type === 'success' ? 'fa-cloud-arrow-up' : 'fa-triangle-exclamation'}`} />
+                    <span>{uploadStatus.msg}</span>
+                    <button onClick={() => setUploadStatus(null)} className="ml-2 opacity-60 hover:opacity-100"><i className="fas fa-times" /></button>
+                </div>
+            )}
 
             {/* 2. GLASS CONTENT LAYER */}
             <div className="relative z-10 w-full max-w-6xl p-6 md:p-12 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
@@ -180,7 +268,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
 
                 {/* Right Column: Upload Card */}
                 <div className="lg:col-span-5 animate-fadeIn" style={{ animationDelay: '0.2s' }}>
-                    <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] relative overflow-hidden group">
+                    <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] relative overflow-hidden group min-h-[460px]">
                         {/* Decorative Glow */}
                         <div className="absolute -top-32 -right-32 w-80 h-80 bg-blue-500/20 rounded-full blur-[80px] group-hover:bg-blue-500/30 transition-all duration-1000 pointer-events-none"></div>
                         <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-purple-500/20 rounded-full blur-[80px] group-hover:bg-purple-500/30 transition-all duration-1000 pointer-events-none"></div>
@@ -192,135 +280,247 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                         <span className="w-1.5 h-6 bg-gradient-to-b from-blue-400 to-purple-400 rounded-full"></span>
                                         Nhập Dữ Liệu
                                     </h3>
-                                    <p className="text-slate-400 text-xs font-medium mt-1 pl-3.5">Tải lên file snapshot tồn kho (.csv)</p>
+                                    <p className="text-slate-400 text-xs font-medium mt-1 pl-3.5">
+                                        {mode === 'upload' ? 'Tải lên file snapshot tồn kho (.csv)' : 'Truy xuất bản sao lưu từ Cloud'}
+                                    </p>
                                 </div>
                                 {/* Monthly Data Badge */}
-                                {isMonthlyLoading ? (
-                                    <div className="flex items-center gap-1.5 bg-blue-500/20 border border-blue-400/40 text-blue-300 px-2.5 py-1 rounded-lg text-xs font-bold animate-pulse">
-                                        <i className="fas fa-sync fa-spin" />
-                                        <span>Đang đồng bộ...</span>
-                                    </div>
-                                ) : monthlyData ? (
-                                    <div className="flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 px-2.5 py-1 rounded-lg text-xs font-bold">
-                                        <i className="fas fa-calendar-check" />
-                                        <span>Dữ liệu Tháng: {monthlyDataDate ? monthlyDataDate.split('-').reverse().join('/') : 'OK'}</span>
-                                    </div>
-                                ) : (
-                                    <div title="Vào Settings → Hệ thống → Upload File Monthly để kích hoạt" className="flex items-center gap-1.5 bg-amber-500/20 border border-amber-400/40 text-amber-300 px-2.5 py-1 rounded-lg text-xs font-bold cursor-help">
-                                        <i className="fas fa-triangle-exclamation" />
-                                        <span>Chưa có d/l tháng</span>
-                                      </div>
+                                {mode === 'upload' && (
+                                    isMonthlyLoading ? (
+                                        <div className="flex items-center gap-1.5 bg-blue-500/20 border border-blue-400/40 text-blue-300 px-2.5 py-1 rounded-lg text-xs font-bold animate-pulse">
+                                            <i className="fas fa-sync fa-spin" />
+                                            <span>Đang đồng bộ...</span>
+                                        </div>
+                                    ) : monthlyData ? (
+                                        <div className="flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 px-2.5 py-1 rounded-lg text-xs font-bold">
+                                            <i className="fas fa-calendar-check" />
+                                            <span>Dữ liệu Tháng: {monthlyDataDate ? monthlyDataDate.split('-').reverse().join('/') : 'OK'}</span>
+                                        </div>
+                                    ) : (
+                                        <div title="Vào Settings → Hệ thống → Upload File Monthly để kích hoạt" className="flex items-center gap-1.5 bg-amber-500/20 border border-amber-400/40 text-amber-300 px-2.5 py-1 rounded-lg text-xs font-bold cursor-help">
+                                            <i className="fas fa-triangle-exclamation" />
+                                            <span>Chưa có d/l tháng</span>
+                                        </div>
+                                    )
                                 )}
                             </div>
 
-                            <div className="space-y-4">
-                                {/* Main Input Field */}
-                                <div
-                                    onDragOver={onDragOver}
-                                    onDragLeave={onDragLeave}
-                                    onDrop={handleMainFileDrop}
-                                    onClick={() => !isMonthlyLoading && mainInputRef.current?.click()}
-                                    className={`
-                                  relative w-full h-24 rounded-2xl border-2 border-dashed transition-all cursor-pointer flex items-center px-6 group overflow-hidden
-                                  ${isDragging
-                                            ? 'bg-blue-500/20 border-blue-400 shadow-[0_0_30px_rgba(59,130,246,0.3)] scale-[1.02]'
-                                            : mainFile
-                                                ? 'bg-emerald-500/10 border-emerald-500/50'
-                                                : isMonthlyLoading 
-                                                    ? 'bg-blue-500/5 border-blue-500/20 cursor-wait opacity-60'
-                                                    : 'bg-black/20 border-white/10 hover:border-blue-400/50 hover:bg-black/30'}
-                              `}
-                                >
-                                    <div className="flex-1 flex items-center gap-5 relative z-10">
-                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-all shadow-lg ${mainFile ? 'bg-gradient-emerald text-white' : isMonthlyLoading ? 'bg-blue-900/40 text-blue-400' : 'bg-white/10 border border-white/10 text-slate-400 group-hover:bg-gradient-blue group-hover:text-white'}`}>
-                                            <i className={`fas ${isMonthlyLoading ? 'fa-sync fa-spin text-xl' : mainFile ? 'fa-check text-2xl' : 'fa-cloud-arrow-up text-2xl'}`}></i>
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <span className={`text-2xs font-black uppercase tracking-widest mb-1 ${isMonthlyLoading ? 'text-blue-400' : mainFile ? 'text-emerald-400' : 'text-blue-300'}`}>
-                                                {isMonthlyLoading 
-                                                    ? 'Đang tải dữ liệu nguồn B...' 
-                                                    : mainFile ? 'Sẵn sàng phân tích' : 'Dữ liệu chính'}
-                                            </span>
-                                            <span className={`text-sm font-bold truncate transition-colors ${mainFile ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
-                                                {isMonthlyLoading ? "Vui lòng đợi 10-20s để đồng bộ 80k mã..." : mainFile ? mainFile.name : "Kéo thả file Inventory tại đây..."}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <input type="file" ref={mainInputRef} className="hidden" accept=".csv" onChange={(e) => !isMonthlyLoading && e.target.files && setMainFile(e.target.files[0])} />
-                                </div>
-
-                                {/* Optional Inputs Grid */}
-                                <div className="grid grid-cols-2 gap-3">
-                                    {/* Dealer Stock */}
-                                    <div
-                                        onClick={() => dealerInputRef.current?.click()}
-                                        className={`h-16 rounded-xl border flex items-center px-4 cursor-pointer transition-all relative overflow-hidden group
-                                      ${dealerFile
-                                                ? 'bg-blue-500/10 border-blue-500/50'
-                                                : 'bg-black/20 border-white/10 hover:border-blue-400/30 hover:bg-black/30'}
-                                  `}
-                                    >
-                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-3 transition-all ${dealerFile ? 'bg-blue-500 text-white shadow-lg' : 'bg-white/5 text-slate-400 group-hover:bg-white/10 group-hover:text-white'}`}>
-                                            <i className="fas fa-store"></i>
-                                        </div>
-                                        <div className="flex flex-col overflow-hidden">
-                                            <span className="text-2xs font-black text-slate-500 uppercase tracking-widest">Tồn Đại Lý</span>
-                                            <span className={`text-xs font-bold truncate ${dealerFile ? 'text-blue-200' : 'text-slate-400 group-hover:text-slate-200'}`}>
-                                                {dealerFile ? dealerFile.name : "Tùy chọn"}
-                                            </span>
-                                        </div>
-                                        <input type="file" ref={dealerInputRef} className="hidden" accept=".csv" onChange={(e) => e.target.files && setDealerFile(e.target.files[0])} />
-                                    </div>
-
-                                    {/* Backorder */}
-                                    <div
-                                        onClick={() => boInputRef.current?.click()}
-                                        className={`h-16 rounded-xl border flex items-center px-4 cursor-pointer transition-all relative overflow-hidden group
-                                      ${boFile
-                                                ? 'bg-rose-500/10 border-rose-500/50'
-                                                : 'bg-black/20 border-white/10 hover:border-rose-400/30 hover:bg-black/30'}
-                                  `}
-                                    >
-                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-3 transition-all ${boFile ? 'bg-rose-500 text-white shadow-lg' : 'bg-white/5 text-slate-400 group-hover:bg-white/10 group-hover:text-white'}`}>
-                                            <i className="fas fa-file-invoice"></i>
-                                        </div>
-                                        <div className="flex flex-col overflow-hidden">
-                                            <span className="text-2xs font-black text-slate-500 uppercase tracking-widest">Đơn Nợ (BO)</span>
-                                            <span className={`text-xs font-bold truncate ${boFile ? 'text-rose-200' : 'text-slate-400 group-hover:text-slate-200'}`}>
-                                                {boFile ? boFile.name : "Tùy chọn"}
-                                            </span>
-                                        </div>
-                                        <input type="file" ref={boInputRef} className="hidden" accept=".csv" onChange={(e) => e.target.files && setBoFile(e.target.files[0])} />
-                                    </div>
-                                </div>
-
-
-
-                                {/* Action Button */}
+                            {/* Mode Toggle */}
+                            <div className="flex rounded-xl bg-black/30 border border-white/10 p-1">
                                 <button
-                                    disabled={!mainFile || isLoading || isMonthlyLoading}
-                                    onClick={processFiles}
-                                    className={`
-                                  w-full h-14 rounded-xl font-black uppercase tracking-[0.15em] shadow-lg transition-all flex items-center justify-center gap-3 mt-4 border border-white/10 group relative overflow-hidden
-                                  ${!mainFile || isLoading || isMonthlyLoading
-                                            ? 'bg-slate-700/50 text-slate-500 cursor-not-allowed'
-                                            : 'bg-gradient-blue hover:shadow-glow-blue hover:scale-[1.02] text-white'}
-                              `}
+                                    onClick={() => setMode('upload')}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${
+                                        mode === 'upload'
+                                            ? 'bg-gradient-to-r from-blue-500/30 to-purple-500/30 text-white border border-white/10 shadow-lg'
+                                            : 'text-slate-400 hover:text-slate-200'
+                                    }`}
                                 >
-                                    {isLoading || isMonthlyLoading ? (
-                                        <>
-                                            <i className="fas fa-circle-notch animate-spin"></i>
-                                            <span>{isMonthlyLoading ? 'Syncing Monthly...' : 'Processing...'}</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <span className="relative z-10">Bắt đầu Phân tích</span>
-                                            <i className="fas fa-arrow-right group-hover:translate-x-1 transition-transform relative z-10"></i>
-                                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-                                        </>
-                                    )}
+                                    <i className="fas fa-upload" />
+                                    Tải File
+                                </button>
+                                <button
+                                    onClick={() => setMode('history')}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${
+                                        mode === 'history'
+                                            ? 'bg-gradient-to-r from-blue-500/30 to-purple-500/30 text-white border border-white/10 shadow-lg'
+                                            : 'text-slate-400 hover:text-slate-200'
+                                    }`}
+                                >
+                                    <i className="fas fa-cloud" />
+                                    Cloud (Lịch sử)
                                 </button>
                             </div>
+
+                            {/* === UPLOAD MODE === */}
+                            {mode === 'upload' && (
+                                <div className="space-y-4">
+                                    {/* Main Input Field */}
+                                    <div
+                                        onDragOver={onDragOver}
+                                        onDragLeave={onDragLeave}
+                                        onDrop={handleMainFileDrop}
+                                        onClick={() => !isMonthlyLoading && mainInputRef.current?.click()}
+                                        className={`
+                                      relative w-full h-24 rounded-2xl border-2 border-dashed transition-all cursor-pointer flex items-center px-6 group overflow-hidden
+                                      ${isDragging
+                                                ? 'bg-blue-500/20 border-blue-400 shadow-[0_0_30px_rgba(59,130,246,0.3)] scale-[1.02]'
+                                                : mainFile
+                                                    ? 'bg-emerald-500/10 border-emerald-500/50'
+                                                    : isMonthlyLoading
+                                                        ? 'bg-blue-500/5 border-blue-500/20 cursor-wait opacity-60'
+                                                        : 'bg-black/20 border-white/10 hover:border-blue-400/50 hover:bg-black/30'}
+                                  `}
+                                    >
+                                        <div className="flex-1 flex items-center gap-5 relative z-10">
+                                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-all shadow-lg ${mainFile ? 'bg-gradient-emerald text-white' : isMonthlyLoading ? 'bg-blue-900/40 text-blue-400' : 'bg-white/10 border border-white/10 text-slate-400 group-hover:bg-gradient-blue group-hover:text-white'}`}>
+                                                <i className={`fas ${isMonthlyLoading ? 'fa-sync fa-spin text-xl' : mainFile ? 'fa-check text-2xl' : 'fa-cloud-arrow-up text-2xl'}`}></i>
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className={`text-2xs font-black uppercase tracking-widest mb-1 ${isMonthlyLoading ? 'text-blue-400' : mainFile ? 'text-emerald-400' : 'text-blue-300'}`}>
+                                                    {isMonthlyLoading
+                                                        ? 'Đang tải dữ liệu nguồn B...'
+                                                        : mainFile ? 'Sẵn sàng phân tích' : 'Dữ liệu chính'}
+                                                </span>
+                                                <span className={`text-sm font-bold truncate transition-colors ${mainFile ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
+                                                    {isMonthlyLoading ? "Vui lòng đợi 10-20s để đồng bộ 80k mã..." : mainFile ? mainFile.name : "Kéo thả file Inventory tại đây..."}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <input type="file" ref={mainInputRef} className="hidden" accept=".csv" onChange={(e) => !isMonthlyLoading && e.target.files && setMainFile(e.target.files[0])} />
+                                    </div>
+
+                                    {/* Optional Inputs Grid */}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {/* Dealer Stock */}
+                                        <div
+                                            onClick={() => dealerInputRef.current?.click()}
+                                            className={`h-16 rounded-xl border flex items-center px-4 cursor-pointer transition-all relative overflow-hidden group
+                                          ${dealerFile
+                                                    ? 'bg-blue-500/10 border-blue-500/50'
+                                                    : 'bg-black/20 border-white/10 hover:border-blue-400/30 hover:bg-black/30'}
+                                      `}
+                                        >
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-3 transition-all ${dealerFile ? 'bg-blue-500 text-white shadow-lg' : 'bg-white/5 text-slate-400 group-hover:bg-white/10 group-hover:text-white'}`}>
+                                                <i className="fas fa-store"></i>
+                                            </div>
+                                            <div className="flex flex-col overflow-hidden">
+                                                <span className="text-2xs font-black text-slate-500 uppercase tracking-widest">Tồn Đại Lý</span>
+                                                <span className={`text-xs font-bold truncate ${dealerFile ? 'text-blue-200' : 'text-slate-400 group-hover:text-slate-200'}`}>
+                                                    {dealerFile ? dealerFile.name : "Tùy chọn"}
+                                                </span>
+                                            </div>
+                                            <input type="file" ref={dealerInputRef} className="hidden" accept=".csv" onChange={(e) => e.target.files && setDealerFile(e.target.files[0])} />
+                                        </div>
+
+                                        {/* Backorder */}
+                                        <div
+                                            onClick={() => boInputRef.current?.click()}
+                                            className={`h-16 rounded-xl border flex items-center px-4 cursor-pointer transition-all relative overflow-hidden group
+                                          ${boFile
+                                                    ? 'bg-rose-500/10 border-rose-500/50'
+                                                    : 'bg-black/20 border-white/10 hover:border-rose-400/30 hover:bg-black/30'}
+                                      `}
+                                        >
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-3 transition-all ${boFile ? 'bg-rose-500 text-white shadow-lg' : 'bg-white/5 text-slate-400 group-hover:bg-white/10 group-hover:text-white'}`}>
+                                                <i className="fas fa-file-invoice"></i>
+                                            </div>
+                                            <div className="flex flex-col overflow-hidden">
+                                                <span className="text-2xs font-black text-slate-500 uppercase tracking-widest">Đơn Nợ (BO)</span>
+                                                <span className={`text-xs font-bold truncate ${boFile ? 'text-rose-200' : 'text-slate-400 group-hover:text-slate-200'}`}>
+                                                    {boFile ? boFile.name : "Tùy chọn"}
+                                                </span>
+                                            </div>
+                                            <input type="file" ref={boInputRef} className="hidden" accept=".csv" onChange={(e) => e.target.files && setBoFile(e.target.files[0])} />
+                                        </div>
+                                    </div>
+
+                                    {/* Action Button */}
+                                    <button
+                                        disabled={!mainFile || isLoading || isMonthlyLoading}
+                                        onClick={processFiles}
+                                        className={`
+                                      w-full h-14 rounded-xl font-black uppercase tracking-[0.15em] shadow-lg transition-all flex items-center justify-center gap-3 mt-4 border border-white/10 group relative overflow-hidden
+                                      ${!mainFile || isLoading || isMonthlyLoading
+                                                ? 'bg-slate-700/50 text-slate-500 cursor-not-allowed'
+                                                : 'bg-gradient-blue hover:shadow-glow-blue hover:scale-[1.02] text-white'}
+                                  `}
+                                    >
+                                        {isLoading || isMonthlyLoading ? (
+                                            <>
+                                                <i className="fas fa-circle-notch animate-spin"></i>
+                                                <span>{isMonthlyLoading ? 'Syncing Monthly...' : 'Processing...'}</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <i className="fas fa-cloud-arrow-up relative z-10"></i>
+                                                <span className="relative z-10">Lưu & Phân Tích</span>
+                                                <i className="fas fa-arrow-right group-hover:translate-x-1 transition-transform relative z-10"></i>
+                                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* === CLOUD HISTORY MODE === */}
+                            {mode === 'history' && (
+                                <div className="space-y-3">
+                                    {/* Header */}
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-2xs font-black text-slate-400 uppercase tracking-widest">
+                                                {snapshots.length > 0 ? `${snapshots.length} bản sao lưu` : 'Bản sao lưu Cloud'}
+                                            </span>
+                                            {storageUsed > 0 && (
+                                                <span className="text-2xs font-bold text-slate-500 bg-white/5 px-2 py-0.5 rounded-md">
+                                                    {formatFileSize(storageUsed)} / 1 GB
+                                                </span>
+                                            )}
+                                        </div>
+                                        <button
+                                            onClick={fetchSnapshots}
+                                            disabled={isLoadingHistory}
+                                            className="text-xs text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1.5 transition-colors"
+                                        >
+                                            <i className={`fas fa-sync ${isLoadingHistory ? 'fa-spin' : ''}`} />
+                                            Làm mới
+                                        </button>
+                                    </div>
+
+                                    {/* Snapshot list — compact single-line rows */}
+                                    <div className="max-h-[300px] overflow-y-auto space-y-1.5 pr-1 scrollbar-thin scrollbar-thumb-white/10">
+                                        {isLoadingHistory ? (
+                                            <div className="flex items-center justify-center py-12 text-slate-400">
+                                                <i className="fas fa-circle-notch fa-spin text-2xl" />
+                                            </div>
+                                        ) : snapshots.length === 0 ? (
+                                            <div className="text-center py-12">
+                                                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+                                                    <i className="fas fa-cloud text-slate-500 text-2xl"></i>
+                                                </div>
+                                                <p className="text-slate-400 text-sm font-bold">Chưa có bản sao lưu nào</p>
+                                                <p className="text-slate-500 text-xs mt-1">Tải file CSV và bấm "Lưu & Phân Tích" để tạo bản sao đầu tiên</p>
+                                            </div>
+                                        ) : snapshots.map(snap => (
+                                            <div key={snap.id} className="flex items-center gap-2 bg-black/20 border border-white/10 rounded-lg px-3 py-2.5 hover:border-blue-400/30 transition-all group/item">
+                                                {/* Date */}
+                                                <span className="text-2xs text-slate-500 font-bold shrink-0 w-[72px]">
+                                                    {formatDate(snap.upload_date)}
+                                                </span>
+                                                {/* Filename */}
+                                                <span className="text-xs font-bold text-white truncate flex-1 min-w-0">
+                                                    {snap.filename}
+                                                </span>
+                                                {/* Uploader */}
+                                                {snap.uploader_name && (
+                                                    <span className="text-2xs text-slate-500 font-bold shrink-0 truncate max-w-[60px]" title={snap.uploader_name}>
+                                                        {snap.uploader_name}
+                                                    </span>
+                                                )}
+                                                {/* Load button */}
+                                                <button
+                                                    onClick={() => handleLoadSnapshot(snap)}
+                                                    disabled={loadingSnapshotId === snap.id}
+                                                    className="px-2.5 py-1 rounded-md bg-blue-500/20 border border-blue-400/30 text-blue-300 text-2xs font-black hover:bg-blue-500/30 transition-all disabled:opacity-50 shrink-0"
+                                                >
+                                                    {loadingSnapshotId === snap.id
+                                                        ? <i className="fas fa-circle-notch fa-spin" />
+                                                        : <i className="fas fa-download" />
+                                                    }
+                                                </button>
+                                                {/* Delete button */}
+                                                <button
+                                                    onClick={() => handleDeleteSnapshot(snap)}
+                                                    className="p-1 rounded-md text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 transition-all opacity-0 group-hover/item:opacity-100 shrink-0"
+                                                    title="Xóa"
+                                                >
+                                                    <i className="fas fa-times text-2xs" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
