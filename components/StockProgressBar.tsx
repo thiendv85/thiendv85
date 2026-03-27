@@ -1,4 +1,4 @@
-﻿
+
 import React, { useMemo } from 'react';
 import { BackorderDetail } from '../types/inventory';
 import { BackorderPopup } from './BackorderPopup';
@@ -278,14 +278,24 @@ export const StockProgressBar: React.FC<StockProgressBarProps> = (props) => {
     fc: (baseFc / safeMax) * 100
   }), [rop, ss, max, baseFc, safeMax]);
 
-  const widths = useMemo(() => ({
-    current: Math.min(100, (current / safeMax) * 100),
-    po: Math.min(100 - (current / safeMax) * 100, (onOrder / safeMax) * 100),
-    draft: Math.min(
-      100 - (current / safeMax) * 100 - (onOrder / safeMax) * 100,
-      (draftAdd / safeMax) * 100
-    )
-  }), [current, onOrder, draftAdd, safeMax]);
+  const widths = useMemo(() => {
+    // 🟠 Fix: Deduct BO from segments for accurate visualization
+    const netCurrent = Math.max(0, current - backorder);
+    const remBO = Math.max(0, backorder - current);
+    const netPO = Math.max(0, onOrder - remBO);
+    const remBO2 = Math.max(0, remBO - onOrder);
+    const netDraft = Math.max(0, draftAdd - remBO2);
+
+    const wCurrent = (netCurrent / safeMax) * 100;
+    const wPO = (netPO / safeMax) * 100;
+    const wDraft = (netDraft / safeMax) * 100;
+
+    return {
+      current: Math.min(100, wCurrent),
+      po: Math.min(100 - wCurrent, wPO),
+      draft: Math.min(100 - wCurrent - wPO, wDraft)
+    };
+  }, [current, onOrder, draftAdd, backorder, safeMax]);
 
   const colorClass = useMemo(
     () => getColorClass(current, ss, rop, backorder, metrics.excessVal, metrics.isNoPlanning),

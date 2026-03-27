@@ -19,3 +19,4 @@
 | 2026-03-26 09:45 | Nâng cấp toàn diện giao diện Vibrant Premium: Glassmorphism, 3D Segment Badges, Thống nhất ATP Palette & Sơ đồ Logic/Architecture |
 | 2026-03-27 17:45 | Triển khai V13.5: Đồng bộ UI Bento-Grid Premium, bổ sung Risk Scoring, Safety Stock, Transfer Engine & Lead Time Analysis |
 | 2026-03-27 17:55 | Fix lỗi logic Planning Params: Tự động fallback Leadtime cao nhất theo Brand khi không khớp nguồn & Bổ sung cảnh báo |
+| 2026-03-27 18:00 | Fix lỗi hiển thị Stock Bar: Tự động trừ nợ hàng (BO) vào các đoạn thanh để biểu diễn đúng tồn thực tế |
