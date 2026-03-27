@@ -86,84 +86,94 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
         }
     };
 
-    const processFiles = async () => {
-        if (!mainFile) return;
-        setIsLoading(true);
-        setUploadStatus(null);
-
+    const parseAllFiles = async () => {
+        if (!mainFile) return null;
         const readFile = (file: File) => new Promise<string>((resolve) => {
             const reader = new FileReader();
             reader.onload = (e) => resolve(e.target?.result as string);
             reader.readAsText(file, 'UTF-8');
         });
 
+        const mainText = await readFile(mainFile);
+        let inventoryData = parseCSV(mainText, monthlyData ?? undefined);
+
+        if (dealerFile) {
+            const dealerText = await readFile(dealerFile);
+            const dealerMap = parseDealerStockCSV(dealerText);
+            inventoryData = inventoryData.map(item => {
+                const details = dealerMap[item.ItemCode];
+                if (details) {
+                    const totalDealer = details.reduce((sum, d) => sum + d.Qty, 0);
+                    return { ...item, DealerInventory: totalDealer, DealerBreakdown: details };
+                }
+                return item;
+            });
+        }
+
+        if (boFile) {
+            const boText = await readFile(boFile);
+            const boMap = parseBackorderCSV(boText);
+            inventoryData = inventoryData.map(item => {
+                const details = boMap[item.ItemCode];
+                if (details && details.length > 0) {
+                    const totalBO = details.reduce((sum, d) => sum + d.Qty, 0);
+                    const boNB = (item.Backorder_NB > 0) ? item.Backorder_NB : details.filter(d => d.Warehouse && (d.Warehouse.includes('NB') || d.Warehouse.includes('Nam'))).reduce((s, d) => s + d.Qty, 0);
+                    const boBB = (item.Backorder_BB > 0) ? item.Backorder_BB : details.filter(d => d.Warehouse && (d.Warehouse.includes('BB') || d.Warehouse.includes('Bắc'))).reduce((s, d) => s + d.Qty, 0);
+                    return { ...item, Backorder: totalBO > 0 ? totalBO : item.Backorder, Backorder_NB: boNB, Backorder_BB: boBB, BackorderBreakdown: details };
+                }
+                return item;
+            });
+        }
+
+        return inventoryData;
+    };
+
+    const processFiles = async () => {
+        if (!mainFile) return;
+        setIsLoading(true);
+        setUploadStatus(null);
         try {
-            const mainText = await readFile(mainFile);
-            let inventoryData = parseCSV(mainText, monthlyData ?? undefined);
-
-            // 1. Process Dealer File (Optional)
-            if (dealerFile) {
-                const dealerText = await readFile(dealerFile);
-                const dealerMap = parseDealerStockCSV(dealerText);
-
-                inventoryData = inventoryData.map(item => {
-                    const details = dealerMap[item.ItemCode];
-                    if (details) {
-                        const totalDealer = details.reduce((sum, d) => sum + d.Qty, 0);
-                        return { ...item, DealerInventory: totalDealer, DealerBreakdown: details };
-                    }
-                    return item;
-                });
-            }
-
-            // 2. Process Backorder File (Optional)
-            if (boFile) {
-                const boText = await readFile(boFile);
-                const boMap = parseBackorderCSV(boText);
-
-                inventoryData = inventoryData.map(item => {
-                    const details = boMap[item.ItemCode];
-                    if (details && details.length > 0) {
-                        const totalBO = details.reduce((sum, d) => sum + d.Qty, 0);
-
-                        const boNB = (item.Backorder_NB > 0) ? item.Backorder_NB : details.filter(d => d.Warehouse && (d.Warehouse.includes('NB') || d.Warehouse.includes('Nam'))).reduce((s, d) => s + d.Qty, 0);
-                        const boBB = (item.Backorder_BB > 0) ? item.Backorder_BB : details.filter(d => d.Warehouse && (d.Warehouse.includes('BB') || d.Warehouse.includes('Bắc'))).reduce((s, d) => s + d.Qty, 0);
-
-                        return {
-                            ...item,
-                            Backorder: totalBO > 0 ? totalBO : item.Backorder,
-                            Backorder_NB: boNB,
-                            Backorder_BB: boBB,
-                            BackorderBreakdown: details
-                        };
-                    }
-                    return item;
-                });
-            }
-
-            if (inventoryData.length > 0) {
-                // Phân tích ngay (không chờ upload)
-                onData(inventoryData, mainFile.name, '');
-
-                // Upload cloud song song (non-blocking)
-                uploadSnapshot(inventoryData, mainFile.name, {
-                    dealerFilename: dealerFile?.name,
-                    boFilename: boFile?.name,
-                }).then(result => {
-                    if (result.deduplicated) {
-                        setUploadStatus({ type: 'success', msg: 'Dữ liệu đã tồn tại trên Cloud (bỏ qua upload trùng)' });
-                    } else if (result.success) {
-                        setUploadStatus({ type: 'success', msg: `Đã lưu ${inventoryData.length.toLocaleString()} SKUs lên Cloud` });
-                    } else {
-                        setUploadStatus({ type: 'error', msg: `Cảnh báo: Không thể lưu bản sao lên Cloud. ${result.error || ''}` });
-                    }
-                }).catch(() => {
-                    setUploadStatus({ type: 'error', msg: 'Cảnh báo: Đã nạp dữ liệu nhưng không thể lưu bản sao lên Cloud' });
-                });
-            } else {
+            const inventoryData = await parseAllFiles();
+            if (!inventoryData || inventoryData.length === 0) {
                 alert("Không tìm thấy dữ liệu hợp lệ trong file chính.");
+                return;
             }
+            // Phân tích ngay (không chờ upload)
+            onData(inventoryData, mainFile.name, '');
 
+            // Upload cloud song song (non-blocking)
+            uploadSnapshot(inventoryData, mainFile.name, {
+                dealerFilename: dealerFile?.name,
+                boFilename: boFile?.name,
+            }).then(result => {
+                if (result.deduplicated) {
+                    setUploadStatus({ type: 'success', msg: 'Dữ liệu đã tồn tại trên Cloud (bỏ qua upload trùng)' });
+                } else if (result.success) {
+                    setUploadStatus({ type: 'success', msg: `Đã lưu ${inventoryData.length.toLocaleString()} SKUs lên Cloud` });
+                } else {
+                    setUploadStatus({ type: 'error', msg: `Cảnh báo: Không thể lưu bản sao lên Cloud. ${result.error || ''}` });
+                }
+            }).catch(() => {
+                setUploadStatus({ type: 'error', msg: 'Cảnh báo: Đã nạp dữ liệu nhưng không thể lưu bản sao lên Cloud' });
+            });
+        } catch (error) {
+            alert("Lỗi khi đọc file. Vui lòng kiểm tra định dạng CSV.");
+            console.error(error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const processFilesLocalOnly = async () => {
+        if (!mainFile) return;
+        setIsLoading(true);
+        try {
+            const inventoryData = await parseAllFiles();
+            if (!inventoryData || inventoryData.length === 0) {
+                alert("Không tìm thấy dữ liệu hợp lệ trong file chính.");
+                return;
+            }
+            onData(inventoryData, mainFile.name, '');
         } catch (error) {
             alert("Lỗi khi đọc file. Vui lòng kiểm tra định dạng CSV.");
             console.error(error);
@@ -417,7 +427,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                         </div>
                                     </div>
 
-                                    {/* Action Button */}
+                                    {/* Action Buttons */}
                                     <button
                                         disabled={!mainFile || isLoading || isMonthlyLoading}
                                         onClick={processFiles}
@@ -441,6 +451,13 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                                             </>
                                         )}
+                                    </button>
+                                    <button
+                                        disabled={!mainFile || isLoading || isMonthlyLoading}
+                                        onClick={processFilesLocalOnly}
+                                        className="w-full text-center text-xs font-bold text-slate-400 hover:text-slate-200 transition-colors py-1 disabled:opacity-30 disabled:cursor-not-allowed"
+                                    >
+                                        Chỉ xem (không lưu Cloud)
                                     </button>
                                 </div>
                             )}

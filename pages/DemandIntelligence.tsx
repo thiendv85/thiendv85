@@ -1,114 +1,124 @@
-﻿
-import React, { useMemo, useState, useEffect } from 'react';
-import { InventoryItem, LOIS_DESCRIPTIONS, OrderingDraft } from '../types/inventory';
+
+import React, { useMemo, useState } from 'react';
+import { InventoryItem } from '../types/inventory';
 import { MetricCard } from '../components/MetricCard';
-import { StockProgressBar } from '../components/StockProgressBar';
-import { GoogleGenAI } from "@google/genai";
 import { useLanguage } from '../utils/i18n';
 import { parseInventorySearch, SearchResult, matchSearch } from '../utils/searchLogic';
-import { StockoutReportWithLeadTime } from '../components/StockoutReportWithLeadTime';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TYPES
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface DemandIntelligenceProps {
-    data: InventoryItem[];
+    data: InventoryItem[];        // enrichedData (has computed fields)
     onItemSelect: (item: InventoryItem) => void;
     initialState?: any;
     onSaveState?: (state: any) => void;
-    draftData?: OrderingDraft;
-    onUpdateDraft?: (draft: OrderingDraft) => void;
 }
 
-const Sparkline = ({ values, severity, forecast }: { values: number[], severity: string, forecast?: number[] }) => {
+type IntelGroup = 'STOCKOUT' | 'RISK' | 'SPIKE' | 'OVERSTOCK' | 'DECLINING';
+
+interface AnalyzedItem {
+    item: InventoryItem;
+    group: IntelGroup;
+    fullHistory: number[];
+    actualM1: number;
+    forecastM1: number;
+    sigmaD: number;
+    mean12M: number;
+    cv: number;
+    zScore: number;
+    newSS: number;
+    newROP: number;
+    accuracy: number | null;
+    forecastBias: number;
+    mos: number;
+    dos: number;
+    available: number;
+    excessQty: number;
+    excessValue: number;
+    stockoutGapQty: number;
+    stockoutGapValue: number;
+    slope: number;
+    insightText: string;
+    actionLabel: string;
+    actionIcon: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPER FUNCTIONS
+// ─────────────────────────────────────────────────────────────────────────────
+
+function getZScore(loisGroup: string): number {
+    const lois = (loisGroup || '').trim().toUpperCase();
+    if (['1', '2', '3'].includes(lois)) return 2.05;  // 98% — fast movers
+    if (['4', '5'].includes(lois)) return 1.65;         // 95% — medium
+    if (['6', '7'].includes(lois)) return 1.28;         // 90% — slow
+    if (lois === '8' || lois === 'E' || lois === 'N' || lois === 'A' || lois === 'V') return 0.84; // 80%
+    if (lois === 'I') return 0;                          // inactive
+    return 1.65;                                         // default 95%
+}
+
+function getServiceLevel(loisGroup: string): string {
+    const lois = (loisGroup || '').trim().toUpperCase();
+    if (['1', '2', '3'].includes(lois)) return '98%';
+    if (['4', '5'].includes(lois)) return '95%';
+    if (['6', '7'].includes(lois)) return '90%';
+    if (['8', 'E', 'N', 'A', 'V'].includes(lois)) return '80%';
+    if (lois === 'I') return '0%';
+    return '95%';
+}
+
+const GROUP_CONFIG: Record<IntelGroup, { color: string; bgColor: string; borderColor: string; label: string; icon: string; actionLabel: string; actionIcon: string }> = {
+    STOCKOUT: { color: 'text-rose-700', bgColor: 'bg-rose-50', borderColor: 'border-rose-200', label: 'Hết hàng', icon: 'fa-circle-xmark', actionLabel: 'Order AIR', actionIcon: 'fa-plane-departure' },
+    RISK: { color: 'text-amber-700', bgColor: 'bg-amber-50', borderColor: 'border-amber-200', label: 'Rủi ro', icon: 'fa-triangle-exclamation', actionLabel: 'Expedite PO', actionIcon: 'fa-truck-fast' },
+    SPIKE: { color: 'text-yellow-700', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-200', label: 'Nhu cầu tăng', icon: 'fa-arrow-trend-up', actionLabel: 'Review FC', actionIcon: 'fa-magnifying-glass-chart' },
+    OVERSTOCK: { color: 'text-blue-700', bgColor: 'bg-blue-50', borderColor: 'border-blue-200', label: 'Tồn dư', icon: 'fa-boxes-stacked', actionLabel: 'Transfer/Cắt PO', actionIcon: 'fa-scissors' },
+    DECLINING: { color: 'text-slate-600', bgColor: 'bg-slate-50', borderColor: 'border-slate-200', label: 'Xu hướng giảm', icon: 'fa-arrow-trend-down', actionLabel: 'Hold PO', actionIcon: 'fa-hand' },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SPARKLINE
+// ─────────────────────────────────────────────────────────────────────────────
+
+const Sparkline = ({ values, group }: { values: number[]; group: IntelGroup }) => {
     const width = 120;
     const height = 32;
     const padding = 2;
-    const combined = forecast ? [...values, ...forecast] : values;
-    const max = Math.max(...combined, 1);
-    const min = 0;
-    const getX = (i: number) => padding + (i / (combined.length - 1)) * (width - padding * 2);
-    const getY = (v: number) => height - padding - ((v - min) / (max - min)) * (height - padding * 2);
+    const max = Math.max(...values, 1);
+    const getX = (i: number) => padding + (i / (values.length - 1)) * (width - padding * 2);
+    const getY = (v: number) => height - padding - ((v) / (max)) * (height - padding * 2);
     const points = values.map((v, i) => `${getX(i)},${getY(v)}`).join(' ');
-    let forecastPoints = "";
-    if (forecast) {
-        forecastPoints = [values[values.length - 1], ...forecast].map((v, i) => `${getX(values.length - 1 + i)},${getY(v)}`).join(' ');
-    }
-    let color = '#94a3b8';
-    if (severity === 'CRITICAL') color = '#e11d48';
-    if (severity === 'HIGH') color = '#f97316';
-    if (severity === 'OVERSTOCK') color = '#64748b';
-    if (severity === 'WATCH') color = '#10b981';
+
+    const colorMap: Record<IntelGroup, string> = {
+        STOCKOUT: '#e11d48',
+        RISK: '#f97316',
+        SPIKE: '#eab308',
+        OVERSTOCK: '#3b82f6',
+        DECLINING: '#64748b',
+    };
+    const color = colorMap[group];
 
     return (
         <svg width={width} height={height} className="overflow-visible">
             <polyline points={points} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            {forecast && <polyline points={forecastPoints} fill="none" stroke={color} strokeWidth="1.5" strokeDasharray="3,2" opacity="0.6" />}
             <circle cx={getX(values.length - 1)} cy={getY(values[values.length - 1])} r={2.5} fill={color} />
         </svg>
     );
 };
 
-const SupplyHealthBar = ({ dos, status }: { dos: number, status: string }) => {
-    const percentage = Math.min(100, Math.max(0, (dos / 90) * 100));
-    let colorClass = "bg-emerald-500";
-    let textClass = "text-emerald-700";
-    let label = `Còn ${dos.toFixed(0)} ngày`;
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN COMPONENT
+// ─────────────────────────────────────────────────────────────────────────────
 
-    if (status === 'ALREADY_OOS') {
-        colorClass = "bg-slate-300";
-        textClass = "text-rose-700 font-black";
-        label = "HẾT HÀNG";
-    } else if (status === 'IMMINENT') {
-        colorClass = "bg-rose-500";
-        textClass = "text-rose-700 font-black";
-        label = `Cạn trong ${dos.toFixed(0)} ngày`;
-    } else if (status === 'LOW_STOCK') {
-        colorClass = "bg-amber-500";
-        textClass = "text-amber-700";
-    }
-
-    return (
-        <div className="w-full min-w-[100px]">
-            <div className="flex justify-between items-end mb-1">
-                <span className={`text-2xs font-bold ${textClass} uppercase tracking-tight`}>{label}</span>
-                <span className="text-2xs text-slate-500 font-bold">{dos > 90 ? '>90d' : `${dos.toFixed(0)}d`}</span>
-            </div>
-            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                <div className={`h-full rounded-full transition-all duration-500 ${colorClass}`} style={{ width: status === 'ALREADY_OOS' ? '0%' : `${percentage}%` }}></div>
-            </div>
-        </div>
-    );
-};
-
-const ActionButton = ({ action, onClick }: { action: string, onClick: () => void }) => {
-    let label = "Review";
-    let classes = "bg-slate-100 text-slate-600 hover:bg-slate-200";
-    let icon = "fa-glasses";
-
-    switch (action) {
-        case 'EXPEDITE_AIR': label = "Ship AIR Gấp"; classes = "bg-rose-600 text-white hover:bg-rose-700 shadow-rose-200 shadow-md"; icon = "fa-plane-departure"; break;
-        case 'REVIEW_PO': label = "Xem xét PO"; classes = "bg-amber-50 text-white hover:bg-amber-600 shadow-amber-200 shadow-md"; icon = "fa-clipboard-check"; break;
-        case 'CONSUME': label = "Theo dõi tồn"; classes = "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"; icon = "fa-box-open"; break;
-        case 'CANCEL_PO': label = "Cắt/Hủy PO"; classes = "bg-slate-700 text-white hover:bg-slate-800"; icon = "fa-ban"; break;
-    }
-
-    return (
-        <button onClick={onClick} className={`w-full py-1.5 rounded-lg text-2xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${classes}`}>
-            <i className={`fas ${icon}`}></i> {label}
-        </button>
-    );
-};
-
-export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveState, draftData, onUpdateDraft }: DemandIntelligenceProps) => {
+export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveState }: DemandIntelligenceProps) => {
     const { t } = useLanguage();
-    const [viewMode, setViewMode] = useState<'ANALYTICS' | 'LEAD_TIME'>(initialState?.viewMode || 'ANALYTICS');
-    const [aiResults, setAiResults] = useState<Record<string, any>>(initialState?.aiResults || {});
-    const [severityFilter, setSeverityFilter] = useState<'ALL' | 'STOCKOUT_RISK' | 'CRITICAL' | 'HIGH' | 'WATCH' | 'OVERSTOCK'>('ALL');
-    const [sortKey, setSortKey] = useState<string>('severity');
+    const [groupFilter, setGroupFilter] = useState<'ALL' | IntelGroup>(initialState?.groupFilter || 'ALL');
+    const [sortKey, setSortKey] = useState<string>(initialState?.sortKey || 'group');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(25);
     const [searchText, setSearchText] = useState('');
     const [searchResult, setSearchResult] = useState<SearchResult>({ type: 'EMPTY', tokens: [], displayTokens: [], raw: '' });
-
-    useEffect(() => { if (onSaveState) onSaveState({ viewMode, aiResults }); }, [viewMode, aiResults, onSaveState]);
 
     const handleSearchChange = (text: string) => {
         setSearchText(text);
@@ -116,206 +126,499 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
         setCurrentPage(1);
     };
 
-    const handleLeadTimeAction = (sku: string, qty: number, method: 'AIR' | 'SEA') => {
-        if (!onUpdateDraft) return;
+    // ── ANALYSIS ENGINE ──────────────────────────────────────────────────────
+    const { analyzedItems, metrics } = useMemo(() => {
+        if (!data || data.length === 0) return { analyzedItems: [], metrics: { stockout: 0, risk: 0, spike: 0, overstock: 0, declining: 0, stockoutGapValue: 0, excessValue: 0, avgAccuracy: 0, accuracyCount: 0 } };
 
-        const currentQuantities = { ...draftData?.quantities };
-        const currentNotes = { ...draftData?.notes };
+        const results: AnalyzedItem[] = [];
+        let mStockout = 0, mRisk = 0, mSpike = 0, mOverstock = 0, mDeclining = 0;
+        let totalGapValue = 0, totalExcessValue = 0;
+        let accuracySum = 0, accuracyCount = 0;
 
-        // Add to existing quantity if any
-        const existing = currentQuantities[sku] || { air: 0, sea: 0 };
-        const newQuantities = method === 'AIR'
-            ? { ...existing, air: existing.air + qty }
-            : { ...existing, sea: existing.sea + qty };
-
-        currentQuantities[sku] = newQuantities;
-
-        // Add note
-        const timestamp = new Date().toLocaleDateString();
-        const actionNote = `[${timestamp}] Auto-Order ${qty} via ${method} (Stockout Prevention)`;
-        currentNotes[sku] = currentNotes[sku] ? `${currentNotes[sku]}; ${actionNote}` : actionNote;
-
-        onUpdateDraft({ quantities: currentQuantities, notes: currentNotes });
-        alert(`Đã thêm ${qty} units mã ${sku} vào giỏ hàng (${method})!`);
-    };
-
-    const analyzedData = useMemo(() => {
-        if (!data || data.length === 0) return [];
-        const results: any[] = [];
-        const LT = 90, SP = 30, SSP = 15;
         for (const item of data) {
+            const computed = item.computed;
+            if (!computed) continue;
+
             const history = item.SalesHistory || [];
             if (history.length === 0) continue;
-            const fullHistory = history.length >= 12 ? history.slice(-12) : [...Array(12 - history.length).fill(0), ...history];
+
+            // Pad to 12 months
+            const fullHistory = history.length >= 12
+                ? history.slice(-12)
+                : [...Array(12 - history.length).fill(0), ...history];
+
             const actualM1 = fullHistory[11];
             const forecastM1 = item.BaseForecast || 0;
-            const avg3M = item.AvgQty3M || 0;
-            const deviation = actualM1 - forecastM1;
-            const mean = fullHistory.slice(0, 11).reduce((a, b) => a + b, 0) / 11;
-            const variance = fullHistory.slice(0, 11).reduce((a, b) => a + Math.pow(b - mean, 2), 0) / 11;
-            const stdDev = Math.sqrt(variance);
-            let anomalyType = 'NORMAL';
-            if (actualM1 > (mean + 2.5 * stdDev) && actualM1 > 2) anomalyType = 'SPIKE';
-            else if (mean > 2 && actualM1 === 0) anomalyType = 'DROP';
-            const available = item.QuantityInventory_NB + item.QuantityInventory_BB + item.QuantityDC_NB + item.QuantityDC_BB;
-            const burnRateMonthly = Math.max(avg3M, actualM1, forecastM1, 0.1);
-            const burnRateDaily = burnRateMonthly / 30;
-            const dos = available / burnRateDaily;
-            const cst = (available + item.TotalPO) / burnRateMonthly;
-            const ss = burnRateDaily * SSP;
-            const rop = burnRateDaily * (LT + SSP);
-            const stockMax = burnRateDaily * (LT + SP + SSP);
-            let stockoutStatus = 'SAFE';
-            if (available <= 0) stockoutStatus = 'ALREADY_OOS';
-            else if (dos < 15) stockoutStatus = 'IMMINENT';
-            else if (dos < 30) stockoutStatus = 'LOW_STOCK';
-            let severity = 'NORMAL', action = 'MONITOR';
-            if (stockoutStatus === 'ALREADY_OOS' || item.Backorder > 0) { severity = 'CRITICAL'; action = 'EXPEDITE_AIR'; }
-            else if (stockoutStatus === 'IMMINENT') { severity = anomalyType === 'SPIKE' ? 'CRITICAL' : 'HIGH'; action = 'EXPEDITE_AIR'; }
-            else if (stockoutStatus === 'LOW_STOCK') { severity = anomalyType === 'SPIKE' ? 'HIGH' : 'WATCH'; action = 'REVIEW_PO'; }
-            else if (anomalyType === 'DROP' && dos > 180) { severity = 'OVERSTOCK'; action = 'CANCEL_PO'; }
-            let assessment = `${item.TrendFlag === 'Up' ? t('di_msg_increase') : t('di_msg_stable')}. [${t('di_msg_acc')}: ${forecastM1 > 0 ? (100 - Math.min(100, (Math.abs(deviation) / forecastM1) * 100)).toFixed(0) : 'N/A'}%]. `;
-            results.push({ item, fullHistory, actualM1, forecastM1, deviation, available, dos, burnRateDaily, stockoutStatus, ss, rop, stockMax, anomalyType, severity, action, generatedAssessment: assessment, cst, accuracy: forecastM1 > 0 ? (100 - Math.min(100, (Math.abs(deviation) / forecastM1) * 100)).toFixed(0) : 'N/A' });
+
+            // Stats
+            const mean12M = fullHistory.reduce((a, b) => a + b, 0) / fullHistory.length;
+            const variance = fullHistory.reduce((a, b) => a + (b - mean12M) ** 2, 0) / fullHistory.length;
+            const sigmaD = Math.sqrt(variance);
+            const cv = mean12M > 0 ? sigmaD / mean12M : 0;
+
+            // Slope (linear regression)
+            const n = fullHistory.length;
+            const sumX = n * (n - 1) / 2;
+            const sumX2 = n * (n - 1) * (2 * n - 1) / 6;
+            const sumY = fullHistory.reduce((a, b) => a + b, 0);
+            const sumXY = fullHistory.reduce((a, v, i) => a + i * v, 0);
+            const slope = n > 1 ? (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX) : 0;
+
+            // Service-level based Safety Stock
+            const Z = getZScore(item.LOISGroup);
+            const ltMonths = (computed.effectiveLT || 90) / 30;
+            const newSS = Z * sigmaD * Math.sqrt(ltMonths);
+            const demandMonthly = computed.demandMonthly || computed.demandRateDaily * 30;
+            const newROP = demandMonthly * ltMonths + newSS;
+
+            // Forecast accuracy
+            const forecastBias = actualM1 - forecastM1;
+            const accuracy = forecastM1 > 0
+                ? Math.max(0, 100 - (Math.abs(forecastBias) / forecastM1) * 100)
+                : null;
+
+            if (accuracy !== null) {
+                accuracySum += accuracy;
+                accuracyCount++;
+            }
+
+            // Key metrics from engine
+            const available = computed.available;
+            const mos = computed.mos;
+            const dos = computed.demandRateDaily > 0 ? available / computed.demandRateDaily : 999;
+            const excessQty = computed.excessQty;
+            const excessValue = computed.excessValue;
+            const stockoutGapQty = computed.stockoutGapQty;
+            const stockoutGapValue = computed.stockoutGapValue;
+            const isStopBiz = computed.isStopBiz;
+            const isBOCritical = computed.isBOCritical || false;
+            const stockoutRiskFlag = computed.stockoutRiskFlag;
+            const avg12M = item.AvgQty12M || 0;
+            const forecastLinReg = computed.forecastLinReg || 0;
+
+            // ── CLASSIFICATION (priority: STOCKOUT > RISK > SPIKE > OVERSTOCK > DECLINING) ──
+            let group: IntelGroup | null = null;
+
+            // STOCKOUT
+            if (
+                (available <= 0 && demandMonthly > 0) ||
+                isBOCritical ||
+                (mos < 0.25 && demandMonthly > 0.5)
+            ) {
+                group = 'STOCKOUT';
+            }
+            // RISK
+            else if (
+                (stockoutRiskFlag && mos < 1.5 && !isStopBiz) ||
+                (available < newROP && demandMonthly > 1 && available > 0)
+            ) {
+                group = 'RISK';
+            }
+            // SPIKE
+            else if (
+                (actualM1 > mean12M + 2 * sigmaD && actualM1 >= 5) ||
+                (slope > 2 && cv < 1.2 && mos < 3)
+            ) {
+                group = 'SPIKE';
+            }
+            // OVERSTOCK
+            else if (
+                (excessQty > 0 && mos > 6) ||
+                (mos > 12 && demandMonthly > 0) ||
+                (isStopBiz && available > 0)
+            ) {
+                group = 'OVERSTOCK';
+            }
+            // DECLINING
+            else if (
+                (slope < -2 && avg12M > 5 && mos > 3) ||
+                (forecastLinReg < 0.3 * avg12M && avg12M > 10)
+            ) {
+                group = 'DECLINING';
+            }
+
+            // Skip NORMAL items
+            if (!group) continue;
+
+            // Count metrics
+            if (group === 'STOCKOUT') { mStockout++; totalGapValue += stockoutGapValue; }
+            if (group === 'RISK') mRisk++;
+            if (group === 'SPIKE') mSpike++;
+            if (group === 'OVERSTOCK') { mOverstock++; totalExcessValue += excessValue; }
+            if (group === 'DECLINING') mDeclining++;
+
+            // Insight text
+            const cfg = GROUP_CONFIG[group];
+            let insightText = '';
+            switch (group) {
+                case 'STOCKOUT':
+                    insightText = `HẾT HÀNG — Demand ${demandMonthly.toFixed(0)}/th, BO ${item.Backorder || 0}. PO: ${item.TotalPO || 0}. → AIR ${computed.suggestedBO || Math.ceil(newROP - available)} units`;
+                    break;
+                case 'RISK':
+                    insightText = `Còn ${mos.toFixed(1)}M — dưới ROP ${Math.ceil(newROP)}. Thiếu ${Math.ceil(newROP - available)} units. → Expedite PO`;
+                    break;
+                case 'SPIKE':
+                    insightText = `Bán ${actualM1} vs TB ${mean12M.toFixed(0)} (+${mean12M > 0 ? ((actualM1 / mean12M - 1) * 100).toFixed(0) : 'N/A'}%). → Tăng FC lên ${Math.ceil(forecastLinReg || actualM1)}/th`;
+                    break;
+                case 'OVERSTOCK':
+                    insightText = `Tồn ${mos.toFixed(1)}M, thừa ${excessQty} = ${Math.round(excessValue).toLocaleString()}đ. → ${item.TotalPO > 0 ? 'Cắt PO ' + item.TotalPO : 'Transfer'}`;
+                    break;
+                case 'DECLINING':
+                    insightText = `Giảm ${slope.toFixed(1)}/th. TB12M=${avg12M.toFixed(0)} → FC ${forecastLinReg.toFixed(0)}. → Hold PO, giảm FC`;
+                    break;
+            }
+
+            results.push({
+                item,
+                group,
+                fullHistory,
+                actualM1,
+                forecastM1,
+                sigmaD,
+                mean12M,
+                cv,
+                zScore: Z,
+                newSS,
+                newROP,
+                accuracy,
+                forecastBias,
+                mos,
+                dos,
+                available,
+                excessQty,
+                excessValue,
+                stockoutGapQty,
+                stockoutGapValue,
+                slope,
+                insightText,
+                actionLabel: cfg.actionLabel,
+                actionIcon: cfg.actionIcon,
+            });
         }
-        return results;
-    }, [data, t]);
 
+        return {
+            analyzedItems: results,
+            metrics: {
+                stockout: mStockout,
+                risk: mRisk,
+                spike: mSpike,
+                overstock: mOverstock,
+                declining: mDeclining,
+                stockoutGapValue: totalGapValue,
+                excessValue: totalExcessValue,
+                avgAccuracy: accuracyCount > 0 ? accuracySum / accuracyCount : 0,
+                accuracyCount,
+            },
+        };
+    }, [data]);
+
+    // ── FILTER + SORT ────────────────────────────────────────────────────────
     const filteredData = useMemo(() => {
-        let result = analyzedData.filter(d => {
-            if (severityFilter === 'STOCKOUT_RISK') return d.dos < 15 || d.item.Backorder > 0;
-            if (severityFilter !== 'ALL') return d.severity === severityFilter;
-            return true;
-        });
+        let result = analyzedItems;
 
-        if (searchResult.type !== 'EMPTY') result = result.filter(d => matchSearch(d.item, searchResult));
+        if (groupFilter !== 'ALL') {
+            result = result.filter(d => d.group === groupFilter);
+        }
 
-        // Sorting
+        if (searchResult.type !== 'EMPTY') {
+            result = result.filter(d => matchSearch(d.item, searchResult));
+        }
+
+        const groupPriority: Record<IntelGroup, number> = { STOCKOUT: 0, RISK: 1, SPIKE: 2, OVERSTOCK: 3, DECLINING: 4 };
+
         return result.sort((a, b) => {
             switch (sortKey) {
-                case 'dos_asc': return a.dos - b.dos;
-                case 'dos_desc': return b.dos - a.dos;
-                case 'fc_desc': return b.forecastM1 - a.forecastM1;
-                case 'cst_desc': return b.cst - a.cst;
-                case 'severity':
+                case 'mos_asc': return a.mos - b.mos;
+                case 'mos_desc': return b.mos - a.mos;
+                case 'demand_desc': return (b.item.computed?.demandMonthly || 0) - (a.item.computed?.demandMonthly || 0);
+                case 'excess_desc': return b.excessValue - a.excessValue;
+                case 'gap_desc': return b.stockoutGapValue - a.stockoutGapValue;
+                case 'group':
                 default:
-                    const priority: any = { 'CRITICAL': 0, 'HIGH': 1, 'OVERSTOCK': 2, 'WATCH': 3, 'NORMAL': 4 };
-                    return priority[a.severity] - priority[b.severity] || a.dos - b.dos;
+                    return groupPriority[a.group] - groupPriority[b.group] || a.mos - b.mos;
             }
         });
-    }, [analyzedData, severityFilter, searchResult, sortKey]);
+    }, [analyzedItems, groupFilter, searchResult, sortKey]);
 
-    const paginatedData = useMemo(() => filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage), [filteredData, currentPage, itemsPerPage]);
+    const paginatedData = useMemo(() =>
+        filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
+        [filteredData, currentPage, itemsPerPage]
+    );
 
-    const metrics = useMemo(() => {
-        let crit = 0, high = 0, over = 0, stockoutRisk = 0;
-        analyzedData.forEach(d => {
-            if (d.severity === 'CRITICAL') crit++;
-            if (d.severity === 'HIGH') high++;
-            if (d.severity === 'OVERSTOCK') over++;
-            if (d.dos < 15 || d.item.Backorder > 0) stockoutRisk++;
-        });
-        return { critical: crit, high: high, overstock: over, stockoutRisk };
-    }, [analyzedData]);
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
+    // Save state on changes
+    React.useEffect(() => {
+        if (onSaveState) onSaveState({ groupFilter, sortKey });
+    }, [groupFilter, sortKey, onSaveState]);
+
+    // ── MOS COLOR ────────────────────────────────────────────────────────────
+    const getMosColor = (mos: number) => {
+        if (mos < 1) return 'text-rose-700 bg-rose-50 border-rose-200';
+        if (mos < 3) return 'text-amber-700 bg-amber-50 border-amber-200';
+        if (mos <= 6) return 'text-emerald-700 bg-emerald-50 border-emerald-200';
+        return 'text-blue-700 bg-blue-50 border-blue-200';
+    };
+
+    // ── RENDER ────────────────────────────────────────────────────────────────
     return (
         <div className="animate-fadeIn space-y-6 pb-24">
-            {/* Page Header */}
-            <div className="bg-gradient-to-r from-emerald-700 via-teal-800 to-cyan-900 rounded-3xl p-6 md:p-8 text-white relative overflow-hidden">
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none"></div>
-                <div className="absolute -top-20 -right-20 w-60 h-60 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none"></div>
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div>
-                        <h2 className="text-2xl md:text-3xl font-black tracking-tight uppercase flex items-center gap-3">
-                            <i className="fas fa-wave-square text-emerald-300"></i> {t('di_title')}
-                        </h2>
-                        <p className="text-emerald-200 text-sm font-bold mt-1 uppercase tracking-widest">{t('di_subtitle')}</p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        {/* View Switcher */}
-                        <div className="flex bg-white/10 backdrop-blur-sm p-1 rounded-xl border border-white/10">
-                            <button onClick={() => setViewMode('ANALYTICS')} className={`px-4 py-2 rounded-lg text-2xs font-black uppercase transition-all ${viewMode === 'ANALYTICS' ? 'bg-white text-emerald-800 shadow-sm' : 'text-white/70 hover:text-white'}`}>
-                                <i className="fas fa-chart-line mr-2"></i> Analytics
-                            </button>
-                            <button onClick={() => setViewMode('LEAD_TIME')} className={`px-4 py-2 rounded-lg text-2xs font-black uppercase transition-all ${viewMode === 'LEAD_TIME' ? 'bg-white text-emerald-800 shadow-sm' : 'text-white/70 hover:text-white'}`}>
-                                <i className="fas fa-shipping-fast mr-2"></i> Lead Time
-                            </button>
+            {/* KPI Summary Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <MetricCard
+                    label="Hết hàng"
+                    value={metrics.stockout.toString()}
+                    subValue={metrics.stockoutGapValue > 0 ? `Gap: ${(metrics.stockoutGapValue / 1e6).toFixed(1)}M đ` : 'Cần order AIR'}
+                    icon="fa-circle-xmark"
+                    color="rose"
+                    onClick={() => { setGroupFilter('STOCKOUT'); setCurrentPage(1); }}
+                    isActive={groupFilter === 'STOCKOUT'}
+                />
+                <MetricCard
+                    label="Rủi ro"
+                    value={metrics.risk.toString()}
+                    subValue="Dưới ROP — expedite"
+                    icon="fa-triangle-exclamation"
+                    color="amber"
+                    onClick={() => { setGroupFilter('RISK'); setCurrentPage(1); }}
+                    isActive={groupFilter === 'RISK'}
+                />
+                <MetricCard
+                    label="Nhu cầu tăng"
+                    value={metrics.spike.toString()}
+                    subValue="Demand spike — review FC"
+                    icon="fa-arrow-trend-up"
+                    color="amber"
+                    onClick={() => { setGroupFilter('SPIKE'); setCurrentPage(1); }}
+                    isActive={groupFilter === 'SPIKE'}
+                />
+                <MetricCard
+                    label="Tồn dư"
+                    value={metrics.overstock.toString()}
+                    subValue={metrics.excessValue > 0 ? `Excess: ${(metrics.excessValue / 1e6).toFixed(1)}M đ` : 'Transfer/cắt PO'}
+                    icon="fa-boxes-stacked"
+                    color="slate"
+                    onClick={() => { setGroupFilter('OVERSTOCK'); setCurrentPage(1); }}
+                    isActive={groupFilter === 'OVERSTOCK'}
+                />
+                <MetricCard
+                    label="FC Accuracy"
+                    value={metrics.accuracyCount > 0 ? `${metrics.avgAccuracy.toFixed(0)}%` : 'N/A'}
+                    subValue={`${metrics.accuracyCount} SKU có FC`}
+                    icon="fa-bullseye"
+                    color="emerald"
+                    onClick={() => { setGroupFilter('ALL'); setCurrentPage(1); }}
+                    isActive={groupFilter === 'ALL'}
+                />
+            </div>
+
+            {/* Table */}
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+                {/* Toolbar */}
+                <div className="px-6 py-3 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center bg-white sticky top-0 z-40 gap-3 shadow-sm">
+                    <div className="flex flex-wrap items-center gap-3">
+                        {/* Group filter tabs */}
+                        <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200">
+                            {(['ALL', 'STOCKOUT', 'RISK', 'SPIKE', 'OVERSTOCK', 'DECLINING'] as const).map(f => (
+                                <button
+                                    key={f}
+                                    onClick={() => { setGroupFilter(f); setCurrentPage(1); }}
+                                    className={`px-3 py-1 text-[10px] font-black rounded-lg transition-all uppercase ${groupFilter === f ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    {f === 'ALL' ? 'Tất cả' : GROUP_CONFIG[f].label}
+                                    {f !== 'ALL' && (
+                                        <span className="ml-1 text-[9px] opacity-60">
+                                            {f === 'STOCKOUT' ? metrics.stockout : f === 'RISK' ? metrics.risk : f === 'SPIKE' ? metrics.spike : f === 'OVERSTOCK' ? metrics.overstock : metrics.declining}
+                                        </span>
+                                    )}
+                                </button>
+                            ))}
                         </div>
+
+                        {/* Sort */}
+                        <div className="flex items-center gap-2 px-3 py-1 bg-slate-50 border border-slate-200 rounded-xl">
+                            <i className="fas fa-sort-amount-down text-slate-400 text-[10px]"></i>
+                            <select value={sortKey} onChange={(e) => setSortKey(e.target.value)} className="bg-transparent text-[10px] font-black text-slate-700 outline-none cursor-pointer uppercase">
+                                <option value="group">Nhóm hành động</option>
+                                <option value="mos_asc">MOS (Thấp nhất)</option>
+                                <option value="mos_desc">MOS (Cao nhất)</option>
+                                <option value="demand_desc">Demand (Cao nhất)</option>
+                                <option value="excess_desc">Excess Value (Cao nhất)</option>
+                                <option value="gap_desc">Gap Value (Cao nhất)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 w-full md:w-auto">
+                        <div className="relative w-full md:w-64">
+                            <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                            <input
+                                type="text"
+                                placeholder={t('common_search')}
+                                value={searchText}
+                                onChange={e => handleSearchChange(e.target.value)}
+                                className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-bold focus:bg-white focus:border-blue-400 transition-all"
+                            />
+                        </div>
+                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">
+                            {filteredData.length} SKU
+                        </div>
+                    </div>
+                </div>
+
+                {/* Table Body */}
+                <div className="overflow-x-auto flex-1 relative custom-scrollbar">
+                    <table className="w-full text-xs text-left border-separate border-spacing-0 min-w-[1400px] table-zebra">
+                        <thead className="bg-slate-50/95 backdrop-blur-sm border-b-2 border-slate-200 text-slate-600 font-black uppercase text-[10px] tracking-widest sticky top-0 z-30 shadow-sm">
+                            <tr>
+                                <th className="px-3 py-3 w-10 text-center text-slate-400 border-b border-slate-100">#</th>
+                                <th className="px-3 py-3 w-[90px] border-b border-slate-100">Nhóm</th>
+                                <th className="px-4 py-3 min-w-[220px] sticky left-0 z-40 bg-slate-50/95 border-b border-slate-100">SKU</th>
+                                <th className="px-4 py-3 text-center border-b border-slate-100 w-[120px]">Trend</th>
+                                <th className="px-4 py-3 text-center border-b border-slate-100 w-[100px]">Demand</th>
+                                <th className="px-4 py-3 text-center border-b border-slate-100 w-[130px]">Tồn / ROP</th>
+                                <th className="px-3 py-3 text-center border-b border-slate-100 w-[60px]">MOS</th>
+                                <th className="px-3 py-3 text-center border-b border-slate-100 w-[80px]">Pipeline</th>
+                                <th className="px-4 py-3 text-center border-b border-slate-100 w-[110px]">Gap/Excess</th>
+                                <th className="px-4 py-3 border-b border-slate-100 min-w-[280px] bg-slate-100/30 border-l border-slate-200">Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white">
+                            {paginatedData.map((row, idx) => {
+                                const cfg = GROUP_CONFIG[row.group];
+                                return (
+                                    <tr key={row.item.ItemCode} className="hover:bg-slate-50/50 transition-colors group">
+                                        {/* # */}
+                                        <td className="px-3 py-2.5 text-center text-slate-500 font-mono text-[10px] font-black">
+                                            {(currentPage - 1) * itemsPerPage + idx + 1}
+                                        </td>
+
+                                        {/* Group Badge */}
+                                        <td className="px-3 py-2.5">
+                                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-black uppercase ${cfg.bgColor} ${cfg.color} border ${cfg.borderColor}`}>
+                                                <i className={`fas ${cfg.icon} text-[8px]`}></i>
+                                                {cfg.label}
+                                            </span>
+                                        </td>
+
+                                        {/* SKU */}
+                                        <td className="px-4 py-2.5 sticky left-0 z-10 bg-white group-hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => onItemSelect(row.item)}>
+                                            <div className="font-black text-slate-900 font-mono text-sm uppercase group-hover:text-blue-600 transition-colors">
+                                                {row.item.ItemCode}
+                                            </div>
+                                            <div className="text-[10px] font-bold text-slate-500 truncate max-w-[180px]">{row.item.ItemName}</div>
+                                            {row.item.TypeCar && (
+                                                <span className="text-[8px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded mt-0.5 inline-block">{row.item.TypeCar}</span>
+                                            )}
+                                        </td>
+
+                                        {/* Trend Sparkline */}
+                                        <td className="px-4 py-2.5 text-center">
+                                            <Sparkline values={row.fullHistory} group={row.group} />
+                                        </td>
+
+                                        {/* Demand */}
+                                        <td className="px-4 py-2.5 text-center">
+                                            <div className="font-black text-slate-900 text-sm">{row.actualM1.toLocaleString()}</div>
+                                            <div className="text-[10px] font-bold text-emerald-600">FC: {row.forecastM1 || '-'}</div>
+                                            {row.accuracy !== null && (
+                                                <div className={`text-[9px] font-bold ${row.accuracy >= 80 ? 'text-emerald-600' : row.accuracy >= 50 ? 'text-amber-600' : 'text-rose-600'}`}>
+                                                    {row.accuracy.toFixed(0)}% acc
+                                                </div>
+                                            )}
+                                        </td>
+
+                                        {/* Stock / ROP */}
+                                        <td className="px-4 py-2.5 text-center">
+                                            <div className="flex gap-1 text-[10px] font-black justify-center">
+                                                <span className={`px-1.5 py-0.5 rounded border ${row.available < row.newROP ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                                                    {Math.round(row.available)}
+                                                </span>
+                                                <span className="text-slate-300">/</span>
+                                                <span className="px-1.5 py-0.5 rounded bg-slate-50 border border-slate-200 text-slate-500">
+                                                    {Math.ceil(row.newROP)}
+                                                </span>
+                                            </div>
+                                            <div className="text-[8px] text-slate-400 mt-0.5">
+                                                SS: {Math.ceil(row.newSS)} ({getServiceLevel(row.item.LOISGroup)})
+                                            </div>
+                                        </td>
+
+                                        {/* MOS */}
+                                        <td className="px-3 py-2.5 text-center">
+                                            <span className={`inline-flex flex-col items-center px-2 py-1 rounded border ${getMosColor(row.mos)}`}>
+                                                <span className="text-xs font-black">{row.mos.toFixed(1)}</span>
+                                                <span className="text-[9px] font-bold uppercase opacity-80">MOS</span>
+                                            </span>
+                                        </td>
+
+                                        {/* Pipeline */}
+                                        <td className="px-3 py-2.5 text-center">
+                                            <div className="font-black text-slate-700 text-sm">{row.item.TotalPO || 0}</div>
+                                        </td>
+
+                                        {/* Gap / Excess */}
+                                        <td className="px-4 py-2.5 text-center">
+                                            {row.stockoutGapQty > 0 ? (
+                                                <div>
+                                                    <div className="font-black text-rose-700 text-sm">-{row.stockoutGapQty}</div>
+                                                    <div className="text-[9px] text-rose-500">{Math.round(row.stockoutGapValue / 1000).toLocaleString()}k</div>
+                                                </div>
+                                            ) : row.excessQty > 0 ? (
+                                                <div>
+                                                    <div className="font-black text-blue-700 text-sm">+{row.excessQty}</div>
+                                                    <div className="text-[9px] text-blue-500">{Math.round(row.excessValue / 1000).toLocaleString()}k</div>
+                                                </div>
+                                            ) : (
+                                                <span className="text-slate-300">—</span>
+                                            )}
+                                        </td>
+
+                                        {/* Insight */}
+                                        <td className="px-4 py-2.5 bg-slate-50/40 border-l border-slate-200">
+                                            <p className="text-xs font-medium leading-relaxed text-slate-700">{row.insightText}</p>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Pagination */}
+                <div className="px-6 py-3 border-t-2 border-slate-200 flex justify-between items-center bg-white text-xs font-black uppercase text-slate-600">
+                    <span className="text-slate-400">
+                        {t('common_total')}: <span className="text-slate-700">{filteredData.length} SKU</span>
+                        {groupFilter === 'ALL' && (
+                            <span className="ml-2 normal-case font-bold text-[10px]">
+                                (Ẩn {data.length - analyzedItems.length} mã NORMAL)
+                            </span>
+                        )}
+                    </span>
+                    <div className="flex items-center gap-1">
+                        <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="pagination-pill text-slate-600">
+                            <i className="fas fa-chevron-left text-xs"></i>
+                        </button>
+                        {(() => {
+                            return [...Array(totalPages)].map((_, i) => {
+                                const page = i + 1;
+                                if (totalPages > 7 && Math.abs(currentPage - page) > 2 && page !== 1 && page !== totalPages) {
+                                    if (page === 2 || page === totalPages - 1) return <span key={i} className="px-1 text-slate-300">…</span>;
+                                    return null;
+                                }
+                                return (
+                                    <button key={i} onClick={() => setCurrentPage(page)} className={`pagination-pill ${currentPage === page ? 'active' : 'text-slate-600'}`}>
+                                        {page}
+                                    </button>
+                                );
+                            });
+                        })()}
+                        <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} className="pagination-pill text-slate-600">
+                            <i className="fas fa-chevron-right text-xs"></i>
+                        </button>
                     </div>
                 </div>
             </div>
-
-            {viewMode === 'LEAD_TIME' ? (
-                <div className="animate-fadeIn">
-                    <StockoutReportWithLeadTime
-                        data={data}
-                        onAction={handleLeadTimeAction}
-                    />
-                </div>
-            ) : (
-                <div className="animate-fadeIn space-y-8">
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                        <MetricCard label={t('di_risk_stockout')} value={metrics.stockoutRisk.toString()} subValue={t('di_sub_stockout')} icon="fa-triangle-exclamation" color="rose" onClick={() => setSeverityFilter('STOCKOUT_RISK')} isActive={severityFilter === 'STOCKOUT_RISK'} />
-                        <MetricCard label={t('di_risk_critical')} value={metrics.critical.toString()} subValue={t('di_sub_critical')} icon="fa-plane-departure" color="rose" onClick={() => setSeverityFilter('CRITICAL')} isActive={severityFilter === 'CRITICAL'} />
-                        <MetricCard label={t('di_risk_high')} value={metrics.high.toString()} subValue={t('di_sub_high')} icon="fa-bell" color="amber" onClick={() => setSeverityFilter('HIGH')} isActive={severityFilter === 'HIGH'} />
-                        <MetricCard label={t('di_risk_overstock')} value={metrics.overstock.toString()} subValue={t('di_sub_overstock')} icon="fa-scissors" color="slate" onClick={() => setSeverityFilter('OVERSTOCK')} isActive={severityFilter === 'OVERSTOCK'} />
-                        <MetricCard label={t('di_risk_watch')} value={(analyzedData.length - metrics.critical - metrics.high - metrics.overstock).toString()} subValue={t('di_sub_watch')} icon="fa-shield-halved" color="emerald" onClick={() => setSeverityFilter('WATCH')} isActive={severityFilter === 'WATCH'} />
-                    </div>
-
-                    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
-                        <div className="px-8 py-4 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center bg-white sticky top-0 z-40 gap-4 shadow-sm">
-                            <div className="flex flex-wrap items-center gap-4">
-                                <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
-                                    {['ALL', 'STOCKOUT_RISK', 'CRITICAL', 'HIGH', 'WATCH', 'OVERSTOCK'].map(f => (
-                                        <button key={f} onClick={() => setSeverityFilter(f as any)} className={`px-4 py-1.5 text-2xs font-black rounded-lg transition-all uppercase ${severityFilter === f ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{f.replace('_', ' ')}</button>
-                                    ))}
-                                </div>
-
-                                {/* SORT COMPONENT */}
-                                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl">
-                                    <i className="fas fa-sort-amount-down text-slate-400 text-2xs"></i>
-                                    <select value={sortKey} onChange={(e) => setSortKey(e.target.value)} className="bg-transparent text-2xs font-black text-slate-700 outline-none cursor-pointer uppercase">
-                                        <option value="severity">Sắp xếp: Mức rủi ro</option>
-                                        <option value="dos_asc">DOS (Thấp nhất)</option>
-                                        <option value="fc_desc">FC (Cao nhất)</option>
-                                        <option value="cst_desc">CST (Dài nhất)</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-4 w-full md:w-auto">
-                                <div className="relative group w-full md:w-64"><i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i><input type="text" placeholder={t('common_search')} value={searchText} onChange={e => handleSearchChange(e.target.value)} className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-bold focus:bg-white focus:border-blue-400 transition-all" /></div>
-                                <div className="text-2xs font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">{t('db_items_found')}: {filteredData.length}</div>
-                            </div>
-                        </div>
-
-                        <div className="overflow-x-auto flex-1 relative custom-scrollbar"><table className="w-full text-xs text-left border-separate border-spacing-0 min-w-[1700px] table-zebra"><thead className="bg-slate-50/95 backdrop-blur-sm border-b-2 border-slate-200 text-slate-600 font-black uppercase text-2xs tracking-widest sticky top-0 z-30 shadow-sm"><tr><th className="px-4 py-4 w-12 text-center text-slate-400 border-b border-slate-100 sticky left-0 z-40 bg-slate-50/95">#</th><th className="px-6 py-4 min-w-[250px] sticky left-12 z-40 bg-slate-50/95 sticky-column-shadow border-b border-slate-100">{t('di_th_sku')}</th><th className="px-6 py-4 text-center border-b border-slate-100">{t('di_th_trend')}</th><th className="px-6 py-4 text-center border-b border-slate-100">{t('ord_th_demand')}</th><th className="w-1 p-0 bg-slate-200 border-b border-slate-100"></th><th className="px-6 py-4 min-w-[180px] border-b border-slate-100">{t('di_th_supply')}</th><th className="px-6 py-4 pl-4 min-w-[150px] border-b border-slate-100">{t('di_th_plan')}</th><th className="px-6 py-4 text-center border-b border-slate-100">{t('di_th_cst')}</th><th className="px-6 py-4 text-center border-b border-slate-100">{t('di_th_action')}</th><th className="px-6 py-4 min-w-[350px] bg-slate-100/30 border-l border-slate-200 text-slate-700 border-b border-slate-100">{t('di_th_insight')}</th></tr></thead>
-                            <tbody className="bg-white">{paginatedData.map((row, idx) => (
-                                <tr key={row.item.ItemCode} className="hover:bg-slate-50/50 transition-colors group">
-                                    <td className="px-4 py-3 text-center text-slate-500 font-mono text-2xs font-black sticky left-0 z-10 bg-white group-hover:bg-slate-50">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
-                                    <td className="px-6 py-3 sticky left-12 z-10 bg-white group-hover:bg-slate-50 transition-colors sticky-column-shadow" onClick={() => onItemSelect(row.item)}><div className="font-black text-slate-900 font-mono text-sm uppercase group-hover:text-blue-600 transition-colors cursor-pointer">{row.item.ItemCode}</div><div className="text-2xs font-bold text-slate-500 truncate max-w-[180px]">{row.item.ItemName}</div></td>
-                                    <td className="px-6 py-3 text-center"><Sparkline values={row.fullHistory} severity={row.severity} forecast={[row.forecastM1]} /></td>
-                                    <td className="px-6 py-3 text-center"><div className="font-black text-slate-900 text-sm">{row.actualM1.toLocaleString()}</div><div className="text-2xs font-black text-emerald-600">FC: {row.forecastM1 || '-'}</div></td>
-                                    <td className="w-1 p-0 bg-slate-100"></td>
-                                    <td className="px-6 py-3"><SupplyHealthBar dos={row.dos} status={row.stockoutStatus} /></td>
-                                    <td className="px-6 py-3 pl-4"><div className="flex gap-1 w-full text-2xs font-black"><div className="bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded text-slate-500 w-1/2 text-center">S:{Math.ceil(row.ss)}</div><div className="bg-rose-50 border border-rose-100 px-1.5 py-0.5 rounded text-rose-600 w-1/2 text-center">R:{Math.ceil(row.rop)}</div></div></td>
-                                    <td className="px-6 py-3 text-center"><div className={`inline-flex flex-col items-center px-2 py-1 rounded border ${row.cst < 1 ? 'bg-rose-100 text-rose-700' : row.cst > 12 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}><span className="text-xs font-black">{row.cst.toFixed(1)}</span><span className="text-2xs font-bold uppercase opacity-80">CST</span></div></td>
-                                    <td className="px-6 py-3 text-center"><ActionButton action={row.action} onClick={() => onItemSelect(row.item)} /></td>
-                                    <td className="px-6 py-3 bg-slate-50/40 border-l border-slate-200 text-slate-700"><p className="text-xs font-medium leading-relaxed">{row.generatedAssessment}</p></td>
-                                </tr>
-                            ))}</tbody></table></div>
-                        <div className="px-8 py-3 border-t-2 border-slate-200 flex justify-between items-center bg-white text-xs font-black uppercase text-slate-600">
-                            <div className="flex items-center gap-4">
-                                <span className="text-slate-400">{t('common_total')}: <span className="text-slate-700">{filteredData.length} SKU</span></span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="pagination-pill text-slate-600"><i className="fas fa-chevron-left text-xs"></i></button>
-                                {(() => { const tp = Math.ceil(filteredData.length / itemsPerPage); return [...Array(tp)].map((_, i) => { const page = i + 1; if (tp > 7 && Math.abs(currentPage - page) > 2 && page !== 1 && page !== tp) { if (page === 2 || page === tp - 1) return <span key={i} className="px-1 text-slate-300">…</span>; return null; } return <button key={i} onClick={() => setCurrentPage(page)} className={`pagination-pill ${currentPage === page ? 'active' : 'text-slate-600'}`}>{page}</button>; }); })()}
-                                <button disabled={currentPage >= Math.ceil(filteredData.length / itemsPerPage)} onClick={() => setCurrentPage(p => p + 1)} className="pagination-pill text-slate-600"><i className="fas fa-chevron-right text-xs"></i></button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

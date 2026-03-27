@@ -243,70 +243,81 @@ export const ApprovalQueue = () => {
 
     return (
         <div className="flex flex-col min-h-screen bg-[#f8fafc] overflow-hidden relative">
-            {/* ═══ 1. VIBRANT PREMIUM HEADER ══════════════════════════════════ */}
-            <div className="shrink-0 relative px-8 pt-8 pb-12 text-white overflow-hidden shadow-2xl"
+            {/* ═══ 1. COMPACT HEADER ═══════════════════════════════════════════ */}
+            <div className="shrink-0 relative text-white overflow-hidden"
                 style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #0f2744 100%)' }}>
-                
                 <div className="absolute inset-0 opacity-20 pointer-events-none"
                     style={{ backgroundImage: 'radial-gradient(circle at 20% 30%, #3b82f6 0%, transparent 50%), radial-gradient(circle at 80% 70%, #6366f1 0%, transparent 50%)' }} />
-                
-                <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-                    <div>
-                        <div className="flex items-center gap-3 mb-1">
-                           <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center backdrop-blur-xl border border-white/20 shadow-xl">
-                               <i className="fas fa-check-double text-blue-400 text-lg"></i>
-                           </div>
-                           <h1 className="text-2xl font-black tracking-tight text-white drop-shadow-md">
-                               Phê duyệt Đặt hàng
-                           </h1>
-                        </div>
-                        <div className="flex items-center gap-3 ml-[52px]">
-                            <Typography variant="body" className="text-blue-100/80 font-medium">
-                                Quản lý và phê duyệt các yêu cầu đặt hàng.
-                            </Typography>
-                            {hasApprovalRole && allowedLevels.length > 0 && (
-                                <span className="text-[10px] font-black bg-white/15 border border-white/20 px-2.5 py-1 rounded-lg text-blue-200 uppercase tracking-widest">
-                                    <i className="fas fa-shield-halved mr-1" />
-                                    Level {allowedLevels.join(', ')}
-                                </span>
-                            )}
-                            {profile?.department && (
-                                <span className="text-[10px] font-black bg-white/10 border border-white/15 px-2.5 py-1 rounded-lg text-blue-300 uppercase tracking-widest">
-                                    <i className="fas fa-building mr-1" />
-                                    {profile.department}
-                                </span>
-                            )}
-                        </div>
-                    </div>
 
+                {/* Top row: title + stats + actions */}
+                <div className="relative z-10 flex items-center justify-between px-6 py-3.5">
                     <div className="flex items-center gap-3">
-                        <div className="flex bg-white/5 backdrop-blur-2xl p-1 rounded-[18px] border border-white/10 shadow-inner">
-                            {TABS.map(t => (
-                                <button
-                                    key={t.id}
-                                    onClick={() => setActiveTab(t.id)}
-                                    className={`relative px-4 py-2 rounded-[14px] text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 group ${
-                                        activeTab === t.id ? 'bg-white text-slate-900 shadow-xl scale-[1.02]' : 'text-white/60 hover:text-white hover:bg-white/5'
-                                    }`}
-                                >
-                                    <i className={`fas ${t.icon} text-[9px] ${activeTab === t.id ? 'text-blue-600' : 'opacity-50'}`} />
-                                    {t.label}
-                                </button>
-                            ))}
+                        <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center border border-white/20">
+                            <i className="fas fa-check-double text-blue-400"></i>
                         </div>
-
-                        <button onClick={loadRequests} disabled={isLoading} className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all flex items-center justify-center backdrop-blur-xl group">
-                            <i className={`fas fa-arrows-rotate text-blue-400 text-sm group-hover:rotate-180 transition-transform duration-500 ${isLoading ? 'fa-spin' : ''}`} />
-                        </button>
+                        <div>
+                            <h1 className="text-xl font-black tracking-tight text-white leading-none">Phê duyệt Đặt hàng</h1>
+                            <p className="text-[10px] text-blue-100/60 font-medium mt-0.5">Quản lý và phê duyệt các yêu cầu đặt hàng.</p>
+                        </div>
                     </div>
+
+                    {/* Inline stat pills */}
+                    <div className="flex items-center gap-2 mx-4">
+                        <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg">
+                            <span className="text-[10px] font-black text-white/40 uppercase">Tổng</span>
+                            <span className="text-sm font-black text-white">{stats.total}</span>
+                        </div>
+                        {stats.pending > 0 && (
+                            <div className="flex items-center gap-1.5 bg-amber-500/20 border border-amber-400/30 px-3 py-1.5 rounded-lg">
+                                <i className="fas fa-hourglass-half text-amber-300 text-[10px]"></i>
+                                <span className="text-[10px] font-black text-amber-300 uppercase">Chờ</span>
+                                <span className="text-sm font-black text-amber-200">{stats.pending}</span>
+                            </div>
+                        )}
+                        {stats.processing > 0 && (
+                            <div className="flex items-center gap-1.5 bg-indigo-500/20 border border-indigo-400/30 px-3 py-1.5 rounded-lg">
+                                <span className="text-[10px] font-black text-indigo-300 uppercase">XL</span>
+                                <span className="text-sm font-black text-indigo-200">{stats.processing}</span>
+                            </div>
+                        )}
+                        <div className="flex items-center gap-1.5 bg-emerald-500/15 border border-emerald-400/20 px-3 py-1.5 rounded-lg">
+                            <i className="fas fa-check text-emerald-300 text-[10px]"></i>
+                            <span className="text-sm font-black text-emerald-200">{stats.approved}</span>
+                        </div>
+                        {stats.rejected > 0 && (
+                            <div className="flex items-center gap-1.5 bg-rose-500/20 border border-rose-400/30 px-3 py-1.5 rounded-lg">
+                                <i className="fas fa-ban text-rose-300 text-[10px]"></i>
+                                <span className="text-sm font-black text-rose-200">{stats.rejected}</span>
+                            </div>
+                        )}
+                        {hasApprovalRole && allowedLevels.length > 0 && (
+                            <span className="text-[10px] font-black bg-white/10 border border-white/20 px-2.5 py-1.5 rounded-lg text-blue-200 uppercase tracking-widest">
+                                <i className="fas fa-shield-halved mr-1" />L{allowedLevels.join(',')}
+                            </span>
+                        )}
+                    </div>
+
+                    <button onClick={loadRequests} disabled={isLoading} title="Làm mới" className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all flex items-center justify-center group">
+                        <i className={`fas fa-arrows-rotate text-blue-400 text-xs group-hover:rotate-180 transition-transform duration-500 ${isLoading ? 'fa-spin' : ''}`} />
+                    </button>
                 </div>
 
-                <div className="mt-10 grid grid-cols-2 md:grid-cols-5 gap-4">
-                    <StatCard label="Tổng cộng" value={stats.total} icon="fa-boxes-stacked" color="blue" />
-                    <StatCard label="Cần duyệt" value={stats.pending} icon="fa-hourglass-half" color="amber" />
-                    <StatCard label="Đang xử lý" value={stats.processing} icon="fa-circle-notch" color="indigo" />
-                    <StatCard label="Đã duyệt" value={stats.approved} icon="fa-check-double" color="emerald" />
-                    <StatCard label="Từ chối" value={stats.rejected} icon="fa-ban" color="rose" />
+                {/* Bottom row: tabs */}
+                <div className="relative z-10 border-t border-white/10 px-4 py-1.5 flex items-center gap-1">
+                    {TABS.map(t => (
+                        <button
+                            key={t.id}
+                            onClick={() => setActiveTab(t.id)}
+                            className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 whitespace-nowrap
+                                ${activeTab === t.id
+                                    ? 'bg-white/15 text-white border border-white/25 shadow-inner'
+                                    : 'text-white/40 hover:text-white/70 hover:bg-white/5 border border-transparent'
+                                }`}
+                        >
+                            <i className={`fas ${t.icon} text-[10px] ${activeTab === t.id ? 'text-blue-300' : ''}`} />
+                            {t.label}
+                        </button>
+                    ))}
                 </div>
             </div>
 

@@ -137,62 +137,99 @@ export const SupersessionManagement = ({
     };
 
     return (
-        <div className="flex flex-col h-full space-y-6 pb-24 animate-fadeIn">
-            {/* 1. HEADER SECTION */}
-            <div className="bg-gradient-to-r from-purple-700 via-violet-800 to-indigo-900 rounded-3xl p-6 md:p-8 text-white relative overflow-hidden">
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none"></div>
-                <div className="absolute -top-20 -right-20 w-60 h-60 bg-purple-400/10 rounded-full blur-3xl pointer-events-none"></div>
-                <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                    <div>
-                        <Typography variant="h1" className="flex items-center gap-3 text-white">
-                            <GitMerge size={24} className="text-purple-300" />
-                            {t('ss_title')}
-                        </Typography>
-                        <Typography variant="label" className="mt-1 text-purple-200">
-                            {t('ss_subtitle')}
-                        </Typography>
+        <div className="flex flex-col h-full space-y-4 pb-24 animate-fadeIn">
+            {/* 1. COMPACT HEADER — title + stats + tabs + actions */}
+            <div className="bg-gradient-to-r from-purple-800 via-violet-800 to-indigo-900 rounded-2xl text-white relative overflow-hidden border border-white/10 shadow-glass">
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-40"></div>
+                <div className="absolute -top-16 -right-16 w-56 h-56 bg-purple-400/10 rounded-full blur-[60px] pointer-events-none"></div>
+
+                {/* Top row: title + stats + action buttons */}
+                <div className="relative z-10 flex items-center justify-between px-5 py-3.5">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center border border-white/20">
+                            <GitMerge size={16} className="text-purple-300" />
+                        </div>
+                        <div>
+                            <Typography variant="h2" className="text-white !text-xl tracking-tight leading-none">{t('ss_title')}</Typography>
+                            <Typography variant="label" className="text-purple-200/60 !text-[10px] font-medium">{t('ss_subtitle')}</Typography>
+                        </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3">
-                        {/* Toggle Upload Button */}
-                        <button
-                            onClick={onAddMapping}
-                            className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg border border-transparent px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2"
-                        >
-                            <Plus size={16} /> {t('common_add_new') || 'Thêm'}
-                        </button>
+                    {/* Inline stats */}
+                    {mappings.length > 0 && (
+                        <div className="flex items-center gap-2 mx-4">
+                            <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg">
+                                <i className="fas fa-link text-purple-300 text-[10px]"></i>
+                                <span className="text-[10px] font-black text-white/50 uppercase">Mapping</span>
+                                <span className="text-sm font-black text-white">{stats.totalMappings.toLocaleString()}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg">
+                                <i className="fas fa-diagram-project text-emerald-300 text-[10px]"></i>
+                                <span className="text-[10px] font-black text-white/50 uppercase">Chuỗi</span>
+                                <span className="text-sm font-black text-white">{stats.totalChains.toLocaleString()}</span>
+                            </div>
+                            {stats.errors > 0 && (
+                                <div className="flex items-center gap-1.5 bg-rose-500/20 border border-rose-400/30 px-3 py-1.5 rounded-lg">
+                                    <i className="fas fa-triangle-exclamation text-rose-300 text-[10px]"></i>
+                                    <span className="text-sm font-black text-rose-300">{stats.errors}</span>
+                                </div>
+                            )}
+                            <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg">
+                                <span className="text-[10px] font-black text-white/50 uppercase">Depth</span>
+                                <span className="text-sm font-black text-purple-200">{stats.maxDepth}</span>
+                            </div>
+                        </div>
+                    )}
 
-                        <button onClick={handleLoadFromCloud} disabled={isLoadingCloud} className="bg-blue-500/30 border border-blue-400/30 text-blue-100 hover:bg-blue-500/50 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20">
-                            <i className={`fas ${isLoadingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-down'}`} /> Tải Cloud
+                    {/* Action buttons — compact */}
+                    <div className="flex items-center gap-1.5">
+                        <button onClick={onAddMapping} className="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-black transition-colors">
+                            <Plus size={13} /> Thêm
                         </button>
-
-                        <button
-                            onClick={() => setShowUpload(!showUpload)}
-                            className={`
-                                px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2
-                                ${showUpload
-                                    ? 'bg-white/20 text-white border border-white/20 hover:bg-white/30'
-                                    : 'bg-white/10 text-white hover:bg-white/20 border border-white/20'}
-                            `}
-                        >
-                            {showUpload ? <><X size={16} /> Hủy</> : <><Upload size={16} /> Nhập Local</>}
+                        <button onClick={handleLoadFromCloud} disabled={isLoadingCloud} title="Tải từ Cloud" className="w-8 h-8 flex items-center justify-center bg-white/10 border border-white/20 text-white/70 hover:bg-white/20 rounded-lg transition-all">
+                            <i className={`fas ${isLoadingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-down'} text-xs`} />
                         </button>
-
-                        {mappings.length > 0 && (
-                            <>
-                                <button onClick={handleSaveToCloud} disabled={isSavingCloud} className="bg-emerald-500/30 border border-emerald-400/30 text-emerald-100 hover:bg-emerald-500/50 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-emerald-500/20">
-                                    <i className={`fas ${isSavingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up'}`} /> Lưu Cloud
-                                </button>
-                                <button onClick={handleExport} className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border border-white/20 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2">
-                                    <Download size={16} /> Xuất Local
-                                </button>
-                                <button onClick={handleClear} className="bg-white/10 backdrop-blur-sm hover:bg-rose-500/30 text-white border border-white/20 hover:border-rose-300/30 px-4 py-2.5 rounded-xl transition-all" title={t('ss_clear')}>
-                                    <Trash2 size={18} />
-                                </button>
-                            </>
-                        )}
+                        <button onClick={() => setShowUpload(!showUpload)} title={showUpload ? 'Hủy' : 'Nhập Local'} className={`w-8 h-8 flex items-center justify-center border rounded-lg transition-all ${showUpload ? 'bg-white/20 border-white/30 text-white' : 'bg-white/10 border-white/20 text-white/70 hover:bg-white/20'}`}>
+                            {showUpload ? <X size={13} /> : <Upload size={13} />}
+                        </button>
+                        {mappings.length > 0 && (<>
+                            <button onClick={handleSaveToCloud} disabled={isSavingCloud} title="Lưu Cloud" className="w-8 h-8 flex items-center justify-center bg-white/10 border border-white/20 text-white/70 hover:bg-white/20 rounded-lg transition-all">
+                                <i className={`fas ${isSavingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up'} text-xs`} />
+                            </button>
+                            <button onClick={handleExport} title="Xuất Local" className="w-8 h-8 flex items-center justify-center bg-white/10 border border-white/20 text-white/70 hover:bg-white/20 rounded-lg transition-all">
+                                <Download size={13} />
+                            </button>
+                            <button onClick={handleClear} title={t('ss_clear')} className="w-8 h-8 flex items-center justify-center bg-white/10 border border-white/20 text-white/70 hover:bg-rose-500/40 hover:border-rose-400/30 rounded-lg transition-all">
+                                <Trash2 size={13} />
+                            </button>
+                        </>)}
                     </div>
                 </div>
+
+                {/* Bottom row: sub-tabs */}
+                {mappings.length > 0 && !showUpload && (
+                    <div className="relative z-10 border-t border-white/10 px-4 py-1.5 flex items-center gap-1">
+                        <button
+                            onClick={() => setActiveTab('MAPPING')}
+                            className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 whitespace-nowrap
+                                ${activeTab === 'MAPPING'
+                                    ? 'bg-white/15 text-white border border-white/25 shadow-inner'
+                                    : 'text-white/40 hover:text-white/70 hover:bg-white/5 border border-transparent'}`}
+                        >
+                            <List size={11} className={activeTab === 'MAPPING' ? 'text-purple-300' : ''} /> Danh sách Mapping
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('OLD_STOCK')}
+                            className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 whitespace-nowrap
+                                ${activeTab === 'OLD_STOCK'
+                                    ? 'bg-rose-500/20 text-rose-200 border border-rose-400/30 shadow-inner'
+                                    : 'text-white/40 hover:text-white/70 hover:bg-white/5 border border-transparent'}`}
+                        >
+                            <History size={11} className={activeTab === 'OLD_STOCK' ? 'text-rose-300' : ''} /> Cảnh báo Tồn Mã Cũ
+                            {stats.errors > 0 && <span className="bg-rose-500/40 text-rose-200 text-[9px] font-black px-1.5 py-0.5 rounded-full ml-0.5">{stats.errors}</span>}
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* 2. UPLOAD PANEL (CONDITIONAL) */}
@@ -204,56 +241,6 @@ export const SupersessionManagement = ({
                         onImportError={(errs) => alert(errs.join('\n'))}
                         onCancel={() => setShowUpload(false)}
                     />
-                </div>
-            )}
-
-            {/* 3. METRICS GRID - ONLY SHOW IN MAPPING TAB TO SAVE SPACE IN ALERT VIEW */}
-            {!showUpload && mappings.length > 0 && activeTab === 'MAPPING' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <MetricCard
-                        label={t('ss_total_map')}
-                        value={stats.totalMappings.toLocaleString()}
-                        subValue="Liên kết"
-                        icon="fa-link"
-                        color="blue"
-                    />
-                    <MetricCard
-                        label={t('ss_chains')}
-                        value={stats.totalChains.toLocaleString()}
-                        subValue="Chuỗi thay thế"
-                        icon="fa-diagram-project"
-                        color="emerald"
-                    />
-                    <MetricCard
-                        label={t('ss_validation')}
-                        value={stats.errors.toString()}
-                        subValue={t('ss_errors')}
-                        icon="fa-triangle-exclamation"
-                        color={stats.errors > 0 ? "rose" : "slate"}
-                    />
-                    <div className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col justify-center text-center shadow-sm hover:border-purple-300 transition-colors group">
-                        <Typography variant="label" className="group-hover:text-purple-500 transition-colors">Max Depth</Typography>
-                        <div className="text-2xl font-black text-slate-800 mt-1">{stats.maxDepth}</div>
-                        <Typography variant="label" className="mt-1 text-slate-400 capitalize">Thế hệ</Typography>
-                    </div>
-                </div>
-            )}
-
-            {/* 4. TABS NAVIGATION */}
-            {mappings.length > 0 && !showUpload && (
-                <div className="flex gap-2 p-1 bg-slate-100 rounded-xl border border-slate-200 w-fit">
-                    <button
-                        onClick={() => setActiveTab('MAPPING')}
-                        className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-wide flex items-center gap-2 transition-all ${activeTab === 'MAPPING' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                    >
-                        <List size={16} /> Danh sách Mapping
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('OLD_STOCK')}
-                        className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-wide flex items-center gap-2 transition-all ${activeTab === 'OLD_STOCK' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                    >
-                        <History size={16} /> ⚠️ Cảnh Báo Tồn Mã Cũ
-                    </button>
                 </div>
             )}
 

@@ -4,6 +4,7 @@ import { InventoryItem, SourceProfile } from '../types/inventory';
 import { useLanguage } from '../utils/i18n';
 import { Typography } from '../components/Typography';
 import { computeInventoryBatch, makeComputeParams } from '../utils/inventoryEngine';
+import { enrichItemWithCostTransfer, TransferEnrichment } from '../utils/transferEngine';
 
 interface InventoryDistributionProps {
     data: InventoryItem[];
@@ -23,8 +24,8 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(20);
 
-    // Enrich data
-    const enrichedList = useMemo(() => {
+    // Enrich data with base engine + cost-aware transfer
+    const { enrichedList, transferMap } = useMemo(() => {
         const computeParams = makeComputeParams({
             snapshotDate: new Date().toISOString().split('T')[0],
             warehouseScope: 'All',
@@ -33,7 +34,20 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
             params: { lt: 90, sp: 30, ssp: 15 },
             sourceProfiles: appSettings.sourceProfiles
         });
-        return computeInventoryBatch(data, computeParams, {});
+        const baseList = computeInventoryBatch(data, computeParams, {});
+
+        // Run cost-aware transfer engine on each item
+        const tMap = new Map<string, TransferEnrichment>();
+        for (const item of baseList) {
+            const enrichment = enrichItemWithCostTransfer(item);
+            tMap.set(item.ItemCode, enrichment);
+            // Override base engine transfer values with cost-aware values
+            if (item.computed?.transfer) {
+                item.computed.transfer.transferNBtoBB = enrichment.transferNBtoBB;
+                item.computed.transfer.transferBBtoNB = enrichment.transferBBtoNB;
+            }
+        }
+        return { enrichedList: baseList, transferMap: tMap };
     }, [data, appSettings.sourceProfiles]);
 
     const suggestions = useMemo(() => {
@@ -185,51 +199,63 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
     };
 
     return (
-        <div className="space-y-6 animate-fadeIn pb-12">
-            {/* Header Area */}
-            <div className="bg-gradient-to-br from-slate-900 to-indigo-950 rounded-[40px] p-8 md:p-12 text-white relative overflow-hidden shadow-2xl border border-white/10 mt-6">
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] -mr-64 -mt-64"></div>
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
-                    <div>
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-1 text-blue-400 bg-blue-400 rounded-full"></div>
-                            <Typography variant="label" className="text-blue-400 uppercase tracking-[0.3em] font-black">Optimization Engine</Typography>
+        <div className="space-y-4 animate-fadeIn pb-12">
+            {/* Compact Header */}
+            <div className="bg-gradient-to-br from-slate-900 to-indigo-950 rounded-2xl text-white relative overflow-hidden border border-white/10 shadow-glass">
+                <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/10 rounded-full blur-[80px] -mr-40 -mt-40 pointer-events-none"></div>
+
+                {/* Top row: title + stats */}
+                <div className="relative z-10 flex items-center justify-between px-5 py-3.5">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center border border-white/20">
+                            <i className="fas fa-right-left text-blue-400 text-sm"></i>
                         </div>
-                        <Typography variant="h1" className="!text-4xl md:!text-5xl font-black mb-4 tracking-tight drop-shadow-lg">{t('transfer_title')}</Typography>
-                        <Typography variant="body" className="text-slate-300 max-w-2xl text-lg leading-relaxed">
-                            {activeTab === 'rebalance' 
-                                ? 'Cân đối tồn kho giữa các miền dựa trên Rủi ro hết hàng (MOS < LT) và Hàng đang về.' 
-                                : 'Phân bổ tối ưu lượng hàng mới đặt về cho từng trung tâm phân phối.'}
-                        </Typography>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-5 rounded-3xl min-w-[160px]">
-                            <Typography variant="label" className="text-slate-400 block mb-1">Giá trị mục tiêu</Typography>
-                            <Typography variant="h2" className="text-white">${stats.totalValue.toLocaleString()}</Typography>
-                        </div>
-                        <div className="bg-blue-500/10 backdrop-blur-xl border border-blue-400/20 p-5 rounded-3xl min-w-[160px]">
-                            <Typography variant="label" className="text-blue-400 block mb-1">Mã cần xử lý</Typography>
-                            <Typography variant="h2" className="text-white">{(stats.rebalanceCount + stats.allocationCount).toLocaleString()}</Typography>
+                        <div>
+                            <Typography variant="h2" className="text-white !text-xl tracking-tight leading-none">{t('transfer_title')}</Typography>
+                            <Typography variant="label" className="text-slate-400 !text-[10px] font-medium">
+                                {activeTab === 'rebalance' ? 'Cân đối tồn kho giữa các miền dựa trên MOS và hàng đang về' : 'Phân bổ tối ưu lượng hàng mới đặt về cho từng trung tâm'}
+                            </Typography>
                         </div>
                     </div>
+
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg">
+                            <span className="text-[10px] font-black text-slate-400 uppercase">Giá trị</span>
+                            <span className="text-sm font-black text-white">${stats.totalValue.toLocaleString()}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 bg-blue-500/15 border border-blue-400/20 px-3 py-1.5 rounded-lg">
+                            <i className="fas fa-cubes text-blue-300 text-[10px]"></i>
+                            <span className="text-[10px] font-black text-blue-300 uppercase">Mã</span>
+                            <span className="text-sm font-black text-white">{(stats.rebalanceCount + stats.allocationCount).toLocaleString()}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Bottom row: tabs */}
+                <div className="relative z-10 border-t border-white/10 px-4 py-1.5 flex items-center gap-1">
+                    <button
+                        onClick={() => setActiveTab('rebalance')}
+                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 whitespace-nowrap
+                            ${activeTab === 'rebalance' ? 'bg-white/15 text-white border border-white/25 shadow-inner' : 'text-white/40 hover:text-white/70 hover:bg-white/5 border border-transparent'}`}
+                    >
+                        <i className={`fas fa-right-left text-[10px] ${activeTab === 'rebalance' ? 'text-blue-300' : ''}`}></i>
+                        Điều phối tồn kho
+                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${activeTab === 'rebalance' ? 'bg-blue-500/40 text-blue-200' : 'bg-white/10 text-white/40'}`}>{stats.rebalanceCount}</span>
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('allocation')}
+                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 whitespace-nowrap
+                            ${activeTab === 'allocation' ? 'bg-white/15 text-white border border-white/25 shadow-inner' : 'text-white/40 hover:text-white/70 hover:bg-white/5 border border-transparent'}`}
+                    >
+                        <i className={`fas fa-cart-plus text-[10px] ${activeTab === 'allocation' ? 'text-indigo-300' : ''}`}></i>
+                        Phân bổ đặt hàng
+                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${activeTab === 'allocation' ? 'bg-indigo-500/40 text-indigo-200' : 'bg-white/10 text-white/40'}`}>{stats.allocationCount}</span>
+                    </button>
                 </div>
             </div>
 
-            {/* Filter & Tabs */}
-            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 px-2">
-                <div className="flex bg-slate-100 p-1.5 rounded-[24px] border border-slate-200">
-                    <button onClick={() => setActiveTab('rebalance')} className={`px-8 py-3 rounded-[18px] text-sm font-black transition-all flex items-center gap-2 ${activeTab === 'rebalance' ? 'bg-white text-slate-900 shadow-lg border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
-                        <i className={`fas fa-right-left ${activeTab === 'rebalance' ? 'text-blue-600' : ''}`}></i>
-                        Điều phối tồn kho
-                        <span className={`ml-1 px-2 py-0.5 rounded-full text-[10px] ${activeTab === 'rebalance' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-500'}`}>{stats.rebalanceCount}</span>
-                    </button>
-                    <button onClick={() => setActiveTab('allocation')} className={`px-8 py-3 rounded-[18px] text-sm font-black transition-all flex items-center gap-2 ${activeTab === 'allocation' ? 'bg-white text-slate-900 shadow-lg border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
-                        <i className={`fas fa-cart-plus ${activeTab === 'allocation' ? 'text-indigo-600' : ''}`}></i>
-                        Phân bổ đặt hàng
-                        <span className={`ml-1 px-2 py-0.5 rounded-full text-[10px] ${activeTab === 'allocation' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-500'}`}>{stats.allocationCount}</span>
-                    </button>
-                </div>
+            {/* Filter & Search row */}
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 px-1">
 
                 <div className="flex flex-wrap items-center gap-4">
                     <div className="relative group">
@@ -277,8 +303,8 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                                 </th>
                                 <th className="px-6 py-4 text-left"><Typography variant="label" className="text-slate-400 uppercase tracking-widest">Chi tiết Mã hàng</Typography></th>
                                 <th className="px-6 py-4 text-center"><Typography variant="label" className="text-slate-400 uppercase tracking-widest">Số lượng Cân đối</Typography></th>
-                                <th className="px-6 py-4 text-center"><Typography variant="label" className="text-slate-400 uppercase tracking-widest">Cơ sở quyết định (Miền Bắc)</Typography></th>
-                                <th className="px-6 py-4 text-center"><Typography variant="label" className="text-slate-400 uppercase tracking-widest">Cơ sở quyết định (Miền Nam)</Typography></th>
+                                <th className="px-6 py-4 text-center bg-emerald-50/50"><Typography variant="label" className="text-emerald-700 uppercase tracking-widest">Cơ sở quyết định (Miền Nam — NB)</Typography></th>
+                                <th className="px-6 py-4 text-center bg-blue-50/50"><Typography variant="label" className="text-blue-700 uppercase tracking-widest">Cơ sở quyết định (Miền Bắc — BB)</Typography></th>
                                 <th className="px-6 py-4 text-right"><Typography variant="label" className="text-slate-400 uppercase tracking-widest">Giá trị dự kiến</Typography></th>
                             </tr>
                         </thead>
@@ -321,62 +347,62 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                                                 <span className="text-xs font-black text-slate-900 w-8">{line.to}</span>
                                             </div>
                                         </td>
-                                        {/* NB Metrics */}
-                                        <td className="px-6 py-2">
+                                        {/* NB = Miền Nam */}
+                                        <td className="px-6 py-2 bg-emerald-50/30">
                                             <div className="flex flex-col items-center grayscale opacity-80 group-hover/row:grayscale-0 group-hover/row:opacity-100 transition-all">
                                                 <div className="grid grid-cols-6 gap-x-1 w-full text-center">
                                                     <div className="w-10">
                                                         <div className="text-[10px] font-black text-slate-500">OH</div>
                                                         <div className="text-[12px] font-black text-slate-900">{tr.physicalNB}</div>
                                                     </div>
-                                                    <div className="w-10 border-l border-slate-50">
+                                                    <div className="w-10 border-l border-emerald-100">
                                                         <div className="text-[10px] font-black text-blue-500">DC</div>
                                                         <div className="text-[12px] font-black text-blue-800">{item.QuantityDC_NB}</div>
                                                     </div>
-                                                    <div className="w-10 border-l border-slate-50">
+                                                    <div className="w-10 border-l border-emerald-100">
                                                         <div className="text-[10px] font-black text-rose-500">BO</div>
                                                         <div className={`text-[12px] font-black ${item.Backorder_NB > 0 ? 'text-rose-600' : 'text-slate-300'}`}>{item.Backorder_NB}</div>
                                                     </div>
-                                                    <div className="w-20 border-l border-slate-50">
+                                                    <div className="w-20 border-l border-emerald-100">
                                                         <div className="text-[10px] font-black text-indigo-500" title="Tổng PO (Hàng về tháng)">PO (T/M)</div>
                                                         <div className="text-[12px] font-black text-indigo-700">{tr.incomingNB} <span className="text-[10px] opacity-60">({tr.incomingNB_Month})</span></div>
                                                     </div>
-                                                    <div className="w-12 border-l border-slate-50">
+                                                    <div className="w-12 border-l border-emerald-100">
                                                         <div className="text-[10px] font-black text-amber-600">FC</div>
                                                         <div className="text-[12px] font-black text-amber-700">{item.Forecast_NB || 0}</div>
                                                     </div>
-                                                    <div className="w-10 border-l border-slate-50">
+                                                    <div className="w-10 border-l border-emerald-100">
                                                         <div className="text-[10px] font-black text-emerald-600">MOS</div>
                                                         <div className={`text-[12px] font-black ${tr.mosNB < 3 ? 'text-rose-600' : 'text-emerald-700'}`}>{tr.mosNB.toFixed(1)}</div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </td>
-                                        {/* BB Metrics */}
-                                        <td className="px-6 py-2">
+                                        {/* BB = Miền Bắc */}
+                                        <td className="px-6 py-2 bg-blue-50/30">
                                             <div className="flex flex-col items-center grayscale opacity-80 group-hover/row:grayscale-0 group-hover/row:opacity-100 transition-all">
                                                 <div className="grid grid-cols-6 gap-x-1 w-full text-center">
                                                     <div className="w-10">
                                                         <div className="text-[10px] font-black text-slate-500">OH</div>
                                                         <div className="text-[12px] font-black text-slate-900">{tr.physicalBB}</div>
                                                     </div>
-                                                    <div className="w-10 border-l border-slate-50">
+                                                    <div className="w-10 border-l border-blue-100">
                                                         <div className="text-[10px] font-black text-blue-500">DC</div>
                                                         <div className="text-[12px] font-black text-blue-800">{item.QuantityDC_BB}</div>
                                                     </div>
-                                                    <div className="w-10 border-l border-slate-50">
+                                                    <div className="w-10 border-l border-blue-100">
                                                         <div className="text-[10px] font-black text-rose-500">BO</div>
                                                         <div className={`text-[12px] font-black ${item.Backorder_BB > 0 ? 'text-rose-600' : 'text-slate-300'}`}>{item.Backorder_BB}</div>
                                                     </div>
-                                                    <div className="w-20 border-l border-slate-50">
+                                                    <div className="w-20 border-l border-blue-100">
                                                         <div className="text-[10px] font-black text-indigo-500" title="Tổng PO (Hàng về tháng)">PO (T/M)</div>
                                                         <div className="text-[12px] font-black text-indigo-700">{tr.incomingBB} <span className="text-[10px] opacity-60">({tr.incomingBB_Month})</span></div>
                                                     </div>
-                                                    <div className="w-12 border-l border-slate-50">
+                                                    <div className="w-12 border-l border-blue-100">
                                                         <div className="text-[10px] font-black text-amber-600">FC</div>
                                                         <div className="text-[12px] font-black text-amber-700">{item.Forecast_BB || 0}</div>
                                                     </div>
-                                                    <div className="w-10 border-l border-slate-50">
+                                                    <div className="w-10 border-l border-blue-100">
                                                         <div className="text-[10px] font-black text-emerald-600">MOS</div>
                                                         <div className={`text-[12px] font-black ${tr.mosBB < 3 ? 'text-rose-600' : 'text-emerald-700'}`}>{tr.mosBB.toFixed(1)}</div>
                                                     </div>
@@ -386,6 +412,26 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                                         <td className="px-6 py-2 text-right">
                                             <Typography variant="mono" className="text-slate-900 font-bold text-xs">${(line.qty * cost).toLocaleString()}</Typography>
                                             <Typography variant="label" className="text-slate-400 font-black block mt-0.5 uppercase !text-[9px] tracking-widest leading-none">{line.type}</Typography>
+                                            {(() => {
+                                                const tInfo = transferMap.get(item.ItemCode);
+                                                if (!tInfo || tInfo.transferDirection === 'NONE' || !isRebalance) return null;
+                                                return (
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <span
+                                                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${tInfo.transferNetBenefit > 0 ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-slate-500 bg-slate-50 border-slate-200'}`}
+                                                            title={`Lợi ích: ${Math.round(tInfo.transferBenefit).toLocaleString()}đ — Chi phí: ${Math.round(tInfo.transferCost).toLocaleString()}đ`}
+                                                        >
+                                                            <i className="fas fa-chart-line text-[7px] mr-0.5"></i>
+                                                            Net: {Math.round(tInfo.transferNetBenefit).toLocaleString()}đ
+                                                        </span>
+                                                        {tInfo.donorMOSAfterGive !== null && (
+                                                            <span className="text-[9px] font-bold text-slate-500" title="MOS kho cho sau khi điều chuyển">
+                                                                Donor: {tInfo.donorMOSAfterGive.toFixed(1)}M
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
                                         </td>
                                     </tr>
                                 ));

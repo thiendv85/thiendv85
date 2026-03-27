@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__cb59858c-ca0a-4907-b3bb-a8e998572b08__apply_migration",
+      "Bash(npx tsc:*)",
+      "Bash(npx vite:*)",
+      "mcp__cb59858c-ca0a-4907-b3bb-a8e998572b08__execute_sql",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(find D:/App/v13/.claude/worktrees/stoic-proskuriakova -name *migration* -o -name *schema* -o -name *sql*)",
+      "Bash(grep -r \"CREATE TABLE\\\\|snapshot_metadata\\\\|cloud_storage\" D:/App/v13/.claude/worktrees/stoic-proskuriakova --include=*.sql --include=*.md)",
+      "Bash(xargs grep:*)",
+      "Bash(find D:/App/v13/.claude/worktrees/stoic-proskuriakova -type f \\\\\\(-name *.sql -o -name *schema* -o -name *database* \\\\\\))",
+      "Bash(grep -n \"snapshot_metadata\\\\|cloud_storage\\\\|approval_requests\\\\|profiles\" D:/App/v13/.claude/worktrees/stoic-proskuriakova/supabase/migrations/*)",
+      "Bash(gh pr:*)",
+      "Bash(curl -s -X PUT \"http://localhost:27123/vault/Dev/PR13-Cloud-Snapshot-Optimization.md\" -H \"Authorization: Bearer c1bac55267e6649db1ec7386c328edca17aa933c9bd349f1efecd9b8d4ced85b\" -H \"Content-Type: text/markdown; charset=utf-8\" --data-binary \"@C:/Users/admin/AppData/Local/Temp/obsidian_note.md\")",
+      "Bash(curl -s -X PUT \"http://localhost:27123/vault/Dev/PR13-Cloud-Snapshot-Optimization.md\" -H \"Authorization: Bearer c1bac55267e6649db1ec7386c328edca17aa933c9bd349f1efecd9b8d4ced85b\" -H \"Content-Type: text/markdown; charset=utf-8\" --data-binary \"@C:/Users/admin/AppData/Local/Temp/obsidian_note.md\" --connect-timeout 5)",
+      "Bash(find D:Appv13.claudeworktreesstoic-proskuriakova -name *csvParser* -o -name *csv* -type f)",
+      "Bash(find D:Appv13.claudeworktreesstoic-proskuriakova -type f \\\\\\(-name *migration* -o -name *schema* -o -name *.sql \\\\\\))",
+      "Bash(grep -l \"snapshot_metadata\\\\|monthly_sku_data\" \"D:\\\\App\\\\v13\\\\.claude\\\\worktrees\\\\stoic-proskuriakova\"/supabase/migrations/*.sql)",
+      "Bash(grep -r \"snapshot_metadata\\\\|monthly_sku_data\" D:Appv13.claudeworktreesstoic-proskuriakova --include=*.sql --include=*.md)",
+      "Bash(gh api:*)",
+      "Bash(ls -la /d/App/v13/*.tsx /d/App/v13/*.ts)",
+      "Read(//d/App//**)",
+      "Bash(cmd.exe /c \"cd D:\\\\App\\\\v13 && npx tsc --noEmit 2>&1\")"
+    ]
+  }
+}

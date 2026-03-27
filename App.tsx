@@ -6,10 +6,10 @@ import { FileUpload } from './pages/FileUpload';
 import { Dashboard } from './pages/Dashboard';
 import { SkuDetail } from './pages/SkuDetail';
 import { Ordering } from './pages/Ordering';
-import { DemandIntelligence } from './pages/DemandIntelligence';
+// DemandIntelligence is now a sub-tab of Dashboard (imported there)
 import { RepairPackageOptimizer } from './components/RepairPackageOptimizer';
 // import { BackorderProcessing } from './pages/BackorderProcessing';
-import { SupersessionManagement } from './pages/SupersessionManagement';
+// SupersessionManagement is now a sub-tab of Dashboard (imported there)
 import { SupersessionEditModal } from './components/SupersessionEditModal';
 import { SettingsPage, loadAppSettings, saveAppSettings, AppSettings } from './pages/Settings';
 import { UpdateLog } from './pages/UpdateLog';
@@ -61,7 +61,7 @@ const AppContent = () => {
     const { session, isLoading: authLoading, profile, signOut, needsPasswordReset } = useAuth();
 
     // Keep all hooks before conditional returns (Rules of Hooks)
-    const [view, setView] = useState<'upload' | 'dashboard' | 'ordering' | 'backorder' | 'demand-intel' | 'log' | 'kitting' | 'supersession' | 'settings' | 'approval-queue'>('upload');
+    const [view, setView] = useState<'upload' | 'dashboard' | 'ordering' | 'backorder' | 'transfer' | 'log' | 'kitting' | 'settings' | 'approval-queue'>('upload');
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
     const [initialParams, setInitialParams] = useState<{ lt: number; sp: number; ssp: number } | undefined>(undefined);
     const [appSettings, setAppSettings] = useState<AppSettings>(loadAppSettings);
@@ -320,10 +320,8 @@ const AppContent = () => {
                         {[
                             { id: 'dashboard', label: t('nav_dashboard'), icon: 'fa-chart-simple' },
                             { id: 'ordering', label: t('nav_ordering'), icon: 'fa-cart-shopping' },
-                            { id: 'demand-intel', label: t('nav_demand'), icon: 'fa-brain' },
                             { id: 'transfer', label: t('nav_transfer'), icon: 'fa-right-left' },
                             { id: 'kitting', label: t('nav_kitting'), icon: 'fa-boxes-stacked' },
-                            { id: 'supersession', label: t('nav_supersession'), icon: 'fa-arrows-rotate' },
                             ...(profile?.role && ['admin', 'approver'].includes(profile.role)
                                 ? [{ id: 'approval-queue', label: 'Phê duyệt', icon: 'fa-clipboard-check' }]
                                 : []),
@@ -371,20 +369,16 @@ const AppContent = () => {
             </header >
 
             <main className="flex-1 max-w-[1920px] w-full mx-auto p-3 md:p-5 page-content-hd">
-                {view === 'dashboard' && <Dashboard data={data} onItemSelect={handleSelectItem} initialParams={initialParams} initialState={pageStates.current.dashboard} onSaveState={(s) => pageStates.current.dashboard = s} draftData={sharedDraft} graph={supersessionGraph} appSettings={appSettings} />}
+                {view === 'dashboard' && <Dashboard data={data} onItemSelect={handleSelectItem} initialParams={initialParams} initialState={pageStates.current.dashboard} onSaveState={(s) => pageStates.current.dashboard = s} draftData={sharedDraft} graph={supersessionGraph} appSettings={appSettings} supersessionProps={{
+                    mappings: supersessionMappings,
+                    onUpdateMappings: setSupersessionMappings,
+                    onAddMapping: () => { setEditingSsMapping(null); setIsSsModalOpen(true); },
+                    onEditMapping: (m) => { setEditingSsMapping(m); setIsSsModalOpen(true); },
+                }} />}
                 {view === 'ordering' && <Ordering data={data} onItemSelect={handleSelectItem} initialParams={initialParams} initialState={pageStates.current.ordering} onSaveState={(s) => pageStates.current.ordering = s} sharedDraft={sharedDraft} onUpdateDraft={setSharedDraft} graph={supersessionGraph} appSettings={appSettings} />}
-                { view === 'demand-intel' && <DemandIntelligence data={data} onItemSelect={handleSelectItem} initialState={pageStates.current.demand} onSaveState={(s) => pageStates.current.demand = s} draftData={sharedDraft} onUpdateDraft={setSharedDraft} />}
                 { view === 'transfer' && <InventoryDistribution data={data} onItemSelect={handleSelectItem} appSettings={appSettings} />}
                 { view === 'log' && <UpdateLog />}
                 {view === 'kitting' && <RepairPackageOptimizer data={data} onItemSelect={handleSelectItem} initialState={pageStates.current.kitting} onSaveState={(s) => pageStates.current.kitting = s} draftData={sharedDraft} onUpdateDraft={setSharedDraft} kittingDefs={kittingDefs} onKittingDefsChange={setKittingDefs} />}
-                {view === 'supersession' && <SupersessionManagement
-                    data={data}
-                    mappings={supersessionMappings}
-                    onUpdateMappings={setSupersessionMappings}
-                    onItemSelect={handleSelectItem}
-                    onAddMapping={() => { setEditingSsMapping(null); setIsSsModalOpen(true); }}
-                    onEditMapping={(m) => { setEditingSsMapping(m); setIsSsModalOpen(true); }}
-                />}
                 {view === 'settings' && <SettingsPage settings={appSettings} onSave={(s) => { setAppSettings(s); saveAppSettings(s); }} />}
                 {view === 'approval-queue' && <ApprovalQueue />}
             </main>

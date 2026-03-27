@@ -7,10 +7,12 @@ import { ExecutiveDashboard } from '../components/ExecutiveDashboard';
 import { Typography } from '../components/Typography';
 import { parseInventorySearch, SearchResult, matchSearch } from '../utils/searchLogic';
 import { useLanguage } from '../utils/i18n';
-import { SupersessionGraph } from '../utils/supersessionGraph';
+import { SupersessionGraph, SupersessionMapping } from '../utils/supersessionGraph';
 import { AppSettings } from './Settings';
 import { CsvExportOptions } from '../utils/csvParser';
 import { computeInventoryBatch, makeComputeParams } from '../utils/inventoryEngine';
+import { DemandIntelligence } from './DemandIntelligence';
+import { SupersessionManagement } from './SupersessionManagement';
 
 const formatPct = (val: number) => `${(val || 0).toFixed(1)}%`;
 
@@ -55,8 +57,26 @@ const SUBGROUP_DESC: Record<string, string> = {
     'U_OTHER': 'Chưa phân loại',
 };
 
-export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onSaveState, draftData, graph, appSettings }: { data: InventoryItem[], onItemSelect: (item: InventoryItem) => void, initialParams?: any, initialState?: any, onSaveState?: (s: any) => void, draftData?: OrderingDraft, graph?: SupersessionGraph, appSettings?: AppSettings }) => {
+export type DashboardSubTab = 'overview' | 'intelligence' | 'supersession';
+
+export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onSaveState, draftData, graph, appSettings, supersessionProps }: {
+    data: InventoryItem[],
+    onItemSelect: (item: InventoryItem) => void,
+    initialParams?: any,
+    initialState?: any,
+    onSaveState?: (s: any) => void,
+    draftData?: OrderingDraft,
+    graph?: SupersessionGraph,
+    appSettings?: AppSettings,
+    supersessionProps?: {
+        mappings: SupersessionMapping[];
+        onUpdateMappings: (mappings: SupersessionMapping[]) => void;
+        onAddMapping: () => void;
+        onEditMapping: (mapping: SupersessionMapping) => void;
+    };
+}) => {
     const { t } = useLanguage();
+    const [subTab, setSubTab] = useState<DashboardSubTab>(initialState?.subTab || 'overview');
     const [settings, setSettings] = useState<DashboardSettings>(initialState?.settings || {
         snapshotDate: new Date().toISOString().split('T')[0],
         warehouseScope: 'All',
@@ -76,7 +96,7 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
     const [searchResult, setSearchResult] = useState<SearchResult>({ type: 'EMPTY', tokens: [], displayTokens: [], raw: '' });
     const [showSimulation, setShowSimulation] = useState(false);
 
-    useEffect(() => { if (onSaveState) onSaveState({ settings, filters }); }, [settings, filters, onSaveState]);
+    useEffect(() => { if (onSaveState) onSaveState({ settings, filters, subTab }); }, [settings, filters, subTab, onSaveState]);
 
     const handleFiltersChange = (newFilters: InventoryFilters) => {
         if (newFilters.search !== filters.search) setSearchResult(parseInventorySearch(newFilters.search));
@@ -670,85 +690,115 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
     };
 
     return (
-        <div className="animate-fadeIn space-y-6 pb-32">
-            {/* Page Header */}
-            {/* Page Header - Enhanced with professional gradient and grid */}
-            <div className="bg-gradient-professional rounded-3xl p-8 md:p-10 text-white relative overflow-hidden shadow-glass border border-white/10 group/header">
-                {/* Decorative Elements */}
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none opacity-50"></div>
-                <div className="absolute -top-24 -right-24 w-80 h-80 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none group-hover/header:bg-blue-400/20 transition-all duration-1000"></div>
-                <div className="absolute top-1/2 left-1/4 w-40 h-40 bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none animate-pulse"></div>
+        <div className="animate-fadeIn space-y-4 pb-32">
+            {/* Compact Header — title + stats + sub-tabs in one band */}
+            <div className="bg-gradient-professional rounded-2xl text-white relative overflow-hidden shadow-glass border border-white/10">
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none opacity-40"></div>
+                <div className="absolute -top-16 -right-16 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] pointer-events-none"></div>
 
-                <div className="relative z-10">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-                        <div className="space-y-1">
-                            <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-glass group-hover/header:scale-110 group-hover/header:rotate-6 transition-all duration-500">
-                                    <i className="fas fa-chart-simple text-blue-400 text-xl"></i>
-                                </div>
-                                <Typography variant="h1" className="tracking-tight uppercase text-white !text-3xl workbench-title">
-                                    {t('nav_dashboard')}
-                                </Typography>
-                            </div>
-                            <Typography variant="body" className="text-[#F5F5F5] ml-15 block font-medium opacity-100 supply-chain-data">
-                                {t('app_subtitle')}
-                            </Typography>
+                {/* Top row: title + stats */}
+                <div className="relative z-10 flex items-center justify-between px-6 py-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center border border-white/20">
+                            <i className="fas fa-chart-simple text-blue-400"></i>
                         </div>
+                        <div>
+                            <Typography variant="h2" className="tracking-tight uppercase text-white !text-xl workbench-title leading-none">{t('nav_dashboard')}</Typography>
+                            <Typography variant="label" className="text-white/50 !text-[10px] font-medium supply-chain-data">{t('app_subtitle')}</Typography>
+                        </div>
+                    </div>
 
-                        <div className="flex items-center gap-4">
-                            <div className="bg-white/5 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10 shadow-glass hover:bg-white/10 transition-all">
-                                <Typography variant="label" className="text-[#F5F5F5] !text-[10px] uppercase tracking-widest font-black opacity-80 metric-label">Total SKU</Typography>
-                                <Typography variant="h2" className="text-white">{grandStats.totalSKUs.toLocaleString()}</Typography>
-                            </div>
-                            <div className="bg-rose-500/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-rose-400/20 shadow-glass hover:bg-rose-500/20 transition-all">
-                                <Typography variant="label" className="text-[#F5F5F5] !text-[10px] uppercase tracking-widest font-black opacity-80 metric-label">OOS Items</Typography>
-                                <Typography variant="h2" className="text-rose-400">{grandStats.grandNoStock}</Typography>
-                            </div>
-                            <div className="bg-amber-500/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-amber-400/20 shadow-glass hover:bg-amber-500/20 transition-all">
-                                <Typography variant="label" className="text-[#F5F5F5] !text-[10px] uppercase tracking-widest font-black opacity-80 metric-label">Risk Alert</Typography>
-                                <Typography variant="h2" className="text-amber-400">{grandStats.grandShort}</Typography>
-                            </div>
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-2 rounded-xl">
+                            <span className="text-[10px] font-black text-white/50 uppercase tracking-widest">SKU</span>
+                            <span className="text-sm font-black text-white">{grandStats.totalSKUs.toLocaleString()}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 bg-rose-500/15 border border-rose-400/20 px-3 py-2 rounded-xl">
+                            <i className="fas fa-circle-xmark text-rose-400 text-[10px]"></i>
+                            <span className="text-[10px] font-black text-rose-300 uppercase tracking-widest">OOS</span>
+                            <span className="text-sm font-black text-rose-300">{grandStats.grandNoStock}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 bg-amber-500/15 border border-amber-400/20 px-3 py-2 rounded-xl">
+                            <i className="fas fa-triangle-exclamation text-amber-400 text-[10px]"></i>
+                            <span className="text-[10px] font-black text-amber-300 uppercase tracking-widest">Risk</span>
+                            <span className="text-sm font-black text-amber-300">{grandStats.grandShort}</span>
                         </div>
                     </div>
                 </div>
-            </div >
 
-            {/* Executive Alert Banner */}
-            {
-                criticalStockouts > 0 && (
-                    <div className="bg-gradient-to-r from-rose-50 to-white border-l-4 border-rose-500 p-4 rounded-2xl shadow-soft hover:shadow-medium transition-shadow animate-fadeIn">
-                        <div className="flex items-center">
-                            <div className="bg-rose-100 p-2.5 rounded-full text-rose-600 mr-4 shadow-sm">
-                                <i className="fas fa-wind-warning text-xl"></i>
-                            </div>
-                            <div>
-                                <Typography variant="h3" className="text-rose-900 font-bold block">
-                                    {criticalStockouts} Critical Stockouts Detected!
-                                </Typography>
-                                <Typography variant="body-sm" className="text-rose-700 font-medium pt-0.5">
-                                    High-Priority L1-L3 SKUs require immediate action.
-                                </Typography>
-                            </div>
-                            <button
-                                onClick={() => {
-                                    handleFiltersChange({ ...filters, priority: 'P1', specialFilter: 'stockout' });
-                                    setTimeout(() => document.getElementById('inventory-table-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-                                }}
-                                className="ml-auto bg-gradient-rose text-white px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:shadow-glow-rose transition-all shadow-md transform hover:-translate-y-0.5 flex items-center gap-2"
-                            >
-                                <i className="fas fa-arrow-right-long"></i> Xem ngay
-                            </button>
-                        </div>
+                {/* Bottom row: sub-tab nav */}
+                <div className="relative z-10 border-t border-white/10 px-4 py-1.5 flex items-center gap-1">
+                    {([
+                        { id: 'overview' as const, label: t('nav_dashboard'), icon: 'fa-chart-simple' },
+                        { id: 'intelligence' as const, label: 'Demand Intelligence', icon: 'fa-brain' },
+                        { id: 'supersession' as const, label: t('nav_supersession'), icon: 'fa-arrows-rotate' },
+                    ] as const).map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setSubTab(tab.id)}
+                            className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 whitespace-nowrap
+                                ${subTab === tab.id
+                                    ? 'bg-white/15 text-white border border-white/25 shadow-inner'
+                                    : 'text-white/40 hover:text-white/70 hover:bg-white/5 border border-transparent'
+                                }`}
+                        >
+                            <i className={`fas ${tab.icon} text-[10px] ${subTab === tab.id ? 'text-blue-300' : ''}`}></i>
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Sub-Tab Content */}
+            {subTab === 'intelligence' && (
+                <DemandIntelligence
+                    data={enrichedData}
+                    onItemSelect={onItemSelect}
+                    initialState={initialState?.demandState}
+                    onSaveState={(s) => { if (onSaveState) onSaveState({ settings, filters, subTab, demandState: s }); }}
+                />
+            )}
+
+            {subTab === 'supersession' && supersessionProps && (
+                <SupersessionManagement
+                    data={data}
+                    mappings={supersessionProps.mappings}
+                    onUpdateMappings={supersessionProps.onUpdateMappings}
+                    onItemSelect={onItemSelect}
+                    onAddMapping={supersessionProps.onAddMapping}
+                    onEditMapping={supersessionProps.onEditMapping}
+                />
+            )}
+
+            {subTab === 'overview' && <>
+            {/* Alert + KPI row */}
+            <div className="flex flex-col gap-3 no-print">
+                {/* Compact alert — inline above KPI */}
+                {criticalStockouts > 0 && (
+                    <div className="flex items-center gap-3 bg-rose-50 border border-rose-200 px-4 py-2.5 rounded-xl animate-fadeIn">
+                        <i className="fas fa-triangle-exclamation text-rose-500 text-sm shrink-0"></i>
+                        <span className="text-sm font-bold text-rose-800 flex-1">
+                            <span className="font-black">{criticalStockouts}</span> mã stockout ưu tiên cao cần xử lý ngay
+                        </span>
+                        <button
+                            onClick={() => {
+                                handleFiltersChange({ ...filters, priority: 'P1', specialFilter: 'stockout' });
+                                setTimeout(() => document.getElementById('inventory-table-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+                            }}
+                            className="shrink-0 bg-rose-600 text-white px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wide hover:bg-rose-700 transition-colors flex items-center gap-1.5"
+                        >
+                            <i className="fas fa-arrow-right text-[10px]"></i> Xem ngay
+                        </button>
                     </div>
-                )
-            }
+                )}
 
-            {/* KPI GRID */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 no-print">
-                <MetricCard label={t('kpi_turnover')} value={formatCurrency(grandStats.grandTurnover)} subValue={t('kpi_turnover_sub')} icon="fa-arrow-trend-up" color="professional" />
-                <MetricCard label={t('kpi_stock')} value={formatCurrency(grandStats.grandStock)} subValue={t('kpi_stock_sub')} icon="fa-warehouse" color="emerald" />
-                <MetricCard label={t('kpi_pipeline')} value={formatCurrency(grandStats.grandPOVal)} subValue={t('kpi_pipeline_sub')} icon="fa-truck-fast" color="blue" />
-                <MetricCard label={t('kpi_excess')} value={formatCurrency(grandStats.grandExcess)} subValue="Impact Value" icon="fa-circle-exclamation" color="rose" />
+                {/* KPI GRID */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <MetricCard label={t('kpi_turnover')} value={formatCurrency(grandStats.grandTurnover)} subValue={t('kpi_turnover_sub')} icon="fa-arrow-trend-up" color="professional" />
+                    <MetricCard label={t('kpi_stock')} value={formatCurrency(grandStats.grandStock)} subValue={t('kpi_stock_sub')} icon="fa-warehouse" color="emerald" />
+                    <MetricCard label={t('kpi_pipeline')} value={formatCurrency(grandStats.grandPOVal)} subValue={t('kpi_pipeline_sub')} icon="fa-truck-fast" color="blue" />
+                    <MetricCard label={t('kpi_excess')} value={formatCurrency(grandStats.grandExcess)} subValue="Impact Value" icon="fa-circle-exclamation" color="rose" />
+                </div>
             </div>
 
             <div id="inventory-table-section" className="bg-white border border-slate-200/60 shadow-soft rounded-3xl overflow-hidden hover:shadow-medium transition-shadow">
@@ -924,6 +974,7 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
                     exportColumns: appSettings.exportColumns,
                 } as CsvExportOptions : undefined}
             />
+            </>}
         </div>
     );
 };
