@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLanguage } from '../utils/i18n';
-import { saveToCloudStorage, loadFromCloudStorage, verifyAdminPin, saveMonthlyData, loadLatestMonthlyData, listMonthlyDataSnapshots, listProfiles, updateProfileRole, toggleUserActive, listWorkflows, createWorkflow, updateWorkflow, createUserByAdmin, adminResetPassword } from '../utils/supabase';
+import { saveToCloudStorage, loadFromCloudStorage, verifyAdminPin, saveMonthlyData, loadLatestMonthlyData, listMonthlyDataSnapshots, listProfiles, updateProfileRole, toggleUserActive, listWorkflows, createWorkflow, updateWorkflow, createUserByAdmin, adminResetPassword, listSnapshots, deleteSnapshot, getStorageUsage, SnapshotMetadataRow } from '../utils/supabase';
 import { supabase } from '../utils/supabase';
 import { parseMonthlyCSV } from '../utils/csvParser';
 import { Typography } from '../components/Typography';
@@ -388,6 +388,11 @@ const UserManagementTab = () => {
         setUsers(prev => prev.map(u => u.id === userId ? { ...u, role } : u));
     };
 
+    const handleBrandChange = async (userId: string, brand: string | null) => {
+        await supabase.from('profiles').update({ department: brand }).eq('id', userId);
+        setUsers(prev => prev.map(u => u.id === userId ? { ...u, department: brand } : u));
+    };
+
     const handleToggleActive = async (userId: string, active: boolean) => {
         await toggleUserActive(userId, !active);
         setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_active: !active } : u));
@@ -483,6 +488,7 @@ const UserManagementTab = () => {
                             <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-widest border-b border-slate-200">
                                 <th className="px-4 py-3 text-left font-black">Họ tên</th>
                                 <th className="px-4 py-3 text-left font-black">Role</th>
+                                <th className="px-4 py-3 text-left font-black">Brand</th>
                                 <th className="px-4 py-3 text-center font-black">Trạng thái</th>
                                 <th className="px-4 py-3 text-right font-black">Hành động</th>
                             </tr>
@@ -499,6 +505,18 @@ const UserManagementTab = () => {
                                         >
                                             {(Object.keys(ROLE_LABELS) as UserRole[]).map(r => (
                                                 <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+                                            ))}
+                                        </select>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <select
+                                            value={u.department || ''}
+                                            onChange={e => handleBrandChange(u.id, e.target.value || null)}
+                                            className="border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold bg-white outline-none focus:border-blue-400"
+                                        >
+                                            <option value="">Tất cả</option>
+                                            {AVAILABLE_BRANDS.map(b => (
+                                                <option key={b} value={b}>{b}</option>
                                             ))}
                                         </select>
                                     </td>
@@ -830,6 +848,169 @@ const UserManagementTab = () => {
     );
 };
 
+// ─── Snapshot Manager Tab (Admin Only) ────────────────────────────────────────
+const SnapshotManagerTab = () => {
+    const [snapshots, setSnapshots] = useState<SnapshotMetadataRow[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [storageInfo, setStorageInfo] = useState({ usedBytes: 0, count: 0 });
+
+    useEffect(() => { fetchAll(); }, []);
+
+    const fetchAll = async () => {
+        setIsLoading(true);
+        const [data, usage] = await Promise.all([listSnapshots(200), getStorageUsage()]);
+        setSnapshots(data);
+        setStorageInfo(usage);
+        setIsLoading(false);
+    };
+
+    const handleDelete = async (snap: SnapshotMetadataRow) => {
+        if (!confirm(`Xóa snapshot "${snap.filename}"?\nDữ liệu sẽ bị xóa vĩnh viễn khỏi Cloud.`)) return;
+        setDeletingId(snap.id);
+        const ok = await deleteSnapshot(snap.id, snap.storage_path);
+        if (ok) setSnapshots(prev => prev.filter(s => s.id !== snap.id));
+        else alert('Lỗi khi xóa.');
+        setDeletingId(null);
+    };
+
+    const handleDeleteSelected = async () => {
+        if (selectedIds.size === 0) return;
+        if (!confirm(`Xóa ${selectedIds.size} snapshots đã chọn?\nDữ liệu sẽ bị xóa vĩnh viễn.`)) return;
+        for (const id of selectedIds) {
+            const snap = snapshots.find(s => s.id === id);
+            if (snap) {
+                await deleteSnapshot(snap.id, snap.storage_path);
+            }
+        }
+        setSelectedIds(new Set());
+        await fetchAll();
+    };
+
+    const toggleSelect = (id: string) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id); else next.add(id);
+            return next;
+        });
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.size === snapshots.length) setSelectedIds(new Set());
+        else setSelectedIds(new Set(snapshots.map(s => s.id)));
+    };
+
+    const formatBytes = (bytes: number | null) => {
+        if (!bytes) return '—';
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    };
+
+    const formatDate = (dateStr: string) => {
+        const d = new Date(dateStr);
+        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    };
+
+    const totalSize = snapshots.reduce((sum, s) => sum + (s.file_size_bytes || 0), 0);
+
+    return (
+        <div className="space-y-6 animate-fadeIn">
+            <SectionCard icon="fa-cloud" title="Quản lý Snapshot Cloud" badge={`${snapshots.length} files • ${formatBytes(totalSize)}`}>
+                {/* Storage Progress Bar */}
+                {storageInfo.usedBytes > 0 && (
+                    <div className="mb-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                        <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-xs font-black text-slate-600">Dung lượng Cloud</span>
+                            <span className="text-xs font-bold text-slate-500">{formatBytes(storageInfo.usedBytes)} / 1 GB</span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                            <div
+                                className={`h-full rounded-full transition-all ${storageInfo.usedBytes > 800 * 1024 * 1024 ? 'bg-rose-500' : storageInfo.usedBytes > 500 * 1024 * 1024 ? 'bg-amber-500' : 'bg-blue-500'}`}
+                                style={{ width: `${Math.min((storageInfo.usedBytes / (1024 * 1024 * 1024)) * 100, 100)}%` }}
+                            />
+                        </div>
+                        <div className="text-[10px] font-bold text-slate-400 mt-1">
+                            Supabase Free Tier: 1 GB Storage • Auto-cleanup giữ tối đa 30 snapshots
+                        </div>
+                    </div>
+                )}
+
+                {/* Toolbar */}
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                        <button onClick={fetchAll} disabled={isLoading} className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1.5">
+                            <i className={`fas fa-sync ${isLoading ? 'fa-spin' : ''}`} /> Làm mới
+                        </button>
+                        {selectedIds.size > 0 && (
+                            <button onClick={handleDeleteSelected} className="text-xs font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1.5 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-200">
+                                <i className="fas fa-trash" /> Xóa {selectedIds.size} đã chọn
+                            </button>
+                        )}
+                    </div>
+                    <div className="text-xs font-bold text-slate-400">
+                        Supabase Free: 1GB Storage
+                    </div>
+                </div>
+
+                {/* Table */}
+                {isLoading ? (
+                    <div className="flex items-center justify-center py-16 text-slate-400">
+                        <i className="fas fa-circle-notch fa-spin text-2xl" />
+                    </div>
+                ) : snapshots.length === 0 ? (
+                    <div className="text-center py-16 text-slate-400">
+                        <i className="fas fa-cloud text-4xl mb-3 opacity-30" />
+                        <p className="text-sm font-bold">Chưa có snapshot nào</p>
+                    </div>
+                ) : (
+                    <div className="border border-slate-200 rounded-xl overflow-hidden">
+                        <table className="w-full text-xs">
+                            <thead>
+                                <tr className="bg-slate-50 border-b border-slate-200">
+                                    <th className="w-10 p-3 text-center">
+                                        <input type="checkbox" checked={selectedIds.size === snapshots.length && snapshots.length > 0} onChange={toggleSelectAll} className="rounded border-slate-300" />
+                                    </th>
+                                    <th className="p-3 text-left font-black text-slate-600 uppercase tracking-wider">Ngày tải</th>
+                                    <th className="p-3 text-left font-black text-slate-600 uppercase tracking-wider">Tên file</th>
+                                    <th className="p-3 text-left font-black text-slate-600 uppercase tracking-wider">Người tải</th>
+                                    <th className="p-3 text-right font-black text-slate-600 uppercase tracking-wider">SKUs</th>
+                                    <th className="p-3 text-right font-black text-slate-600 uppercase tracking-wider">Dung lượng</th>
+                                    <th className="p-3 text-center font-black text-slate-600 uppercase tracking-wider">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {snapshots.map(snap => (
+                                    <tr key={snap.id} className={`border-b border-slate-100 hover:bg-blue-50/50 transition-colors ${selectedIds.has(snap.id) ? 'bg-blue-50' : ''}`}>
+                                        <td className="p-3 text-center">
+                                            <input type="checkbox" checked={selectedIds.has(snap.id)} onChange={() => toggleSelect(snap.id)} className="rounded border-slate-300" />
+                                        </td>
+                                        <td className="p-3 font-bold text-slate-700">{formatDate(snap.upload_date)}</td>
+                                        <td className="p-3 font-bold text-slate-900 max-w-[200px] truncate" title={snap.filename}>{snap.filename}</td>
+                                        <td className="p-3 text-slate-500 font-medium">{snap.uploader_name || '—'}</td>
+                                        <td className="p-3 text-right font-bold text-slate-700">{snap.row_count?.toLocaleString()}</td>
+                                        <td className="p-3 text-right font-medium text-slate-500">{formatBytes(snap.file_size_bytes)}</td>
+                                        <td className="p-3 text-center">
+                                            <button
+                                                onClick={() => handleDelete(snap)}
+                                                disabled={deletingId === snap.id}
+                                                className="px-3 py-1.5 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-all disabled:opacity-50"
+                                            >
+                                                {deletingId === snap.id ? <i className="fas fa-circle-notch fa-spin" /> : <><i className="fas fa-trash mr-1" />Xóa</>}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </SectionCard>
+        </div>
+    );
+};
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 interface SettingsPageProps {
     settings: AppSettings;
@@ -840,7 +1021,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
     const { t } = useLanguage();
     const [draft, setDraft] = useState<AppSettings>(settings);
     const [saved, setSaved] = useState(false);
-    const [activeTab, setActiveTab] = useState<'inventory' | 'display' | 'export' | 'system' | 'users'>('inventory');
+    const [activeTab, setActiveTab] = useState<'inventory' | 'display' | 'export' | 'system' | 'users' | 'storage'>('inventory');
     const { profile: currentUserProfile } = useAuth();
     const [isSavingCloud, setIsSavingCloud] = useState(false);
     const [isLoadingCloud, setIsLoadingCloud] = useState(false);
@@ -997,7 +1178,10 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
         { id: 'display', label: 'Hiển thị', icon: 'fa-palette' },
         { id: 'export', label: 'Xuất dữ liệu', icon: 'fa-file-export' },
         { id: 'system', label: 'Hệ thống', icon: 'fa-gear' },
-        ...(currentUserProfile?.role === 'admin' ? [{ id: 'users', label: 'Người dùng', icon: 'fa-users' }] : []),
+        ...(currentUserProfile?.role === 'admin' ? [
+            { id: 'users', label: 'Người dùng', icon: 'fa-users' },
+            { id: 'storage', label: 'Quản lý Cloud', icon: 'fa-cloud' },
+        ] : []),
     ] as const;
 
     const exportColGroups: { label: string; cols: { key: keyof AppSettings['exportColumns']; label: string }[] }[] = [
@@ -1743,6 +1927,10 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
 
             {activeTab === 'users' && currentUserProfile?.role === 'admin' && (
                 <UserManagementTab />
+            )}
+
+            {activeTab === 'storage' && currentUserProfile?.role === 'admin' && (
+                <SnapshotManagerTab />
             )}
 
             {/* Sticky Save Bar */}

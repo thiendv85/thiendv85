@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { UserRole, UserProfile } from './authContext';
-import type { ApprovalWorkflow, ApprovalRequest, ApprovalAction, ApprovalStatus, SnapshotData } from '../types/inventory';
+import type { InventoryItem, ApprovalWorkflow, ApprovalRequest, ApprovalAction, ApprovalStatus, SnapshotData } from '../types/inventory';
 
 const supabaseUrl = 'https://jczdnlydozcftvnqnixt.supabase.co';
 const supabaseKey = 'sb_publishable_Iahv6LF7asBI3E_u_HAZhQ_Qrb99Qjm'; // Provided by user
@@ -631,6 +631,215 @@ export async function sendApprovalEmail(payload: {
     await supabase.functions.invoke('send-approval-email', { body: payload });
   } catch (err) {
     console.warn('sendApprovalEmail failed (non-critical):', err);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INVENTORY SNAPSHOT — Compress & Upload to Supabase Storage
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface SnapshotMetadataRow {
+  id: string;
+  filename: string;
+  storage_path: string;
+  upload_date: string;
+  row_count: number;
+  file_size_bytes: number | null;
+  raw_size_bytes: number | null;
+  uploaded_by: string | null;
+  uploader_name: string | null;
+  notes: string | null;
+  brand: string | null;
+  content_hash: string | null;
+}
+
+async function compressData(data: any): Promise<Blob> {
+  const json = JSON.stringify(data);
+  const blob = new Blob([new TextEncoder().encode(json)]);
+  const compressed = blob.stream().pipeThrough(new CompressionStream('gzip'));
+  return new Response(compressed).blob();
+}
+
+async function decompressData(blob: Blob): Promise<any> {
+  const stream = blob.stream().pipeThrough(new DecompressionStream('gzip'));
+  return JSON.parse(await new Response(stream).text());
+}
+
+/**
+ * Strip large derived arrays to reduce storage size (~30-40% savings).
+ * Aggregate values (DealerInventory, Backorder, etc.) are preserved.
+ */
+function pruneForStorage(items: InventoryItem[]): any[] {
+  return items.map(({ DealerBreakdown, BackorderBreakdown, ...rest }) => rest);
+}
+
+/**
+ * Lightweight fingerprint from row count + first/last item key fields.
+ */
+function computeSnapshotHash(data: InventoryItem[]): string {
+  const first = data[0];
+  const last = data[data.length - 1];
+  const raw = `${data.length}|${first?.ItemCode}|${first?.StockQty ?? 0}|${last?.ItemCode}|${last?.StockQty ?? 0}`;
+  // Simple string hash (djb2)
+  let hash = 5381;
+  for (let i = 0; i < raw.length; i++) hash = ((hash << 5) + hash) + raw.charCodeAt(i);
+  return (hash >>> 0).toString(36);
+}
+
+/**
+ * Auto-delete oldest snapshots when exceeding limit.
+ */
+async function enforceRetentionLimit(maxSnapshots = 30): Promise<void> {
+  try {
+    const { data } = await supabase
+      .from('snapshot_metadata')
+      .select('id, storage_path')
+      .order('upload_date', { ascending: true });
+    if (!data || data.length <= maxSnapshots) return;
+    const toDelete = data.slice(0, data.length - maxSnapshots);
+    for (const snap of toDelete) {
+      await supabase.storage.from('inventory_snapshots').remove([snap.storage_path]);
+      await supabase.from('snapshot_metadata').delete().eq('id', snap.id);
+    }
+  } catch (err) {
+    console.warn('enforceRetentionLimit:', err);
+  }
+}
+
+/**
+ * Upload inventory snapshot: prune → compress → dedup check → upload → save metadata → enforce retention.
+ */
+export async function uploadSnapshot(
+  data: InventoryItem[],
+  filename: string
+): Promise<{ success: boolean; error?: string; deduplicated?: boolean }> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    const brand = data[0]?.BrandName || null;
+    const contentHash = computeSnapshotHash(data);
+
+    // Dedup: skip if same hash exists within 24h
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: existing } = await supabase
+      .from('snapshot_metadata')
+      .select('id')
+      .eq('content_hash', contentHash)
+      .gte('upload_date', since)
+      .limit(1);
+    if (existing && existing.length > 0) {
+      return { success: true, deduplicated: true };
+    }
+
+    // Prune large arrays + compress
+    const pruned = pruneForStorage(data);
+    const rawSize = new Blob([JSON.stringify(pruned)]).size;
+    const compressed = await compressData(pruned);
+
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const datePath = `${now.getFullYear()}/${pad(now.getMonth() + 1)}/${pad(now.getDate())}`;
+    const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+    const path = `${datePath}/snapshot_${ts}.json.gz`;
+
+    const { error: uploadErr } = await supabase.storage
+      .from('inventory_snapshots')
+      .upload(path, compressed, {
+        contentType: 'application/gzip',
+        upsert: false,
+      });
+    if (uploadErr) return { success: false, error: uploadErr.message };
+
+    const { error: metaErr } = await supabase.from('snapshot_metadata').insert({
+      filename,
+      storage_path: path,
+      row_count: data.length,
+      file_size_bytes: compressed.size,
+      raw_size_bytes: rawSize,
+      uploaded_by: user?.id ?? null,
+      brand,
+      content_hash: contentHash,
+    });
+    if (metaErr) console.warn('Metadata insert failed (snapshot uploaded OK):', metaErr.message);
+
+    // Auto-cleanup oldest snapshots (fire-and-forget)
+    enforceRetentionLimit(30);
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Unknown error' };
+  }
+}
+
+/**
+ * List saved snapshots, newest first. Optional brand filter for non-admin users.
+ * brandFilter=null → show all (admin), brandFilter='Kia' → only Kia snapshots + untagged.
+ */
+export async function listSnapshots(limit = 50, brandFilter?: string | null): Promise<SnapshotMetadataRow[]> {
+  try {
+    let query = supabase
+      .from('snapshot_metadata')
+      .select('*, profiles:uploaded_by(full_name)')
+      .order('upload_date', { ascending: false })
+      .limit(limit);
+
+    if (brandFilter) {
+      query = query.or(`brand.eq.${brandFilter},brand.is.null`);
+    }
+
+    const { data, error } = await query;
+    if (error) { console.error('listSnapshots:', error); return []; }
+    return (data || []).map((row: any) => ({
+      ...row,
+      uploader_name: row.profiles?.full_name || null,
+      profiles: undefined,
+    })) as SnapshotMetadataRow[];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Get total storage usage from snapshot metadata.
+ */
+export async function getStorageUsage(): Promise<{ usedBytes: number; count: number }> {
+  try {
+    const { data } = await supabase
+      .from('snapshot_metadata')
+      .select('file_size_bytes');
+    const usedBytes = (data || []).reduce((sum: number, r: any) => sum + (r.file_size_bytes || 0), 0);
+    return { usedBytes, count: (data || []).length };
+  } catch {
+    return { usedBytes: 0, count: 0 };
+  }
+}
+
+/**
+ * Download & decompress a snapshot from Storage, returning InventoryItem[].
+ */
+export async function loadSnapshot(storagePath: string): Promise<InventoryItem[] | null> {
+  try {
+    const { data, error } = await supabase.storage
+      .from('inventory_snapshots')
+      .download(storagePath);
+    if (error || !data) { console.error('loadSnapshot download:', error); return null; }
+    const parsed = await decompressData(data);
+    return Array.isArray(parsed) ? parsed as InventoryItem[] : null;
+  } catch (err) {
+    console.error('loadSnapshot:', err);
+    return null;
+  }
+}
+
+/**
+ * Delete a snapshot (storage file + metadata row).
+ */
+export async function deleteSnapshot(id: string, storagePath: string): Promise<boolean> {
+  try {
+    await supabase.storage.from('inventory_snapshots').remove([storagePath]);
+    await supabase.from('snapshot_metadata').delete().eq('id', id);
+    return true;
+  } catch {
+    return false;
   }
 }
 
