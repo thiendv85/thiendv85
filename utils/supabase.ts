@@ -641,6 +641,8 @@ export async function sendApprovalEmail(payload: {
 export interface SnapshotMetadataRow {
   id: string;
   filename: string;
+  dealer_filename: string | null;
+  bo_filename: string | null;
   storage_path: string;
   upload_date: string;
   row_count: number;
@@ -679,7 +681,7 @@ function pruneForStorage(items: InventoryItem[]): any[] {
 function computeSnapshotHash(data: InventoryItem[]): string {
   const first = data[0];
   const last = data[data.length - 1];
-  const raw = `${data.length}|${first?.ItemCode}|${first?.StockQty ?? 0}|${last?.ItemCode}|${last?.StockQty ?? 0}`;
+  const raw = `${data.length}|${first?.ItemCode}|${first?.TotalInventory ?? 0}|${last?.ItemCode}|${last?.TotalInventory ?? 0}`;
   // Simple string hash (djb2)
   let hash = 5381;
   for (let i = 0; i < raw.length; i++) hash = ((hash << 5) + hash) + raw.charCodeAt(i);
@@ -711,7 +713,8 @@ async function enforceRetentionLimit(maxSnapshots = 30): Promise<void> {
  */
 export async function uploadSnapshot(
   data: InventoryItem[],
-  filename: string
+  filename: string,
+  opts?: { dealerFilename?: string; boFilename?: string }
 ): Promise<{ success: boolean; error?: string; deduplicated?: boolean }> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -751,6 +754,8 @@ export async function uploadSnapshot(
 
     const { error: metaErr } = await supabase.from('snapshot_metadata').insert({
       filename,
+      dealer_filename: opts?.dealerFilename || null,
+      bo_filename: opts?.boFilename || null,
       storage_path: path,
       row_count: data.length,
       file_size_bytes: compressed.size,
