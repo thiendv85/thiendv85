@@ -668,11 +668,11 @@ async function decompressData(blob: Blob): Promise<any> {
 }
 
 /**
- * Strip large derived arrays to reduce storage size (~30-40% savings).
- * Aggregate values (DealerInventory, Backorder, etc.) are preserved.
+ * Light cleanup before storage — keep all user-uploaded data intact
+ * (DealerBreakdown, BackorderBreakdown are preserved for full restore).
  */
 function pruneForStorage(items: InventoryItem[]): any[] {
-  return items.map(({ DealerBreakdown, BackorderBreakdown, ...rest }) => rest);
+  return items;
 }
 
 /**
