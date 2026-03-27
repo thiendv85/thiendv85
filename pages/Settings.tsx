@@ -264,13 +264,14 @@ export const saveAppSettings = (s: AppSettings) => {
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
-const SectionCard = ({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) => (
+const SectionCard = ({ title, icon, badge, children }: { title: string; icon: string; badge?: string; children: React.ReactNode }) => (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
                 <i className={`fas ${icon} text-blue-600 text-sm`} />
             </div>
             <Typography variant="label" className="text-slate-900">{title}</Typography>
+            {badge && <span className="ml-auto text-xs font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">{badge}</span>}
         </div>
         <div className="p-6">{children}</div>
     </div>

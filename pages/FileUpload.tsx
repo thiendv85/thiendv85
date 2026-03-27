@@ -146,7 +146,10 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                 onData(inventoryData, mainFile.name, '');
 
                 // Upload cloud song song (non-blocking)
-                uploadSnapshot(inventoryData, mainFile.name).then(result => {
+                uploadSnapshot(inventoryData, mainFile.name, {
+                    dealerFilename: dealerFile?.name,
+                    boFilename: boFile?.name,
+                }).then(result => {
                     if (result.deduplicated) {
                         setUploadStatus({ type: 'success', msg: 'Dữ liệu đã tồn tại trên Cloud (bỏ qua upload trùng)' });
                     } else if (result.success) {
@@ -481,15 +484,23 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                                 <p className="text-slate-400 text-sm font-bold">Chưa có bản sao lưu nào</p>
                                                 <p className="text-slate-500 text-xs mt-1">Tải file CSV và bấm "Lưu & Phân Tích" để tạo bản sao đầu tiên</p>
                                             </div>
-                                        ) : snapshots.map(snap => (
+                                        ) : snapshots.map(snap => {
+                                            const fileCount = 1 + (snap.dealer_filename ? 1 : 0) + (snap.bo_filename ? 1 : 0);
+                                            const tooltip = [snap.filename, snap.dealer_filename && `Tồn SR: ${snap.dealer_filename}`, snap.bo_filename && `BO: ${snap.bo_filename}`].filter(Boolean).join('\n');
+                                            return (
                                             <div key={snap.id} className="flex items-center gap-2 bg-black/20 border border-white/10 rounded-lg px-3 py-2.5 hover:border-blue-400/30 transition-all group/item">
                                                 {/* Date */}
                                                 <span className="text-2xs text-slate-500 font-bold shrink-0 w-[72px]">
                                                     {formatDate(snap.upload_date)}
                                                 </span>
-                                                {/* Filename */}
-                                                <span className="text-xs font-bold text-white truncate flex-1 min-w-0">
+                                                {/* Filename + file count badge */}
+                                                <span className="text-xs font-bold text-white truncate flex-1 min-w-0 flex items-center gap-1.5" title={tooltip}>
                                                     {snap.filename}
+                                                    {fileCount > 1 && (
+                                                        <span className="shrink-0 text-[9px] font-black bg-blue-500/30 text-blue-300 border border-blue-400/30 px-1.5 py-0.5 rounded">
+                                                            {fileCount} files
+                                                        </span>
+                                                    )}
                                                 </span>
                                                 {/* Uploader */}
                                                 {snap.uploader_name && (
@@ -517,7 +528,8 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                                     <i className="fas fa-times text-2xs" />
                                                 </button>
                                             </div>
-                                        ))}
+                                        );
+                                        })}
                                     </div>
                                 </div>
                             )}

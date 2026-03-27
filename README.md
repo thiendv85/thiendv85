@@ -1,20 +1,85 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Auto Parts Governance
 
-# Run and deploy your AI Studio app
+Hệ thống quản lý chuỗi cung ứng phụ tùng ô tô cao cấp — phân tích tồn kho, tối ưu đặt hàng, quy trình phê duyệt đa cấp.
 
-This contains everything you need to run your app locally.
+## Tech Stack
 
-View your app in AI Studio: https://ai.studio/apps/drive/12GsL_PsRpp7qmwgKmue_Uuo0LLl-wCjo
+- **Frontend:** React + TypeScript + Vite + Tailwind CSS
+- **Backend:** Supabase (Auth, Database, Storage, Edge Functions)
+- **Deploy:** Vercel
 
-## Run Locally
+## Tính năng chính
 
-**Prerequisites:**  Node.js
+### 1. Phân tích tồn kho (Inventory Analytics)
+- Upload file CSV tồn kho hàng ngày (hỗ trợ drag & drop)
+- Tự động tính toán: MOS, ROP, Stock Max, Safety Stock, CST
+- Phân nhóm LOIS (L/O/I/S) theo velocity
+- Dashboard với biểu đồ phân bổ tồn kho, trend, risk matrix
 
+### 2. Cloud Snapshot
+- Upload snapshot lên Supabase Storage (gzip compressed)
+- **Tối ưu storage:** Column pruning (~30-40% savings), content hash dedup, auto-retention (max 30 snapshots)
+- **Phân quyền brand:** Planner chỉ thấy snapshot của brand mình (Kia/Mazda/Stellantis/BMW)
+- Admin quản lý toàn bộ snapshots trong Settings với storage usage indicator
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### 3. Đặt hàng & Phê duyệt (Ordering & Approval)
+- Tạo đơn đặt hàng AIR/SEA với gợi ý số lượng từ AI
+- Quy trình phê duyệt đa cấp (1-3 levels)
+- Workflow theo thương hiệu (brand-specific)
+- Optimistic locking chống conflict
+- Audit trail đầy đủ
+
+### 4. Dữ liệu tháng (Monthly Data)
+- Upload file dữ liệu tháng (~80k SKU) lên Cloud
+- Tự động merge với snapshot hàng ngày
+- Version check tránh download lại data chưa thay đổi
+
+### 5. Quản lý người dùng
+- 4 roles: Admin, Planner, Approver, Viewer
+- Phân quyền brand/phòng ban
+- Quản lý approval workflows
+
+## Cài đặt & Chạy
+
+```bash
+# Install dependencies
+npm install
+
+# Chạy dev server
+npm run dev
+
+# Build production
+npm run build
+```
+
+## Cấu hình
+
+Tạo file `.env.local` với:
+
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
+
+## Cấu trúc dự án
+
+```
+├── components/          # React components (modals, guards, UI)
+├── pages/               # Main pages (FileUpload, Settings, Dashboard, etc.)
+├── types/               # TypeScript type definitions
+├── utils/               # Supabase client, CSV parser, i18n, auth context
+├── supabase/migrations/ # SQL migrations (7 phases)
+└── public/              # Static assets
+```
+
+## Supabase Tables
+
+| Table | Mô tả |
+|-------|--------|
+| `profiles` | User profiles (role, department/brand, approval_levels) |
+| `snapshot_metadata` | Metadata cho inventory snapshots trên Storage |
+| `approval_requests` | Đơn đặt hàng chờ phê duyệt |
+| `approval_workflows` | Cấu hình quy trình phê duyệt |
+| `approval_actions` | Audit trail các hành động phê duyệt |
+| `monthly_sku_data` | Dữ liệu tháng (80k+ rows) |
+| `cloud_storage` | Generic JSON store (config, drafts) |
