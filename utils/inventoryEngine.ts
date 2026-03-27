@@ -266,16 +266,17 @@ export function computeInventory(
     item: InventoryItem,
     params: ComputeParams,
     draftData: { air: number; sea: number } = { air: 0, sea: 0 },
-    itemSourceProfile?: SourceProfile
+    itemProfileResult?: { profile?: SourceProfile; isFallback?: boolean; fallbackReason?: string }
 ): ComputedFields {
     const draftQty = draftData.air + draftData.sea;
+    const itemProfile = itemProfileResult?.profile;
 
     // ── 0. PARAMS RESOLUTION ────────────────────────────────────────────────
     // Nếu có profile truyền vào (ví dụ khớp từ SourceId), dùng tham số của profile đó.
     // Nếu không, dùng tham số toàn cục từ params.
-    const effectiveLT = itemSourceProfile?.lt ?? params.lt;
-    const effectiveSP = itemSourceProfile?.sp ?? params.sp;
-    const effectiveSSP = itemSourceProfile?.ssp ?? params.ssp;
+    const effectiveLT = itemProfile?.lt ?? params.lt;
+    const effectiveSP = itemProfile?.sp ?? params.sp;
+    const effectiveSSP = itemProfile?.ssp ?? params.ssp;
 
     // ── 1. DEMAND ──────────────────────────────────────────────────────────
     const demandMonthly = resolveDemand(item, params.demandSource);
@@ -314,6 +315,15 @@ export function computeInventory(
     }
     if (rop > stockMax * 1.3 && demandMonthly > 0.1) {
         warnings.push({ type: 'Critical', code: 'ROP_GT_MAX', message: 'Điểm đặt ROP cao bất thường (>1.3x Max)' });
+    }
+    
+    // 🟠 Source Fallback Warning
+    if (itemProfileResult?.isFallback) {
+        warnings.push({ 
+            type: 'Warning', 
+            code: 'SOURCE_FALLBACK', 
+            message: itemProfileResult.fallbackReason || `Không đúng nguồn, dùng leadtime ${effectiveLT} ngày` 
+        });
     }
 
     // 🟡 Warning
@@ -613,41 +623,58 @@ export function computeInventory(
 /**
  * Tìm profile phù hợp nhất cho một mã hàng dựa trên Brand và SourceId
  */
-export function resolveItemProfile(item: InventoryItem, sourceProfiles?: SourceProfile[]): SourceProfile | undefined {
-    if (!sourceProfiles || sourceProfiles.length === 0) return undefined;
+export function resolveItemProfile(
+    item: InventoryItem, 
+    sourceProfiles?: SourceProfile[]
+): { profile?: SourceProfile; isFallback?: boolean; fallbackReason?: string } {
+    if (!sourceProfiles || sourceProfiles.length === 0) return {};
 
     const sourceVal = (item.SourceId || '').trim().toLowerCase();
     const brandVal = (item.BrandName || '').trim().toLowerCase();
 
-    // Priority 1: Khớp cả Thương hiệu và Nguồn hàng
-    let profile = sourceProfiles.find(p => {
+    // 1. Exact Match (Brand + SourceId)
+    const exactMatch = sourceProfiles.find(p => {
         const pId = p.id.toLowerCase();
         const pName = p.name.toLowerCase();
         const pBrand = p.brand.toLowerCase();
 
         const brandMatch = !brandVal || pBrand === brandVal || brandVal.includes(pBrand) || pBrand.includes(brandVal);
-        
-        // Khớp ID hoặc Name (chấp nhận chứa nhau)
-        const sourceMatch = sourceVal && (
-            pId === sourceVal || 
-            sourceVal.includes(pId) || 
-            pName.includes(sourceVal) || 
-            sourceVal.includes(pName)
-        );
+        const sourceMatch = sourceVal && (pId === sourceVal || sourceVal.includes(pId) || pName.includes(sourceVal) || sourceVal.includes(pName));
 
         return brandMatch && sourceMatch;
     });
 
-    // Priority 2: Chỉ khớp Nguồn hàng (nếu Priority 1 thất bại)
-    if (!profile && sourceVal) {
-        profile = sourceProfiles.find(p => {
+    if (exactMatch) return { profile: exactMatch, isFallback: false };
+
+    // 2. Brand Fallback (Highest LT)
+    // Nếu không khớp chính xác, tìm tất cả nguồn của cùng Brand và chọn LT cao nhất
+    if (brandVal) {
+        const brandProfiles = sourceProfiles.filter(p => {
+            const pBrand = p.brand.toLowerCase();
+            return pBrand === brandVal || brandVal.includes(pBrand) || pBrand.includes(brandVal);
+        });
+
+        if (brandProfiles.length > 0) {
+            const maxLTProfile = brandProfiles.reduce((max, p) => (p.lt > max.lt ? p : max), brandProfiles[0]);
+            return { 
+                profile: maxLTProfile, 
+                isFallback: true, 
+                fallbackReason: `Nguồn ${item.SourceId || 'CXD'} không khớp, dùng LT cao nhất của ${item.BrandName} (${maxLTProfile.name}: ${maxLTProfile.lt} ngày)` 
+            };
+        }
+    }
+
+    // 3. Last Resort: SourceId only (across brands, usually avoided but kept for legacy)
+    if (sourceVal) {
+        const sourceOnlyMatch = sourceProfiles.find(p => {
             const pId = p.id.toLowerCase();
             const pName = p.name.toLowerCase();
             return pId === sourceVal || sourceVal.includes(pId) || pName.includes(sourceVal) || sourceVal.includes(pName);
         });
+        if (sourceOnlyMatch) return { profile: sourceOnlyMatch, isFallback: true, fallbackReason: `Khớp nguồn ${sourceOnlyMatch.id} nhưng khác thương hiệu` };
     }
 
-    return profile;
+    return {};
 }
 
 export function computeInventoryBatch(
@@ -658,8 +685,8 @@ export function computeInventoryBatch(
     return items.map(item => {
         const itemDraftData = draftData?.[item.ItemCode] || { air: 0, sea: 0 };
 
-        const itemProfile = resolveItemProfile(item, params.sourceProfiles);
-        const computed = computeInventory(item, params, itemDraftData, itemProfile);
+        const itemProfileResult = resolveItemProfile(item, params.sourceProfiles);
+        const computed = computeInventory(item, params, itemDraftData, itemProfileResult);
         return { ...item, computed };
     });
 }
