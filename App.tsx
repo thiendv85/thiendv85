@@ -12,6 +12,7 @@ import { RepairPackageOptimizer } from './components/RepairPackageOptimizer';
 // SupersessionManagement is now a sub-tab of Dashboard (imported there)
 import { SupersessionEditModal } from './components/SupersessionEditModal';
 import { SettingsPage, loadAppSettings, saveAppSettings, AppSettings } from './pages/Settings';
+import { DataSelectionModal } from './components/DataSelectionModal';
 import { UpdateLog } from './pages/UpdateLog';
 import { InventoryDistribution } from './pages/InventoryDistribution';
 import { LanguageProvider, useLanguage } from './utils/i18n';
@@ -37,6 +38,7 @@ const AppContent = () => {
     const [monthlyData, setMonthlyData] = useState<Record<string, MonthlyData> | null>(null);
     const [monthlyDataDate, setMonthlyDataDate] = useState<string | null>(null);
     const [isMonthlyLoading, setIsMonthlyLoading] = useState(false);
+    const [isDataModalOpen, setIsDataModalOpen] = useState(false);
 
     const [supersessionMappings, setSupersessionMappings] = useState<SupersessionMapping[]>(() => {
         try {
@@ -293,27 +295,42 @@ const AppContent = () => {
                             </Typography>
                         </div>
                     </div>
-                    {/* Monthly Data Status Badge */}
-                    <div className="hidden md:flex items-center">
+                    {/* Monthly Data Status Badge & Data Selector */}
+                    <div className="hidden md:flex items-center gap-2">
                         {isMonthlyLoading ? (
                             <div className="flex items-center gap-1.5 bg-blue-500/20 border border-blue-400/30 text-blue-200 px-3 py-1.5 rounded-lg text-xs font-bold animate-pulse">
                                 <i className="fas fa-sync fa-spin text-blue-400 text-xs" />
                                 <span className="hidden xl:inline">Đang đồng bộ tháng...</span>
                                 <span className="xl:hidden">...</span>
                             </div>
-                        ) : monthlyDataDate ? (
-                            <div title={`Dữ liệu tháng: ${monthlyDataDate}`} className="bg-emerald-600/20 border border-emerald-400/30 text-emerald-300 px-2 py-1 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
-                                <i className="fas fa-database"></i>
-                                <span className="hidden xl:inline">Dữ liệu Tháng: {monthlyDataDate ? monthlyDataDate.split('-').reverse().join('/') : 'OK'}</span>
-                                <span className="xl:hidden">{monthlyDataDate ? monthlyDataDate.split('-').reverse().join('/') : 'OK'}</span>
-                            </div>
                         ) : (
-                            <div title="Chưa tải dữ liệu tháng — vào Settings → Hệ thống → Upload File Monthly" className="flex items-center gap-1.5 bg-amber-500/20 border border-amber-400/30 text-amber-200 px-3 py-1.5 rounded-lg text-xs font-bold cursor-default">
-                                <i className="fas fa-triangle-exclamation text-amber-300 text-xs" />
-                                <span className="hidden xl:inline">Chưa có d/l tháng</span>
-                                <span className="xl:hidden">!</span>
-                            </div>
+                            <button 
+                                onClick={() => setIsDataModalOpen(true)}
+                                className={`flex items-center gap-1.5 px-2 py-1 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 ${
+                                    monthlyDataDate 
+                                        ? 'bg-emerald-600/20 border border-emerald-400/30 text-emerald-300 hover:bg-emerald-600/30' 
+                                        : 'bg-amber-500/20 border border-amber-400/30 text-amber-200 hover:bg-amber-500/30'
+                                }`}
+                                title={monthlyDataDate ? `Dữ liệu tháng: ${monthlyDataDate} — Click để chọn bản khác` : "Chưa có dữ liệu tháng — Click để chọn"}
+                            >
+                                <i className={monthlyDataDate ? "fas fa-database" : "fas fa-triangle-exclamation text-amber-300"}></i>
+                                <span className="hidden xl:inline">
+                                    {monthlyDataDate ? `Dữ liệu Tháng: ${monthlyDataDate.split('-').reverse().join('/')}` : 'Chưa có d/l tháng'}
+                                </span>
+                                <span className="xl:hidden">
+                                    {monthlyDataDate ? monthlyDataDate.split('-').reverse().join('/') : '!'}
+                                </span>
+                                <i className="fas fa-chevron-down text-[8px] opacity-50 ml-0.5" />
+                            </button>
                         )}
+                        
+                        <button 
+                            onClick={() => setIsDataModalOpen(true)}
+                            title="Chọn dữ liệu từ Cloud (Bản sao lưu kho hoặc Dữ liệu tháng)"
+                            className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition-all flex items-center justify-center shrink-0"
+                        >
+                            <i className="fas fa-cloud text-xs" />
+                        </button>
                     </div>
 
                     <nav className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10 overflow-x-auto no-scrollbar backdrop-blur-md shadow-inner">
@@ -382,6 +399,20 @@ const AppContent = () => {
                 {view === 'settings' && <SettingsPage settings={appSettings} onSave={(s) => { setAppSettings(s); saveAppSettings(s); }} />}
                 {view === 'approval-queue' && <ApprovalQueue />}
             </main>
+
+            <DataSelectionModal 
+                isOpen={isDataModalOpen}
+                onClose={() => setIsDataModalOpen(false)}
+                currentMonthlyDate={monthlyDataDate}
+                userRole={profile?.role}
+                userDepartment={profile?.department}
+                onSelectInventory={handleDataUpload}
+                onSelectMonthly={async (monthData, monthDate, updatedAt) => {
+                    setMonthlyData(monthData as any);
+                    setMonthlyDataDate(monthDate);
+                    await cacheMonthlyData(monthData as any, monthDate, updatedAt);
+                }}
+            />
 
             <SupersessionEditModal
                 isOpen={isSsModalOpen}

@@ -251,6 +251,101 @@ export async function loadLatestMonthlyData(lastUpdatedAt?: string | null): Prom
   }
 }
 
+/**
+ * Lists distinct months available in monthly_sku_data.
+ */
+export async function listMonthlyVersions(): Promise<string[]> {
+  try {
+    const { data, error } = await supabase
+      .from('monthly_sku_data')
+      .select('snapshot_month')
+      .order('snapshot_month', { ascending: false });
+
+    if (error) throw error;
+    if (!data) return [];
+
+    // Extract unique months using Set
+    const uniqueMonths = Array.from(new Set(data.map(r => r.snapshot_month as string)));
+    return uniqueMonths;
+  } catch (err) {
+    console.error('listMonthlyVersions:', err);
+    return [];
+  }
+}
+
+/**
+ * Loads monthly data for a specific month.
+ */
+export async function loadSpecificMonthlyData(month: string): Promise<{ data: Record<string, any>; updatedAt: string } | null> {
+  try {
+    // Phase 1: Get the exact updated_at for this month version
+    const { data: monthRows, error: mErr } = await supabase
+      .from('monthly_sku_data')
+      .select('updated_at')
+      .eq('snapshot_month', month)
+      .limit(1);
+
+    if (mErr || !monthRows || monthRows.length === 0) return null;
+    const updatedAt = monthRows[0].updated_at as string;
+
+    const result: Record<string, any> = {};
+    let from = 0;
+    const PAGE = 1000;
+
+    while (true) {
+      const { data: rows, error } = await supabase
+        .from('monthly_sku_data')
+        .select('*')
+        .eq('snapshot_month', month)
+        .range(from, from + PAGE - 1);
+
+      if (error) throw error;
+      if (!rows || rows.length === 0) break;
+
+      for (const r of rows) {
+        const itemCode = (r.item_code || '').trim().toUpperCase();
+        if (!itemCode) continue;
+
+        result[itemCode] = {
+          ItemCode:          itemCode,
+          LOISGroup:         r.lois_group,
+          AvgQty3M:          r.avg_qty_3m,
+          AvgQty6M:          r.avg_qty_6m,
+          AvgQty12M:         r.avg_qty_12m,
+          AvgQty24M:         r.avg_qty_24m,
+          TrendFlag:         r.trend_flag,
+          MOS:               r.mos,
+          BaseForecast:      r.base_forecast,
+          Forecast_NB:       r.forecast_nb,
+          Forecast_BB:       r.forecast_bb,
+          SalesHistory:      r.sales_history,
+          OrderType:         r.order_type,
+          ForecastMethod:    r.forecast_method,
+          LinRegSlope:       r.lin_reg_slope,
+          LinRegForecast:    r.lin_reg_forecast,
+          Sigma_eff:         r.sigma_eff,
+          CV:                r.cv,
+          AlphaUsed:         r.alpha_used,
+          InventoryRiskLevel: r.risk_level,
+          MAD:               r.mad,
+          MAPE:              r.mape,
+          ...(r.extra_fields || {}),
+        };
+      }
+
+      if (rows.length < PAGE) break;
+      from += PAGE;
+      await new Promise(r => setTimeout(r, 0));
+    }
+
+    if (Object.keys(result).length === 0) return null;
+    return { data: result, updatedAt };
+  } catch (error) {
+    console.error('loadSpecificMonthlyData:', error);
+    return null;
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // AUTH — User management
 // ─────────────────────────────────────────────────────────────────────────────
@@ -858,10 +953,10 @@ export async function listMonthlyDataSnapshots(): Promise<{ id: string; updated_
       .from('cloud_storage')
       .select('id, updated_at')
       .like('id', 'monthly_index_%')
-      .order('updated_at', { ascending: false });
+      .order('id', { ascending: false }); // Better ordering by ID (YYYY-MM)
     if (error) return [];
     return (data || []).map(d => ({
-      id: (d.id as string).replace('monthly_index_', 'monthly_data_'),
+      id: (d.id as string).replace('monthly_index_', ''), // Clean version: YYYY-MM
       updated_at: d.updated_at,
     }));
   } catch {
