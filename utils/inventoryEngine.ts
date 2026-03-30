@@ -187,22 +187,30 @@ function checkIsStop(item: InventoryItem): boolean {
     return (item.Note || '').toLowerCase().includes('không đặt') || item.Status === 'Dead Stock';
 }
 
-/** Xác định mức ưu tiên P0/P1/P2
- *  O4 Fix: dùng reserve (available+PO) thay vì available thô để nhất quán với stockoutRiskFlag
+/** 
+ * Xác định mức ưu tiên P1/P2/P3
+ * P1 (Critical): Hết hàng vật lý OR Nợ không đủ PO bù (Net Reserve < 0) OR Net Reserve MOS cực thấp
+ * P2 (Warning): Có nợ (nhưng PO bù được) OR Net Reserve < ROP OR NR MOS thấp
  */
 function resolvePriority(
     available: number,
-    netAvailable: number,
-    reserve: number,
+    onOrder: number,
+    bo: number,
     rop: number,
-    mos: number,
+    demandMonthly: number,
     isStop: boolean
 ): 'P1' | 'P2' | 'P3' {
-    if (isStop) return 'P3'; // Mã ngừng đặt → mức thấp nhất
-    // P1: Hết hàng hoặc tồn net ≤ 0 (toàn bộ đang nợ BO) hoặc MOS rất thấp
-    if (available <= 0 || netAvailable <= 0 || mos < 0.5) return 'P1';
-    // P2: reserve (kể cả PO) dưới ROP hoặc MOS thấp
-    if (reserve < rop || mos < MOS_LOW_STOCK_THRESHOLD) return 'P2';
+    if (isStop) return 'P3';
+    
+    const netReserve = available + onOrder - bo;
+    const nrMos = demandMonthly > 0 ? netReserve / demandMonthly : 0;
+    
+    // P1: Trọng yếu - Nguy cơ đứt gãy cao (hoặc đã đứt gãy không có PO bù)
+    if (available <= 0 || netReserve < 0 || nrMos < 0.2) return 'P1';
+    
+    // P2: Cảnh báo - Đang nợ hàng (nhưng PO bù được) hoặc dưới hạn mức định biên
+    if (available < bo || netReserve < rop || nrMos < MOS_LOW_STOCK_THRESHOLD) return 'P2';
+    
     return 'P3';
 }
 
@@ -403,8 +411,7 @@ export function computeInventory(
         : 0;
 
     // ── 9. PRIORITY ────────────────────────────────────────────────────────
-    // O4 Fix: truyền reserve vào resolvePriority
-    const priorityBucket = resolvePriority(available, netAvailable, reserve, rop, mos, isStop);
+    const priorityBucket = resolvePriority(available, onOrder, bo, rop, demandMonthly, isStop);
 
     // ── 10. ORDER SUGGESTIONS ──────────────────────────────────────────────
     let gapOrExcess = 0;

@@ -262,7 +262,7 @@ export const StockProgressBar: React.FC<StockProgressBarProps> = (props) => {
   const { t } = useLanguage();
 
   const metrics = useMemo(
-    () => calculateMetrics({ current, rop, max, ss, onOrder, backorder, excess: excess ?? 0, draftAdd, baseFc, incoming, breakdown }),
+    () => calculateMetrics({ current, rop, max, ss, onOrder, backorder, excess: excess ?? 0, draftAdd, baseFc, incoming, breakdown, compact }),
     [current, rop, max, ss, onOrder, backorder, excess, draftAdd, baseFc, incoming, breakdown]
   );
 
