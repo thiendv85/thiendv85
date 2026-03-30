@@ -19,7 +19,7 @@ const SpecialFilterButton = ({ label, icon, isActive, onClick }: { label: string
   </button>
 );
 
-export const FilterPanel = ({ data, settings, onSettingsChange, filters, onFiltersChange, sourceName }: FilterPanelProps) => {
+export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filters, onFiltersChange, sourceName }: FilterPanelProps) => {
   const { t } = useLanguage();
   const loisGroups = useMemo(() => Array.from(new Set(data.map(item => item.LOISGroup).filter(Boolean))).sort(), [data]);
   const trendFlags = useMemo(() => Array.from(new Set(data.map(item => item.TrendFlag).filter(Boolean))).sort(), [data]);
@@ -55,12 +55,12 @@ export const FilterPanel = ({ data, settings, onSettingsChange, filters, onFilte
   };
 
   return (
-    <div className="bg-white p-5 rounded-3xl shadow-soft hover:shadow-medium border border-slate-200/60 transition-all space-y-4">
+    <div className="bg-white p-3 sm:p-5 rounded-3xl shadow-soft hover:shadow-medium border border-slate-200/60 transition-all space-y-4">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
         {/* LEFT COLUMN: FILTERS (8/12) */}
-        <div className="lg:col-span-8 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-4 gap-y-4">
+        <div className="lg:col-span-8 space-y-5">
+          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-y-4 sm:gap-4">
             <div>
               <label className="block text-[10px] font-black text-blue-700/80 uppercase tracking-[0.15em] mb-1.5">{t('filter_scope')}</label>
               <div className="flex bg-slate-100/60 p-1 rounded-xl h-9 items-center border border-slate-200/50 shadow-inner">
@@ -119,16 +119,18 @@ export const FilterPanel = ({ data, settings, onSettingsChange, filters, onFilte
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-100">
-            <div className="text-[10px] font-black text-blue-700/80 uppercase tracking-[0.15em] mr-2 flex items-center gap-2.5 min-w-[150px]">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 pt-3 border-t border-slate-100">
+            <div className="text-[10px] font-black text-blue-700/80 uppercase tracking-[0.15em] mr-2 flex items-center gap-2.5 min-w-[120px] mb-1 sm:mb-0">
               <i className="fas fa-microchip text-blue-600/80"></i> {t('filter_smart')}:
             </div>
-            <SpecialFilterButton label={t('term_backorder')} icon="fa-radiation" isActive={filters.showBackorders} onClick={() => onFiltersChange({ ...filters, showBackorders: !filters.showBackorders })} />
-            <SpecialFilterButton label={t('term_stockout')} icon="fa-battery-quarter" isActive={filters.specialFilter === 'stockout'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'stockout' ? 'none' : 'stockout' })} />
-            <SpecialFilterButton label={t('term_excess')} icon="fa-arrow-down-wide-short" isActive={filters.specialFilter === 'excess'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'excess' ? 'none' : 'excess' })} />
-            <SpecialFilterButton label={t('term_has_po')} icon="fa-ship" isActive={filters.specialFilter === 'has_po'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'has_po' ? 'none' : 'has_po' })} />
-            <SpecialFilterButton label={t('term_supersession')} icon="fa-exchange-alt" isActive={filters.specialFilter === 'has_supersession'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'has_supersession' ? 'none' : 'has_supersession' })} />
-            <SpecialFilterButton label="Cảnh báo" icon="fa-triangle-exclamation" isActive={filters.specialFilter === 'has_warning'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'has_warning' ? 'none' : 'has_warning' })} />
+            <div className="flex flex-wrap items-center gap-2 w-full overflow-x-auto no-scrollbar-at-mobile pb-1">
+                <SpecialFilterButton label={t('term_backorder')} icon="fa-radiation" isActive={filters.showBackorders} onClick={() => onFiltersChange({ ...filters, showBackorders: !filters.showBackorders })} />
+                <SpecialFilterButton label={t('term_stockout')} icon="fa-battery-quarter" isActive={filters.specialFilter === 'stockout'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'stockout' ? 'none' : 'stockout' })} />
+                <SpecialFilterButton label={t('term_excess')} icon="fa-arrow-down-wide-short" isActive={filters.specialFilter === 'excess'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'excess' ? 'none' : 'excess' })} />
+                <SpecialFilterButton label={t('term_has_po')} icon="fa-ship" isActive={filters.specialFilter === 'has_po'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'has_po' ? 'none' : 'has_po' })} />
+                <SpecialFilterButton label={t('term_supersession')} icon="fa-exchange-alt" isActive={filters.specialFilter === 'has_supersession'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'has_supersession' ? 'none' : 'has_supersession' })} />
+                <SpecialFilterButton label="Cảnh báo" icon="fa-triangle-exclamation" isActive={filters.specialFilter === 'has_warning'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'has_warning' ? 'none' : 'has_warning' })} />
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 pt-1.5 border-t border-slate-50">
@@ -270,4 +272,4 @@ export const FilterPanel = ({ data, settings, onSettingsChange, filters, onFilte
       </div>
     </div>
   );
-};
+});

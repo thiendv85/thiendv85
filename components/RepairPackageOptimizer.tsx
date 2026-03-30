@@ -424,9 +424,9 @@ export const RepairPackageOptimizer = ({
     return (
         <div className="flex flex-col h-full space-y-6 relative pb-24">
             {/* Page Header */}
-            <div className="bg-gradient-to-r from-amber-600 via-orange-700 to-red-800 rounded-3xl p-6 md:p-8 text-white relative overflow-hidden">
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none"></div>
-                <div className="absolute -top-20 -right-20 w-60 h-60 bg-yellow-400/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-3xl p-6 md:p-8 text-white relative overflow-hidden border border-white/5 shadow-premium">
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
+                <div className="absolute -top-24 -right-24 w-80 h-80 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none"></div>
                 <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
                         <h2 className="text-2xl md:text-3xl font-black tracking-tight uppercase flex items-center gap-3">
@@ -437,43 +437,43 @@ export const RepairPackageOptimizer = ({
 
                     <div className="flex flex-wrap items-center gap-2 md:gap-3">
                         {(totalDraftItems > 0 || hasInputs) && (
-                            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm p-1.5 rounded-xl border border-white/10">
-                                <span className="text-2xs font-bold text-amber-200 pl-2">Đang chọn: {totalDraftItems} mã</span>
+                            <div className="flex items-center gap-2 bg-white px-2 py-1.5 rounded-xl border border-slate-200">
+                                <span className="text-[10px] font-black text-slate-400 uppercase pl-1">Đang chọn: {totalDraftItems} mã</span>
                                 <button
                                     onClick={handleClearDraft}
-                                    className="px-3 py-1 bg-white/20 text-white border border-white/20 rounded-lg text-2xs font-black hover:bg-white/30 transition-colors"
+                                    className="px-3 py-1 bg-rose-50 text-rose-600 border border-rose-100 rounded-lg text-[10px] font-black hover:bg-rose-100 transition-colors"
                                 >
                                     <i className="fas fa-trash-alt mr-1"></i> Xóa Draft
                                 </button>
                             </div>
                         )}
 
-                        {/* Cloud Buttons */}
+                        {/* Cloud Buttons - SOLID WHITE BACKGROUNDS */}
                         <button
                             onClick={handleLoadFromCloud}
                             disabled={isLoadingCloud}
-                            className="bg-blue-500/30 border border-blue-400/30 text-blue-100 hover:bg-blue-500/50 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20 disabled:opacity-60"
+                            className="bg-white text-slate-800 hover:bg-slate-50 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-sm border border-slate-200 disabled:opacity-60"
                         >
-                            <i className={`fas ${isLoadingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-down'}`} /> Tải Cloud
+                            <i className={`fas ${isLoadingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-down'} text-blue-600`} /> Tải Cloud
                         </button>
-
+                        
                         {kittingDefs.length > 0 && (
                             <button
                                 onClick={handleSaveToCloud}
                                 disabled={isSavingCloud}
-                                className="bg-emerald-500/30 border border-emerald-400/30 text-emerald-100 hover:bg-emerald-500/50 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-emerald-500/20 disabled:opacity-60"
+                                className="bg-white text-slate-800 hover:bg-slate-50 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-sm border border-slate-200 disabled:opacity-60"
                             >
-                                <i className={`fas ${isSavingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up'}`} /> Lưu Cloud
+                                <i className={`fas ${isSavingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up'} text-emerald-600`} /> Lưu Cloud
                             </button>
                         )}
 
-                        <div className="flex bg-white/10 backdrop-blur-sm p-1 rounded-xl border border-white/10">
-                            <button onClick={() => setViewMode('OPTIMIZER')} className={`px-4 py-1.5 text-xs font-black rounded-lg transition-all uppercase ${viewMode === 'OPTIMIZER' ? 'bg-white text-amber-800 shadow-sm' : 'text-white/70 hover:text-white'}`}>Refill Optimizer</button>
-                            <button onClick={() => setViewMode('SIMILARITY')} className={`px-4 py-1.5 text-xs font-black rounded-lg transition-all uppercase ${viewMode === 'SIMILARITY' ? 'bg-white text-amber-800 shadow-sm' : 'text-white/70 hover:text-white'}`}>Similarity</button>
+                        <div className="flex bg-slate-900 border border-white/10 p-1 rounded-xl">
+                            <button onClick={() => setViewMode('OPTIMIZER')} className={`px-4 py-1.5 text-[10px] font-black rounded-lg transition-all uppercase ${viewMode === 'OPTIMIZER' ? 'bg-white text-slate-900 shadow-sm' : 'text-white/40 hover:text-white'}`}>Refill Optimizer</button>
+                            <button onClick={() => setViewMode('SIMILARITY')} className={`px-4 py-1.5 text-[10px] font-black rounded-lg transition-all uppercase ${viewMode === 'SIMILARITY' ? 'bg-white text-slate-900 shadow-sm' : 'text-white/40 hover:text-white'}`}>Similarity</button>
                         </div>
                         <div className="relative group w-56">
-                            <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-xs"></i>
-                            <input type="text" placeholder="Tìm Gói / Model xe..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-9 pr-3 py-1.5 bg-white/10 backdrop-blur-sm border border-white/10 rounded-xl outline-none text-sm font-bold text-white placeholder-white/40 focus:bg-white/20 focus:border-white/30 transition-all" />
+                            <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                            <input type="text" placeholder="Tìm Gói / Model xe..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl outline-none text-xs font-black text-slate-900 placeholder-slate-400 focus:ring-4 focus:ring-blue-500/5 transition-all" />
                         </div>
                     </div>
                 </div>

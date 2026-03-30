@@ -12,6 +12,13 @@ import { useApprovalAuth } from '../hooks/useApprovalAuth';
 import { processApprovalAction, unlockRequest } from '../utils/supabase';
 import { validateReason, getAvailableActions } from '../utils/approval-validation';
 import { validatePreApproval } from '../utils/approval-rules';
+import { useDecisionSupport } from '../hooks/useDecisionSupport';
+import { DecisionSummaryPanel } from './DecisionSupport/DecisionSummaryPanel';
+import { AdjustmentImpactPanel } from './DecisionSupport/AdjustmentImpactPanel';
+import { DecisionConfirmDialog } from './DecisionSupport/DecisionConfirmDialog';
+import { OrderItemRow } from './DecisionSupport/OrderItemRow';
+
+
 
 interface Props {
     request: ApprovalRequest;
@@ -61,12 +68,19 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
     const [submittingAction, setSubmittingAction] = useState<string | null>(null);
     const [showUnlock, setShowUnlock] = useState(false);
     const [showMatrix, setShowMatrix] = useState(false);
-    const [confirmReject, setConfirmReject] = useState(false);
+
     const [showValidationWarnings, setShowValidationWarnings] = useState(true); // Phase 7
     const [sidebarTab, setSidebarTab] = useState<'info' | 'history' | 'matrix'>('info');
     const [pageSize, setPageSize] = useState(25);
     const [currentPage, setCurrentPage] = useState(1);
     const [inspectingItem, setInspectingItem] = useState<any>(null);
+    const [pendingAction, setPendingAction] = useState<'approved' | 'rejected' | 'returned' | null>(null);
+
+    // Decision Support Hook
+    const preApprovalResult = useMemo(() => validatePreApproval(request), [request]);
+    const summary = useDecisionSupport(snap, localQtys, selectedItems, preApprovalResult);
+
+
 
     // Phase 1: Level-aware authorization
     const canAct = !!(profile?.role && ['admin', 'approver'].includes(profile.role)
@@ -80,8 +94,6 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
         [request.status, profile?.role, allowedLevels, request.current_level]
     );
 
-    // Phase 7: Pre-approval validation
-    const preApprovalResult = useMemo(() => validatePreApproval(request), [request]);
 
     const rows = useMemo(() =>
         snap.inventory_context.filter(ctx =>
@@ -147,7 +159,45 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
         });
     };
 
-    const handleAction = async (action: 'approved' | 'rejected' | 'returned') => {
+    const handleAction = (action: 'approved' | 'rejected' | 'returned') => {
+        setPendingAction(action);
+    };
+
+    const handleFinalConfirm = async (action: 'approved' | 'rejected' | 'returned', managerComment?: string, structuredReason?: string) => {
+        if (!user) return;
+        
+        setIsSubmitting(true);
+        setSubmittingAction(action);
+        try {
+            const finalQtys = action === 'approved'
+                ? Object.fromEntries(Object.keys(localQtys).map(k => [k, selectedItems.has(k) ? localQtys[k] : {air: 0, sea: 0}]))
+                : localQtys;
+            
+            const reason = structuredReason || (action === 'rejected' ? rejectionReason : action === 'returned' ? returnReason : undefined);
+            
+            const result = await processApprovalAction(
+                request.id, user.id, action, managerComment || comment || undefined, finalQtys,
+                reason, request.version, summary
+            );
+
+            
+            if (!result.success && result.error) {
+                setCommentError(result.error);
+                setPendingAction(null);
+                return;
+            }
+            onRefresh(); onClose();
+        } catch (e) { 
+            console.error(e); 
+        } finally { 
+            setIsSubmitting(false); 
+            setSubmittingAction(null);
+            setPendingAction(null);
+        }
+    };
+
+    const handleActionLegacy = async (action: 'approved' | 'rejected' | 'returned') => {
+
         if (!user) return;
 
         // Phase 3: Validate reason for reject/return
@@ -362,7 +412,13 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                     <div className="flex items-center gap-2">
                         <span className="font-black text-sm truncate uppercase tracking-tight">{request.draft_name}</span>
                         <ApprovalStatusBadge status={request.status} size="sm" />
+                        {hasChanges && (
+                            <div className="flex items-center gap-1.5 bg-amber-500 text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg shadow-amber-500/20 animate-pulse uppercase tracking-wider">
+                                <i className="fas fa-pen-nib text-[8px]" /> Adjusting
+                            </div>
+                        )}
                         {request.brand && (
+
                             <span className="text-[9px] bg-white/10 px-1.5 py-0.5 rounded font-black text-slate-300 shrink-0 border border-white/5 uppercase tracking-wider">{request.brand}</span>
                         )}
                     </div>
@@ -445,6 +501,16 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
             {/* ═══ BODY: Top Actions/Tabs + Table ══════════════════════════════════════ */}
             <div className="flex-1 flex flex-col overflow-hidden min-h-0 bg-white">
 
+                {/* ── Decision Summary (Sticky) ── */}
+                <DecisionSummaryPanel 
+                    summary={summary} 
+                    onReset={() => setLocalQtys(Object.fromEntries(Object.entries(snap.quantities).map(([k, v]) => [k, { air: v.air, sea: v.sea }])))} 
+                />
+
+                {/* ── Adjustment Impact (Conditional) ── */}
+                {hasChanges && <AdjustmentImpactPanel summary={summary} />}
+
+
                 {/* ── NEW TOP NAVIGATION & ACTION BAR ────────────────── */}
                 <div className="shrink-0 flex flex-col border-b border-slate-200 bg-white shadow-sm z-20">
                     
@@ -481,42 +547,53 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                                             commentError ? 'border-rose-400 focus:ring-rose-100' : 'border-slate-200 focus:ring-blue-100/50 shadow-inner'
                                         }`}
                                     />
-                                    <div className="flex gap-1.5">
+                                    {hasChanges && (
+                                        <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-200 px-3 py-1.5 rounded-xl animate-pulse">
+                                            <i className="fas fa-pen-nib text-amber-600 text-xs" />
+                                            <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Adjustment Mode</span>
+                                        </div>
+                                    )}
+                                    <div className="flex gap-2">
+
                                         <button
                                             onClick={() => handleAction('approved')}
                                             disabled={isSubmitting || selectedItems.size === 0}
-                                            className="bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] disabled:opacity-50 text-white font-black px-5 py-1.5 rounded-lg text-xs uppercase tracking-widest flex items-center gap-2 transition-all shadow-md shadow-emerald-200/50"
+                                            className="bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] disabled:opacity-50 text-white font-black px-6 py-2 rounded-xl text-xs uppercase tracking-widest flex items-center gap-2 transition-all shadow-xl shadow-emerald-200/50"
                                         >
                                             {submittingAction === 'approved' ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-check-double" />}
-                                            Duyệt
+                                            Duyệt đơn
                                         </button>
                                         <button
                                             onClick={() => handleAction('returned')}
                                             disabled={isSubmitting}
-                                            className="border border-indigo-200 text-indigo-600 bg-white hover:bg-indigo-50 active:scale-[0.98] disabled:opacity-50 font-black px-4 py-1.5 rounded-lg text-xs uppercase tracking-widest flex items-center gap-2 transition-all"
+                                            className="border-2 border-indigo-200 text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100/50 active:scale-[0.98] disabled:opacity-50 font-black px-5 py-2 rounded-xl text-xs uppercase tracking-widest flex items-center gap-2 transition-all"
                                         >
                                             {submittingAction === 'returned' ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-rotate-left" />}
-                                            Trả lời
+                                            Trả lại
                                         </button>
                                     </div>
+
                                 </div>
                             )}
 
                             <div className="flex gap-1.5">
-                                <button onClick={handlePrintOrder} className="border border-blue-200 text-blue-600 bg-white hover:bg-blue-50 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest flex items-center gap-1.5 transition-all">
+                                <button onClick={handlePrintOrder} className="text-blue-600 font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-blue-50 px-4 py-2 rounded-xl transition-all">
                                     <i className="fas fa-print" /> In phiếu
                                 </button>
-                                {canAct && !confirmReject && (
-                                    <button onClick={() => setConfirmReject(true)} className="text-rose-400 hover:bg-rose-50 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border border-transparent hover:border-rose-100 transition-all">
-                                        Từ chối
+                                {canAct && (
+                                    <button onClick={() => handleAction('rejected')} className="text-slate-400 hover:text-rose-500 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all hover:bg-rose-50/50">
+                                        Từ chối đơn
                                     </button>
                                 )}
+
+
                             </div>
                         </div>
                     </div>
 
                     {/* Lower Row: Tab-Specific Content (Stats, History, Matrix) */}
-                    <div className={`overflow-hidden transition-all duration-300 ${sidebarTab === 'info' ? 'bg-white' : 'bg-slate-50 border-t border-slate-100'}`}>
+                    <div className={`overflow-hidden transition-all duration-300 ${sidebarTab === 'info' ? 'h-0 opacity-0' : 'bg-slate-50 border-t border-slate-100 opacity-100'}`}>
+
                         {sidebarTab === 'info' && (
                             <div className="px-5 py-3 flex items-center justify-between gap-6 border-b border-slate-100 bg-slate-50/30">
                                 <div className="flex items-center gap-4 shrink-0">
@@ -550,17 +627,7 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                                     </div>
                                 </div>
 
-                                {confirmReject && (
-                                    <div className="flex items-center gap-3 bg-rose-50 px-4 py-1.5 rounded-xl border border-rose-200 animate-fadeIn">
-                                        <span className="text-[10px] font-black text-rose-700 flex items-center gap-1.5 shrink-0">
-                                            <i className="fas fa-triangle-exclamation" /> Xác nhận từ chối đơn hàng?
-                                        </span>
-                                        <div className="flex gap-2">
-                                            <button onClick={() => handleAction('rejected')} className="bg-rose-600 hover:bg-rose-700 text-white font-black px-3 py-1 rounded-lg text-[9px] uppercase transition-colors">Xác nhận</button>
-                                            <button onClick={() => setConfirmReject(false)} className="text-slate-500 hover:text-slate-700 font-bold px-2 py-1 text-[9px]">Huỷ</button>
-                                        </div>
-                                    </div>
-                                )}
+
                                 
                                 <div className="ml-auto flex items-center gap-6">
                                     <div className="flex items-center gap-2 text-xs font-bold text-slate-400 italic">
@@ -672,6 +739,7 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                                         </div>
                                     </th>
                                     <th className="px-3 py-2.5 min-w-[200px] sticky left-10 z-40 bg-slate-50/95 border-b border-slate-200 border-r border-slate-200">SKU Identity</th>
+                                    <th className="px-3 py-2.5 text-center border-b border-slate-200 min-w-[150px]">Pipeline & PO</th>
                                     <th className="px-3 py-2.5 text-center border-b border-slate-200 min-w-[110px]">Health & MOS</th>
                                     <th className="px-3 py-2.5 text-center border-b border-slate-200 min-w-[100px]">Nhu cầu (M1/FC)</th>
                                     <th className="px-3 py-2.5 text-right border-b border-slate-200 min-w-[110px]">Kho & Đại lý</th>
@@ -689,101 +757,26 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                             <tbody className="bg-white">
                                 {pagedRows.map((ctx, idx) => {
                                     const globalIdx = (safePage - 1) * pageSize + idx;
-                                    const q = localQtys[ctx.itemCode] || { air: 0, sea: 0 };
-                                    const origQ = snap.quantities[ctx.itemCode] || { air: 0, sea: 0 };
-                                    const changed = q.air !== origQ.air || q.sea !== origQ.sea;
-                                    const isSelected = selectedItems.has(ctx.itemCode);
-                                    const rowValue = (ctx.unitCost || 0) * (q.air + q.sea);
-
                                     return (
-                                        <tr key={ctx.itemCode}
-                                            onClick={() => setInspectingItem(ctx)}
-                                            className={`transition-all duration-300 group cursor-pointer border-b border-slate-50 hover:bg-blue-50/40 ${!isSelected ? 'opacity-40 grayscale-[0.5]' : changed ? 'bg-amber-50/10' : ''}`}>
-                                            
-                                            <td className="px-3 py-3 text-center sticky left-0 z-10 bg-inherit" onClick={e => e.stopPropagation()}>
-                                                <div className="flex flex-col items-center gap-1">
-                                                    <input type="checkbox" checked={isSelected} onChange={() => toggleItem(ctx.itemCode)} className="w-4 h-4 cursor-pointer accent-blue-600 rounded" />
-                                                    <div className="text-[10px] text-slate-400 font-black">{globalIdx + 1}</div>
-                                                </div>
-                                            </td>
-
-                                            <td className="px-3 py-2 sticky left-10 z-10 bg-inherit border-r border-slate-100">
-                                                <div className="flex items-center gap-1.5">
-                                                    <span className="font-black text-slate-800 text-sm font-mono tracking-tight">{ctx.itemCode}</span>
-                                                    <span className={`px-1.5 py-0.5 rounded font-black text-[10px] ${ctx.priorityBucket === 'P1' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-500'}`}>
-                                                        {ctx.priorityBucket || 'P3'}
-                                                    </span>
-                                                </div>
-                                                <div className="text-[11px] text-slate-500 truncate max-w-[170px] font-bold leading-tight mt-0.5">{ctx.itemName}</div>
-                                            </td>
-
-                                            <td className="px-3 py-2 text-center">
-                                                <div className="flex flex-col items-center">
-                                                    <div className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                                                        ctx.available < ctx.rop ? 'bg-rose-100 text-rose-700 border border-rose-200'
-                                                        : ctx.available < ctx.safetyStock ? 'bg-amber-100 text-amber-700 border border-amber-200'
-                                                        : 'bg-emerald-100 text-emerald-700 border border-emerald-200'}`}>
-                                                        {ctx.available <= 0 ? 'OOS' : ctx.available < ctx.rop ? 'RISK' : 'OK'}
-                                                    </div>
-                                                    <div className="flex items-center gap-1.5 mt-1.5">
-                                                        <span className={`text-sm font-black ${ctx.mos < 1 ? 'text-rose-600' : 'text-slate-700'}`}>{(ctx.mos || 0).toFixed(1)}M</span>
-                                                        <TrendBadge trend={ctx.trendFlag} size="sm" />
-                                                    </div>
-                                                </div>
-                                            </td>
-
-                                            <td className="px-3 py-2 text-center">
-                                                <div className="text-xs font-bold text-slate-400">M1: <span className="text-slate-800 font-black">{(ctx.m1Actual || 0).toLocaleString()}</span></div>
-                                                <div className="text-xs font-bold text-slate-400 mt-1">FC: <span className="text-emerald-700 font-black">{(ctx.baseForecast || 0).toLocaleString()}</span></div>
-                                            </td>
-
-                                            <td className="px-3 py-2 text-right">
-                                                <div className="text-sm font-black text-slate-800">Tồn: {(ctx.available || 0).toLocaleString()}</div>
-                                                <DealerStockPopup items={ctx.dealerBreakdown || []}>
-                                                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wide mt-0.5 cursor-help border-b border-dashed border-slate-300 inline-block">
-                                                        Đại lý: {(ctx.dealerInventory || 0).toLocaleString()}
-                                                    </div>
-                                                </DealerStockPopup>
-                                            </td>
-
-                                            <td className="px-2 py-2 bg-rose-50/20 text-center border-x border-slate-100" onClick={e => e.stopPropagation()}>
-                                                <input type="number" value={q.air || ''} 
-                                                    onChange={e => setQty(ctx.itemCode, 'air', e.target.value)}
-                                                    className="w-16 text-center font-black text-sm border border-rose-200 rounded-lg py-1.5 outline-none focus:ring-2 focus:ring-rose-200 transition-all" />
-                                            </td>
-
-                                            <td className="px-2 py-2 bg-blue-50/20 text-center border-r border-slate-100" onClick={e => e.stopPropagation()}>
-                                                <input type="number" value={q.sea || ''} 
-                                                    onChange={e => setQty(ctx.itemCode, 'sea', e.target.value)}
-                                                    className="w-16 text-center font-black text-sm border border-blue-200 rounded-lg py-1.5 outline-none focus:ring-2 focus:ring-blue-200 transition-all" />
-                                            </td>
-
-                                            <td className="px-3 py-2 max-w-[150px]">
-                                                {(ctx.warnings || []).slice(0, 1).map((w, i) => (
-                                                    <div key={i} className="text-[10px] text-rose-600 font-black leading-tight flex items-center gap-1">
-                                                        <i className="fas fa-triangle-exclamation" /> {w}
-                                                    </div>
-                                                ))}
-                                                {snap.notes[ctx.itemCode] && (
-                                                    <div className="text-[10px] text-slate-500 italic mt-1 truncate" title={snap.notes[ctx.itemCode]}>
-                                                        "{snap.notes[ctx.itemCode]}"
-                                                    </div>
-                                                )}
-                                            </td>
-
-                                            <td className="px-3 py-2 text-right font-black text-slate-900 bg-slate-50/30 border-l border-slate-100 text-sm">
-                                                {currencyVND.format(rowValue)}
-                                            </td>
-
-                                            <td className="px-3 py-2 text-center sticky right-0 z-10 bg-inherit border-l border-slate-100" onClick={e => e.stopPropagation()}>
-                                                <button onClick={() => toggleItem(ctx.itemCode)} 
-                                                    className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all ${isSelected ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200' : 'bg-slate-100 text-slate-400 border-slate-200'}`}>
-                                                    <i className={`fas ${isSelected ? 'fa-check' : 'fa-x'}`} />
-                                                </button>
-                                            </td>
-                                        </tr>
+                                        <OrderItemRow
+                                            key={ctx.itemCode}
+                                            ctx={ctx}
+                                            idx={idx}
+                                            globalIdx={globalIdx}
+                                            safePage={safePage}
+                                            isSelected={selectedItems.size === 0 ? false : selectedItems.has(ctx.itemCode)}
+                                            localQty={localQtys[ctx.itemCode] || { air: 0, sea: 0 }}
+                                            origQty={snap.quantities[ctx.itemCode] || { air: 0, sea: 0 }}
+                                            onToggle={toggleItem}
+                                            onSetQty={setQty}
+                                            onInspect={setInspectingItem}
+                                            currencyVND={currencyVND}
+                                        />
                                     );
                                 })}
+
+
+
                             </tbody>
                         </table>
                     </div>
@@ -905,6 +898,16 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                     </div>
                 </div>
             </div>
+        )}
+
+        {/* ── FINAL DECISION CHECKPOINT ────────────────────────────────────── */}
+        {pendingAction && (
+            <DecisionConfirmDialog
+                action={pendingAction}
+                summary={summary}
+                onConfirm={(comment, reason) => handleFinalConfirm(pendingAction, comment, reason)}
+                onCancel={() => setPendingAction(null)}
+            />
         )}
     </div>
 );

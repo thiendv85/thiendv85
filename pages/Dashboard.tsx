@@ -59,6 +59,170 @@ const SUBGROUP_DESC: Record<string, string> = {
 
 export type DashboardSubTab = 'overview' | 'intelligence' | 'supersession';
 
+// Rule: rerender-no-inline-components — Extract LoisRow to a separate memoized component
+interface LoisRowProps {
+    label: string;
+    subKeys: string[];
+    isHeader?: boolean;
+    groupColor?: string;
+    matrixData: Record<string, any>;
+    grandStats: any;
+    loisTargets: Record<string, any>;
+    selectedSubgroup: string | null;
+    onToggleSubgroup: (subgroup: string) => void;
+    formatNum: (val: number) => string;
+}
+
+const LoisRow = React.memo(({
+    label, subKeys, isHeader = false, groupColor,
+    matrixData, grandStats, loisTargets, selectedSubgroup,
+    onToggleSubgroup, formatNum
+}: LoisRowProps) => {
+    const row = { items: 0, turnover: 0, noStock: 0, short: 0, stockVal: 0, poVal: 0, excessItems: 0, excessVal: 0, boItems: 0, boValue: 0, bmwCount: 0, trendSum: 0, trendCount: 0 };
+    subKeys.forEach(k => {
+        if (matrixData[k]) {
+            row.items += matrixData[k].items;
+            row.turnover += matrixData[k].turnover;
+            row.noStock += matrixData[k].noStock;
+            row.short += matrixData[k].short;
+            row.stockVal += matrixData[k].stockVal;
+            row.poVal += matrixData[k].poVal;
+            row.excessItems += matrixData[k].excessItems;
+            row.excessVal += matrixData[k].excessVal;
+            row.boItems += matrixData[k].boItems;
+            row.boValue += matrixData[k].boValue;
+            row.bmwCount += matrixData[k].bmwCount;
+            row.trendSum += matrixData[k].trendSum;
+            row.trendCount += matrixData[k].trendCount;
+        }
+    });
+
+    if (row.items === 0 && !isHeader) return null;
+
+    const isActive = !isHeader && subKeys.length === 1 && selectedSubgroup === subKeys[0];
+    const avgTrend = row.trendCount > 0 ? row.trendSum / row.trendCount : 0;
+    const excessPct = row.stockVal > 0 ? (row.excessVal / row.stockVal) * 100 : 0;
+    const actualMOS = row.turnover > 0 ? (row.stockVal * 12 / row.turnover) : 0;
+
+    const targetConfig = (!isHeader && subKeys.length === 1) ? (loisTargets[subKeys[0]] || null) : null;
+    const targetMOS = targetConfig ? targetConfig.targetMOS : null;
+    const targetExcess = targetConfig ? targetConfig.targetExcessPct : null;
+
+    const mosOk = (targetMOS && actualMOS > 0) ? (actualMOS >= targetMOS * 0.5 && actualMOS <= targetMOS * 1.5) : null;
+    const excessOk = targetExcess ? excessPct <= targetExcess : null;
+
+    return (
+        <tr 
+            onClick={() => !isHeader && subKeys.length === 1 && onToggleSubgroup(subKeys[0])} 
+            className={`${isHeader ? 'bg-slate-50/50 uppercase tracking-widest' : (isActive ? 'bg-blue-50/80 shadow-inner' : 'bg-white hover:bg-slate-50/80')} border-b border-slate-100 transition-all cursor-pointer text-sm hover:translate-x-1 duration-200`}
+        >
+            <td className={`px-3 py-2 border-r border-slate-100 ${isHeader ? 'text-slate-900 font-black' : 'text-slate-700'}`}>
+                <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
+                    {isHeader ? (
+                        <>
+                            <div className={`w-1.5 h-3.5 ${groupColor} rounded-full shadow-sm flex-shrink-0`}></div>
+                            <Typography variant="body" className="font-black truncate">
+                                {label}
+                            </Typography>
+                        </>
+                    ) : (
+                        <div className={`segment-pill ${
+                            row.noStock > 0 ? 'segment-pill-alert' : 
+                            row.short > 0 ? 'segment-pill-warning' : 
+                            'segment-pill-success'
+                        }`}>
+                            {label}
+                        </div>
+                    )}
+                    {!isHeader && SUBGROUP_DESC[label] && (
+                        <span className="text-slate-400 font-bold ml-1.5 text-[9px] tracking-tight truncate opacity-70">— {SUBGROUP_DESC[label]}</span>
+                    )}
+                </div>
+            </td>
+            <td className="px-3 py-1.5 text-right font-bold text-slate-800">
+                <Typography variant="body-sm" className="font-bold">
+                    {formatNum(row.turnover)}
+                </Typography>
+                {!isHeader && subKeys.length === 1 && row.turnover > 0 && (
+                    <Typography variant="label" className={`ml-1 ${avgTrend > 0 ? 'text-atp-success' : 'text-atp-action'}`}>
+                        {avgTrend > 0 ? '↑' : '↓'}{Math.abs(avgTrend).toFixed(0)}%
+                    </Typography>
+                )}
+            </td>
+            <td className="px-3 py-1.5 text-right">
+                <Typography variant="label" className="text-slate-400 font-bold !italic">
+                    {(row.turnover / (grandStats.grandTurnover || 1) * 100).toFixed(1)}%
+                </Typography>
+            </td>
+            <td className="px-3 py-2 text-center">
+                <Typography variant="body-sm" className="text-slate-500">
+                    {row.items.toLocaleString()}
+                </Typography>
+            </td>
+            <td className={`px-3 py-2 text-center ${row.noStock > 0 ? 'bg-atp-action/5' : ''}`}>
+                <Typography variant="body-sm" className={`font-bold ${row.noStock > 0 ? 'text-atp-action' : 'text-slate-300'}`}>
+                    {row.noStock > 0 ? row.noStock.toLocaleString() : '—'}
+                </Typography>
+            </td>
+            <td className={`px-3 py-2 text-center ${row.short > 0 ? 'bg-atp-accent/5' : ''}`}>
+                <Typography variant="body-sm" className={`font-bold ${row.short > 0 ? 'text-atp-accent' : 'text-slate-300'}`}>
+                    {row.short > 0 ? row.short.toLocaleString() : '—'}
+                </Typography>
+            </td>
+            <td className={`px-3 py-1.5 text-right bg-blue-50/20`}>
+                <Typography variant="body-sm" className="font-bold text-blue-700">
+                    {formatNum(row.stockVal)}
+                </Typography>
+            </td>
+            <td className="px-3 py-1 text-center border-x border-blue-100 bg-blue-50/20">
+                <Typography variant="label" className={`!italic ${mosOk === true ? 'text-emerald-600' : mosOk === false ? 'text-rose-500' : 'text-slate-600'}`}>
+                    {actualMOS > 0 ? actualMOS.toFixed(1) : '-'}M
+                </Typography>
+                {targetMOS && (
+                    <Typography variant="label" className="text-slate-400 font-bold leading-none mt-0.5 whitespace-nowrap block !text-[9px]">
+                        <i className="fas fa-bullseye mr-0.5 opacity-70"></i>{targetMOS}M
+                    </Typography>
+                )}
+            </td>
+            <td className="px-3 py-1.5 text-right uppercase">
+                <Typography variant="body-sm" className="font-bold text-slate-500">
+                    {formatNum(row.poVal)}
+                </Typography>
+            </td>
+            <td className={`px-3 py-2 text-center ${row.boItems > 0 ? 'bg-rose-50/30' : ''}`}>
+                <Typography variant="body-sm" className={`font-bold ${row.boItems > 0 ? 'text-rose-600' : 'text-slate-200'}`}>
+                    {row.boItems > 0 ? row.boItems.toLocaleString() : '—'}
+                </Typography>
+            </td>
+            <td className={`px-3 py-2 text-right ${row.boValue > 0 ? 'bg-rose-50/30' : ''}`}>
+                <Typography variant="body-sm" className={`font-bold ${row.boValue > 0 ? 'text-rose-700' : 'text-slate-200'}`}>
+                    {row.boValue > 0 ? formatNum(row.boValue) : '—'}
+                </Typography>
+            </td>
+            <td className="px-3 py-2 text-center">
+                <Typography variant="body-sm" className="font-black text-slate-400">
+                    {row.excessItems > 0 ? row.excessItems.toLocaleString() : '—'}
+                </Typography>
+            </td>
+            <td className="px-3 py-2 text-right text-slate-400">
+                <Typography variant="body-sm" className="font-bold">
+                    {formatNum(row.excessVal)}
+                </Typography>
+            </td>
+            <td className="px-3 py-1 text-center border-l border-slate-100">
+                <div className={`font-black text-xs !italic ${excessOk === true ? 'text-emerald-600' : excessOk === false ? 'text-rose-500' : 'text-slate-600'}`}>
+                    {excessPct.toFixed(1)}%
+                </div>
+                {targetExcess && (
+                    <div className="text-3xs text-slate-600 font-bold leading-none mt-0.5 whitespace-nowrap">
+                        <i className="fas fa-bullseye mr-0.5 opacity-80"></i>≤{targetExcess}%
+                    </div>
+                )}
+            </td>
+        </tr>
+    );
+});
+
 export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onSaveState, draftData, graph, appSettings, supersessionProps }: {
     data: InventoryItem[],
     onItemSelect: (item: InventoryItem) => void,
@@ -245,156 +409,10 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
 
     const loisTargets = appSettings?.loisTargets || {};
 
-    const renderLoisRow = (label: string, subKeys: string[], isHeader = false, groupColor?: string) => {
-        const row = { items: 0, turnover: 0, noStock: 0, short: 0, stockVal: 0, poVal: 0, excessItems: 0, excessVal: 0, boItems: 0, boValue: 0, bmwCount: 0, trendSum: 0, trendCount: 0 };
-        subKeys.forEach(k => {
-            if (matrixData[k]) {
-                row.items += matrixData[k].items;
-                row.turnover += matrixData[k].turnover;
-                row.noStock += matrixData[k].noStock;
-                row.short += matrixData[k].short;
-                row.stockVal += matrixData[k].stockVal;
-                row.poVal += matrixData[k].poVal;
-                row.excessItems += matrixData[k].excessItems;
-                row.excessVal += matrixData[k].excessVal;
-                row.boItems += matrixData[k].boItems;
-                row.boValue += matrixData[k].boValue;
-                row.bmwCount += matrixData[k].bmwCount;
-                row.trendSum += matrixData[k].trendSum;
-                row.trendCount += matrixData[k].trendCount;
-            }
-        });
-        if (row.items === 0 && !isHeader) return null;
-        const isActive = !isHeader && subKeys.length === 1 && selectedSubgroup === subKeys[0];
-        const avgTrend = row.trendCount > 0 ? row.trendSum / row.trendCount : 0;
-        const excessPct = row.stockVal > 0 ? (row.excessVal / row.stockVal) * 100 : 0;
-        const actualMOS = row.turnover > 0 ? (row.stockVal * 12 / row.turnover) : 0;
-
-        // Target Selection
-        const targetConfig = (!isHeader && subKeys.length === 1) ? (loisTargets[subKeys[0]] || null) : null;
-
-        const targetMOS = targetConfig ? targetConfig.targetMOS : null;
-        const targetExcess = targetConfig ? targetConfig.targetExcessPct : null;
-
-        const mosOk = (targetMOS && actualMOS > 0) ? (actualMOS >= targetMOS * 0.5 && actualMOS <= targetMOS * 1.5) : null;
-        const excessOk = targetExcess ? excessPct <= targetExcess : null;
-
-        return (
-            <tr key={label} onClick={() => !isHeader && subKeys.length === 1 && setSelectedSubgroup(isActive ? null : subKeys[0])} className={`${isHeader ? 'bg-slate-50/50 uppercase tracking-widest' : (isActive ? 'bg-blue-50/80 shadow-inner' : 'bg-white hover:bg-slate-50/80')} border-b border-slate-100 transition-all cursor-pointer text-sm hover:translate-x-1 duration-200`}>
-                <td className={`px-3 py-2 border-r border-slate-100 ${isHeader ? 'text-slate-900 font-black' : 'text-slate-700'}`}>
-                    <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
-                        {isHeader ? (
-                            <>
-                                <div className={`w-1.5 h-3.5 ${groupColor} rounded-full shadow-sm flex-shrink-0`}></div>
-                                <Typography variant="body" className="font-black truncate">
-                                    {label}
-                                </Typography>
-                            </>
-                        ) : (
-                            <div className={`segment-pill ${
-                                row.noStock > 0 ? 'segment-pill-alert' : 
-                                row.short > 0 ? 'segment-pill-warning' : 
-                                'segment-pill-success'
-                            }`}>
-                                {label}
-                            </div>
-                        )}
-                        {!isHeader && SUBGROUP_DESC[label] && (
-                            <span className="text-slate-400 font-bold ml-1.5 text-[9px] tracking-tight truncate opacity-70">— {SUBGROUP_DESC[label]}</span>
-                        )}
-                    </div>
-                </td>
-                <td className="px-3 py-1.5 text-right font-bold text-slate-800">
-                    <Typography variant="body-sm" className="font-bold">
-                        {formatNum(row.turnover)}
-                    </Typography>
-                    {!isHeader && subKeys.length === 1 && row.turnover > 0 && (
-                        <Typography variant="label" className={`ml-1 ${avgTrend > 0 ? 'text-atp-success' : 'text-atp-action'}`}>
-                            {avgTrend > 0 ? '↑' : '↓'}{Math.abs(avgTrend).toFixed(0)}%
-                        </Typography>
-                    )}
-                </td>
-                <td className="px-3 py-1.5 text-right">
-                    <Typography variant="label" className="text-slate-400 font-bold !italic">
-                        {(row.turnover / (grandStats.grandTurnover || 1) * 100).toFixed(1)}%
-                    </Typography>
-                </td>
-                <td className="px-3 py-2 text-center">
-                    <Typography variant="body-sm" className="text-slate-500">
-                        {row.items.toLocaleString()}
-                    </Typography>
-                </td>
-                <td className={`px-3 py-2 text-center ${row.noStock > 0 ? 'bg-atp-action/5' : ''}`}>
-                    <Typography variant="body-sm" className={`font-bold ${row.noStock > 0 ? 'text-atp-action' : 'text-slate-300'}`}>
-                        {row.noStock > 0 ? row.noStock.toLocaleString() : '—'}
-                    </Typography>
-                </td>
-                <td className={`px-3 py-2 text-center ${row.short > 0 ? 'bg-atp-accent/5' : ''}`}>
-                    <Typography variant="body-sm" className={`font-bold ${row.short > 0 ? 'text-atp-accent' : 'text-slate-300'}`}>
-                        {row.short > 0 ? row.short.toLocaleString() : '—'}
-                    </Typography>
-                </td>
-                <td className={`px-3 py-1.5 text-right bg-blue-50/20`}>
-                    <Typography variant="body-sm" className="font-bold text-blue-700">
-                        {formatNum(row.stockVal)}
-                    </Typography>
-                </td>
-
-                {/* MOS merged with Target */}
-                <td className="px-3 py-1 text-center border-x border-blue-100 bg-blue-50/20">
-                    <Typography variant="label" className={`!italic ${mosOk === true ? 'text-emerald-600' : mosOk === false ? 'text-rose-500' : 'text-slate-600'}`}>
-                        {actualMOS > 0 ? actualMOS.toFixed(1) : '-'}M
-                    </Typography>
-                    {targetMOS && (
-                        <Typography variant="label" className="text-slate-400 font-bold leading-none mt-0.5 whitespace-nowrap block !text-[9px]">
-                            <i className="fas fa-bullseye mr-0.5 opacity-70"></i>{targetMOS}M
-                        </Typography>
-                    )}
-                </td>
-
-                <td className="px-3 py-1.5 text-right uppercase">
-                    <Typography variant="body-sm" className="font-bold text-slate-500">
-                        {formatNum(row.poVal)}
-                    </Typography>
-                </td>
-
-                {/* Backorder Columns */}
-                <td className={`px-3 py-2 text-center ${row.boItems > 0 ? 'bg-rose-50/30' : ''}`}>
-                    <Typography variant="body-sm" className={`font-bold ${row.boItems > 0 ? 'text-rose-600' : 'text-slate-200'}`}>
-                        {row.boItems > 0 ? row.boItems.toLocaleString() : '—'}
-                    </Typography>
-                </td>
-                <td className={`px-3 py-2 text-right ${row.boValue > 0 ? 'bg-rose-50/30' : ''}`}>
-                    <Typography variant="body-sm" className={`font-bold ${row.boValue > 0 ? 'text-rose-700' : 'text-slate-200'}`}>
-                        {row.boValue > 0 ? formatNum(row.boValue) : '—'}
-                    </Typography>
-                </td>
-
-                <td className="px-3 py-2 text-center">
-                    <Typography variant="body-sm" className="font-bold text-slate-400">
-                        {row.excessItems > 0 ? row.excessItems.toLocaleString() : '—'}
-                    </Typography>
-                </td>
-                <td className="px-3 py-2 text-right text-slate-400">
-                    <Typography variant="body-sm" className="font-bold">
-                        {formatNum(row.excessVal)}
-                    </Typography>
-                </td>
-
-                {/* % Excess merged with Target */}
-                <td className="px-3 py-1 text-center border-l border-slate-100">
-                    <div className={`font-black text-xs !italic ${excessOk === true ? 'text-emerald-600' : excessOk === false ? 'text-rose-500' : 'text-slate-600'}`}>
-                        {excessPct.toFixed(1)}%
-                    </div>
-                    {targetExcess && (
-                        <div className="text-3xs text-slate-600 font-bold leading-none mt-0.5 whitespace-nowrap">
-                            <i className="fas fa-bullseye mr-0.5 opacity-80"></i>≤{targetExcess}%
-                        </div>
-                    )}
-                </td>
-            </tr>
-        );
-    };
+    // Functional update for subgroup toggle to keep callback stable
+    const handleToggleSubgroup = React.useCallback((subKey: string) => {
+        setSelectedSubgroup(prev => prev === subKey ? null : subKey);
+    }, []);
 
 
     // ===== PRINT: open a clean new window with standalone HTML =====
@@ -697,18 +715,18 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
                 <div className="absolute -top-16 -right-16 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] pointer-events-none"></div>
 
                 {/* Top row: title + stats */}
-                <div className="relative z-10 flex items-center justify-between px-6 py-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center border border-white/20">
+                <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between px-6 py-4 gap-4">
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                        <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center border border-white/20 shrink-0">
                             <i className="fas fa-chart-simple text-blue-400"></i>
                         </div>
-                        <div>
-                            <Typography variant="h2" className="tracking-tight uppercase text-white !text-xl workbench-title leading-none">{t('nav_dashboard')}</Typography>
-                            <Typography variant="label" className="text-white/50 !text-[10px] font-medium supply-chain-data">{t('app_subtitle')}</Typography>
+                        <div className="overflow-hidden">
+                            <Typography variant="h2" className="tracking-tight uppercase text-white !text-xl workbench-title leading-none truncate">{t('nav_dashboard')}</Typography>
+                            <Typography variant="label" className="text-white/50 !text-[10px] font-medium supply-chain-data truncate block">{t('app_subtitle')}</Typography>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 w-full sm:w-auto">
                         <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-2 rounded-xl">
                             <span className="text-[10px] font-black text-white/50 uppercase tracking-widest">SKU</span>
                             <span className="text-sm font-black text-white">{grandStats.totalSKUs.toLocaleString()}</span>
@@ -727,7 +745,7 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
                 </div>
 
                 {/* Bottom row: sub-tab nav */}
-                <div className="relative z-10 border-t border-white/10 px-4 py-1.5 flex items-center gap-1">
+                <div className="relative z-10 border-t border-white/10 px-4 py-1.5 flex items-center gap-1 overflow-x-auto custom-scrollbar no-scrollbar-at-mobile">
                     {([
                         { id: 'overview' as const, label: t('nav_dashboard'), icon: 'fa-chart-simple' },
                         { id: 'intelligence' as const, label: 'Demand Intelligence', icon: 'fa-brain' },
@@ -793,7 +811,7 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
                 )}
 
                 {/* KPI GRID */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     <MetricCard label={t('kpi_turnover')} value={formatCurrency(grandStats.grandTurnover)} subValue={t('kpi_turnover_sub')} icon="fa-arrow-trend-up" color="professional" />
                     <MetricCard label={t('kpi_stock')} value={formatCurrency(grandStats.grandStock)} subValue={t('kpi_stock_sub')} icon="fa-warehouse" color="emerald" />
                     <MetricCard label={t('kpi_pipeline')} value={formatCurrency(grandStats.grandPOVal)} subValue={t('kpi_pipeline_sub')} icon="fa-truck-fast" color="blue" />
@@ -811,23 +829,29 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
                                 <Typography variant="label" className="text-blue-600 block">Including Draft + PO</Typography>
                             </div>
                         </div>
-                        <div className="flex gap-8 text-right">
-                            <div><div className="text-xs text-blue-400 font-black uppercase">Stockout Resolved</div><div className="text-2xl font-black text-emerald-600">-{deltaStats.deltaStockoutResolved}</div></div>
-                            <div><div className="text-xs text-blue-400 font-black uppercase">Capital Added</div><div className="text-2xl font-black text-slate-900">{formatCurrency(deltaStats.deltaStockValAdded)}</div></div>
+                        <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 text-left sm:text-right w-full sm:w-auto">
+                            <div className="flex items-center sm:block gap-3">
+                                <div className="text-xs text-blue-400 font-black uppercase">Stockout Resolved</div>
+                                <div className="text-2xl font-black text-emerald-600">-{deltaStats.deltaStockoutResolved}</div>
+                            </div>
+                            <div className="flex items-center sm:block gap-3">
+                                <div className="text-xs text-blue-400 font-black uppercase">Capital Added</div>
+                                <div className="text-2xl font-black text-slate-900">{formatCurrency(deltaStats.deltaStockValAdded)}</div>
+                            </div>
                         </div>
                     </div>
                 )}
 
-                <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-30">
+                <div className="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white sticky top-0 z-30">
                     <Typography variant="h2" className="text-slate-900 uppercase tracking-tight flex items-center gap-3">
                         <i className="fas fa-grid-horizontal text-blue-600"></i> {t('matrix_title')}
                     </Typography>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-between w-full sm:w-auto gap-4">
                         <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner">
-                            <button onClick={() => setShowSimulation(false)} className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase transition-all ${!showSimulation ? 'bg-white text-slate-900 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>{t('current')}</button>
-                            <button onClick={() => setShowSimulation(true)} className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase transition-all ${showSimulation ? 'bg-gradient-blue text-white shadow-glow-blue' : 'text-slate-500 hover:text-slate-700'}`}>Simulated</button>
+                            <button onClick={() => setShowSimulation(false)} className={`px-4 py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase transition-all whitespace-nowrap ${!showSimulation ? 'bg-white text-slate-900 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>{t('current')}</button>
+                            <button onClick={() => setShowSimulation(true)} className={`px-4 py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase transition-all whitespace-nowrap ${showSimulation ? 'bg-gradient-blue text-white shadow-glow-blue' : 'text-slate-500 hover:text-slate-700'}`}>Simulated</button>
                         </div>
-                        <button onClick={handlePrint} className="bg-white border border-slate-200 text-slate-600 px-3 py-2 rounded-xl hover:bg-slate-50 transition-all hover:text-blue-600"><i className="fas fa-print"></i></button>
+                        <button onClick={handlePrint} className="bg-white border border-slate-200 text-slate-600 px-3 py-2 rounded-xl hover:bg-slate-50 transition-all hover:text-blue-600 shrink-0"><i className="fas fa-print"></i></button>
                     </div>
                 </div>
 
@@ -874,8 +898,31 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
                                 if (groupStockVal === 0 && groupPoVal === 0) return null;
                                 return (
                                     <React.Fragment key={group.label}>
-                                        {renderLoisRow(group.label, group.sub, true, group.color)}
-                                        {group.sub.length > 1 && group.sub.map(subKey => renderLoisRow(subKey, [subKey]))}
+                                        <LoisRow 
+                                            label={group.label} 
+                                            subKeys={group.sub} 
+                                            isHeader={true} 
+                                            groupColor={group.color}
+                                            matrixData={matrixData}
+                                            grandStats={grandStats}
+                                            loisTargets={loisTargets}
+                                            selectedSubgroup={selectedSubgroup}
+                                            onToggleSubgroup={handleToggleSubgroup}
+                                            formatNum={formatNum}
+                                        />
+                                        {group.sub.length > 1 && group.sub.map(subKey => (
+                                            <LoisRow 
+                                                key={subKey}
+                                                label={subKey} 
+                                                subKeys={[subKey]}
+                                                matrixData={matrixData}
+                                                grandStats={grandStats}
+                                                loisTargets={loisTargets}
+                                                selectedSubgroup={selectedSubgroup}
+                                                onToggleSubgroup={handleToggleSubgroup}
+                                                formatNum={formatNum}
+                                            />
+                                        ))}
                                     </React.Fragment>
                                 );
                             })}

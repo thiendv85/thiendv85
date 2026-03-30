@@ -22,3 +22,4 @@
 | 2026-03-27 18:00 | Fix lỗi hiển thị Stock Bar: Tự động trừ nợ hàng (BO) vào các đoạn thanh để biểu diễn đúng tồn thực tế |
 | 2026-03-28 09:20 | Nâng cấp thuật toán Phạm vi ưu tiên (P1/P2/P3) dựa trên Net Reserve và NR MOS |
 | 2026-03-30 12:30 | Tính năng chọn dữ liệu Cloud (File A/B) & Lọc hãng (Premium UI) |
+| 2026-03-30 19:21 | Deploy Decision Support Upgrade - Order Review Modal |

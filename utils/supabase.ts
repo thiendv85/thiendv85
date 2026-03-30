@@ -530,8 +530,10 @@ export async function processApprovalAction(
   comment?: string,
   modifiedQuantities?: Record<string, { air: number; sea: number }>,
   reason?: string, // Phase 3: dedicated reason for reject/return
-  expectedVersion?: number // Phase 5: optimistic locking
+  expectedVersion?: number, // Phase 5: optimistic locking
+  decisionSummary?: any // New: Summary snapshot from Decision Support layer
 ): Promise<{ success: boolean; newStatus: ApprovalStatus; error?: string }> {
+
   // Look up request and workflow
   const request = await fetchRequestById(requestId);
   if (!request) return { success: false, newStatus: 'pending', error: 'Không tìm thấy yêu cầu' };
@@ -572,8 +574,9 @@ export async function processApprovalAction(
     action,
     actor_id: actorId,
     comment: comment || null,
-    metadata: { ...metadata, reason: reason || null },
+    metadata: { ...metadata, reason: reason || null, decisionSummary: decisionSummary || null },
   });
+
   if (actionError) return { success: false, newStatus: request.status, error: 'Không thể ghi nhận hành động phê duyệt' };
 
   if (action === 'commented') return { success: true, newStatus: request.status };

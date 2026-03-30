@@ -1,26 +1,58 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
 
-/* Đổi tất cả các văn bản chỉ định sang màu xám cực nhẹ (gần như trắng) */
+:root {
+    /* Color Palette - ui-ux-pro-max */
+    --color-primary: #1E40AF;
+    --color-secondary: #3B82F6;
+    --color-cta: #F59E0B;
+    --color-background: #F8FAFC;
+    --color-text: #1E3A8A;
+    --color-text-muted: #475569;
+    
+    /* Spacing Tokens */
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 1rem;
+    --space-lg: 1.5rem;
+    --space-xl: 2rem;
+    --space-2xl: 3rem;
+    
+    /* Shadow Tokens */
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+}
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--color-background);
+    color: var(--color-text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.6;
+}
+
+.font-sans {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+}
+
+h1, h2, h3, h4, .font-heading {
+    font-family: 'Inter', sans-serif !important;
+    font-weight: 800; /* ExtraBold for "Solid" feel */
+    letter-spacing: -0.025em;
+}
+
+/* Đảm bảo các văn bản chỉ định có màu sắc dễ đọc */
 .antigravity-dashboard-container, 
 .supply-chain-data, 
 .metric-label, 
 .workbench-title {
-    color: #F5F5F5 !important; /* Màu xám nhạt/trắng */
+    /* Cho phép tiện ích text-white/text-blue hoạt động tự do */
 }
 
-/* Áp dụng cụ thể cho các chỉ số phần trăm hoặc xu hướng */
-.trend-value {
-    color: #E0E0E0 !important;
-}
-
-/* Đảm bảo các liên kết (Links) cũng đổi màu nhưng giữ nguyên thuộc tính khác */
-.link-item, .substitution-chain {
-    color: #DCDCDC !important;
-    text-decoration: underline;
-}
-
-/* Hiệu ứng nổi khối 3D cho tiêu đề trang */
 .workbench-title {
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
     letter-spacing: -0.02em;
 }
 
@@ -30,63 +62,97 @@
     backdrop-filter: blur(12px) saturate(180%);
     -webkit-backdrop-filter: blur(12px) saturate(180%);
     border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
-}
-
-.dark .glass-premium {
-    background: rgba(15, 23, 42, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    box-shadow: var(--shadow-xl);
 }
 
 /* Premium Shadow Utility */
 .shadow-premium {
-    box-shadow: 
-        0 4px 6px -1px rgba(0, 0, 0, 0.1), 
-        0 2px 4px -1px rgba(0, 0, 0, 0.06),
-        0 20px 25px -5px rgba(0, 0, 0, 0.05),
-        inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.08), 0 2px 8px -2px rgba(15, 23, 42, 0.04);
 }
 
-/* Support for custom spacing and layout refinements */
-.ml-15 {
-    margin-left: 3.75rem; /* 60px */
+/* Professional Gradient for Headers */
+.bg-gradient-professional {
+    background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+    position: relative;
 }
 
-/* Premium Pill Badges for Matrix Segments - Refined P3 3D Style */
+.shadow-glass {
+    box-shadow: 0 4px 16px 0 rgba(15, 23, 42, 0.05);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.shadow-glow {
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+}
+
+.shadow-soft {
+    box-shadow: 0 2px 12px -2px rgba(15, 23, 42, 0.04);
+}
+
+/* Responsive Utilities */
+@media (max-width: 640px) {
+    .container-responsive {
+        padding-left: var(--space-md);
+        padding-right: var(--space-md);
+    }
+}
+
+/* Touch Target Size Optimization */
+button, 
+[role="button"], 
+select, 
+input {
+    min-height: 2.75rem; /* ~44px */
+    cursor: pointer;
+}
+
+/* Premium Pill Badges */
 .segment-pill {
-    @apply px-2.5 py-1 rounded-lg text-[11px] font-black uppercase tracking-tight transition-all hover:scale-110 active:translate-y-px;
+    @apply px-2.5 py-1 rounded-lg text-[11px] font-black uppercase tracking-tight transition-all hover:scale-105 active:translate-y-px;
     min-width: 36px;
     text-align: center;
-    /* 3D Effect Base */
     box-shadow: 
-        inset 0 1px 0 rgba(255,255,255,0.45), /* Highlight */
-        0 2px 0 rgba(0,0,0,0.2),            /* Depth */
-        0 4px 8px -1px rgba(0,0,0,0.15);    /* Shadow */
-    text-shadow: 0 1px 1px rgba(0,0,0,0.25);
-    border: 1px solid rgba(0,0,0,0.1);
+        inset 0 1px 0 rgba(255,255,255,0.45),
+        0 2px 0 rgba(0,0,0,0.1),
+        var(--shadow-sm);
+    text-shadow: 0 1px 1px rgba(0,0,0,0.15);
+    border: 1px solid rgba(0,0,0,0.05);
 }
 
 .segment-pill-success { 
     background: linear-gradient(to bottom, #10B981, #059669); 
     color: white; 
-    border-color: #047857;
 }
 
 .segment-pill-warning { 
     background: linear-gradient(to bottom, #F59E0B, #D97706); 
     color: white;
-    border-color: #B45309;
 }
 
 .segment-pill-alert { 
     background: linear-gradient(to bottom, #EF4444, #DC2626); 
     color: white;
-    border-color: #B91C1C;
 }
 
 .segment-pill-neutral { 
     background: linear-gradient(to bottom, #64748B, #475569); 
     color: white;
-    border-color: #334155;
+}
+
+/* Custom Scrollbar for modern look */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #94A3B8;
 }

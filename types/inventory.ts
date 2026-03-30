@@ -238,6 +238,7 @@ export interface InventoryItem {
         mos: number;
         cst: number;
         incomingCurrentMonth: number;
+        incomingNextMonth?: number;
         priorityBucket: 'P1' | 'P2' | 'P3';
         priorityScore: number;
         stockTurnRatio: number;
@@ -397,6 +398,7 @@ export interface SnapshotData {
         avgQty12M: number;
         avgQty24M: number;
         incomingCurrentMonth: number;
+        incomingNextMonth?: number;
         cst: number;
         salesHistory: number[];
         // Regional breakdown (NB/BB) + leadtime for print form

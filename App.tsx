@@ -10,9 +10,7 @@ import { Ordering } from './pages/Ordering';
 import { RepairPackageOptimizer } from './components/RepairPackageOptimizer';
 // import { BackorderProcessing } from './pages/BackorderProcessing';
 // SupersessionManagement is now a sub-tab of Dashboard (imported there)
-import { SupersessionEditModal } from './components/SupersessionEditModal';
 import { SettingsPage, loadAppSettings, saveAppSettings, AppSettings } from './pages/Settings';
-import { DataSelectionModal } from './components/DataSelectionModal';
 import { UpdateLog } from './pages/UpdateLog';
 import { InventoryDistribution } from './pages/InventoryDistribution';
 import { LanguageProvider, useLanguage } from './utils/i18n';
@@ -30,6 +28,10 @@ import {
     getCachedUploadedData, 
     clearCachedUploadedData 
 } from './utils/db';
+
+// Rule: bundle-dynamic-imports — Lazy load heavy modals
+const DataSelectionModal = React.lazy(() => import('./components/DataSelectionModal').then(m => ({ default: m.DataSelectionModal })));
+const SupersessionEditModal = React.lazy(() => import('./components/SupersessionEditModal').then(m => ({ default: m.SupersessionEditModal })));
 
 const AppContent = () => {
     const [data, setData] = useState<InventoryItem[]>([]);
@@ -68,17 +70,18 @@ const AppContent = () => {
     const [initialParams, setInitialParams] = useState<{ lt: number; sp: number; ssp: number } | undefined>(undefined);
     const [appSettings, setAppSettings] = useState<AppSettings>(loadAppSettings);
 
-    // Tự động tải dữ liệu từ Cloud khi khởi động App
+    // Rule: async-parallel — Parallelize independent cloud fetches
     useEffect(() => {
         const fetchCloudDefaults = async () => {
             try {
-                const configData = await loadFromCloudStorage('global_config');
+                const [configData, ssData, kittingData] = await Promise.all([
+                    loadFromCloudStorage('global_config'),
+                    loadFromCloudStorage('supersession_draft'),
+                    loadFromCloudStorage('kitting_draft')
+                ]);
+
                 if (configData) setAppSettings(prev => ({ ...prev, ...configData }));
-
-                const ssData = await loadFromCloudStorage('supersession_draft');
                 if (ssData && Array.isArray(ssData)) setSupersessionMappings(ssData);
-
-                const kittingData = await loadFromCloudStorage('kitting_draft');
                 if (kittingData && Array.isArray(kittingData)) setKittingDefs(kittingData);
 
                 // Load monthly coefficient data (File B)
@@ -400,28 +403,30 @@ const AppContent = () => {
                 {view === 'approval-queue' && <ApprovalQueue />}
             </main>
 
-            <DataSelectionModal 
-                isOpen={isDataModalOpen}
-                onClose={() => setIsDataModalOpen(false)}
-                currentMonthlyDate={monthlyDataDate}
-                userRole={profile?.role}
-                userDepartment={profile?.department}
-                onSelectInventory={handleDataUpload}
-                onSelectMonthly={async (monthData, monthDate, updatedAt) => {
-                    setMonthlyData(monthData as any);
-                    setMonthlyDataDate(monthDate);
-                    await cacheMonthlyData(monthData as any, monthDate, updatedAt);
-                }}
-            />
+            <React.Suspense fallback={null}>
+                <DataSelectionModal 
+                    isOpen={isDataModalOpen}
+                    onClose={() => setIsDataModalOpen(false)}
+                    currentMonthlyDate={monthlyDataDate}
+                    userRole={profile?.role}
+                    userDepartment={profile?.department}
+                    onSelectInventory={handleDataUpload}
+                    onSelectMonthly={async (monthData, monthDate, updatedAt) => {
+                        setMonthlyData(monthData as any);
+                        setMonthlyDataDate(monthDate);
+                        await cacheMonthlyData(monthData as any, monthDate, updatedAt);
+                    }}
+                />
 
-            <SupersessionEditModal
-                isOpen={isSsModalOpen}
-                onClose={() => setIsSsModalOpen(false)}
-                onSave={handleSaveSsMapping}
-                initialData={editingSsMapping}
-                existingMappings={supersessionMappings}
-                items={data}
-            />
+                <SupersessionEditModal
+                    isOpen={isSsModalOpen}
+                    onClose={() => setIsSsModalOpen(false)}
+                    onSave={handleSaveSsMapping}
+                    initialData={editingSsMapping}
+                    existingMappings={supersessionMappings}
+                    items={data}
+                />
+            </React.Suspense>
 
             {
                 selectedItem && (

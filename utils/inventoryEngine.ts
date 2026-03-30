@@ -87,6 +87,7 @@ export interface ComputedFields {
 
     // Pipeline
     incomingCurrentMonth: number; // PO về trong tháng snapshot
+    incomingNextMonth: number;    // PO về trong tháng tiếp theo snapshot
 
     // Priority
     priorityBucket: 'P1' | 'P2' | 'P3';
@@ -410,6 +411,33 @@ export function computeInventory(
         )
         : 0;
 
+    // --- 8b. INCOMING NEXT MONTH ---
+    const nextMonthMMNum = (parseInt(snapshotMM) % 12) + 1;
+    const nextMonthYYNum = parseInt(snapshotMM) === 12 ? parseInt(snapshotYY) + 1 : parseInt(snapshotYY);
+    const nextMonthMM = nextMonthMMNum.toString().padStart(2, '0');
+    const nextMonthYY = nextMonthYYNum.toString().padStart(2, '0');
+    const nextMonthYYMM = nextMonthYY + nextMonthMM;
+    const nextMonthYYYY = "20" + nextMonthYY;
+    const nextMonthName = monthNames[nextMonthMMNum - 1];
+
+    const isNextMatch = (k: string) => {
+        const lowerK = k.toLowerCase();
+        const cleanK = lowerK.replace(/\D/g, '');
+        if (cleanK.startsWith(nextMonthYYMM)) return true;
+        if (cleanK.startsWith(nextMonthYYYY + nextMonthMM)) return true;
+        if (cleanK.startsWith(nextMonthMM + nextMonthYY)) return true;
+        if (nextMonthName && lowerK.includes(nextMonthName)) {
+            if (lowerK.includes(nextMonthYY) || lowerK.includes(nextMonthYYYY)) return true;
+        }
+        return lowerK.includes(nextMonthYYMM) || lowerK.includes(nextMonthYYYY + "-" + nextMonthMM);
+    };
+
+    const incomingNextMonth = item.Pipeline
+        ? Object.entries(item.Pipeline).reduce(
+            (sum, [k, v]) => isNextMatch(k) ? sum + v : sum, 0
+        )
+        : 0;
+
     // ── 9. PRIORITY ────────────────────────────────────────────────────────
     const priorityBucket = resolvePriority(available, onOrder, bo, rop, demandMonthly, isStop);
 
@@ -605,6 +633,7 @@ export function computeInventory(
         mos,
         cst,
         incomingCurrentMonth,
+        incomingNextMonth,
         priorityBucket,
         priorityScore: 0,
         stockTurnRatio: 0,

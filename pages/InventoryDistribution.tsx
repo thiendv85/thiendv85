@@ -201,7 +201,7 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
     return (
         <div className="space-y-4 animate-fadeIn pb-12">
             {/* Compact Header */}
-            <div className="bg-gradient-to-br from-slate-900 to-indigo-950 rounded-2xl text-white relative overflow-hidden border border-white/10 shadow-glass">
+            <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl text-white relative overflow-hidden border border-white/5 shadow-premium">
                 <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/10 rounded-full blur-[80px] -mr-40 -mt-40 pointer-events-none"></div>
 
                 {/* Top row: title + stats */}
@@ -219,37 +219,37 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg">
-                            <span className="text-[10px] font-black text-slate-400 uppercase">Giá trị</span>
-                            <span className="text-sm font-black text-white">${stats.totalValue.toLocaleString()}</span>
+                        <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg shadow-sm border border-slate-200/50">
+                            <span className="text-[10px] font-black text-slate-500 uppercase">Giá trị</span>
+                            <span className="text-sm font-black text-slate-900">${stats.totalValue.toLocaleString()}</span>
                         </div>
-                        <div className="flex items-center gap-1.5 bg-blue-500/15 border border-blue-400/20 px-3 py-1.5 rounded-lg">
-                            <i className="fas fa-cubes text-blue-300 text-[10px]"></i>
-                            <span className="text-[10px] font-black text-blue-300 uppercase">Mã</span>
-                            <span className="text-sm font-black text-white">{(stats.rebalanceCount + stats.allocationCount).toLocaleString()}</span>
+                        <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg shadow-sm border border-slate-200/50">
+                            <i className="fas fa-cubes text-blue-600 text-[10px]"></i>
+                            <span className="text-[10px] font-black text-slate-500 uppercase">Mã</span>
+                            <span className="text-sm font-black text-slate-900">{(stats.rebalanceCount + stats.allocationCount).toLocaleString()}</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Bottom row: tabs */}
-                <div className="relative z-10 border-t border-white/10 px-4 py-1.5 flex items-center gap-1">
+                <div className="relative z-10 border-t border-white/5 px-4 py-2 flex items-center gap-1">
                     <button
                         onClick={() => setActiveTab('rebalance')}
-                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 whitespace-nowrap
-                            ${activeTab === 'rebalance' ? 'bg-white/15 text-white border border-white/25 shadow-inner' : 'text-white/40 hover:text-white/70 hover:bg-white/5 border border-transparent'}`}
+                        className={`px-3 py-1.5 rounded-lg text-[11px] font-black transition-all flex items-center gap-2 whitespace-nowrap
+                            ${activeTab === 'rebalance' ? 'bg-white text-slate-900 shadow-sm' : 'text-white/50 hover:text-white hover:bg-white/5 border border-transparent'}`}
                     >
-                        <i className={`fas fa-right-left text-[10px] ${activeTab === 'rebalance' ? 'text-blue-300' : ''}`}></i>
+                        <i className={`fas fa-right-left text-[10px] ${activeTab === 'rebalance' ? 'text-blue-600' : ''}`}></i>
                         Điều phối tồn kho
-                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${activeTab === 'rebalance' ? 'bg-blue-500/40 text-blue-200' : 'bg-white/10 text-white/40'}`}>{stats.rebalanceCount}</span>
+                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${activeTab === 'rebalance' ? 'bg-blue-600 text-white' : 'bg-white/10 text-white/40'}`}>{stats.rebalanceCount}</span>
                     </button>
                     <button
                         onClick={() => setActiveTab('allocation')}
-                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 whitespace-nowrap
-                            ${activeTab === 'allocation' ? 'bg-white/15 text-white border border-white/25 shadow-inner' : 'text-white/40 hover:text-white/70 hover:bg-white/5 border border-transparent'}`}
+                        className={`px-3 py-1.5 rounded-lg text-[11px] font-black transition-all flex items-center gap-2 whitespace-nowrap
+                            ${activeTab === 'allocation' ? 'bg-white text-slate-900 shadow-sm' : 'text-white/50 hover:text-white hover:bg-white/5 border border-transparent'}`}
                     >
-                        <i className={`fas fa-cart-plus text-[10px] ${activeTab === 'allocation' ? 'text-indigo-300' : ''}`}></i>
+                        <i className={`fas fa-cart-plus text-[10px] ${activeTab === 'allocation' ? 'text-indigo-600' : ''}`}></i>
                         Phân bổ đặt hàng
-                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${activeTab === 'allocation' ? 'bg-indigo-500/40 text-indigo-200' : 'bg-white/10 text-white/40'}`}>{stats.allocationCount}</span>
+                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${activeTab === 'allocation' ? 'bg-indigo-600 text-white' : 'bg-white/10 text-white/40'}`}>{stats.allocationCount}</span>
                     </button>
                 </div>
             </div>

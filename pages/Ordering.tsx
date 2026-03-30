@@ -196,6 +196,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                     avgQty12M: item?.AvgQty12M || 0,
                     avgQty24M: item?.AvgQty24M || 0,
                     incomingCurrentMonth: c?.incomingCurrentMonth || 0,
+                    incomingNextMonth: c?.incomingNextMonth || 0,
                     cst: c?.cst || 0,
                     salesHistory: item?.SalesHistory || [],
                     // Regional breakdown + leadtime for print form
@@ -207,7 +208,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                     backorder_BB: item?.Backorder_BB || 0,
                     backorderBreakdown: item?.BackorderBreakdown || [],
                     dealerBreakdown: item?.DealerBreakdown || [],
-                    effectiveLT: profile?.lt ?? settings.params.lt ?? 90,
+                    effectiveLT: profile.profile?.lt ?? settings.params.lt ?? 90,
                 };
             }),
         submitted_at: new Date().toISOString(),
@@ -618,18 +619,18 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                     </div>
                 )}
 
-                <div className="px-6 py-4 border-b border-slate-200 flex flex-col lg:flex-row justify-between items-center bg-white sticky top-0 z-40 gap-4">
-                    <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto">
-                        <div className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest border border-blue-100">{t('ord_workbench')}</div>
-                        <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
-                            <button onClick={() => { setViewFilter('all'); setCurrentPage(1); }} className={`px-4 py-1.5 text-xs font-black rounded-lg transition-all ${viewFilter === 'all' ? 'bg-white text-blue-700 border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>{t('ord_tab_all')}</button>
-                            <button onClick={() => { setViewFilter('suggested'); setCurrentPage(1); }} className={`px-4 py-1.5 text-xs font-black rounded-lg transition-all ${viewFilter === 'suggested' ? 'bg-white text-blue-700 border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>{t('ord_tab_suggested')}</button>
-                            <button onClick={() => { setViewFilter('draft'); setCurrentPage(1); }} className={`px-4 py-1.5 text-xs font-black rounded-lg transition-all ${viewFilter === 'draft' ? 'bg-white text-blue-700 border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>{t('ord_tab_draft')}</button>
+                <div className="px-4 md:px-6 py-4 border-b border-slate-200 flex flex-col xl:flex-row justify-between items-stretch xl:items-center bg-white sticky top-0 z-40 gap-4">
+                    <div className="flex flex-wrap items-center gap-2 md:gap-4">
+                        <div className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-blue-100 shrink-0">{t('ord_workbench')}</div>
+                        <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 overflow-x-auto no-scrollbar">
+                            <button onClick={() => { setViewFilter('all'); setCurrentPage(1); }} className={`px-3 md:px-4 py-1.5 text-[10px] md:text-xs font-black rounded-lg transition-all shrink-0 ${viewFilter === 'all' ? 'bg-white text-blue-700 border border-slate-200 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t('ord_tab_all')}</button>
+                            <button onClick={() => { setViewFilter('suggested'); setCurrentPage(1); }} className={`px-3 md:px-4 py-1.5 text-[10px] md:text-xs font-black rounded-lg transition-all shrink-0 ${viewFilter === 'suggested' ? 'bg-white text-blue-700 border border-slate-200 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t('ord_tab_suggested')}</button>
+                            <button onClick={() => { setViewFilter('draft'); setCurrentPage(1); }} className={`px-3 md:px-4 py-1.5 text-[10px] md:text-xs font-black rounded-lg transition-all shrink-0 ${viewFilter === 'draft' ? 'bg-white text-blue-700 border border-slate-200 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t('ord_tab_draft')}</button>
                         </div>
 
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl">
-                            <i className="fas fa-sort-amount-down text-slate-400 text-xs"></i>
-                            <select value={sortKey} onChange={(e) => setSortKey(e.target.value)} className="bg-transparent text-xs font-black text-slate-700 outline-none cursor-pointer uppercase">
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl shrink-0">
+                            <i className="fas fa-sort-amount-down text-slate-400 text-[10px]"></i>
+                            <select value={sortKey} onChange={(e) => setSortKey(e.target.value)} className="bg-transparent text-[10px] font-black text-slate-700 outline-none cursor-pointer uppercase">
                                 <option value="priority">Sắp xếp: Hệ thống</option>
                                 <option value="mos_asc">MOS (Thấp nhất)</option>
                                 <option value="fc_desc">FC (Cao nhất)</option>
@@ -640,41 +641,45 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                             </select>
                         </div>
                     </div>
-                    <div className="flex-1 w-full max-w-md relative group mx-2">
+                    
+                    <div className="flex-1 w-full relative group">
                         <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors text-sm"></i>
-                        <input type="text" placeholder={t('ord_search_ph')} value={filters.search} onChange={(e) => handleMainFilterChange({ ...filters, search: e.target.value })} className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:bg-white focus:border-blue-400 transition-all text-slate-700" />
+                        <input type="text" placeholder={t('ord_search_ph')} value={filters.search} onChange={(e) => handleMainFilterChange({ ...filters, search: e.target.value })} className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:bg-white focus:border-blue-400 transition-all text-slate-700 shadow-inner" />
                     </div>
-                    <div className="flex items-center gap-3 w-full lg:w-auto justify-end">
-                        <button onClick={() => setIsCloudModalOpen(true)} className="bg-blue-50/50 text-blue-700 hover:bg-blue-100 px-4 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border border-blue-200 flex items-center gap-2 mr-2">
-                            <i className="fas fa-cloud"></i> Quản lý Cloud
-                        </button>
-                        <input type="file" ref={fileInputRef} className="hidden" accept=".csv" onChange={handleImport} />
-                        <button onClick={() => fileInputRef.current?.click()} className="bg-slate-100 text-slate-700 hover:bg-slate-200 px-4 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border border-slate-200"><i className="fas fa-file-import mr-2"></i> {t('ord_import_btn')}</button>
-                        <button
-                            onClick={() => {
-                                const total = Object.values(orderQuantities).filter((v: any) => v.air + v.sea > 0).length;
-                                if (total === 0) return alert('Dự thảo đang trống.');
-                                if (window.confirm(`Xóa toàn bộ dự thảo (${total} mã hàng)?`)) {
-                                    setOrderQuantities({});
-                                    setOrderNotes({});
-                                }
-                            }}
-                            className="bg-rose-50 text-rose-700 hover:bg-rose-100 px-4 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border border-rose-200 flex items-center gap-2"
+
+                    <div className="flex flex-wrap items-center gap-2 justify-end">
+                        <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 p-1 rounded-2xl">
+                            <button onClick={() => setIsCloudModalOpen(true)} className="bg-blue-600 text-white hover:bg-blue-700 w-10 h-10 rounded-xl transition-all border border-blue-700 flex items-center justify-center shrink-0 shadow-glow md:w-auto md:px-4 md:py-2.5 md:text-[10px] md:font-black md:uppercase md:tracking-widest" title="Quản lý Cloud">
+                                <i className="fas fa-cloud"></i>
+                                <span className="hidden md:inline ml-2">Cloud</span>
+                            </button>
+                            <input type="file" ref={fileInputRef} className="hidden" accept=".csv" onChange={handleImport} />
+                            <button onClick={() => fileInputRef.current?.click()} className="bg-white text-slate-700 hover:bg-slate-100 w-10 h-10 rounded-xl transition-all border border-slate-200 flex items-center justify-center md:w-auto md:px-4 md:py-2.5 md:text-[10px] md:font-black md:uppercase md:tracking-widest" title={t('ord_import_btn')}>
+                                <i className="fas fa-file-import"></i>
+                                <span className="hidden md:inline ml-2">Import</span>
+                            </button>
+                        </div>
+                        
+                        <button 
+                            onClick={handleExport} 
+                            className="bg-atp-secondary text-white hover:bg-slate-700 px-4 md:px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2 border border-slate-800 shadow-md"
                         >
-                            <i className="fas fa-trash-alt"></i> Xóa dự thảo
+                            <i className="fas fa-file-export"></i> 
+                            <span className="hidden sm:inline">{t('ord_export_btn')}</span>
                         </button>
-                        <button onClick={handleExport} className="bg-blue-600 text-white hover:bg-blue-700 px-6 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2 border border-blue-700"><i className="fas fa-file-export"></i> {t('ord_export_btn')}</button>
+                        
                         {profile?.role && ['admin', 'planner'].includes(profile.role) && !isReturned && (
                             <button
                                 onClick={handleOpenSubmitModal}
                                 disabled={Object.values(orderQuantities).every((v: any) => !v.air && !v.sea)}
-                                className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2 border border-emerald-700"
+                                className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 md:px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2 border border-emerald-700 shadow-glow"
                             >
-                                <i className="fas fa-paper-plane"></i> Gửi Phê duyệt
+                                <i className="fas fa-paper-plane"></i> 
+                                <span className="hidden sm:inline">Phê duyệt</span>
                             </button>
                         )}
                         {approvalRequest && (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center">
                                 <ApprovalStatusBadge status={approvalRequest.status} size="sm" />
                             </div>
                         )}
@@ -723,23 +728,24 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                 {/* ─── Scrollable table area (overflow-auto = both axes, scrollbar always at viewport edge) ─── */}
                 <div
                     ref={tableScrollRef}
-                    className="overflow-auto flex-1 relative custom-scrollbar"
+                    className="overflow-auto flex-1 relative custom-scrollbar bg-slate-50/50"
                 >
-                    <table className="w-full text-sm text-left border-separate border-spacing-0 min-w-[1800px]">
-                        <thead className="bg-slate-50/95 backdrop-blur-sm border-b-2 border-slate-200 text-slate-600 sticky top-0 z-30">
-                            <tr className="text-xs uppercase font-black tracking-wider">
-                                <th className="px-4 py-4 w-12 text-center text-slate-400 border-b border-slate-200 sticky left-0 z-40 bg-slate-50/95 shadow-sm"><Typography variant="label">#</Typography></th>
-                                <th className="px-4 py-4 min-w-[200px] sticky left-12 z-40 bg-slate-50/95 border-b border-slate-200 sticky-column-shadow"><Typography variant="label">{t('ord_th_sku')}</Typography></th>
-                                <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[110px]"><Typography variant="label">DEMAND</Typography></th>
+                    <table className="w-full text-sm text-left border-separate border-spacing-0 lg:min-w-[1600px] md:min-w-[1200px] min-w-[1000px]">
+                        <thead className="bg-white/95 backdrop-blur-sm border-b-2 border-slate-200 text-slate-600 sticky top-0 z-30 shadow-sm">
+                            <tr className="text-[10px] uppercase font-black tracking-widest">
+                                <th className="px-4 py-4 w-12 text-center text-slate-400 border-b border-slate-200 sticky left-0 z-40 bg-white shadow-sm"><Typography variant="label">#</Typography></th>
+                                <th className="px-4 py-4 min-w-[180px] sticky left-12 z-40 bg-white border-b border-slate-200 sticky-column-shadow"><Typography variant="label">{t('ord_th_sku')}</Typography></th>
+                                <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[110px] hidden xl:table-cell"><Typography variant="label">DEMAND</Typography></th>
                                 <th className="px-4 py-4 min-w-[145px] text-right border-b border-slate-200"><Typography variant="label">{t('ord_th_health')}</Typography></th>
-                                <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[110px]"><Typography variant="label">SUPPLY PIPELINE</Typography></th>
-                                <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[120px]"><Typography variant="label">{t('ord_th_momentum')}</Typography></th>
+                                <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[110px] hidden lg:table-cell"><Typography variant="label">COMING (M0/M+1)</Typography></th>
+                                <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[100px] hidden lg:table-cell"><Typography variant="label">PO PIPELINE</Typography></th>
+                                <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[120px] hidden lg:table-cell"><Typography variant="label">{t('ord_th_momentum')}</Typography></th>
                                 <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[80px]"><Typography variant="label">{t('ord_th_mos')}</Typography></th>
-                                <th className="px-4 py-4 text-center border-b border-slate-200"><Typography variant="label">{t('ord_th_dealer_cst')}</Typography></th>
-                                <th className="px-4 py-4 text-center border-x border-slate-200 bg-rose-50/10 border-b border-slate-200"><Typography variant="label" className="text-rose-600">{t('ord_th_air')}</Typography></th>
-                                <th className="px-4 py-4 text-center border-r border-slate-200 bg-blue-50/10 border-b border-slate-200"><Typography variant="label" className="text-blue-600">{t('ord_th_sea')}</Typography></th>
-                                <th className="px-4 py-4 min-w-[150px] border-b border-slate-200">{t('ord_th_note')}</th>
-                                <th className="px-4 py-4 text-right sticky right-0 z-40 bg-slate-50/95 border-b border-slate-200 border-l border-slate-200">{t('ord_th_amount')}</th>
+                                <th className="px-4 py-4 text-center border-b border-slate-200 hidden md:table-cell"><Typography variant="label">{t('ord_th_dealer_cst')}</Typography></th>
+                                <th className="px-4 py-4 text-center border-x border-slate-200 bg-rose-50/20 border-b border-slate-200"><Typography variant="label" className="text-rose-600">{t('ord_th_air')}</Typography></th>
+                                <th className="px-4 py-4 text-center border-r border-slate-200 bg-blue-50/20 border-b border-slate-200"><Typography variant="label" className="text-blue-600">{t('ord_th_sea')}</Typography></th>
+                                <th className="px-4 py-4 min-w-[150px] border-b border-slate-200 hidden xl:table-cell">{t('ord_th_note')}</th>
+                                <th className="px-4 py-4 text-right sticky right-0 z-40 bg-white border-b border-slate-200 border-l border-slate-200 shadow-inner">{t('ord_th_amount')}</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white">
@@ -760,7 +766,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                         <td className="px-4 py-3 text-center text-slate-500 font-mono text-xs font-black border-b border-slate-50 sticky left-0 z-10 bg-white group-hover:bg-slate-50">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
                                         <td className="px-4 py-3 sticky left-12 z-10 bg-white group-hover:bg-slate-50 transition-colors sticky-column-shadow border-b border-slate-50" onClick={() => onItemSelect(item)}>
                                             <div className="flex items-center gap-2">
-                                                <div className="font-black text-slate-800 text-base uppercase cursor-pointer hover:text-blue-600 font-mono tracking-tight">{item.ItemCode}</div>
+                                                <div className="text-lg font-black text-slate-900 flex items-center gap-2 group-hover:text-blue-700 transition-colors tracking-tight">{item.ItemCode}</div>
                                                 {(() => {
                                                     const p = calculatePickingPriority(item, draftQtyTotal);
                                                     return <span className={`badge-p${Math.min(p, 5)} px-1.5 py-0.5 rounded font-black text-[10px] leading-none shrink-0`}>P{p}</span>;
@@ -784,7 +790,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                             </div>
                                         </td>
                                         {/* DEMAND SIGNAL — cột tách riêng, đứng trước Stock Health */}
-                                        <td className="px-4 py-3 text-center border-b border-slate-50">
+                                        <td className="px-4 py-3 text-center border-b border-slate-50 hidden xl:table-cell">
                                             <div className="flex flex-col items-center gap-1">
                                                 <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200/80 shadow-sm" title="Bán M-1 thực tế / Dự báo FC">
                                                     <div className="flex flex-col items-start leading-tight">
@@ -806,29 +812,33 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                                 <ConsolidatedStockCell item={item} allItems={enrichedList} graph={graph} />
                                                 <StockProgressBar current={item.computed?.available || 0} rop={item.computed?.rop || 0}
                                                     max={item.computed?.isStopBiz ? 0 : (item.computed?.stockMax || 1)}
-                                                    ss={item.computed?.safetyStock} onOrder={item.TotalPO} incoming={incomingThisMonth} backorder={item.Backorder} breakdown={item.BackorderBreakdown} draftAdd={draftQtyTotal} baseFc={item.BaseForecast} />
+                                                    ss={item.computed?.safetyStock} onOrder={item.TotalPO} incoming={incomingThisMonth} incomingNext={item.computed?.incomingNextMonth} backorder={item.Backorder} breakdown={item.BackorderBreakdown} draftAdd={draftQtyTotal} baseFc={item.BaseForecast} />
                                             </div>
                                         </td>
                                         {/* SUPPLY PIPELINE — incoming tháng + total PO */}
-                                        <td className="px-4 py-3 text-center border-b border-slate-50">
+                                        <td className="px-4 py-4 text-center hidden lg:table-cell border-r border-slate-50">
                                             <div className="flex flex-col items-center gap-1">
-                                                {incomingThisMonth > 0 ? (
-                                                    <div className="flex flex-col items-center">
-                                                        <div className="text-base font-black text-blue-700">+{incomingThisMonth.toLocaleString()}</div>
-                                                        <div className="text-[10px] font-bold text-blue-400 uppercase leading-tight">Về tháng này</div>
-                                                    </div>
-                                                ) : (
-                                                    <div className="text-slate-300 font-black text-base">-</div>
-                                                )}
-                                                {item.TotalPO > 0 && (
-                                                    <div className="flex items-center gap-1 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
-                                                        <i className="fas fa-ship text-indigo-400 text-[9px]"></i>
-                                                        <span className="text-[10px] font-black text-indigo-600">PO: {item.TotalPO.toLocaleString()}</span>
-                                                    </div>
-                                                )}
+                                                <div className="text-[10px] font-black text-blue-600 flex items-center gap-1" title="Hàng đang về tháng này (M0)">
+                                                    <i className="fas fa-truck-fast text-[8px]" />
+                                                    <span>M0: {item.computed?.incomingCurrentMonth || 0}</span>
+                                                </div>
+                                                <div className="text-[10px] font-black text-indigo-500 flex items-center gap-1" title="Hàng đang về tháng tiếp theo (M+1)">
+                                                    <i className="fas fa-calendar-check text-[8px]" />
+                                                    <span>M1: {item.computed?.incomingNextMonth || 0}</span>
+                                                </div>
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3 text-center border-b border-slate-50">
+                                        <td className="px-4 py-4 text-center hidden lg:table-cell bg-slate-50/10">
+                                            {(item.TotalPO || 0) > 0 ? (
+                                                <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-indigo-50 text-indigo-700 border border-indigo-100/50 shadow-sm" title="Tổng PO Pipeline">
+                                                    <i className="fas fa-ship text-[10px] animate-pulse-slow" />
+                                                    <span className="text-xs font-black">{(item.TotalPO || 0).toLocaleString()}</span>
+                                                </div>
+                                            ) : (
+                                                <span className="text-slate-300 text-xs font-bold">—</span>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-3 text-center border-b border-slate-50 hidden lg:table-cell">
                                             <SalesMomentum values={[item.AvgQty24M, item.AvgQty12M, item.AvgQty6M, item.AvgQty3M]} history={item.SalesHistory} forecast={item.BaseForecast} />
                                         </td>
                                         {/* MOS — fix bug khi demand = 0 */}
@@ -844,7 +854,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                                 </div>
                                             )}
                                         </td>
-                                        <td className="px-4 py-3 text-center border-b border-slate-50">
+                                        <td className="px-4 py-3 text-center border-b border-slate-50 hidden md:table-cell">
                                             <div className="mt-1 flex flex-col items-center">
                                                 <DealerStockPopup items={item.DealerBreakdown || []}>
                                                     <div className="text-sm font-black text-slate-800 cursor-help border-b border-dashed border-slate-300 inline-block">{(item.DealerInventory || 0).toLocaleString()}</div>
@@ -855,13 +865,13 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                             </div>
                                         </td>
                                         <td className="px-4 py-3 border-x border-slate-100 bg-rose-50/10 text-center border-b border-slate-50">
-                                            <input type="number" value={d.air || ''} onChange={e => !isLocked && handleQtyChange(item.ItemCode, 'air', parseInt(e.target.value) || 0)} readOnly={isLocked} className={`w-20 text-center font-black text-sm border rounded-xl p-2 outline-none transition-all ${isLocked ? 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed' : 'border-rose-200 focus:border-rose-400 bg-white text-rose-700'}`} placeholder="0" />
+                                            <input type="number" value={d.air || ''} onChange={e => !isLocked && handleQtyChange(item.ItemCode, 'air', parseInt(e.target.value) || 0)} readOnly={isLocked} className="w-full bg-rose-50 border-0 focus:ring-0 text-center text-base font-black text-rose-700 p-0 h-full" placeholder="0" />
                                             {((item.computed?.suggestedBO || 0) > 0) && d.air === 0 && (
                                                 <button onClick={() => handleQtyChange(item.ItemCode, 'air', item.computed!.suggestedBO!)} className="block mx-auto mt-1.5 text-xs font-black text-rose-600 hover:text-rose-800 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100">BO: {item.computed.suggestedBO}</button>
                                             )}
                                         </td>
                                         <td className="px-4 py-3 border-r border-slate-100 bg-blue-50/10 text-center border-b border-slate-50">
-                                            <input type="number" value={d.sea || ''} onChange={e => !isLocked && handleQtyChange(item.ItemCode, 'sea', parseInt(e.target.value) || 0)} readOnly={isLocked} className={`w-20 text-center font-black text-sm border rounded-xl p-2 outline-none transition-all ${isLocked ? 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed' : 'border-blue-200 focus:border-blue-400 bg-white text-blue-700'}`} placeholder="0" />
+                                            <input type="number" value={d.sea || ''} onChange={e => !isLocked && handleQtyChange(item.ItemCode, 'sea', parseInt(e.target.value) || 0)} readOnly={isLocked} className="w-full bg-blue-50 border-0 focus:ring-0 text-center text-base font-black text-blue-700 p-0 h-full" placeholder="0" />
                                             {((item.computed?.gapOrExcess || 0) > 0) && d.sea === 0 && (
                                                 <button 
                                                     onClick={() => {
@@ -890,7 +900,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                                 <div className="mt-1 flex justify-center"><span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded uppercase border border-amber-200" title="Chuyển từ BB sang NB">BB <i className="fas fa-arrow-right mx-0.5"></i> NB: {item.computed.transfer.transferBBtoNB}</span></div>
                                             )}
                                         </td>
-                                        <td className="px-4 py-3 border-b border-slate-50"><textarea value={orderNotes[item.ItemCode] || ''} onChange={e => setOrderNotes(p => ({ ...p, [item.ItemCode]: e.target.value }))} className="w-full text-xs font-bold text-slate-600 bg-slate-50 p-2 rounded-xl border border-slate-200 outline-none focus:bg-white focus:border-blue-300 resize-none h-10" placeholder="..." /></td>
+                                        <td className="px-4 py-3 border-b border-slate-50 hidden xl:table-cell"><textarea value={orderNotes[item.ItemCode] || ''} onChange={e => setOrderNotes(p => ({ ...p, [item.ItemCode]: e.target.value }))} className="w-full text-xs font-bold text-slate-600 bg-slate-50 p-2 rounded-xl border border-slate-200 outline-none focus:bg-white focus:border-blue-300 resize-none h-10" placeholder="..." /></td>
                                         <td className="px-4 py-3 text-right font-black text-slate-900 text-base sticky right-0 z-10 bg-white group-hover:bg-slate-50 transition-colors border-b border-slate-50 border-l border-slate-200">
                                             {draftQtyTotal > 0 ? (
                                                 (settings.costBasis === 'PP' ? currencyFormatterVND : currencyFormatterEUR).format(draftQtyTotal * unitCost)
@@ -904,26 +914,26 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                         </tbody>
                     </table>
                 </div>
-                <div className="p-4 border-t-2 border-slate-200 flex items-center justify-between text-xs font-black uppercase tracking-widest text-slate-600 bg-white">
-                    <div className="flex items-center gap-4">
-                        <select value={itemsPerPage} onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none cursor-pointer text-slate-700 font-bold text-sm">
+                <div className="p-4 border-t-2 border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-600 bg-white">
+                    <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-start">
+                        <select value={itemsPerPage} onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none cursor-pointer text-slate-700 font-bold text-xs">
                             <option value={20}>20 {t('common_rows')}</option>
                             <option value={50}>50 {t('common_rows')}</option>
                             <option value={100}>100 {t('common_rows')}</option>
                         </select>
-                        <span className="text-slate-400">{t('common_total')}: <span className="text-slate-700">{filteredData.length}</span></span>
+                        <span className="text-slate-400 whitespace-nowrap">{t('common_total')}: <span className="text-slate-700">{filteredData.length}</span></span>
                     </div>
-                    <div className="flex items-center gap-1">
-                        <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="pagination-pill text-slate-600"><i className="fas fa-chevron-left text-xs"></i></button>
+                    <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pb-2 sm:pb-0 max-w-full">
+                        <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="pagination-pill text-slate-600 shrink-0"><i className="fas fa-chevron-left text-[10px]"></i></button>
                         {[...Array(totalPages)].map((_, i) => {
                             const page = i + 1;
-                            if (totalPages > 7 && Math.abs(currentPage - page) > 2 && page !== 1 && page !== totalPages) {
+                            if (totalPages > 5 && Math.abs(currentPage - page) > 1 && page !== 1 && page !== totalPages) {
                                 if (page === 2 || page === totalPages - 1) return <span key={i} className="px-1 text-slate-300">…</span>;
                                 return null;
                             }
-                            return <button key={i} onClick={() => setCurrentPage(page)} className={`pagination-pill ${currentPage === page ? 'active' : 'text-slate-600'}`}>{page}</button>;
+                            return <button key={i} onClick={() => setCurrentPage(page)} className={`pagination-pill shrink-0 ${currentPage === page ? 'active' : 'text-slate-600'}`}>{page}</button>;
                         })}
-                        <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0} className="pagination-pill text-slate-600"><i className="fas fa-chevron-right text-xs"></i></button>
+                        <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0} className="pagination-pill text-slate-600 shrink-0"><i className="fas fa-chevron-right text-[10px]"></i></button>
                     </div>
                 </div>
             </div >

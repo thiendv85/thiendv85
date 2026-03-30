@@ -14,7 +14,7 @@ interface TypographyProps {
     uppercase?: boolean;
 }
 
-export const Typography: React.FC<TypographyProps> = ({
+export const Typography: React.FC<TypographyProps> = React.memo(({
     variant = 'body',
     children,
     className = '',
@@ -45,4 +45,4 @@ export const Typography: React.FC<TypographyProps> = ({
             {children}
         </Component>
     );
-};
+});

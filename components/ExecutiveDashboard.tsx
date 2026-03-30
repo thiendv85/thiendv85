@@ -15,7 +15,7 @@ import { Typography } from './Typography';
 import { TrendBadge } from './TrendBadge';
 
 // Inline: StockOutCountdown
-const StockOutCountdown = ({ current, onOrder, dailyDemand, backorder }: { current: number; onOrder: number; dailyDemand: number; backorder: number }) => {
+const StockOutCountdown = React.memo(({ current, onOrder, dailyDemand, backorder }: { current: number; onOrder: number; dailyDemand: number; backorder: number }) => {
     const available = Math.max(0, current - backorder);
     const totalAvail = available; // Chỉ tính tồn kho vật lý (Onhand) trừ đi nợ đơn (Backorder), không cộng PO (onOrder)
     if (dailyDemand <= 0) return <div className="text-slate-300 font-black text-base">∞</div>;
@@ -28,7 +28,7 @@ const StockOutCountdown = ({ current, onOrder, dailyDemand, backorder }: { curre
             <Typography variant="label" className="text-slate-500 !font-semibold normal-case">{mos.toFixed(1)} MOS</Typography>
         </div>
     );
-};
+});
 
 interface ExecutiveDashboardProps {
     filteredData: InventoryItem[];
@@ -45,7 +45,7 @@ interface ExecutiveDashboardProps {
     exportOptions?: CsvExportOptions;
 }
 
-export const ExecutiveDashboard = ({ filteredData, allData, onItemSelect, settings, filters, onFiltersChange, searchResult, draftData, graph, exportOptions }: ExecutiveDashboardProps) => {
+export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSelect, settings, filters, onFiltersChange, searchResult, draftData, graph, exportOptions }: ExecutiveDashboardProps) => {
     const { t } = useLanguage();
     const [sortKey, setSortKey] = useState<string>('priority');
     const [currentPage, setCurrentPage] = useState(1);
@@ -113,15 +113,21 @@ export const ExecutiveDashboard = ({ filteredData, allData, onItemSelect, settin
                         </button>
                     )}
 
-                    <div className="relative group w-full md:w-64">
+                    <div className="relative group w-full md:w-72">
                         <i className="fas fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm group-focus-within:text-blue-500 transition-colors"></i>
-                        <input type="text" placeholder={t('filter_search')} value={filters.search} onChange={e => onFiltersChange({ ...filters, search: e.target.value })} className="w-full pl-10 pr-4 py-2 bg-white/50 backdrop-blur-sm border border-slate-200 rounded-xl outline-none text-sm font-bold focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all shadow-sm" />
+                        <input 
+                            type="text" 
+                            placeholder={t('filter_search')} 
+                            value={filters.search} 
+                            onChange={e => onFiltersChange({ ...filters, search: e.target.value })} 
+                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl outline-none text-sm font-bold focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all shadow-sm" 
+                        />
                     </div>
                 </div>
             </div>
 
             {isMobile ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 stagger-children">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4 stagger-children">
                     {paginatedData.map((item) => {
                         const m1Actual = item.SalesHistory ? item.SalesHistory[item.SalesHistory.length - 1] : 0;
                         const incomingThisMonth = item.computed?.incomingCurrentMonth || 0;
@@ -131,7 +137,8 @@ export const ExecutiveDashboard = ({ filteredData, allData, onItemSelect, settin
                         const hasSupersession = chain && chain.allParts.length > 1;
 
                         return (
-                            <div key={item.ItemCode} onClick={() => onItemSelect(item)} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm active:scale-[0.98] transition-transform">
+                            <div key={item.ItemCode} onClick={() => onItemSelect(item)} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm active:scale-[0.98] transition-all hover:border-blue-300 hover:shadow-md cursor-pointer relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/5 rounded-full -mr-8 -mt-8 pointer-events-none"></div>
                                 <div className="flex justify-between items-start mb-3">
                                     <div>
                                         <div className="flex items-center gap-2">
@@ -346,24 +353,31 @@ export const ExecutiveDashboard = ({ filteredData, allData, onItemSelect, settin
                 </div>
             )}
 
-            <div className="px-8 py-4 border-t-2 border-slate-200 bg-white flex flex-col sm:flex-row justify-between items-center gap-4">
-                <div className="flex items-center gap-2 text-slate-600">
-                    <select value={itemsPerPage} onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none cursor-pointer text-slate-700 font-bold text-sm">
+            <div className="px-4 sm:px-8 py-4 border-t-2 border-slate-200 bg-white flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div className="flex items-center justify-between w-full sm:w-auto gap-4 text-slate-600">
+                    <select value={itemsPerPage} onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }} className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-1.5 outline-none cursor-pointer text-slate-700 font-bold text-xs sm:text-sm">
                         <option value={20}>20 {t('common_rows')}</option>
                         <option value={50}>50 {t('common_rows')}</option>
                         <option value={100}>100 {t('common_rows')}</option>
                         <option value={200}>200 {t('common_rows')}</option>
                     </select>
-                    <Typography variant="label" className="text-slate-400">
+                    <Typography variant="label" className="text-slate-400 whitespace-nowrap">
                         {t('common_total')}: <Typography as="span" variant="label" className="text-slate-700">{sortedList.length}</Typography>
                     </Typography>
                 </div>
-                <div className="flex items-center gap-1">
-                    <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="pagination-pill text-slate-600"><i className="fas fa-chevron-left text-xs"></i></button>
-                    {[...Array(totalPages)].map((_, i) => { const page = i + 1; if (totalPages > 7 && Math.abs(currentPage - page) > 2 && page !== 1 && page !== totalPages) { if (page === 2 || page === totalPages - 1) return <span key={i} className="px-1 text-slate-300">…</span>; return null; } return <button key={i} onClick={() => setCurrentPage(page)} className={`pagination-pill ${currentPage === page ? 'active' : 'text-slate-600'}`}>{page}</button>; })}
-                    <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} className="pagination-pill text-slate-600"><i className="fas fa-chevron-right text-xs"></i></button>
+                <div className="flex items-center gap-1 overflow-x-auto no-scrollbar max-w-full pb-1 sm:pb-0">
+                    <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="pagination-pill text-slate-600 shrink-0"><i className="fas fa-chevron-left text-[10px]"></i></button>
+                    {[...Array(totalPages)].map((_, i) => { 
+                        const page = i + 1; 
+                        if (totalPages > 5 && Math.abs(currentPage - page) > 1 && page !== 1 && page !== totalPages) { 
+                            if (page === 2 || page === totalPages - 1) return <span key={i} className="px-1 text-slate-300">…</span>; 
+                            return null; 
+                        } 
+                        return <button key={i} onClick={() => setCurrentPage(page)} className={`pagination-pill shrink-0 ${currentPage === page ? 'active' : 'text-slate-600'}`}>{page}</button>; 
+                    })}
+                    <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} className="pagination-pill text-slate-600 shrink-0"><i className="fas fa-chevron-right text-[10px]"></i></button>
                 </div>
             </div>
         </div>
     );
-};
+});

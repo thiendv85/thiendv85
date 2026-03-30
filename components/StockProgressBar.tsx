@@ -32,6 +32,7 @@ interface StockProgressBarProps {
   draftAdd?: number;
   baseFc?: number;
   incoming?: number;
+  incomingNext?: number;
   breakdown?: BackorderDetail[];
   compact?: boolean; // Dense mode for table rows
 }
@@ -60,7 +61,7 @@ type ActionTagType =
 // =============================================================================
 
 const calculateMetrics = (props: Required<StockProgressBarProps>) => {
-  const { current, onOrder, draftAdd, backorder, rop, max, ss, baseFc, excess, incoming } = props;
+  const { current, onOrder, draftAdd, backorder, rop, max, ss, baseFc, excess, incoming, incomingNext } = props;
 
   const totalWithPO = current + onOrder;
   const totalWithDraft = totalWithPO + draftAdd;
@@ -255,6 +256,7 @@ export const StockProgressBar: React.FC<StockProgressBarProps> = (props) => {
     draftAdd = 0,
     baseFc = 0,
     incoming = 0,
+    incomingNext = 0,
     breakdown = [],
     compact = false
   } = props;
@@ -262,8 +264,8 @@ export const StockProgressBar: React.FC<StockProgressBarProps> = (props) => {
   const { t } = useLanguage();
 
   const metrics = useMemo(
-    () => calculateMetrics({ current, rop, max, ss, onOrder, backorder, excess: excess ?? 0, draftAdd, baseFc, incoming, breakdown, compact }),
-    [current, rop, max, ss, onOrder, backorder, excess, draftAdd, baseFc, incoming, breakdown]
+    () => calculateMetrics({ current, rop, max, ss, onOrder, backorder, excess: excess ?? 0, draftAdd, baseFc, incoming, incomingNext, breakdown, compact }),
+    [current, rop, max, ss, onOrder, backorder, excess, draftAdd, baseFc, incoming, incomingNext, breakdown]
   );
 
   const safeMax = useMemo(
@@ -373,6 +375,11 @@ export const StockProgressBar: React.FC<StockProgressBarProps> = (props) => {
             <Typography variant="body-sm" className="flex items-center gap-1 text-slate-500 font-semibold" title="Total PO Pipeline">
               <i className="fas fa-truck text-2xs text-blue-500"></i>
               <span>{onOrder.toLocaleString()}</span>
+              {(incoming > 0 || incomingNext > 0) && (
+                <span className="text-[10px] text-blue-400 ml-1 font-bold">
+                  (M0: {incoming} | M+1: {incomingNext})
+                </span>
+              )}
             </Typography>
 
             {backorder > 0 && (
