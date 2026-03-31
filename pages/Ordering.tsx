@@ -23,6 +23,7 @@ import { useAuth } from '../utils/authContext';
 import { ApprovalStatusBadge } from '../components/ApprovalStatusBadge';
 import { listWorkflows, submitApprovalRequest, fetchRequestByDraftName, resubmitApprovalRequest, fetchRequestActions } from '../utils/supabase';
 import { ApprovalRequest, ApprovalWorkflow, ApprovalAction } from '../types/inventory';
+import { useDevice } from '../hooks/useDevice';
 
 // --- MODULE-LEVEL CONSTANTS ---
 const PRIORITY_ORDER: Record<string, number> = { P1: 0, P2: 1, P3: 2 };
@@ -97,6 +98,7 @@ interface OrderingProps {
 
 export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSaveState, sharedDraft, onUpdateDraft, graph, appSettings }: OrderingProps) => {
     const { t } = useLanguage();
+    const { isMobile } = useDevice();
     const [settings, setSettings] = useState<DashboardSettings>(initialState?.settings || {
         snapshotDate: new Date().toISOString().split('T')[0],
         warehouseScope: 'All',
@@ -726,7 +728,114 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                 )}
 
                 {/* ─── Scrollable table area (overflow-auto = both axes, scrollbar always at viewport edge) ─── */}
-                <div
+                {isMobile ? (
+                    /* === MOBILE CARD VIEW === */
+                    <div className="mobile-card-grid pb-4">
+                        {paginatedData.length === 0 ? (
+                            <div className="text-center py-12 text-slate-400">
+                                <i className="fas fa-box-open text-3xl mb-3 block" />
+                                <p className="font-bold">Không có dữ liệu</p>
+                            </div>
+                        ) : paginatedData.map((item, idx) => {
+                            const d = (orderQuantities[item.ItemCode] || { air: 0, sea: 0 }) as { air: number, sea: number };
+                            const draftQtyTotal = d.air + d.sea;
+                            const unitCost = item.computed?.unitCost || 0;
+                            const mos = item.computed?.mos || 0;
+                            const demandMonthly = (item.computed?.demandRateDaily || 0) * 30;
+                            const priority = calculatePickingPriority(item, draftQtyTotal);
+                            const priorityClass = priority === 1 ? 'priority-p1' : priority === 2 ? 'priority-p2' : 'priority-p3';
+                            const amount = draftQtyTotal > 0 ? (settings.costBasis === 'PP' ? currencyFormatterVND : currencyFormatterEUR).format(draftQtyTotal * unitCost) : null;
+                            return (
+                                <div key={item.ItemCode} className={`mobile-item-card ${priorityClass} ${draftQtyTotal > 0 ? 'ring-1 ring-blue-200' : ''}`}>
+                                    {/* Card Header */}
+                                    <div className="flex items-start justify-between px-4 pt-3 pb-2 cursor-pointer active:bg-slate-50" onClick={() => onItemSelect(item)}>
+                                        <div className="flex-1 min-w-0 pr-3">
+                                            <div className="flex items-center gap-2 mb-0.5">
+                                                <span className="font-black text-slate-900 text-base tracking-tight">{item.ItemCode}</span>
+                                                <span className={`badge-p${Math.min(priority, 5)} px-1.5 py-0.5 rounded font-black text-[10px] leading-none shrink-0`}>P{priority}</span>
+                                                {draftQtyTotal > 0 && <span className="bg-blue-100 text-blue-700 text-[9px] font-black px-1.5 py-0.5 rounded uppercase">Draft</span>}
+                                            </div>
+                                            <div className="text-xs text-slate-500 font-semibold truncate">{item.ItemName}</div>
+                                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                                <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100">LOIS {item.LOISGroup}</span>
+                                                {item.TrendFlag && <TrendBadge trend={item.TrendFlag} />}
+                                                <DebtStatusBadge item={item} />
+                                            </div>
+                                        </div>
+                                        <div className="text-right shrink-0">
+                                            <div className={`text-lg font-black ${mos < 1 ? 'text-rose-600' : mos > 12 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                                                {demandMonthly <= 0 ? '∞' : `${mos.toFixed(1)}M`}
+                                            </div>
+                                            <div className="text-[9px] font-black text-slate-400 uppercase">MOS</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Stock bar */}
+                                    <div className="px-4 pb-2">
+                                        <StockProgressBar
+                                            current={item.computed?.available || 0}
+                                            rop={item.computed?.rop || 0}
+                                            max={item.computed?.isStopBiz ? 0 : (item.computed?.stockMax || 1)}
+                                            ss={item.computed?.safetyStock}
+                                            onOrder={item.TotalPO}
+                                            incoming={item.computed?.incomingCurrentMonth}
+                                            backorder={item.Backorder}
+                                            draftAdd={draftQtyTotal}
+                                            baseFc={item.BaseForecast}
+                                        />
+                                    </div>
+
+                                    {/* QTY Inputs */}
+                                    <div className="grid grid-cols-2 gap-px bg-slate-100 border-t border-slate-100">
+                                        <div className="bg-rose-50/80 px-3 py-2.5">
+                                            <div className="text-[9px] font-black text-rose-500 uppercase mb-1 flex items-center gap-1">
+                                                <i className="fas fa-plane-up text-[8px]" />{t('ord_th_air')}
+                                            </div>
+                                            <input
+                                                type="number"
+                                                inputMode="numeric"
+                                                value={d.air || ''}
+                                                onChange={e => !isLocked && handleQtyChange(item.ItemCode, 'air', parseInt(e.target.value) || 0)}
+                                                readOnly={isLocked}
+                                                className="w-full bg-transparent text-base font-black text-rose-700 outline-none min-h-[36px]"
+                                                placeholder="0"
+                                            />
+                                            {((item.computed?.suggestedBO || 0) > 0) && d.air === 0 && (
+                                                <button onClick={() => handleQtyChange(item.ItemCode, 'air', item.computed!.suggestedBO!)} className="text-[9px] font-black text-rose-600 bg-rose-100 px-1.5 py-0.5 rounded-full border border-rose-200 mt-0.5">BO: {item.computed!.suggestedBO}</button>
+                                            )}
+                                        </div>
+                                        <div className="bg-blue-50/80 px-3 py-2.5">
+                                            <div className="text-[9px] font-black text-blue-500 uppercase mb-1 flex items-center gap-1">
+                                                <i className="fas fa-ship text-[8px]" />{t('ord_th_sea')}
+                                            </div>
+                                            <input
+                                                type="number"
+                                                inputMode="numeric"
+                                                value={d.sea || ''}
+                                                onChange={e => !isLocked && handleQtyChange(item.ItemCode, 'sea', parseInt(e.target.value) || 0)}
+                                                readOnly={isLocked}
+                                                className="w-full bg-transparent text-base font-black text-blue-700 outline-none min-h-[36px]"
+                                                placeholder="0"
+                                            />
+                                            {((item.computed?.gapOrExcess || 0) > 0) && d.sea === 0 && (
+                                                <button onClick={() => handleQtyChange(item.ItemCode, 'sea', Math.ceil((item.computed!.gapOrExcess! || 1) / (item.SNP || 1)) * (item.SNP || 1))} className="text-[9px] font-black text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-full border border-blue-200 mt-0.5">Gợi ý: {item.computed!.gapOrExcess}</button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Amount Footer */}
+                                    {amount && (
+                                        <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                                            <span className="text-[10px] font-black text-slate-400 uppercase">Thành tiền</span>
+                                            <span className="font-black text-slate-800 text-sm">{amount}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div
                     ref={tableScrollRef}
                     className="overflow-auto flex-1 relative custom-scrollbar bg-slate-50/50"
                 >
@@ -913,7 +1022,8 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                             })}
                         </tbody>
                     </table>
-                </div>
+                    </div>
+                )} {/* end isMobile */}
                 <div className="p-4 border-t-2 border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-600 bg-white">
                     <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-start">
                         <select value={itemsPerPage} onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none cursor-pointer text-slate-700 font-bold text-xs">

@@ -1,7 +1,8 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { InventoryItem, DashboardSettings, InventoryFilters, COST_RANGES, FOB_COST_RANGES, DEBT_STATUS_OPTIONS, LOIS_DESCRIPTIONS, DEFAULT_SOURCE_PROFILES } from '../types/inventory';
 import { useLanguage } from '../utils/i18n';
+import { useDevice } from '../hooks/useDevice';
 
 interface FilterPanelProps {
   data: InventoryItem[];
@@ -54,7 +55,25 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
     onFiltersChange({ ...filters, debtStatus: next });
   };
 
-  return (
+  const { isMobile } = useDevice();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Count active filters for badge
+  const activeFilterCount = [
+    filters.priority !== 'All',
+    filters.lois !== 'All',
+    filters.source !== 'All',
+    filters.status !== 'All',
+    filters.trend !== 'All',
+    filters.costRange > 0,
+    filters.fobCostRange > 0,
+    filters.showBackorders,
+    !!filters.specialFilter,
+    (filters.debtStatus || []).length > 0,
+  ].filter(Boolean).length;
+
+  // The full filter panel content — shared between desktop inline and mobile drawer
+  const filterBody = (
     <div className="bg-white p-3 sm:p-5 rounded-3xl shadow-soft hover:shadow-medium border border-slate-200/60 transition-all space-y-4">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
@@ -273,4 +292,78 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
       </div>
     </div>
   );
+
+  // Mobile: show compact filter bar + bottom sheet
+  if (isMobile) {
+    return (
+      <>
+        {/* Mobile filter trigger bar */}
+        <div className="flex items-center gap-2 bg-white rounded-2xl border border-slate-200 px-3 py-2.5 shadow-sm">
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="flex-1 flex items-center gap-2.5 min-h-[36px]"
+          >
+            <i className="fas fa-sliders text-blue-600 text-sm" />
+            <span className="font-black text-slate-700 text-xs uppercase tracking-wider">Bộ lọc</span>
+            {activeFilterCount > 0 && (
+              <span className="bg-blue-600 text-white text-[9px] font-black min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1">{activeFilterCount}</span>
+            )}
+          </button>
+          {activeFilterCount > 0 && (
+            <button
+              onClick={() => onFiltersChange({ priority: 'All', lois: 'All', status: 'All', source: 'All', trend: 'All', costRange: 0, fobCostRange: 0, showBackorders: false, specialFilter: null, debtStatus: [], search: filters.search })}
+              className="text-[10px] font-black text-rose-500 bg-rose-50 border border-rose-100 px-2.5 py-1 rounded-lg"
+            >
+              Xóa bộ lọc
+            </button>
+          )}
+        </div>
+
+        {/* Bottom Sheet Overlay */}
+        {mobileOpen && (
+          <div className="fixed inset-0 z-[200] flex flex-col justify-end" onClick={() => setMobileOpen(false)}>
+            <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" />
+            <div
+              className="relative bg-slate-50 rounded-t-3xl shadow-2xl max-h-[85vh] flex flex-col animate-[slideUp_0.25s_ease-out]"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Sheet header */}
+              <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-200 bg-white rounded-t-3xl">
+                <div className="flex items-center gap-2">
+                  <i className="fas fa-sliders text-blue-600" />
+                  <span className="font-black text-slate-800 text-sm uppercase tracking-wider">Bộ lọc</span>
+                  {activeFilterCount > 0 && <span className="bg-blue-600 text-white text-[9px] font-black min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1">{activeFilterCount}</span>}
+                </div>
+                <button onClick={() => setMobileOpen(false)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+                  <i className="fas fa-xmark text-sm" />
+                </button>
+              </div>
+              {/* Sheet scrollable body */}
+              <div className="overflow-y-auto flex-1 p-4 space-y-1">
+                {filterBody}
+              </div>
+              {/* Sheet footer */}
+              <div className="p-4 border-t border-slate-200 bg-white">
+                <button
+                  onClick={() => setMobileOpen(false)}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-3.5 rounded-2xl text-sm uppercase tracking-widest"
+                >
+                  Áp dụng bộ lọc
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        <style>{`
+          @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+          }
+        `}</style>
+      </>
+    );
+  }
+
+  // Desktop: render inline
+  return filterBody;
 });

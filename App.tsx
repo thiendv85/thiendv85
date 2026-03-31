@@ -21,6 +21,7 @@ import { ApprovalQueue } from './pages/ApprovalQueue';
 import { Typography } from './components/Typography';
 import { resolveItemProfile } from './utils/inventoryEngine';
 import { loadFromCloudStorage, loadLatestMonthlyData } from './utils/supabase';
+import { useDevice } from './hooks/useDevice';
 import { 
     cacheMonthlyData, 
     getCachedMonthlyData, 
@@ -34,6 +35,7 @@ const DataSelectionModal = React.lazy(() => import('./components/DataSelectionMo
 const SupersessionEditModal = React.lazy(() => import('./components/SupersessionEditModal').then(m => ({ default: m.SupersessionEditModal })));
 
 const AppContent = () => {
+    const { isMobile } = useDevice();
     const [data, setData] = useState<InventoryItem[]>([]);
     const [kittingDefs, setKittingDefs] = useState<KittingDefinition[]>([]);
     // Monthly coefficient data (File B) — loaded from Supabase on boot
@@ -388,7 +390,7 @@ const AppContent = () => {
                 </div>
             </header >
 
-            <main className="flex-1 max-w-[1920px] w-full mx-auto p-3 md:p-5 page-content-hd">
+            <main className={`flex-1 max-w-[1920px] w-full mx-auto p-3 md:p-5 page-content-hd ${isMobile ? 'has-bottom-nav' : ''}`}>
                 {view === 'dashboard' && <Dashboard data={data} onItemSelect={handleSelectItem} initialParams={initialParams} initialState={pageStates.current.dashboard} onSaveState={(s) => pageStates.current.dashboard = s} draftData={sharedDraft} graph={supersessionGraph} appSettings={appSettings} supersessionProps={{
                     mappings: supersessionMappings,
                     onUpdateMappings: setSupersessionMappings,
@@ -402,6 +404,38 @@ const AppContent = () => {
                 {view === 'settings' && <SettingsPage settings={appSettings} onSave={(s) => { setAppSettings(s); saveAppSettings(s); }} />}
                 {view === 'approval-queue' && <ApprovalQueue />}
             </main>
+
+            {/* === BOTTOM TAB BAR — Mobile only === */}
+            {isMobile && (
+                <nav className="bottom-nav-bar fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(15,23,42,0.08)] flex items-stretch" style={{ height: 56 }}>
+                    {[
+                        { id: 'dashboard', label: 'Dashboard', icon: 'fa-chart-simple' },
+                        { id: 'ordering', label: 'Đặt hàng', icon: 'fa-cart-shopping' },
+                        { id: 'transfer', label: 'Phân bổ', icon: 'fa-right-left' },
+                        { id: 'kitting', label: 'Kitting', icon: 'fa-boxes-stacked' },
+                        ...(profile?.role && ['admin', 'approver'].includes(profile.role)
+                            ? [{ id: 'approval-queue', label: 'Duyệt', icon: 'fa-clipboard-check' }]
+                            : []),
+                    ].map((nav) => {
+                        const isActive = view === nav.id;
+                        return (
+                            <button
+                                key={nav.id}
+                                onClick={() => setView(nav.id as any)}
+                                className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors min-h-[44px] ${
+                                    isActive ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'
+                                }`}
+                            >
+                                <i className={`fas ${nav.icon} text-base ${isActive ? 'text-blue-600' : ''}`} />
+                                <span className={`text-[9px] font-black uppercase tracking-tight leading-none ${
+                                    isActive ? 'text-blue-600' : 'text-slate-400'
+                                }`}>{nav.label}</span>
+                                {isActive && <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-blue-600 rounded-t-full" />}
+                            </button>
+                        );
+                    })}
+                </nav>
+            )}
 
             <React.Suspense fallback={null}>
                 <DataSelectionModal 
