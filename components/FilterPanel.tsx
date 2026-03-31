@@ -1,5 +1,6 @@
 
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { InventoryItem, DashboardSettings, InventoryFilters, COST_RANGES, FOB_COST_RANGES, DEBT_STATUS_OPTIONS, LOIS_DESCRIPTIONS, DEFAULT_SOURCE_PROFILES } from '../types/inventory';
 import { useLanguage } from '../utils/i18n';
 import { useDevice } from '../hooks/useDevice';
@@ -320,7 +321,7 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
         </div>
 
         {/* Modal Overlay */}
-        {mobileOpen && (
+        {mobileOpen && createPortal(
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" onClick={() => setMobileOpen(false)}>
             <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" />
             <div
@@ -352,7 +353,8 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </>
     );
