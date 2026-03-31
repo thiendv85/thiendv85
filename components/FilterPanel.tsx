@@ -319,34 +319,34 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
           )}
         </div>
 
-        {/* Bottom Sheet Overlay */}
+        {/* Modal Overlay */}
         {mobileOpen && (
-          <div className="fixed inset-0 z-[200] flex flex-col justify-end" onClick={() => setMobileOpen(false)}>
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" onClick={() => setMobileOpen(false)}>
             <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" />
             <div
-              className="relative bg-slate-50 rounded-t-3xl shadow-2xl max-h-[85vh] flex flex-col animate-[slideUp_0.25s_ease-out]"
+              className="relative w-full max-w-md bg-slate-50 rounded-3xl shadow-2xl max-h-[85vh] flex flex-col animate-fadeIn border border-white/20"
               onClick={e => e.stopPropagation()}
             >
-              {/* Sheet header */}
-              <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-200 bg-white rounded-t-3xl">
+              {/* Modal header */}
+              <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-200 bg-white rounded-t-3xl shrink-0">
                 <div className="flex items-center gap-2">
                   <i className="fas fa-sliders text-blue-600" />
                   <span className="font-black text-slate-800 text-sm uppercase tracking-wider">Bộ lọc</span>
                   {activeFilterCount > 0 && <span className="bg-blue-600 text-white text-[9px] font-black min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1">{activeFilterCount}</span>}
                 </div>
-                <button onClick={() => setMobileOpen(false)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+                <button onClick={() => setMobileOpen(false)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition-colors">
                   <i className="fas fa-xmark text-sm" />
                 </button>
               </div>
-              {/* Sheet scrollable body */}
-              <div className="overflow-y-auto flex-1 p-4 space-y-1">
+              {/* Modal scrollable body */}
+              <div className="overflow-y-auto custom-scrollbar flex-1 p-4 space-y-1">
                 {filterBody}
               </div>
-              {/* Sheet footer */}
-              <div className="p-4 border-t border-slate-200 bg-white">
+              {/* Modal footer */}
+              <div className="p-4 border-t border-slate-200 bg-white rounded-b-3xl shrink-0">
                 <button
                   onClick={() => setMobileOpen(false)}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-3.5 rounded-2xl text-sm uppercase tracking-widest"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-3.5 rounded-2xl text-sm uppercase tracking-widest shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
                 >
                   Áp dụng bộ lọc
                 </button>
@@ -354,12 +354,6 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
             </div>
           </div>
         )}
-        <style>{`
-          @keyframes slideUp {
-            from { transform: translateY(100%); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-          }
-        `}</style>
       </>
     );
   }
