@@ -38,14 +38,15 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
         setError(null);
         try {
             if (tab === 'inventory') {
-                // Fetch more for initial brand detection if admin
-                const fetchLimit = selectedBrand ? 50 : 100;
-                const brandFilter = selectedBrand || (userRole === 'admin' ? null : (userDepartment || null));
+                // Fetch all initial snapshots regardless of role to allow UI brand filtering
+                const fetchLimit = selectedBrand && selectedBrand !== 'ALL' ? 50 : 100;
+                // If a specific brand is selected (and not ALL), filter by it. Otherwise, no filter.
+                const brandFilter = (selectedBrand && selectedBrand !== 'ALL') ? selectedBrand : null;
                 const list = await listSnapshots(fetchLimit, brandFilter);
                 setSnapshots(list);
 
-                // Detect unique brands from the results if not already set or if admin
-                if (userRole === 'admin' && !selectedBrand) {
+                // Detect unique brands from the results and expose the filter for EVERYONE
+                if (!selectedBrand || selectedBrand === 'ALL') {
                     const brands = Array.from(new Set(list.map(s => s.brand).filter(Boolean))) as string[];
                     setAvailableBrands(['ALL', ...brands]);
                 }
