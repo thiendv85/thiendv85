@@ -856,12 +856,16 @@ const SnapshotManagerTab = () => {
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [storageInfo, setStorageInfo] = useState({ usedBytes: 0, count: 0 });
+    const [brandFilter, setBrandFilter] = useState<string>('');
 
-    useEffect(() => { fetchAll(); }, []);
+    useEffect(() => { fetchAll(); }, [brandFilter]);
 
     const fetchAll = async () => {
         setIsLoading(true);
-        const [data, usage] = await Promise.all([listSnapshots(200), getStorageUsage()]);
+        const [data, usage] = await Promise.all([
+            listSnapshots(200, brandFilter || null),
+            getStorageUsage()
+        ]);
         setSnapshots(data);
         setStorageInfo(usage);
         setIsLoading(false);
@@ -939,18 +943,33 @@ const SnapshotManagerTab = () => {
                 )}
 
                 {/* Toolbar */}
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                        <button onClick={fetchAll} disabled={isLoading} className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                    <div className="flex items-center flex-wrap gap-3">
+                        <button onClick={fetchAll} disabled={isLoading} className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-100 bg-blue-50/30">
                             <i className={`fas fa-sync ${isLoading ? 'fa-spin' : ''}`} /> Làm mới
                         </button>
+
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black text-slate-400 uppercase">Thương hiệu:</span>
+                            <select
+                                value={brandFilter}
+                                onChange={e => setBrandFilter(e.target.value)}
+                                className="text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-200 bg-white outline-none focus:border-blue-400 transition-all cursor-pointer"
+                            >
+                                <option value="">Tất cả Brand</option>
+                                {AVAILABLE_BRANDS.map(b => (
+                                    <option key={b} value={b}>{b}</option>
+                                ))}
+                            </select>
+                        </div>
+
                         {selectedIds.size > 0 && (
                             <button onClick={handleDeleteSelected} className="text-xs font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1.5 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-200">
                                 <i className="fas fa-trash" /> Xóa {selectedIds.size} đã chọn
                             </button>
                         )}
                     </div>
-                    <div className="text-xs font-bold text-slate-400">
+                    <div className="text-[10px] font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
                         Supabase Free: 1GB Storage
                     </div>
                 </div>
@@ -974,6 +993,7 @@ const SnapshotManagerTab = () => {
                                         <input type="checkbox" checked={selectedIds.size === snapshots.length && snapshots.length > 0} onChange={toggleSelectAll} className="rounded border-slate-300" />
                                     </th>
                                     <th className="p-3 text-left font-black text-slate-600 uppercase tracking-wider">Ngày tải</th>
+                                    <th className="p-3 text-left font-black text-slate-600 uppercase tracking-wider">Brand</th>
                                     <th className="p-3 text-left font-black text-slate-600 uppercase tracking-wider">Tên file</th>
                                     <th className="p-3 text-left font-black text-slate-600 uppercase tracking-wider">Người tải</th>
                                     <th className="p-3 text-right font-black text-slate-600 uppercase tracking-wider">SKUs</th>
@@ -988,6 +1008,20 @@ const SnapshotManagerTab = () => {
                                             <input type="checkbox" checked={selectedIds.has(snap.id)} onChange={() => toggleSelect(snap.id)} className="rounded border-slate-300" />
                                         </td>
                                         <td className="p-3 font-bold text-slate-700">{formatDate(snap.upload_date)}</td>
+                                        <td className="p-3">
+                                            {snap.brand ? (
+                                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase border ${
+                                                    snap.brand === 'BMW' ? 'bg-slate-900 text-white border-slate-800' :
+                                                    snap.brand === 'Kia' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                                                    snap.brand === 'Mazda' ? 'bg-rose-100 text-rose-700 border-rose-200' :
+                                                    'bg-slate-100 text-slate-600 border-slate-200'
+                                                }`}>
+                                                    {snap.brand}
+                                                </span>
+                                            ) : (
+                                                <span className="text-slate-300 italic text-[10px]">None</span>
+                                            )}
+                                        </td>
                                         <td className="p-3 font-bold text-slate-900 max-w-[200px] truncate" title={snap.filename}>{snap.filename}</td>
                                         <td className="p-3 text-slate-500 font-medium">{snap.uploader_name || '—'}</td>
                                         <td className="p-3 text-right font-bold text-slate-700">{snap.row_count?.toLocaleString()}</td>
