@@ -5,6 +5,17 @@ import { Typography } from './Typography';
 import { SnapshotMetadataRow, listSnapshots, loadSnapshot, listMonthlyDataSnapshots, loadSpecificMonthlyData, deleteSnapshot } from '../utils/supabase';
 import { InventoryItem } from '../types/inventory';
 
+const extractBrandFromDepartment = (dep?: string | null): string | null => {
+    if (!dep) return null;
+    const d = dep.toLowerCase();
+    if (d.includes('kia')) return 'Kia';
+    if (d.includes('mazda')) return 'Mazda';
+    if (d.includes('peugeot') || d.includes('peu') || d.includes('stellantis')) return 'Stellantis';
+    if (d.includes('bmw')) return 'BMW';
+    if (d.includes('mini')) return 'MINI';
+    return dep;
+};
+
 interface DataSelectionModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -38,17 +49,31 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
         setError(null);
         try {
             if (tab === 'inventory') {
-                // Fetch all initial snapshots regardless of role to allow UI brand filtering
+                const isAdmin = userRole === 'admin';
+                const userBrand = isAdmin ? null : extractBrandFromDepartment(userDepartment);
+
                 const fetchLimit = selectedBrand && selectedBrand !== 'ALL' ? 50 : 100;
-                // If a specific brand is selected (and not ALL), filter by it. Otherwise, no filter.
-                const brandFilter = (selectedBrand && selectedBrand !== 'ALL') ? selectedBrand : null;
+                
+                // SEPARATION OF LOGIC:
+                // Admins can use the UI filter. Non-admins are strictly locked to their extracted brand.
+                let brandFilter: string | null = null;
+                if (!isAdmin) {
+                    brandFilter = userBrand;
+                } else {
+                    brandFilter = (selectedBrand && selectedBrand !== 'ALL') ? selectedBrand : null;
+                }
+
                 const list = await listSnapshots(fetchLimit, brandFilter);
                 setSnapshots(list);
 
-                // Detect unique brands from the results and expose the filter for EVERYONE
-                if (!selectedBrand || selectedBrand === 'ALL') {
-                    const brands = Array.from(new Set(list.map(s => s.brand).filter(Boolean))) as string[];
-                    setAvailableBrands(['ALL', ...brands]);
+                // Expose the brand filter pills ONLY to admins
+                if (isAdmin) {
+                    if (!selectedBrand || selectedBrand === 'ALL') {
+                        const brands = Array.from(new Set(list.map(s => s.brand).filter(Boolean))) as string[];
+                        setAvailableBrands(['ALL', ...brands]);
+                    }
+                } else {
+                    setAvailableBrands([]);
                 }
             } else {
                 const list = await listMonthlyDataSnapshots();
