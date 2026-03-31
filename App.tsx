@@ -1,5 +1,6 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { InventoryItem, KittingDefinition, MonthlyData } from './types/inventory';
 import { SupersessionMapping, SupersessionGraph } from './utils/supersessionGraph';
 import { FileUpload } from './pages/FileUpload';
@@ -462,24 +463,23 @@ const AppContent = () => {
                 />
             </React.Suspense>
 
-            {
-                selectedItem && (
-                    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 print:hidden overflow-hidden">
-                        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={handleCloseDetail}></div>
-                        <div className="relative w-full max-w-[1500px] h-[92vh] sm:h-[95vh] bg-[#F8FAFC] rounded-t-[32px] sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fadeIn border border-white/20">
-                            <SkuDetail
-                                item={selectedItem}
-                                allData={data}
-                                onClose={handleCloseDetail}
-                                onItemSelect={handleSelectItem}
-                                kittingDefs={kittingDefs}
-                                onNavigateToPackage={handleNavigateToPackage}
-                                graph={supersessionGraph}
-                            />
-                        </div>
+            {selectedItem && createPortal(
+                <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 print:hidden overflow-hidden">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={handleCloseDetail}></div>
+                    <div className="relative w-full max-w-[1500px] h-[92vh] sm:h-[95vh] bg-[#F8FAFC] rounded-t-[32px] sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fadeIn border border-white/20">
+                        <SkuDetail
+                            item={selectedItem}
+                            allData={data}
+                            onClose={handleCloseDetail}
+                            onItemSelect={handleSelectItem}
+                            kittingDefs={kittingDefs}
+                            onNavigateToPackage={handleNavigateToPackage}
+                            graph={supersessionGraph}
+                        />
                     </div>
-                )
-            }
+                </div>,
+                document.body
+            )}
         </div >
     );
 };

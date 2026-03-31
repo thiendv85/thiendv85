@@ -7,8 +7,6 @@ const styleConfig = {
   blue: {
     iconBg: 'bg-white/10 shadow-lg shadow-slate-900/10',
     cardBg: 'bg-gradient-blue border-white/10',
-    cardBorder: 'border-white/10',
-    cardHoverBorder: 'group-hover:border-white/30',
     cardGlow: 'shadow-glow-blue',
     valueText: 'text-white',
     labelText: 'text-[#F5F5F5]',
@@ -19,8 +17,6 @@ const styleConfig = {
   emerald: {
     iconBg: 'bg-white/10 shadow-lg shadow-slate-900/10',
     cardBg: 'bg-gradient-emerald border-white/10',
-    cardBorder: 'border-white/10',
-    cardHoverBorder: 'group-hover:border-white/30',
     cardGlow: 'shadow-glow-emerald',
     valueText: 'text-white',
     labelText: 'text-[#F5F5F5]',
@@ -31,8 +27,6 @@ const styleConfig = {
   rose: {
     iconBg: 'bg-white/10 shadow-lg shadow-slate-900/10',
     cardBg: 'bg-gradient-rose border-white/10',
-    cardBorder: 'border-white/10',
-    cardHoverBorder: 'group-hover:border-white/30',
     cardGlow: 'shadow-glow-rose',
     valueText: 'text-white',
     labelText: 'text-[#F5F5F5]',
@@ -43,8 +37,6 @@ const styleConfig = {
   amber: {
     iconBg: 'bg-white/10 shadow-lg shadow-slate-900/10',
     cardBg: 'bg-gradient-amber border-white/10',
-    cardBorder: 'border-white/10',
-    cardHoverBorder: 'group-hover:border-white/30',
     cardGlow: 'shadow-glow-amber',
     valueText: 'text-white',
     labelText: 'text-[#F5F5F5]',
@@ -55,8 +47,6 @@ const styleConfig = {
   slate: {
     iconBg: 'bg-white/20 shadow-lg shadow-slate-900/10',
     cardBg: 'bg-atp-secondary border-white/10',
-    cardBorder: 'border-white/10',
-    cardHoverBorder: 'group-hover:border-white/30',
     cardGlow: 'shadow-glass',
     valueText: 'text-white',
     labelText: 'text-slate-100',
@@ -67,8 +57,6 @@ const styleConfig = {
   professional: {
     iconBg: 'bg-white/10 shadow-lg shadow-slate-900/20',
     cardBg: 'bg-gradient-professional border-white/10',
-    cardBorder: 'border-white/10',
-    cardHoverBorder: 'group-hover:border-white/30',
     cardGlow: 'shadow-glow-blue',
     valueText: 'text-white',
     labelText: 'text-[#F5F5F5]',
@@ -96,17 +84,13 @@ interface MetricCardProps {
 export const MetricCard = React.memo(({ label, value, subValue, icon, color = 'slate', onClick, isActive, trend, badge, badgeColor }: MetricCardProps) => {
   const style = styleConfig[color] || styleConfig.slate;
 
-  const badgeClasses = badgeColor === 'red'
-    ? 'bg-white/20 text-white border-white/30'
-    : badgeColor === 'emerald'
-      ? 'bg-white/20 text-white border-white/30'
-      : 'bg-white/20 text-white border-white/30';
+  const badgeClasses = 'bg-white/20 text-white border-white/30';
 
   return (
     <div
       onClick={onClick}
       className={`
-        group relative p-3 sm:p-4 rounded-2xl border transition-all duration-300 overflow-hidden
+        group relative overflow-hidden border transition-all duration-300 rounded-2xl
         ${style.cardBg} ${style.cardGlow} ${style.innerGlow}
         ${isActive
           ? 'ring-2 ring-white/50 translate-y-[-2px] border-white/40'
@@ -114,50 +98,64 @@ export const MetricCard = React.memo(({ label, value, subValue, icon, color = 's
         ${onClick ? 'cursor-pointer' : ''}
       `}
     >
-      {/* Decorative glow orb - Enhanced with dynamic movement */}
-      <div className="absolute -top-8 -right-8 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 group-hover:scale-150 group-hover:-translate-x-4 group-hover:translate-y-4 transition-all duration-700 pointer-events-none"></div>
+      {/* Decorative glow orb */}
+      <div className="absolute -top-8 -right-8 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 group-hover:scale-150 transition-all duration-700 pointer-events-none" />
 
-      <div className="relative z-10 flex items-center gap-2 sm:gap-3">
-        {/* Icon - Added rotation and scale */}
-        <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex-shrink-0 flex items-center justify-center text-sm sm:text-base text-white ${style.iconBg} transition-all group-hover:scale-110 group-hover:rotate-12 duration-300`}>
-          <i className={`fas ${icon}`}></i>
+      {/* === MOBILE: compact horizontal row (< 768px) === */}
+      <div className="md:hidden relative z-10 flex items-center gap-3 px-3 py-3 min-h-[56px]">
+        <div className={`w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center text-base text-white ${style.iconBg}`}>
+          <i className={`fas ${icon}`} />
         </div>
-
-        {/* Content */}
         <div className="flex-1 min-w-0">
-          <Typography variant="label" className={`${style.labelText} metric-label truncate block !text-[9px] sm:!text-[10px]`}>
-            {label}
-          </Typography>
-          <Typography variant="h2" className={`tracking-tight leading-tight ${style.valueText} !text-base sm:!text-xl truncate`}>
-            {value}
-          </Typography>
-          <Typography variant="body-sm" className={`truncate ${style.subText} trend-value !text-[11px] sm:!text-xs opacity-80`}>
-            {subValue}
-          </Typography>
+          <div className={`text-[9px] font-black uppercase tracking-widest leading-none mb-0.5 opacity-80 ${style.labelText}`}>{label}</div>
+          <div className={`text-base font-black leading-tight truncate ${style.valueText}`}>{value}</div>
+          <div className={`text-[10px] font-bold truncate opacity-70 ${style.subText}`}>{subValue}</div>
         </div>
-
-        {/* Badge / Trend */}
-        {badge ? (
-          <Typography variant="label" className={`px-2 py-0.5 rounded-lg border animate-pulse shadow-sm flex-shrink-0 ${badgeClasses} hidden xs:block`}>
-            {badge}
-          </Typography>
-        ) : trend && (
-          <div className={`px-2 py-1 rounded-lg flex items-center gap-1 bg-white/15 border border-white/20 flex-shrink-0 hidden xs:flex ${trend.direction === 'up' ? 'text-emerald-200' :
-            trend.direction === 'down' ? 'text-rose-200' : 'text-white/70'
-            }`}>
-            {(trend.direction === 'up' || trend.direction === 'down') && (
-              <i className={`fas fa-arrow-${trend.direction} text-[8px]`}></i>
-            )}
-            <Typography variant="label" className="inherit-color !text-[9px]">
-              {trend.value}
-            </Typography>
-          </div>
+        {badge && (
+          <div className={`text-[9px] font-black px-1.5 py-0.5 rounded border flex-shrink-0 ${badgeClasses}`}>{badge}</div>
         )}
       </div>
 
-      {/* Decorative accent line at bottom */}
+      {/* === DESKTOP: original vertical layout (>= 768px) === */}
+      <div className="hidden md:block relative z-10 p-4">
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center text-base text-white ${style.iconBg} transition-all group-hover:scale-110 group-hover:rotate-12 duration-300`}>
+            <i className={`fas ${icon}`} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <Typography variant="label" className={`${style.labelText} metric-label truncate block !text-[10px]`}>
+              {label}
+            </Typography>
+            <Typography variant="h2" className={`tracking-tight leading-tight ${style.valueText} !text-xl truncate`}>
+              {value}
+            </Typography>
+            <Typography variant="body-sm" className={`truncate ${style.subText} trend-value !text-xs opacity-80`}>
+              {subValue}
+            </Typography>
+          </div>
+          {badge ? (
+            <Typography variant="label" className={`px-2 py-0.5 rounded-lg border animate-pulse shadow-sm flex-shrink-0 ${badgeClasses}`}>
+              {badge}
+            </Typography>
+          ) : trend && (
+            <div className={`px-2 py-1 rounded-lg flex items-center gap-1 bg-white/15 border border-white/20 flex-shrink-0 ${
+              trend.direction === 'up' ? 'text-emerald-200' :
+              trend.direction === 'down' ? 'text-rose-200' : 'text-white/70'
+            }`}>
+              {(trend.direction === 'up' || trend.direction === 'down') && (
+                <i className={`fas fa-arrow-${trend.direction} text-[8px]`} />
+              )}
+              <Typography variant="label" className="inherit-color !text-[9px]">
+                {trend.value}
+              </Typography>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Accent line */}
       <div className="absolute bottom-0 left-0 right-0 h-[3px] overflow-hidden">
-        <div className={`h-full w-full ${style.accentLine} opacity-60`}></div>
+        <div className={`h-full w-full ${style.accentLine} opacity-60`} />
       </div>
     </div>
   );
