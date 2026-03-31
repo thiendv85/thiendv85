@@ -127,7 +127,7 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
             </div>
 
             {isMobile ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4 stagger-children">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4 stagger-children">
                     {paginatedData.map((item) => {
                         const m1Actual = item.SalesHistory ? item.SalesHistory[item.SalesHistory.length - 1] : 0;
                         const incomingThisMonth = item.computed?.incomingCurrentMonth || 0;

@@ -816,7 +816,7 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
                 )}
 
                 {/* KPI GRID */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                     <MetricCard label={t('kpi_turnover')} value={formatCurrency(grandStats.grandTurnover)} subValue={t('kpi_turnover_sub')} icon="fa-arrow-trend-up" color="professional" />
                     <MetricCard label={t('kpi_stock')} value={formatCurrency(grandStats.grandStock)} subValue={t('kpi_stock_sub')} icon="fa-warehouse" color="emerald" />
                     <MetricCard label={t('kpi_pipeline')} value={formatCurrency(grandStats.grandPOVal)} subValue={t('kpi_pipeline_sub')} icon="fa-truck-fast" color="blue" />
