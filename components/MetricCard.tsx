@@ -5,64 +5,64 @@ import { Typography } from './Typography';
 // Modern Gradient Palette Map aligned with ATP Design Tokens
 const styleConfig = {
   blue: {
-    iconBg: 'bg-white/10 shadow-lg shadow-slate-900/10',
+    iconBg: 'bg-white/10 shadow-lg shadow-slate-900/10 md:shadow-lg',
     cardBg: 'bg-gradient-blue border-white/10',
-    cardGlow: 'shadow-glow-blue',
+    cardGlow: 'max-md:!shadow-none shadow-glow-blue',
     valueText: 'text-white',
     labelText: 'text-[#F5F5F5]',
     subText: 'text-[#E2E8F0]',
-    accentLine: 'bg-atp-accent/50',
-    innerGlow: 'shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]',
+    accentLine: 'max-md:hidden bg-atp-accent/50',
+    innerGlow: 'max-md:!shadow-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]',
   },
   emerald: {
-    iconBg: 'bg-white/10 shadow-lg shadow-slate-900/10',
+    iconBg: 'bg-white/10 shadow-lg shadow-slate-900/10 md:shadow-lg',
     cardBg: 'bg-gradient-emerald border-white/10',
-    cardGlow: 'shadow-glow-emerald',
+    cardGlow: 'max-md:!shadow-none shadow-glow-emerald',
     valueText: 'text-white',
     labelText: 'text-[#F5F5F5]',
     subText: 'text-[#E2E8F0]',
-    accentLine: 'bg-emerald-400/50',
-    innerGlow: 'shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]',
+    accentLine: 'max-md:hidden bg-emerald-400/50',
+    innerGlow: 'max-md:!shadow-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]',
   },
   rose: {
-    iconBg: 'bg-white/10 shadow-lg shadow-slate-900/10',
+    iconBg: 'bg-white/10 shadow-lg shadow-slate-900/10 md:shadow-lg',
     cardBg: 'bg-gradient-rose border-white/10',
-    cardGlow: 'shadow-glow-rose',
+    cardGlow: 'max-md:!shadow-none shadow-glow-rose',
     valueText: 'text-white',
     labelText: 'text-[#F5F5F5]',
     subText: 'text-[#E2E8F0]',
-    accentLine: 'bg-rose-400/50',
-    innerGlow: 'shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]',
+    accentLine: 'max-md:hidden bg-rose-400/50',
+    innerGlow: 'max-md:!shadow-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]',
   },
   amber: {
-    iconBg: 'bg-white/10 shadow-lg shadow-slate-900/10',
+    iconBg: 'bg-white/10 shadow-lg shadow-slate-900/10 md:shadow-lg',
     cardBg: 'bg-gradient-amber border-white/10',
-    cardGlow: 'shadow-glow-amber',
+    cardGlow: 'max-md:!shadow-none shadow-glow-amber',
     valueText: 'text-white',
     labelText: 'text-[#F5F5F5]',
     subText: 'text-[#E2E8F0]',
-    accentLine: 'bg-amber-400/50',
-    innerGlow: 'shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]',
+    accentLine: 'max-md:hidden bg-amber-400/50',
+    innerGlow: 'max-md:!shadow-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]',
   },
   slate: {
-    iconBg: 'bg-white/20 shadow-lg shadow-slate-900/10',
-    cardBg: 'bg-atp-secondary border-white/10',
-    cardGlow: 'shadow-glass',
+    iconBg: 'bg-white/20 shadow-lg shadow-slate-900/10 md:shadow-lg',
+    cardBg: 'bg-atp-secondary max-md:bg-slate-800 border-white/10',
+    cardGlow: 'max-md:!shadow-none shadow-glass',
     valueText: 'text-white',
     labelText: 'text-slate-100',
     subText: 'text-slate-300',
-    accentLine: 'bg-slate-400/50',
-    innerGlow: 'shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]',
+    accentLine: 'max-md:hidden bg-slate-400/50',
+    innerGlow: 'max-md:!shadow-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]',
   },
   professional: {
-    iconBg: 'bg-white/10 shadow-lg shadow-slate-900/20',
+    iconBg: 'bg-white/10 shadow-lg shadow-slate-900/20 md:shadow-lg',
     cardBg: 'bg-gradient-professional border-white/10',
-    cardGlow: 'shadow-glow-blue',
+    cardGlow: 'max-md:!shadow-none shadow-glow-blue',
     valueText: 'text-white',
     labelText: 'text-[#F5F5F5]',
     subText: 'text-[#E2E8F0]',
-    accentLine: 'bg-atp-accent/50',
-    innerGlow: 'shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]',
+    accentLine: 'max-md:hidden bg-atp-accent/50',
+    innerGlow: 'max-md:!shadow-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]',
   },
 };
 
@@ -98,8 +98,8 @@ export const MetricCard = React.memo(({ label, value, subValue, icon, color = 's
         ${onClick ? 'cursor-pointer' : ''}
       `}
     >
-      {/* Decorative glow orb */}
-      <div className="absolute -top-8 -right-8 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 group-hover:scale-150 transition-all duration-700 pointer-events-none" />
+      {/* Decorative glow orb (hidden on mobile flat design) */}
+      <div className="hidden md:block absolute -top-8 -right-8 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 group-hover:scale-150 transition-all duration-700 pointer-events-none" />
 
       {/* === MOBILE: compact horizontal row (< 768px) === */}
       <div className="md:hidden relative z-10 flex items-center gap-3 px-3 py-3 min-h-[56px]">

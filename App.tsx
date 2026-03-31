@@ -464,9 +464,9 @@ const AppContent = () => {
             </React.Suspense>
 
             {selectedItem && createPortal(
-                <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 print:hidden overflow-hidden">
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-6 print:hidden overflow-hidden">
                     <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={handleCloseDetail}></div>
-                    <div className="relative w-full max-w-[1500px] h-[92vh] sm:h-[95vh] bg-[#F8FAFC] rounded-t-[32px] sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fadeIn border border-white/20">
+                    <div className="relative w-full max-w-[1500px] h-[90vh] bg-[#F8FAFC] rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fadeIn border border-white/20">
                         <SkuDetail
                             item={selectedItem}
                             allData={data}

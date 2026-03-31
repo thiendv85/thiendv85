@@ -621,70 +621,90 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                     </div>
                 )}
 
-                <div className="px-4 md:px-6 py-4 border-b border-slate-200 flex flex-col xl:flex-row justify-between items-stretch xl:items-center bg-white sticky top-0 z-40 gap-4">
-                    <div className="flex flex-wrap items-center gap-2 md:gap-4">
-                        <div className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-blue-100 shrink-0">{t('ord_workbench')}</div>
-                        <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 overflow-x-auto no-scrollbar">
-                            <button onClick={() => { setViewFilter('all'); setCurrentPage(1); }} className={`px-3 md:px-4 py-1.5 text-[10px] md:text-xs font-black rounded-lg transition-all shrink-0 ${viewFilter === 'all' ? 'bg-white text-blue-700 border border-slate-200 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t('ord_tab_all')}</button>
-                            <button onClick={() => { setViewFilter('suggested'); setCurrentPage(1); }} className={`px-3 md:px-4 py-1.5 text-[10px] md:text-xs font-black rounded-lg transition-all shrink-0 ${viewFilter === 'suggested' ? 'bg-white text-blue-700 border border-slate-200 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t('ord_tab_suggested')}</button>
-                            <button onClick={() => { setViewFilter('draft'); setCurrentPage(1); }} className={`px-3 md:px-4 py-1.5 text-[10px] md:text-xs font-black rounded-lg transition-all shrink-0 ${viewFilter === 'draft' ? 'bg-white text-blue-700 border border-slate-200 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t('ord_tab_draft')}</button>
+                {/* ─── Compact/Flat Control Header ─── */}
+                <div className="px-3 md:px-6 py-2 md:py-4 border-b border-slate-200 bg-white sticky top-0 z-40 flex flex-col gap-2 md:gap-4 shadow-sm">
+                    {/* ROW 1: Tabs & Desktop Actions */}
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        {/* Tabs Group */}
+                        <div className="flex items-center gap-2 w-full md:w-auto">
+                            <div className="hidden md:block bg-blue-50 text-blue-700 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border border-blue-100 shrink-0">
+                                {t('ord_workbench')}
+                            </div>
+                            {/* Flat Tabs for Mobile */}
+                            <div className="flex bg-slate-100 p-1 rounded-xl w-full md:w-auto">
+                                <button onClick={() => { setViewFilter('all'); setCurrentPage(1); }} className={`flex-1 md:flex-none px-2 md:px-4 py-1.5 text-[10px] md:text-xs font-black rounded-lg transition-all ${viewFilter === 'all' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t('ord_tab_all')}</button>
+                                <button onClick={() => { setViewFilter('suggested'); setCurrentPage(1); }} className={`flex-1 md:flex-none px-2 md:px-4 py-1.5 text-[10px] md:text-xs font-black rounded-lg transition-all ${viewFilter === 'suggested' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t('ord_tab_suggested')}</button>
+                                <button onClick={() => { setViewFilter('draft'); setCurrentPage(1); }} className={`flex-1 md:flex-none px-2 md:px-4 py-1.5 text-[10px] md:text-xs font-black rounded-lg transition-all ${viewFilter === 'draft' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t('ord_tab_draft')}</button>
+                            </div>
+                            {/* Desktop Sort */}
+                            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl shrink-0">
+                                <i className="fas fa-sort-amount-down text-slate-400 text-[10px]"></i>
+                                <select value={sortKey} onChange={(e) => setSortKey(e.target.value)} className="bg-transparent text-[10px] font-black text-slate-700 outline-none cursor-pointer uppercase">
+                                    <option value="priority">Sắp xếp: Hệ thống</option>
+                                    <option value="mos_asc">MOS (Thấp nhất)</option>
+                                    <option value="fc_desc">FC (Cao nhất)</option>
+                                    <option value="stock_desc">Tồn kho (Nhiều nhất)</option>
+                                    <option value="val_desc">Giá trị (Cao nhất)</option>
+                                    <option value="bo_desc">Nợ BO (Nhiều nhất)</option>
+                                    <option value="price_desc">Đơn giá (Cao nhất)</option>
+                                </select>
+                            </div>
                         </div>
 
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl shrink-0">
-                            <i className="fas fa-sort-amount-down text-slate-400 text-[10px]"></i>
-                            <select value={sortKey} onChange={(e) => setSortKey(e.target.value)} className="bg-transparent text-[10px] font-black text-slate-700 outline-none cursor-pointer uppercase">
-                                <option value="priority">Sắp xếp: Hệ thống</option>
-                                <option value="mos_asc">MOS (Thấp nhất)</option>
-                                <option value="fc_desc">FC (Cao nhất)</option>
-                                <option value="stock_desc">Tồn kho (Nhiều nhất)</option>
-                                <option value="val_desc">Giá trị (Cao nhất)</option>
-                                <option value="bo_desc">Nợ BO (Nhiều nhất)</option>
-                                <option value="price_desc">Đơn giá (Cao nhất)</option>
+                        {/* Desktop Action Buttons */}
+                        <div className="hidden md:flex flex-wrap items-center gap-2 justify-end">
+                            <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 p-1 rounded-2xl">
+                                <button onClick={() => setIsCloudModalOpen(true)} className="bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all border border-blue-700 flex items-center justify-center shadow-glow px-4 py-2.5 text-[10px] font-black uppercase tracking-widest">
+                                    <i className="fas fa-cloud mr-2"></i> Cloud
+                                </button>
+                                <input type="file" ref={fileInputRef} className="hidden" accept=".csv" onChange={handleImport} />
+                                <button onClick={() => fileInputRef.current?.click()} className="bg-white text-slate-700 hover:bg-slate-100 rounded-xl transition-all border border-slate-200 flex items-center justify-center px-4 py-2.5 text-[10px] font-black uppercase tracking-widest">
+                                    <i className="fas fa-file-import mr-2"></i> Import
+                                </button>
+                            </div>
+                            <button onClick={handleExport} className="bg-atp-secondary text-white hover:bg-slate-700 px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-md flex items-center gap-2 border border-slate-800">
+                                <i className="fas fa-file-export"></i> {t('ord_export_btn')}
+                            </button>
+                            {profile?.role && ['admin', 'planner'].includes(profile.role) && !isReturned && (
+                                <button onClick={handleOpenSubmitModal} disabled={Object.values(orderQuantities).every((v: any) => !v.air && !v.sea)} className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-glow flex items-center gap-2 border border-emerald-700">
+                                    <i className="fas fa-paper-plane"></i> Phê duyệt
+                                </button>
+                            )}
+                            {approvalRequest && <ApprovalStatusBadge status={approvalRequest.status} size="sm" />}
+                        </div>
+                    </div>
+
+                    {/* ROW 2: Search + Mobile Controls (Flat minimal) */}
+                    <div className="flex items-center gap-2">
+                        {/* Search */}
+                        <div className="flex-1 relative group">
+                            <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs group-focus-within:text-blue-600 transition-colors"></i>
+                            <input type="text" placeholder={t('ord_search_ph')} value={filters.search} onChange={(e) => handleMainFilterChange({ ...filters, search: e.target.value })} className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:bg-white focus:border-blue-400 transition-all text-slate-700" />
+                        </div>
+                        
+                        {/* Mobile Sort Icon Only */}
+                        <div className="md:hidden flex items-center justify-center w-9 h-9 bg-slate-50 border border-slate-200 rounded-xl relative shrink-0">
+                            <i className="fas fa-sort-amount-down text-slate-500 text-xs"></i>
+                            <select value={sortKey} onChange={(e) => setSortKey(e.target.value)} className="absolute inset-0 opacity-0 w-full h-full cursor-pointer">
+                                <option value="priority">Hệ thống</option>
+                                <option value="mos_asc">MOS</option>
+                                <option value="fc_desc">FC</option>
+                                <option value="stock_desc">Tồn</option>
+                                <option value="val_desc">Giá trị</option>
                             </select>
                         </div>
-                    </div>
-                    
-                    <div className="flex-1 w-full relative group">
-                        <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors text-sm"></i>
-                        <input type="text" placeholder={t('ord_search_ph')} value={filters.search} onChange={(e) => handleMainFilterChange({ ...filters, search: e.target.value })} className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:bg-white focus:border-blue-400 transition-all text-slate-700 shadow-inner" />
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2 justify-end">
-                        <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 p-1 rounded-2xl">
-                            <button onClick={() => setIsCloudModalOpen(true)} className="bg-blue-600 text-white hover:bg-blue-700 w-10 h-10 rounded-xl transition-all border border-blue-700 flex items-center justify-center shrink-0 shadow-glow md:w-auto md:px-4 md:py-2.5 md:text-[10px] md:font-black md:uppercase md:tracking-widest" title="Quản lý Cloud">
-                                <i className="fas fa-cloud"></i>
-                                <span className="hidden md:inline ml-2">Cloud</span>
+                        
+                        {/* Mobile Action Icons (Flat) */}
+                        <div className="md:hidden flex items-center gap-1.5 shrink-0">
+                            <button onClick={() => setIsCloudModalOpen(true)} className="w-9 h-9 flex items-center justify-center text-blue-600 bg-blue-50/50 rounded-xl border border-blue-100 active:bg-blue-100">
+                                <i className="fas fa-cloud text-xs"></i>
                             </button>
-                            <input type="file" ref={fileInputRef} className="hidden" accept=".csv" onChange={handleImport} />
-                            <button onClick={() => fileInputRef.current?.click()} className="bg-white text-slate-700 hover:bg-slate-100 w-10 h-10 rounded-xl transition-all border border-slate-200 flex items-center justify-center md:w-auto md:px-4 md:py-2.5 md:text-[10px] md:font-black md:uppercase md:tracking-widest" title={t('ord_import_btn')}>
-                                <i className="fas fa-file-import"></i>
-                                <span className="hidden md:inline ml-2">Import</span>
-                            </button>
+                            {profile?.role && ['admin', 'planner'].includes(profile.role) && !isReturned && (
+                                <button onClick={handleOpenSubmitModal} disabled={Object.values(orderQuantities).every((v: any) => !v.air && !v.sea)} className="w-9 h-9 flex items-center justify-center text-emerald-600 bg-emerald-50/50 rounded-xl border border-emerald-100 active:bg-emerald-100 disabled:opacity-40">
+                                    <i className="fas fa-paper-plane text-xs"></i>
+                                </button>
+                            )}
                         </div>
-                        
-                        <button 
-                            onClick={handleExport} 
-                            className="bg-atp-secondary text-white hover:bg-slate-700 px-4 md:px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2 border border-slate-800 shadow-md"
-                        >
-                            <i className="fas fa-file-export"></i> 
-                            <span className="hidden sm:inline">{t('ord_export_btn')}</span>
-                        </button>
-                        
-                        {profile?.role && ['admin', 'planner'].includes(profile.role) && !isReturned && (
-                            <button
-                                onClick={handleOpenSubmitModal}
-                                disabled={Object.values(orderQuantities).every((v: any) => !v.air && !v.sea)}
-                                className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 md:px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2 border border-emerald-700 shadow-glow"
-                            >
-                                <i className="fas fa-paper-plane"></i> 
-                                <span className="hidden sm:inline">Phê duyệt</span>
-                            </button>
-                        )}
-                        {approvalRequest && (
-                            <div className="flex items-center">
-                                <ApprovalStatusBadge status={approvalRequest.status} size="sm" />
-                            </div>
-                        )}
                     </div>
                 </div>
 

@@ -164,17 +164,17 @@ const StatCard = ({ label, value, sub, icon, color, onClick, children }: { label
     const cardContent = (
         <div
             onClick={onClick}
-            className={`bg-white p-4 rounded-3xl border border-slate-100 shadow-glass flex flex-col justify-between hover:shadow-xl hover:scale-[1.02] transition-all group ${onClick ? 'cursor-pointer' : ''} h-full relative`}
+            className={`bg-white p-3 md:p-4 rounded-2xl md:rounded-3xl border border-slate-100 shadow-sm md:shadow-glass flex flex-col justify-between hover:shadow-xl hover:scale-[1.02] transition-all group ${onClick ? 'cursor-pointer' : ''} h-full relative min-w-[140px] md:min-w-0 snap-start shrink-0`}
         >
-            <div className="flex justify-between items-start mb-1.5">
-                <Typography variant="label" className="text-slate-500 leading-tight">{label}</Typography>
-                <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs shadow-sm ${color} group-hover:scale-110 transition-transform`}>
+            <div className="flex justify-between items-start mb-1.5 md:mb-1.5 mb-1">
+                <Typography variant="label" className="text-slate-500 leading-tight !text-[10px] md:text-xs">{label}</Typography>
+                <div className={`w-6 h-6 md:w-7 md:h-7 rounded-lg flex items-center justify-center text-[10px] md:text-xs shadow-sm ${color} group-hover:scale-110 transition-transform shrink-0`}>
                     <i className={`fas ${icon}`}></i>
                 </div>
             </div>
 
             <div>
-                <Typography variant="h2" className="text-slate-900 leading-none tracking-tight !text-xl">{value}</Typography>
+                <Typography variant="h2" className="text-slate-900 leading-none tracking-tight text-lg md:text-xl">{value}</Typography>
                 {sub && <Typography variant="label" className="text-slate-400 mt-1 truncate opacity-80 block !text-[9px] font-medium tracking-normal">{sub}</Typography>}
             </div>
             {children}
@@ -306,8 +306,8 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
     return (
         <div className="flex flex-col h-full bg-[#F8FAFC]">
             {/* COMPACT STICKY HEADER */}
-            <div className="flex flex-col gap-3 p-4 bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm shrink-0">
-                <div className="flex justify-between items-center gap-4">
+            <div className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm shrink-0">
+                <div className="flex justify-between items-center gap-2 md:gap-4">
                     <div className="relative group flex-1 max-w-sm">
                         <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
                         <input
@@ -320,20 +320,20 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
                                     if (found) { onItemSelect(found); setSearchText(''); }
                                 }
                             }}
-                            className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-bold focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all border-none shadow-inner"
+                            className="w-full pl-9 pr-4 py-2 md:py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-bold focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all border-none shadow-inner"
                         />
                     </div>
-                    <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors shadow-sm"><i className="fas fa-times text-lg"></i></button>
+                    <button onClick={onClose} className="w-8 h-8 md:w-10 md:h-10 shrink-0 flex items-center justify-center rounded-full bg-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors shadow-sm"><i className="fas fa-times text-base md:text-lg"></i></button>
                 </div>
 
-                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                    <div className="flex items-center gap-5 w-full lg:w-auto overflow-hidden">
-                        <div className="w-16 h-16 bg-gradient-to-br from-blue-700 to-blue-800 text-white rounded-2xl flex items-center justify-center text-3xl font-black shrink-0 shadow-lg shadow-blue-100">
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 md:gap-4">
+                    <div className="flex items-center gap-3 md:gap-5 w-full lg:w-auto overflow-hidden">
+                        <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-blue-700 to-blue-800 text-white rounded-xl md:rounded-2xl flex items-center justify-center text-xl md:text-3xl font-black shrink-0 shadow-lg shadow-blue-100">
                             {item.ItemCode.charAt(0)}
                         </div>
                         <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-3 mb-1">
-                                <Typography variant="h1" className="text-slate-900 tracking-tighter truncate">{item.ItemCode}</Typography>
+                            <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-1">
+                                <Typography variant="h1" className="text-slate-900 tracking-tighter truncate md:!text-2xl !text-xl">{item.ItemCode}</Typography>
                                 <DebtStatusBadge item={item} />
                                 {item.computed?.warnings?.map((w, idx) => (
                                     <div 
@@ -351,26 +351,26 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
                                 ))}
                                 {item.TypeCar && <Typography variant="label" className="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg border border-blue-100 shadow-sm">{item.TypeCar}</Typography>}
                             </div>
-                            <Typography variant="body-sm" className="font-semibold text-slate-500 truncate">{item.ItemName}</Typography>
+                            <Typography variant="body-sm" className="font-semibold text-slate-500 truncate text-xs md:text-sm">{item.ItemName}</Typography>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 w-full lg:w-auto">
+                    <div className="flex overflow-x-auto no-scrollbar md:grid md:grid-cols-5 gap-3 w-full lg:w-auto snap-x md:pb-0 pb-1 -mx-3 px-3 md:mx-0 md:px-0">
                         <StatCard label={t('sd_avail_stock')} value={totalAvailable.toLocaleString()} icon="fa-box" color="bg-emerald-50 text-emerald-600" />
 
-                        <div className="h-full">
+                        <div className="h-full min-w-[140px] md:min-w-0 snap-start shrink-0">
                             <BackorderPopup items={item.BackorderBreakdown || []}>
-                                <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-glass flex flex-col justify-between hover:shadow-xl hover:scale-[1.02] transition-all group h-full cursor-help relative">
-                                    <div className="flex justify-between items-start mb-1.5">
-                                        <Typography variant="label" className="text-slate-500 leading-tight">BOOKING / BO</Typography>
-                                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs shadow-sm ${item.Backorder > 0 ? "bg-blue-50 text-blue-600" : "bg-slate-50 text-slate-400"} group-hover:scale-110 transition-transform`}>
+                                <div className="bg-white p-3 md:p-4 rounded-2xl md:rounded-3xl border border-slate-100 shadow-sm md:shadow-glass flex flex-col justify-between hover:shadow-xl hover:scale-[1.02] transition-all group h-full cursor-help relative">
+                                    <div className="flex justify-between items-start mb-1 md:mb-1.5">
+                                        <Typography variant="label" className="text-slate-500 leading-tight !text-[10px] md:text-xs">BOOKING / BO</Typography>
+                                        <div className={`w-6 h-6 md:w-7 md:h-7 rounded-lg flex items-center justify-center text-[10px] md:text-xs shadow-sm ${item.Backorder > 0 ? "bg-blue-50 text-blue-600" : "bg-slate-50 text-slate-400"} group-hover:scale-110 transition-transform shrink-0`}>
                                             <i className="fas fa-exclamation-circle"></i>
                                         </div>
                                     </div>
                                     <div>
-                                        <Typography variant="h2" className="text-slate-900 leading-none tracking-tight !text-xl">{item.Backorder.toLocaleString()}</Typography>
+                                        <Typography variant="h2" className="text-slate-900 leading-none tracking-tight text-lg md:text-xl">{item.Backorder.toLocaleString()}</Typography>
                                         {item.BackorderBreakdown && item.BackorderBreakdown.length > 0 && (
-                                            <div className="absolute top-3 right-3 w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse ring-2 ring-white"></div>
+                                            <div className="absolute top-2 right-2 md:top-3 md:right-3 w-2 h-2 md:w-2.5 md:h-2.5 rounded-full bg-blue-500 animate-pulse ring-2 ring-white"></div>
                                         )}
                                     </div>
                                 </div>
@@ -385,14 +385,14 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
             </div>
 
             {/* SCROLLABLE BODY */}
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar pb-32">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="flex-1 overflow-y-auto p-3 md:p-6 space-y-4 md:space-y-6 custom-scrollbar pb-32">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
 
                     {/* MAIN CONTENT AREA - ADJUSTED COLUMN SPAN */}
-                    <div className="lg:col-span-7 space-y-6">
+                    <div className="lg:col-span-7 space-y-4 md:space-y-6">
 
-                        <div className="bg-white rounded-3xl border-2 border-slate-100 shadow-sm p-5 overflow-hidden">
-                            <div className="flex flex-col md:flex-row md:items-center justify-between mb-5 gap-4">
+                        <div className="bg-white rounded-2xl md:rounded-3xl border-2 border-slate-100 shadow-sm p-4 md:p-5 overflow-hidden">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-5 gap-3 md:gap-4">
                                 <div>
                                     <Typography variant="h3" className="text-slate-800 flex items-center gap-2">
                                         <i className="fas fa-chart-line text-emerald-600"></i> {t('sd_chart_title')}
@@ -500,9 +500,9 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
                     </div>
 
                     {/* SIDEBAR AREA - ADJUSTED COLUMN SPAN */}
-                    <div className="lg:col-span-5 space-y-6">
-                        <div className="bg-white rounded-3xl border border-slate-100 shadow-glass-sm p-6 overflow-hidden transition-all hover:shadow-glass">
-                            <Typography variant="label" className="text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2 font-bold">
+                    <div className="lg:col-span-5 space-y-4 md:space-y-6">
+                        <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-100 shadow-glass-sm p-4 md:p-6 overflow-hidden transition-all hover:shadow-glass">
+                            <Typography variant="label" className="text-slate-400 uppercase tracking-widest mb-4 md:mb-5 flex items-center gap-2 font-bold">
                                 <i className="fas fa-warehouse text-blue-500"></i> {t('sd_supply_net')}
                             </Typography>
                             <div className="space-y-2">
@@ -593,8 +593,8 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
                             </div>
                         </div>
 
-                        <div className="bg-white rounded-3xl border border-slate-100 shadow-glass-sm p-6 max-h-80 flex flex-col transition-all hover:shadow-glass">
-                            <div className="flex items-center justify-between mb-5">
+                        <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-100 shadow-glass-sm p-4 md:p-6 max-h-80 flex flex-col transition-all hover:shadow-glass">
+                            <div className="flex items-center justify-between mb-4 md:mb-5">
                                 <Typography variant="label" className="text-slate-400 uppercase tracking-widest flex items-center gap-2 font-bold">
                                     <i className="fas fa-shipping-fast text-blue-500"></i> {t('sd_pipeline')}
                                 </Typography>
@@ -622,8 +622,8 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
                         </div>
 
                         {/* PACKAGE USAGE CARD */}
-                        <div className="bg-white rounded-3xl border border-slate-100 shadow-glass-sm p-6 overflow-hidden transition-all hover:shadow-glass">
-                            <div className="flex items-center justify-between mb-5">
+                        <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-100 shadow-glass-sm p-4 md:p-6 overflow-hidden transition-all hover:shadow-glass">
+                            <div className="flex items-center justify-between mb-4 md:mb-5">
                                 <Typography variant="label" className="text-slate-400 uppercase tracking-widest flex items-center gap-2 font-bold">
                                     <i className="fas fa-boxes-packing text-indigo-500"></i> CẤU THÀNH GÓI
                                 </Typography>
