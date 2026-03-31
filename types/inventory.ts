@@ -31,7 +31,7 @@ export interface InventoryFilters {
     status: 'All' | 'Active' | 'Sleeping' | 'Dead Stock';
     lois: string;
     trend: string;
-    specialFilter: 'none' | 'stockout' | 'excess' | 'low_stock' | 'has_po' | 'has_supersession' | 'has_warning';
+    specialFilter: 'none' | 'stockout' | 'critical_stockout' | 'excess' | 'low_stock' | 'has_po' | 'has_supersession' | 'has_warning';
     showBackorders: boolean;
     debtStatus: string[];
     source: string;

@@ -379,7 +379,7 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
             if (!matchSearch(i, searchResult)) return false;
             if (filters.priority !== 'All' && i.computed?.priorityBucket !== filters.priority) return false;
             if (filters.status !== 'All' && i.Status !== filters.status) return false;
-            if (filters.lois !== 'All' && i.LOISGroup !== filters.lois) return false;
+            if (filters.lois !== 'All' && !filters.lois.split(',').includes(i.LOISGroup)) return false;
             if (filters.trend !== 'All' && i.TrendFlag !== filters.trend) return false;
 
             if (filters.costRange > 0) {
@@ -391,6 +391,11 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
                 if (i.UnitCost_FOB < range.min || i.UnitCost_FOB >= range.max) return false;
             }
             if (filters.specialFilter === 'stockout' && !i.computed?.stockoutRiskFlag) return false;
+            if (filters.specialFilter === 'critical_stockout') {
+                const comp = i.computed;
+                const isCriticalMatch = comp && ['1', '2', '3'].includes(i.LOISGroup) && (comp.available <= 0 || comp.stockoutRiskFlag) && i.BaseForecast > 0.02;
+                if (!isCriticalMatch) return false;
+            }
             if (filters.specialFilter === 'excess' && (i.computed?.excessQty || 0) <= 0) return false;
             if (filters.specialFilter === 'has_po' && (i.TotalPO || 0) <= 0) return false;
             if (filters.specialFilter === 'has_supersession') {
@@ -800,7 +805,7 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
                         </span>
                         <button
                             onClick={() => {
-                                handleFiltersChange({ ...filters, priority: 'P1', specialFilter: 'stockout' });
+                                handleFiltersChange({ ...filters, priority: 'All', specialFilter: 'critical_stockout' });
                                 setTimeout(() => document.getElementById('inventory-table-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
                             }}
                             className="shrink-0 bg-rose-600 text-white px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wide hover:bg-rose-700 transition-colors flex items-center gap-1.5"
