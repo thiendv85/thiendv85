@@ -256,25 +256,26 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
 
                                         <td className="px-6 py-3 sticky left-12 z-10 bg-white group-hover:bg-slate-50/80 transition-colors sticky-column-shadow border-b border-slate-50 cursor-pointer" onClick={() => onItemSelect(item)}>
                                             <div className="flex items-center gap-2">
-                                                <Typography variant="mono" className="text-slate-900 text-base group-hover:text-blue-600 transition-colors !font-bold leading-none">{item.ItemCode}</Typography>
+                                                <div className="text-lg font-black text-slate-900 group-hover:text-blue-600 transition-colors tracking-tight leading-none">{item.ItemCode}</div>
                                                 {(() => {
                                                     const p = calculatePickingPriority(item, draftQty);
                                                     return <span className={`badge-p${Math.min(p, 5)} px-1.5 py-0.5 rounded font-black text-[10px] leading-none shrink-0`}>P{p}</span>;
                                                 })()}
                                                 <SupersessionIndicator partNumber={item.ItemCode} graph={graph} onClick={(e) => { e.stopPropagation(); onItemSelect(item); }} />
                                             </div>
-                                            <Typography variant="body-sm" className="text-slate-500 font-bold truncate max-w-[180px]">{item.ItemName}</Typography>
+                                            <div className="text-xs text-slate-500 font-bold truncate max-w-[200px]">{item.ItemName}</div>
                                             <div className="mt-1 flex flex-wrap items-center gap-2">
                                                 <DebtStatusBadge item={item} />
+                                                <span className="text-xs font-black px-1.5 py-0.5 rounded uppercase bg-blue-50 text-blue-700 border border-blue-100">LOIS {item.LOISGroup}</span>
                                                 {item.SourceId && (
                                                     <Typography variant="label" className="bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded font-bold">
                                                         {item.SourceId}
                                                     </Typography>
                                                 )}
                                                 {item.TypeCar && (
-                                                    <Typography variant="label" className="bg-slate-100 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded">
+                                                    <span className="text-2xs font-black px-1.5 py-0.5 rounded uppercase bg-slate-100 text-slate-600 border border-slate-200">
                                                          {item.TypeCar?.split(' | ')[0]}
-                                                    </Typography>
+                                                    </span>
                                                 )}
                                             </div>
                                         </td>

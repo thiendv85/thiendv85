@@ -1,13 +1,13 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&display=swap');
 
 :root {
-    /* Color Palette - ui-ux-pro-max */
-    --color-primary: #1E40AF;
-    --color-secondary: #3B82F6;
+    /* Color Palette - Vibrant Premium V13.5 */
+    --color-primary: #0F172A;
+    --color-secondary: #334155;
     --color-cta: #F59E0B;
-    --color-background: #F8FAFC;
-    --color-text: #1E3A8A;
-    --color-text-muted: #475569;
+    --color-background: #0B0E14;
+    --color-text: #F1F5F9;
+    --color-text-muted: #94A3B8;
     
     /* Spacing Tokens */
     --space-xs: 0.25rem;
@@ -18,14 +18,14 @@
     --space-2xl: 3rem;
     
     /* Shadow Tokens */
-    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
-    --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.5);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.4);
+    --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.5);
 }
 
 body {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     background-color: var(--color-background);
     color: var(--color-text);
     -webkit-font-smoothing: antialiased;
@@ -34,113 +34,117 @@ body {
 }
 
 .font-sans {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important;
 }
 
 h1, h2, h3, h4, .font-heading {
-    font-family: 'Inter', sans-serif !important;
-    font-weight: 800; /* ExtraBold for "Solid" feel */
-    letter-spacing: -0.025em;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    font-weight: 700;
+    letter-spacing: -0.02em;
 }
 
-/* Đảm bảo các văn bản chỉ định có màu sắc dễ đọc */
+/* Đổi tất cả các văn bản chỉ định sang màu xám cực nhẹ (gần như trắng) */
 .antigravity-dashboard-container, 
 .supply-chain-data, 
 .metric-label, 
 .workbench-title {
-    /* Cho phép tiện ích text-white/text-blue hoạt động tự do */
+    color: #F5F5F5 !important;
 }
 
+/* Áp dụng cụ thể cho các chỉ số phần trăm hoặc xu hướng */
+.trend-value {
+    color: #E0E0E0 !important;
+}
+
+/* Đảm bảo các liên kết (Links) cũng đổi màu nhưng giữ nguyên thuộc tính khác */
+.link-item, .substitution-chain {
+    color: #DCDCDC !important;
+    text-decoration: underline;
+}
+
+/* Hiệu ứng nổi khối 3D cho tiêu đề trang */
 .workbench-title {
-    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
     letter-spacing: -0.02em;
 }
 
 /* Premium Glassmorphism Utility */
 .glass-premium {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(12px) saturate(180%);
-    -webkit-backdrop-filter: blur(12px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: var(--shadow-xl);
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.dark .glass-premium {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
 /* Premium Shadow Utility */
 .shadow-premium {
-    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.08), 0 2px 8px -2px rgba(15, 23, 42, 0.04);
+    box-shadow: 
+        0 4px 6px -1px rgba(0, 0, 0, 0.2), 
+        0 2px 4px -1px rgba(0, 0, 0, 0.1),
+        0 20px 25px -5px rgba(0, 0, 0, 0.3);
 }
 
 /* Professional Gradient for Headers */
 .bg-gradient-professional {
     background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
-    position: relative;
 }
 
 .shadow-glass {
-    box-shadow: 0 4px 16px 0 rgba(15, 23, 42, 0.05);
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .shadow-glow {
-    box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
-}
-
-.shadow-soft {
-    box-shadow: 0 2px 12px -2px rgba(15, 23, 42, 0.04);
-}
-
-/* Responsive Utilities */
-@media (max-width: 640px) {
-    .container-responsive {
-        padding-left: var(--space-md);
-        padding-right: var(--space-md);
-    }
-}
-
-/* Touch Target Size Optimization */
-button, 
-[role="button"], 
-select, 
-input {
-    min-height: 2.75rem; /* ~44px */
-    cursor: pointer;
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
 }
 
 /* Premium Pill Badges */
 .segment-pill {
-    @apply px-2.5 py-1 rounded-lg text-[11px] font-black uppercase tracking-tight transition-all hover:scale-105 active:translate-y-px;
+    @apply px-2.5 py-1 rounded-lg text-[11px] font-black uppercase tracking-tight transition-all hover:scale-110 active:translate-y-px;
     min-width: 36px;
     text-align: center;
     box-shadow: 
         inset 0 1px 0 rgba(255,255,255,0.45),
-        0 2px 0 rgba(0,0,0,0.1),
+        0 2px 0 rgba(0,0,0,0.2),
         var(--shadow-sm);
-    text-shadow: 0 1px 1px rgba(0,0,0,0.15);
-    border: 1px solid rgba(0,0,0,0.05);
+    text-shadow: 0 1px 1px rgba(0,0,0,0.25);
+    border: 1px solid rgba(0,0,0,0.1);
 }
 
 .segment-pill-success { 
     background: linear-gradient(to bottom, #10B981, #059669); 
     color: white; 
+    border-color: #047857;
 }
 
 .segment-pill-warning { 
     background: linear-gradient(to bottom, #F59E0B, #D97706); 
     color: white;
+    border-color: #B45309;
 }
 
 .segment-pill-alert { 
     background: linear-gradient(to bottom, #EF4444, #DC2626); 
     color: white;
+    border-color: #B91C1C;
 }
 
 .segment-pill-neutral { 
     background: linear-gradient(to bottom, #64748B, #475569); 
     color: white;
+    border-color: #334155;
 }
 
+/* Custom Scrollbar for modern look */
 .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -149,65 +153,9 @@ input {
     background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #CBD5E1;
+    background: #334155;
     border-radius: 10px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #94A3B8;
+    background: #475569;
 }
-
-/* === MOBILE ENHANCEMENTS === */
-
-/* Touch-action: eliminate 300ms tap delay on all interactive elements */
-button,
-[role="button"],
-a,
-select,
-input,
-label {
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-}
-
-/* Prevent accidental pull-to-refresh in scroll containers */
-.scroll-container {
-    overscroll-behavior: contain;
-}
-
-/* Mobile card grid for inventory items */
-.mobile-card-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    padding: 0.75rem;
-}
-
-.mobile-item-card {
-    background: #fff;
-    border-radius: 1rem;
-    border: 1px solid #e2e8f0;
-    overflow: hidden;
-    box-shadow: 0 1px 4px rgba(15,23,42,0.05);
-    transition: box-shadow 0.2s, border-color 0.2s;
-}
-
-.mobile-item-card:active {
-    transform: scale(0.99);
-}
-
-.mobile-item-card.priority-p1 { border-left: 3px solid #ef4444; }
-.mobile-item-card.priority-p2 { border-left: 3px solid #f59e0b; }
-.mobile-item-card.priority-p3 { border-left: 3px solid #22c55e; }
-
-/* Bottom Nav safe area padding (for devices with bottom inset) */
-.has-bottom-nav {
-    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
-}
-
-.bottom-nav-bar {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-
-/* No scrollbar utility for nav bars */
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

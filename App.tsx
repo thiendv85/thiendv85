@@ -286,7 +286,7 @@ const AppContent = () => {
 
     return (
         <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#f8fafc] to-[#e2e8f0] relative font-sans text-slate-800 overflow-x-clip">
-            <header className="bg-gradient-professional border-b border-white/10 px-3 md:px-5 py-2 sticky top-0 z-40 shadow-glass print:hidden">
+            <header className="bg-gradient-professional border-b border-white/10 px-3 md:px-5 py-2 fixed top-0 left-0 right-0 z-50 shadow-glass print:hidden h-[56px] md:h-[64px] flex items-center">
                 <div className="max-w-[1920px] mx-auto flex justify-between items-center gap-2">
                     <div className="flex items-center space-x-2 md:space-x-3 cursor-pointer group shrink-0" onClick={() => setView('dashboard')}>
                         <div className="bg-white/10 backdrop-blur-md text-white w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center border border-white/20 shadow-lg group-hover:scale-105 transition-transform">
@@ -398,7 +398,7 @@ const AppContent = () => {
                 </div>
             </header >
 
-            <main className={`flex-1 max-w-[1920px] w-full mx-auto p-3 md:p-5 page-content-hd ${isMobile ? 'has-bottom-nav' : ''}`}>
+            <main className={`flex-1 max-w-[1920px] w-full mx-auto p-3 md:p-5 page-content-hd mt-[56px] md:mt-[64px] ${isMobile ? 'has-bottom-nav' : ''}`}>
                 {view === 'dashboard' && <Dashboard data={data} onItemSelect={handleSelectItem} initialParams={initialParams} initialState={pageStates.current.dashboard} onSaveState={(s) => pageStates.current.dashboard = s} draftData={sharedDraft} graph={supersessionGraph} appSettings={appSettings} supersessionProps={{
                     mappings: supersessionMappings,
                     onUpdateMappings: setSupersessionMappings,
@@ -444,6 +444,26 @@ const AppContent = () => {
                     })}
                 </nav>
             )}
+
+            <footer className={`max-w-[1920px] w-full mx-auto px-5 py-4 mt-auto border-t border-slate-200/50 flex flex-col md:flex-row justify-between items-center gap-4 text-slate-400 text-xs ${isMobile ? 'mb-20' : ''}`}>
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                        <span className="font-bold text-slate-500 uppercase tracking-widest text-[10px]">System Online</span>
+                    </div>
+                    <span className="opacity-30">|</span>
+                    <span className="font-medium">ATP Supply Chain v14.0 — Executive Intelligence</span>
+                </div>
+                <div className="flex items-center gap-6">
+                    <div className="flex gap-4">
+                        <span className="hover:text-blue-500 cursor-pointer transition-colors">Documentation</span>
+                        <span className="hover:text-blue-500 cursor-pointer transition-colors">Support</span>
+                        <span className="hover:text-blue-500 cursor-pointer transition-colors">Privacy</span>
+                    </div>
+                    <span className="opacity-30 hidden md:inline">|</span>
+                    <span className="text-slate-500 font-bold">© 2026 Auto Parts Governance</span>
+                </div>
+            </footer>
 
             <React.Suspense fallback={null}>
                 <DataSelectionModal 

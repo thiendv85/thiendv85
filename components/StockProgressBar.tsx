@@ -375,11 +375,7 @@ export const StockProgressBar: React.FC<StockProgressBarProps> = (props) => {
             <Typography variant="body-sm" className="flex items-center gap-1 text-slate-500 font-semibold" title="Total PO Pipeline">
               <i className="fas fa-truck text-2xs text-blue-500"></i>
               <span>{onOrder.toLocaleString()}</span>
-              {(incoming > 0 || incomingNext > 0) && (
-                <span className="text-[10px] text-blue-400 ml-1 font-bold">
-                  (M0: {incoming} | M+1: {incomingNext})
-                </span>
-              )}
+
             </Typography>
 
             {backorder > 0 && (

@@ -944,28 +944,25 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                                     ss={item.computed?.safetyStock} onOrder={item.TotalPO} incoming={incomingThisMonth} incomingNext={item.computed?.incomingNextMonth} backorder={item.Backorder} breakdown={item.BackorderBreakdown} draftAdd={draftQtyTotal} baseFc={item.BaseForecast} />
                                             </div>
                                         </td>
-                                        {/* SUPPLY PIPELINE — incoming tháng + total PO */}
-                                        <td className="px-4 py-4 text-center hidden lg:table-cell border-r border-slate-50">
-                                            <div className="flex flex-col items-center gap-1">
-                                                <div className="text-[10px] font-black text-blue-600 flex items-center gap-1" title="Hàng đang về tháng này (M0)">
-                                                    <i className="fas fa-truck-fast text-[8px]" />
-                                                    <span>M0: {item.computed?.incomingCurrentMonth || 0}</span>
-                                                </div>
-                                                <div className="text-[10px] font-black text-indigo-500 flex items-center gap-1" title="Hàng đang về tháng tiếp theo (M+1)">
-                                                    <i className="fas fa-calendar-check text-[8px]" />
-                                                    <span>M1: {item.computed?.incomingNextMonth || 0}</span>
-                                                </div>
+                                        {/* SUPPLY PIPELINE — aligned with Dashboard style */}
+                                        <td className="px-4 py-3 text-center border-b border-slate-50 min-w-[130px]">
+                                            <div className="flex flex-col items-center gap-1.5">
+                                                {incomingThisMonth > 0 ? (
+                                                    <div className="flex flex-col items-center leading-none">
+                                                        <Typography variant="body" className="font-black text-blue-700">+{incomingThisMonth.toLocaleString()}</Typography>
+                                                        <Typography variant="label" className="text-blue-400 !font-bold normal-case text-[9px]">Về tháng này</Typography>
+                                                    </div>
+                                                ) : (
+                                                    <Typography variant="body" className="font-bold text-slate-300">—</Typography>
+                                                )}
+                                                
+                                                {(item.TotalPO || 0) > 0 && (
+                                                    <div className="inline-flex items-center gap-1 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 shadow-sm" title="Tổng PO Pipeline">
+                                                        <i className="fas fa-ship text-indigo-400 text-[9px]" />
+                                                        <span className="text-[10px] font-black text-indigo-600">PO: {(item.TotalPO || 0).toLocaleString()}</span>
+                                                    </div>
+                                                )}
                                             </div>
-                                        </td>
-                                        <td className="px-4 py-4 text-center hidden lg:table-cell bg-slate-50/10">
-                                            {(item.TotalPO || 0) > 0 ? (
-                                                <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-indigo-50 text-indigo-700 border border-indigo-100/50 shadow-sm" title="Tổng PO Pipeline">
-                                                    <i className="fas fa-ship text-[10px] animate-pulse-slow" />
-                                                    <span className="text-xs font-black">{(item.TotalPO || 0).toLocaleString()}</span>
-                                                </div>
-                                            ) : (
-                                                <span className="text-slate-300 text-xs font-bold">—</span>
-                                            )}
                                         </td>
                                         <td className="px-4 py-3 text-center border-b border-slate-50 hidden lg:table-cell">
                                             <SalesMomentum values={[item.AvgQty24M, item.AvgQty12M, item.AvgQty6M, item.AvgQty3M]} history={item.SalesHistory} forecast={item.BaseForecast} />

@@ -78,20 +78,23 @@ export const OrderItemRow = ({
                 </div>
             </td>
 
-            <td className="px-3 py-2 text-center bg-slate-50/20 border-r border-slate-100">
                 <div className="flex flex-col items-center gap-1.5">
-                    {(ctx.incomingCurrentMonth > 0 || ctx.incomingNextMonth > 0) ? (
-                        <div className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 shadow-sm flex items-center gap-1.5">
-                            <span>M0:{ctx.incomingCurrentMonth} + M1:{ctx.incomingNextMonth}</span>
+                    {ctx.incomingCurrentMonth > 0 ? (
+                        <div className="flex flex-col items-center leading-none">
+                            <span className="font-black text-blue-700 text-sm">+{ctx.incomingCurrentMonth.toLocaleString()}</span>
+                            <span className="text-blue-400 font-bold text-[9px] uppercase">Tháng này</span>
                         </div>
                     ) : (
-                        <div className="text-[10px] font-bold text-slate-300">No Incoming</div>
+                        <span className="text-slate-300 font-bold text-xs">—</span>
                     )}
-                    <div className="text-[10px] font-black text-indigo-700 bg-indigo-50 px-2 py-1 rounded border border-indigo-100 shadow-sm w-full justify-center flex items-center gap-1.5">
-                        <span>PO: {ctx.totalPO.toLocaleString()}</span>
-                    </div>
+                    
+                    {(ctx.totalPO || 0) > 0 && (
+                        <div className="inline-flex items-center gap-1 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 shadow-sm">
+                            <i className="fas fa-ship text-indigo-400 text-[9px]" />
+                            <span className="text-[10px] font-black text-indigo-600">PO: {ctx.totalPO.toLocaleString()}</span>
+                        </div>
+                    )}
                 </div>
-            </td>
 
 
             <td className="px-3 py-2">
