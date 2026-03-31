@@ -370,8 +370,8 @@ const AppContent = () => {
                         })}
                     </nav>
 
-                    <div className="flex items-center gap-2 md:gap-4 shrink-0">
-                        <div className="flex items-center bg-white/5 rounded-lg p-1 border border-white/10">
+                    <div className="flex items-center gap-1.5 md:gap-4 shrink-0">
+                        <div className="flex items-center bg-white/5 rounded-lg p-1 border border-white/10 hidden sm:flex">
                             <button onClick={() => setLanguage('vi')} className={`w-8 h-7 rounded-md transition-all flex items-center justify-center ${language === 'vi' ? 'bg-white shadow-sm' : ''}`}>
                                 <Typography variant="label" className={language === 'vi' ? 'text-rose-600' : 'text-slate-400'}>VI</Typography>
                             </button>
@@ -380,9 +380,16 @@ const AppContent = () => {
                             </button>
                         </div>
                         <button
+                            onClick={() => setIsDataModalOpen(true)}
+                            title="Tải Dữ Liệu Cloud"
+                            className="text-slate-400 hover:text-blue-500 hover:bg-blue-500/20 transition-colors p-2 rounded-lg"
+                        >
+                            <i className="fas fa-cloud text-base md:text-lg" />
+                        </button>
+                        <button
                             onClick={() => setView('settings')}
                             title="Cấu hình hệ thống"
-                            className={`p-2 rounded-lg transition-all ${view === 'settings' ? 'bg-purple-100 text-purple-600' : 'text-slate-400 hover:text-purple-500 hover:bg-purple-50'}`}
+                            className={`p-2 rounded-lg transition-all ${view === 'settings' ? 'bg-purple-100/20 text-purple-400' : 'text-slate-400 hover:text-purple-400 hover:bg-purple-500/20'}`}
                         >
                             <i className="fas fa-sliders text-base md:text-lg" />
                         </button>
