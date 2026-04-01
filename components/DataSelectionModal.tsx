@@ -2,19 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { X, Cloud, Database, Calendar, Download, RefreshCw, AlertCircle, Trash2 } from 'lucide-react';
 import { Typography } from './Typography';
-import { SnapshotMetadataRow, listSnapshots, loadSnapshot, listMonthlyDataSnapshots, loadSpecificMonthlyData, deleteSnapshot } from '../utils/supabase';
+import { SnapshotMetadataRow, listSnapshots, loadSnapshot, listMonthlyDataSnapshots, loadSpecificMonthlyData, deleteSnapshot, normalizeBrand } from '../utils/supabase';
 import { InventoryItem } from '../types/inventory';
 
-const extractBrandFromDepartment = (dep?: string | null): string | null => {
-    if (!dep) return null;
-    const d = dep.toLowerCase();
-    if (d.includes('kia')) return 'Kia';
-    if (d.includes('mazda')) return 'Mazda';
-    if (d.includes('peugeot') || d.includes('peu') || d.includes('stellantis')) return 'Stellantis';
-    if (d.includes('bmw')) return 'BMW';
-    if (d.includes('mini')) return 'MINI';
-    return dep;
-};
+// Removed local extractBrandFromDepartment in favor of shared normalizeBrand from supabase.ts
 
 interface DataSelectionModalProps {
     isOpen: boolean;
@@ -50,7 +41,7 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
         try {
             if (tab === 'inventory') {
                 const isAdmin = userRole === 'admin';
-                const userBrand = isAdmin ? null : extractBrandFromDepartment(userDepartment);
+                const userBrand = isAdmin ? null : normalizeBrand(userDepartment);
 
                 const fetchLimit = selectedBrand && selectedBrand !== 'ALL' ? 50 : 100;
                 

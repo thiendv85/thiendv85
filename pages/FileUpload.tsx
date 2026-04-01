@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { InventoryItem, MonthlyData } from '../types/inventory';
 import { parseCSV, parseDealerStockCSV, parseBackorderCSV } from '../utils/csvParser';
 import { useLanguage } from '../utils/i18n';
-import { uploadSnapshot, listSnapshots, loadSnapshot, deleteSnapshot, getStorageUsage, SnapshotMetadataRow } from '../utils/supabase';
+import { uploadSnapshot, listSnapshots, loadSnapshot, deleteSnapshot, getStorageUsage, SnapshotMetadataRow, normalizeBrand } from '../utils/supabase';
 import { useAuth } from '../utils/authContext';
 
 
@@ -50,7 +50,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
 
     const fetchSnapshots = async () => {
         setIsLoadingHistory(true);
-        const brandFilter = profile?.role === 'admin' ? null : (profile?.department || null);
+        const brandFilter = profile?.role === 'admin' ? null : normalizeBrand(profile?.department);
         const list = await listSnapshots(50, brandFilter);
         setSnapshots(list);
         const usage = await getStorageUsage();

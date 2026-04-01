@@ -21,7 +21,7 @@ import { Typography } from '../components/Typography';
 import { CloudDraftModal } from '../components/CloudDraftModal';
 import { useAuth } from '../utils/authContext';
 import { ApprovalStatusBadge } from '../components/ApprovalStatusBadge';
-import { listWorkflows, submitApprovalRequest, fetchRequestByDraftName, resubmitApprovalRequest, fetchRequestActions } from '../utils/supabase';
+import { listWorkflows, submitApprovalRequest, fetchRequestByDraftName, resubmitApprovalRequest, fetchRequestActions, normalizeBrand } from '../utils/supabase';
 import { ApprovalRequest, ApprovalWorkflow, ApprovalAction } from '../types/inventory';
 import { useDevice } from '../hooks/useDevice';
 
@@ -222,7 +222,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
         setIsSubmitting(true);
         const id = await submitApprovalRequest({
             draft_name: submitDraftName.trim(),
-            brand: null,
+            brand: normalizeBrand(profile?.department),
             workflow_id: selectedWorkflowId,
             submitted_by: user.id,
             snapshot_data: buildSnapshot(),

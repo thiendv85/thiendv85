@@ -16,6 +16,22 @@ export const verifyAdminPin = (inputPin: string) => {
   return inputPin === adminPin;
 };
 
+/**
+ * Normalizes brand names from departments or CSV headers to a standard set.
+ */
+export const normalizeBrand = (brandText?: string | null): string | null => {
+    if (!brandText) return null;
+    const b = brandText.toLowerCase().trim();
+    if (b.includes('kia')) return 'Kia';
+    if (b.includes('mazda')) return 'Mazda';
+    if (b.includes('peugeot') || b.includes('peu') || b.includes('stellantis')) return 'Stellantis';
+    if (b.includes('bmw')) return 'BMW';
+    if (b.includes('mini')) return 'MINI';
+    // Handle common ALL or empty cases
+    if (b === 'all' || b === 'tất cả') return null;
+    return brandText.trim();
+};
+
 // Helper function to save JSON data to cloud_storage table (global records, no owner)
 export async function saveToCloudStorage(id: string, data: any) {
   try {
@@ -435,7 +451,7 @@ export async function submitApprovalRequest(payload: SubmitRequestPayload): Prom
     .from('approval_requests')
     .insert({
       draft_name: payload.draft_name,
-      brand: payload.brand,
+      brand: normalizeBrand(payload.brand), // Normalize brand on submission
       workflow_id: payload.workflow_id,
       current_level: 1,
       status: 'pending',
@@ -816,7 +832,8 @@ export async function uploadSnapshot(
 ): Promise<{ success: boolean; error?: string; deduplicated?: boolean }> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    const brand = data[0]?.BrandName || null;
+    const rawBrand = data[0]?.BrandName || data[0]?.ThuongHieu || null;
+    const brand = normalizeBrand(rawBrand);
     const contentHash = computeSnapshotHash(data);
 
     // Dedup: skip if same hash exists within 24h
@@ -840,7 +857,10 @@ export async function uploadSnapshot(
     const pad = (n: number) => String(n).padStart(2, '0');
     const datePath = `${now.getFullYear()}/${pad(now.getMonth() + 1)}/${pad(now.getDate())}`;
     const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-    const path = `${datePath}/snapshot_${ts}.json.gz`;
+    
+    // Structure path by brand to support RLS and organization
+    const brandPrefix = brand ? `${brand.toLowerCase()}/` : 'unbranded/';
+    const path = `${brandPrefix}${datePath}/snapshot_${ts}.json.gz`;
 
     const { error: uploadErr } = await supabase.storage
       .from('inventory_snapshots')
@@ -881,13 +901,17 @@ export async function listSnapshots(limit = 50, brandFilter?: string | null): Pr
   try {
     let query = supabase
       .from('snapshot_metadata')
-      .select('*, profiles:uploaded_by(full_name)')
-      .order('upload_date', { ascending: false })
-      .limit(limit);
+      .select('*, profiles:uploaded_by(full_name)');
 
     if (brandFilter) {
-      query = query.or(`brand.eq.${brandFilter},brand.is.null`);
+      const normalized = normalizeBrand(brandFilter);
+      if (normalized) {
+        // Use OR to include the exact normalized brand and also nulls (global defaults)
+        query = query.or(`brand.eq.${normalized},brand.is.null`);
+      }
     }
+
+    query = query.order('upload_date', { ascending: false }).limit(limit);
 
     const { data, error } = await query;
     if (error) { console.error('listSnapshots:', error); return []; }
