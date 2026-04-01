@@ -86,8 +86,15 @@ const Sparkline = ({ values, group }: { values: number[]; group: IntelGroup }) =
     const height = 32;
     const padding = 2;
     const max = Math.max(...values, 1);
-    const getX = (i: number) => padding + (i / (values.length - 1)) * (width - padding * 2);
-    const getY = (v: number) => height - padding - ((v) / (max)) * (height - padding * 2);
+    const getX = (i: number) => {
+        const divider = values.length > 1 ? values.length - 1 : 1;
+        return padding + (i / divider) * (width - padding * 2);
+    };
+    const getY = (v: number) => {
+        const diff = max || 1;
+        const val = isFinite(v) ? v : 0;
+        return height - padding - (val / diff) * (height - padding * 2);
+    };
     const points = values.map((v, i) => `${getX(i)},${getY(v)}`).join(' ');
 
     const colorMap: Record<IntelGroup, string> = {

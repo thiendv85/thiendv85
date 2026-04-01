@@ -117,7 +117,11 @@ const LoisRow = React.memo(({
     return (
         <tr 
             onClick={() => !isHeader && subKeys.length === 1 && onToggleSubgroup(subKeys[0])} 
-            className={`${isHeader ? 'bg-slate-50/50 uppercase tracking-widest' : (isActive ? 'bg-blue-50/80 shadow-inner' : 'bg-white hover:bg-slate-50/80')} border-b border-slate-100 transition-all cursor-pointer text-sm hover:translate-x-1 duration-200`}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); !isHeader && subKeys.length === 1 && onToggleSubgroup(subKeys[0]); } }}
+            role={isHeader ? 'presentation' : 'button'}
+            tabIndex={isHeader ? -1 : 0}
+            aria-label={isHeader ? undefined : `Lọc theo nhóm ${label}`}
+            className={`${isHeader ? 'bg-slate-50/50 uppercase tracking-widest' : (isActive ? 'bg-blue-50/80 shadow-inner' : 'bg-white hover:bg-slate-50/80')} border-b border-slate-100 transition-all cursor-pointer text-sm hover:translate-x-1 duration-200 focus:outline-none focus:bg-blue-50`}
         >
             <td className={`px-3 py-2 border-r border-slate-100 ${isHeader ? 'text-slate-900 font-black' : 'text-slate-700'}`}>
                 <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
@@ -143,7 +147,7 @@ const LoisRow = React.memo(({
                 </div>
             </td>
             <td className="px-3 py-1.5 text-right font-bold text-slate-800">
-                <Typography variant="body-sm" className="font-bold">
+                <Typography variant="body-sm" className="font-bold tabular-nums">
                     {formatNum(row.turnover)}
                 </Typography>
                 {!isHeader && !isMobile && subKeys.length === 1 && row.turnover > 0 && (
@@ -158,27 +162,27 @@ const LoisRow = React.memo(({
                 </Typography>
             </td>
             <td className="px-3 py-2 text-center">
-                <Typography variant="body-sm" className="text-slate-500">
+                <Typography variant="body-sm" className="text-slate-500 tabular-nums">
                     {row.items.toLocaleString()}
                 </Typography>
             </td>
             <td className={`px-3 py-2 text-center ${row.noStock > 0 ? 'bg-atp-action/5' : ''}`}>
-                <Typography variant="body-sm" className={`font-bold ${row.noStock > 0 ? 'text-atp-action' : 'text-slate-300'}`}>
+                <Typography variant="body-sm" className={`font-bold tabular-nums ${row.noStock > 0 ? 'text-atp-action' : 'text-slate-300'}`}>
                     {row.noStock > 0 ? row.noStock.toLocaleString() : '—'}
                 </Typography>
             </td>
             <td className={`px-3 py-2 text-center ${row.short > 0 ? 'bg-atp-accent/5' : ''} ${isMobile ? 'hidden' : ''}`}>
-                <Typography variant="body-sm" className={`font-bold ${row.short > 0 ? 'text-atp-accent' : 'text-slate-300'}`}>
+                <Typography variant="body-sm" className={`font-bold tabular-nums ${row.short > 0 ? 'text-atp-accent' : 'text-slate-300'}`}>
                     {row.short > 0 ? row.short.toLocaleString() : '—'}
                 </Typography>
             </td>
             <td className={`px-3 py-1.5 text-right bg-blue-50/20 ${isMobile ? 'hidden' : ''}`}>
-                <Typography variant="body-sm" className="font-bold text-blue-700">
+                <Typography variant="body-sm" className="font-bold text-blue-700 tabular-nums">
                     {formatNum(row.stockVal)}
                 </Typography>
             </td>
             <td className={`px-3 py-1 text-center border-x border-blue-100 bg-blue-50/20 ${isMobile ? 'hidden' : ''}`}>
-                <Typography variant="label" className={`!italic ${mosOk === true ? 'text-emerald-600' : mosOk === false ? 'text-rose-500' : 'text-slate-600'}`}>
+                <Typography variant="label" className={`!italic tabular-nums ${mosOk === true ? 'text-emerald-600' : mosOk === false ? 'text-rose-500' : 'text-slate-600'}`}>
                     {actualMOS > 0 ? actualMOS.toFixed(1) : '-'}M
                 </Typography>
                 {targetMOS && (
@@ -188,32 +192,32 @@ const LoisRow = React.memo(({
                 )}
             </td>
             <td className={`px-3 py-1.5 text-right uppercase ${isMobile ? 'hidden' : ''}`}>
-                <Typography variant="body-sm" className="font-bold text-slate-500">
+                <Typography variant="body-sm" className="font-bold text-slate-500 tabular-nums">
                     {formatNum(row.poVal)}
                 </Typography>
             </td>
             <td className={`px-3 py-2 text-center ${row.boItems > 0 ? 'bg-rose-50/30' : ''}`}>
-                <Typography variant="body-sm" className={`font-bold ${row.boItems > 0 ? 'text-rose-600' : 'text-slate-200'}`}>
+                <Typography variant="body-sm" className={`font-bold tabular-nums ${row.boItems > 0 ? 'text-rose-600' : 'text-slate-200'}`}>
                     {row.boItems > 0 ? row.boItems.toLocaleString() : '—'}
                 </Typography>
             </td>
             <td className={`px-3 py-2 text-right ${row.boValue > 0 ? 'bg-rose-50/30' : ''} ${isMobile ? 'hidden' : ''}`}>
-                <Typography variant="body-sm" className={`font-bold ${row.boValue > 0 ? 'text-rose-700' : 'text-slate-200'}`}>
+                <Typography variant="body-sm" className={`font-bold tabular-nums ${row.boValue > 0 ? 'text-rose-700' : 'text-slate-200'}`}>
                     {row.boValue > 0 ? formatNum(row.boValue) : '—'}
                 </Typography>
             </td>
             <td className="px-3 py-2 text-center">
-                <Typography variant="body-sm" className="font-black text-slate-400">
+                <Typography variant="body-sm" className="font-black text-slate-400 tabular-nums">
                     {row.excessItems > 0 ? row.excessItems.toLocaleString() : '—'}
                 </Typography>
             </td>
             <td className="px-3 py-2 text-right text-slate-400">
-                <Typography variant="body-sm" className="font-bold">
+                <Typography variant="body-sm" className="font-bold tabular-nums">
                     {formatNum(row.excessVal)}
                 </Typography>
             </td>
             <td className="px-3 py-1 text-center border-l border-slate-100">
-                <div className={`font-black text-xs !italic ${excessOk === true ? 'text-emerald-600' : excessOk === false ? 'text-rose-500' : 'text-slate-600'}`}>
+                <div className={`font-black text-xs !italic tabular-nums ${excessOk === true ? 'text-emerald-600' : excessOk === false ? 'text-rose-500' : 'text-slate-600'}`}>
                     {excessPct.toFixed(1)}%
                 </div>
                 {targetExcess && (
@@ -821,10 +825,16 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
 
                 {/* KPI GRID */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                    <MetricCard label={t('kpi_turnover')} value={formatCurrency(grandStats.grandTurnover)} subValue={t('kpi_turnover_sub')} icon="fa-arrow-trend-up" color="professional" />
-                    <MetricCard label={t('kpi_stock')} value={formatCurrency(grandStats.grandStock)} subValue={t('kpi_stock_sub')} icon="fa-warehouse" color="emerald" />
-                    <MetricCard label={t('kpi_pipeline')} value={formatCurrency(grandStats.grandPOVal)} subValue={t('kpi_pipeline_sub')} icon="fa-truck-fast" color="blue" />
-                    <MetricCard label={t('kpi_excess')} value={formatCurrency(grandStats.grandExcess)} subValue="Impact Value" icon="fa-circle-exclamation" color="rose" />
+                    <MetricCard label={t('kpi_turnover')} value={formatCurrency(grandStats.grandTurnover)} subValue={t('kpi_turnover_sub')} icon="fa-arrow-trend-up" color="professional" onClick={() => {}} />
+                    <MetricCard label={t('kpi_stock')} value={formatCurrency(grandStats.grandStock)} subValue={t('kpi_stock_sub')} icon="fa-warehouse" color="emerald" onClick={() => {
+                        handleFiltersChange({ ...filters, specialFilter: 'critical_stockout' });
+                        setTimeout(() => document.getElementById('inventory-table-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+                    }} />
+                    <MetricCard label={t('kpi_pipeline')} value={formatCurrency(grandStats.grandPOVal)} subValue={t('kpi_pipeline_sub')} icon="fa-truck-fast" color="blue" onClick={() => {}} />
+                    <MetricCard label={t('kpi_excess')} value={formatCurrency(grandStats.grandExcess)} subValue="Impact Value" icon="fa-circle-exclamation" color="rose" onClick={() => {
+                        handleFiltersChange({ ...filters, specialFilter: 'excess' });
+                        setTimeout(() => document.getElementById('inventory-table-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+                    }} />
                 </div>
             </div>
 

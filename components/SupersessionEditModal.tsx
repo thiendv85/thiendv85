@@ -200,12 +200,18 @@ export const SupersessionEditModal: React.FC<SupersessionEditModalProps> = ({
                         )}
                     </div>
 
-                    <div className="flex items-center gap-4 cursor-pointer p-6 rounded-2xl border border-slate-200 hover:bg-slate-50 hover:border-emerald-300 transition-all group" onClick={() => setInterchangeable(!interchangeable)}>
+                    <button 
+                        type="button"
+                        role="switch"
+                        aria-checked={interchangeable}
+                        onClick={() => setInterchangeable(!interchangeable)}
+                        className="flex items-center gap-4 cursor-pointer p-6 rounded-2xl border border-slate-200 hover:bg-slate-50 hover:border-emerald-300 transition-all group focus:outline-none focus:ring-4 focus:ring-emerald-50" 
+                    >
                         <div className="relative flex-shrink-0">
                             <div className={`block w-12 h-7 rounded-full transition-colors ${interchangeable ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
                             <div className={`absolute left-1 top-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${interchangeable ? 'translate-x-5' : ''}`}></div>
                         </div>
-                        <div className="flex-1">
+                        <div className="flex-1 text-left">
                             <Typography variant="h3" className="text-slate-700 group-hover:text-emerald-700 transition-colors">
                                 Hai chiều (Interchangeable)
                             </Typography>
@@ -213,7 +219,7 @@ export const SupersessionEditModal: React.FC<SupersessionEditModalProps> = ({
                                 Hai mã có thể thay thế qua lại cho nhau
                             </Typography>
                         </div>
-                    </div>
+                    </button>
                 </div>
 
                 <div className="px-8 py-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-4 rounded-b-[32px]">

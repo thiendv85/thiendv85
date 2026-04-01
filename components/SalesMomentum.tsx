@@ -19,8 +19,15 @@ export const SalesMomentum = ({ values, history = [], forecast = 0, compact = fa
     const max = Math.max(...cleanValues, 1);
     const min = Math.min(...cleanValues, 0);
 
-    const getX = (i: number) => padding + (i / (cleanValues.length - 1)) * (width - padding * 2);
-    const getY = (v: number) => height - padding - ((v - min) / (max - min || 1)) * (height - padding * 2);
+    const getX = (i: number) => {
+        const divider = cleanValues.length > 1 ? cleanValues.length - 1 : 1;
+        return padding + (i / divider) * (width - padding * 2);
+    };
+    const getY = (v: number) => {
+        const diff = max - min || 1;
+        const val = isFinite(v) ? v : 0;
+        return height - padding - ((val - min) / diff) * (height - padding * 2);
+    };
 
     const points = cleanValues.map((v, i) => `${getX(i)},${getY(v)}`).join(' ');
     const areaPath = `${points} L ${getX(cleanValues.length - 1)},${height} L ${getX(0)},${height} Z`;
@@ -94,7 +101,7 @@ export const SalesMomentum = ({ values, history = [], forecast = 0, compact = fa
                             </linearGradient>
                         </defs>
                         <line x1={getX(0)} y1={getY(first)} x2={getX(3)} y2={getY(first)} stroke={config.color} strokeWidth="1" strokeDasharray="3,3" opacity="0.2" />
-                        <polyline points={areaPath} fill={`url(#grad-${last})`} />
+                        <path d={`M ${areaPath}`} fill={`url(#grad-${last})`} />
                         <polyline points={points} fill="none" stroke={config.color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                         {cleanValues.map((v, i) => (
                             <circle key={i} cx={getX(i)} cy={getY(v)} r={i === 3 ? "3" : "1.5"} fill={i === 3 ? config.color : "white"} stroke={config.color} strokeWidth="1.5" />

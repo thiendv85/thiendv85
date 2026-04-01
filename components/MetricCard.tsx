@@ -89,13 +89,17 @@ export const MetricCard = React.memo(({ label, value, subValue, icon, color = 's
   return (
     <div
       onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      aria-label={`Chi tiết số liệu ${label}: ${value}`}
       className={`
         group relative overflow-hidden border transition-all duration-300 rounded-2xl
         ${style.cardBg} ${style.cardGlow} ${style.innerGlow}
         ${isActive
           ? 'ring-2 ring-white/50 translate-y-[-2px] border-white/40'
           : 'border-white/10 hover:border-white/20 hover:translate-y-[-2px] shadow-sm'}
-        ${onClick ? 'cursor-pointer' : ''}
+        ${onClick ? 'cursor-pointer focus:outline-none focus:ring-4 focus:ring-white/30' : ''}
       `}
     >
       {/* Decorative glow orb (hidden on mobile flat design) */}
@@ -108,7 +112,7 @@ export const MetricCard = React.memo(({ label, value, subValue, icon, color = 's
         </div>
         <div className="flex-1 min-w-0">
           <div className={`text-[9px] font-black uppercase tracking-widest leading-none mb-0.5 opacity-80 ${style.labelText}`}>{label}</div>
-          <div className={`text-base font-black leading-tight truncate ${style.valueText}`}>{value}</div>
+          <div className={`text-base font-black leading-tight truncate tabular-nums ${style.valueText}`}>{value}</div>
           <div className={`text-[10px] font-bold truncate opacity-70 ${style.subText}`}>{subValue}</div>
         </div>
         {badge && (
@@ -126,7 +130,7 @@ export const MetricCard = React.memo(({ label, value, subValue, icon, color = 's
             <Typography variant="label" className={`${style.labelText} metric-label truncate block !text-[10px]`}>
               {label}
             </Typography>
-            <Typography variant="h2" className={`tracking-tight leading-tight ${style.valueText} !text-xl truncate`}>
+            <Typography variant="h2" className={`tracking-tight leading-tight ${style.valueText} !text-xl truncate tabular-nums`}>
               {value}
             </Typography>
             <Typography variant="body-sm" className={`truncate ${style.subText} trend-value !text-xs opacity-80`}>

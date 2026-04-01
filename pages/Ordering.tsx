@@ -56,8 +56,8 @@ const DraftAnalysisCharts = ({ itemMap, orderQuantities, costBasis }: { itemMap:
             <div className="bg-white p-6 rounded-2xl border border-slate-200 flex flex-col justify-between hover:border-atp-action/30 shadow-sm transition-all group/air">
                 <div>
                     <Typography variant="label" className="text-slate-500 mb-4 flex items-center gap-2 transition-transform group-hover/air:translate-x-1"><i className="fas fa-plane-up text-atp-action"></i> {t('ord_air_title')}</Typography>
-                    <Typography variant="h1" className="text-atp-action">{formatter.format(stats.airVal)}</Typography>
-                    <Typography variant="label" className="text-slate-600 mt-1 font-bold">{stats.airQty.toLocaleString()} units</Typography>
+                    <Typography variant="h1" className="text-atp-action tabular-nums">{formatter.format(stats.airVal)}</Typography>
+                    <Typography variant="label" className="text-slate-600 mt-1 font-bold tabular-nums">{stats.airQty.toLocaleString()} units</Typography>
                 </div>
                 <div className="h-1.5 w-full bg-slate-100 rounded-full mt-4 overflow-hidden border border-slate-200">
                     <div className="h-full bg-atp-action transition-all duration-1000 shadow-[0_0_8px_rgba(220,38,38,0.3)]" style={{ width: `${(stats.airVal / stats.totalVal) * 100}%` }}></div>
@@ -66,8 +66,8 @@ const DraftAnalysisCharts = ({ itemMap, orderQuantities, costBasis }: { itemMap:
             <div className="bg-white p-6 rounded-2xl border border-slate-200 flex flex-col justify-between hover:border-atp-secondary/30 shadow-sm transition-all group/sea">
                 <div>
                     <Typography variant="label" className="text-slate-500 mb-4 flex items-center gap-2 transition-transform group-hover/sea:translate-x-1"><i className="fas fa-ship text-atp-secondary"></i> {t('ord_sea_title')}</Typography>
-                    <Typography variant="h1" className="text-atp-secondary">{formatter.format(stats.seaVal)}</Typography>
-                    <Typography variant="label" className="text-slate-600 mt-1 font-bold">{stats.seaQty.toLocaleString()} units</Typography>
+                    <Typography variant="h1" className="text-atp-secondary tabular-nums">{formatter.format(stats.seaVal)}</Typography>
+                    <Typography variant="label" className="text-slate-600 mt-1 font-bold tabular-nums">{stats.seaQty.toLocaleString()} units</Typography>
                 </div>
                 <div className="h-1.5 w-full bg-slate-100 rounded-full mt-4 overflow-hidden border border-slate-200">
                     <div className="h-full bg-atp-secondary transition-all duration-1000 shadow-[0_0_8px_rgba(51,65,85,0.3)]" style={{ width: `${(stats.seaVal / stats.totalVal) * 100}%` }}></div>
@@ -77,7 +77,7 @@ const DraftAnalysisCharts = ({ itemMap, orderQuantities, costBasis }: { itemMap:
                 <div className="absolute -right-4 -bottom-4 opacity-10 text-8xl transform -rotate-12 transition-transform group-hover/total:scale-125 duration-700"><i className="fas fa-cart-flatbed-boxes"></i></div>
                 <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,#ffffff10,transparent)] pointer-events-none"></div>
                 <Typography variant="label" className="text-slate-300 mb-2">{t('ord_total_val')}</Typography>
-                <Typography variant="h1" className="text-white text-4xl">{formatter.format(stats.totalVal)}</Typography>
+                <Typography variant="h1" className="text-white text-4xl tabular-nums">{formatter.format(stats.totalVal)}</Typography>
                 <Typography variant="label" className="text-slate-400 mt-2 block !text-[10px] uppercase tracking-widest">{t('ord_total_hint')}</Typography>
             </div>
         </div>

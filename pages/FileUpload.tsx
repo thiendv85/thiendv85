@@ -348,13 +348,15 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                             {mode === 'upload' && (
                                 <div className="space-y-4">
                                     {/* Main Input Field */}
-                                    <div
+                                    <button
+                                        type="button"
                                         onDragOver={onDragOver}
                                         onDragLeave={onDragLeave}
                                         onDrop={handleMainFileDrop}
                                         onClick={() => !isMonthlyLoading && mainInputRef.current?.click()}
+                                        aria-label="Tải file Inventory chính"
                                         className={`
-                                      relative w-full h-24 rounded-2xl border-2 border-dashed transition-all cursor-pointer flex items-center px-6 group overflow-hidden
+                                      relative w-full h-24 rounded-2xl border-2 border-dashed transition-all cursor-pointer flex items-center px-6 group overflow-hidden focus:outline-none focus:ring-4 focus:ring-blue-50/50
                                       ${isDragging
                                                 ? 'bg-blue-500/20 border-blue-400 shadow-[0_0_30px_rgba(59,130,246,0.3)] scale-[1.02]'
                                                 : mainFile
@@ -375,19 +377,21 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                                         : mainFile ? 'Sẵn sàng phân tích' : 'Dữ liệu chính'}
                                                 </span>
                                                 <span className={`text-sm font-bold truncate transition-colors ${mainFile ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
-                                                    {isMonthlyLoading ? "Vui lòng đợi 10-20s để đồng bộ 80k mã..." : mainFile ? mainFile.name : "Kéo thả file Inventory tại đây..."}
+                                                    {isMonthlyLoading ? "Vui lòng đợi 10–20s để đồng bộ 80k mã…" : mainFile ? mainFile.name : "Kéo thả file Inventory tại đây…"}
                                                 </span>
                                             </div>
                                         </div>
                                         <input type="file" ref={mainInputRef} className="hidden" accept=".csv" onChange={(e) => !isMonthlyLoading && e.target.files && setMainFile(e.target.files[0])} />
-                                    </div>
+                                    </button>
 
                                     {/* Optional Inputs Grid */}
                                     <div className="grid grid-cols-2 gap-3">
                                         {/* Dealer Stock */}
-                                        <div
+                                        <button
+                                            type="button"
                                             onClick={() => dealerInputRef.current?.click()}
-                                            className={`h-16 rounded-xl border flex items-center px-4 cursor-pointer transition-all relative overflow-hidden group
+                                            aria-label="Tải file tồn kho đại lý tùy chọn"
+                                            className={`h-16 rounded-xl border flex items-center px-4 cursor-pointer transition-all relative overflow-hidden group focus:outline-none focus:ring-4 focus:ring-blue-50/50
                                           ${dealerFile
                                                     ? 'bg-blue-500/10 border-blue-500/50'
                                                     : 'bg-black/20 border-white/10 hover:border-blue-400/30 hover:bg-black/30'}
@@ -403,12 +407,14 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                                 </span>
                                             </div>
                                             <input type="file" ref={dealerInputRef} className="hidden" accept=".csv" onChange={(e) => e.target.files && setDealerFile(e.target.files[0])} />
-                                        </div>
+                                        </button>
 
                                         {/* Backorder */}
-                                        <div
+                                        <button
+                                            type="button"
                                             onClick={() => boInputRef.current?.click()}
-                                            className={`h-16 rounded-xl border flex items-center px-4 cursor-pointer transition-all relative overflow-hidden group
+                                            aria-label="Tải file đơn nợ BO tùy chọn"
+                                            className={`h-16 rounded-xl border flex items-center px-4 cursor-pointer transition-all relative overflow-hidden group focus:outline-none focus:ring-4 focus:ring-rose-50/50
                                           ${boFile
                                                     ? 'bg-rose-500/10 border-rose-500/50'
                                                     : 'bg-black/20 border-white/10 hover:border-rose-400/30 hover:bg-black/30'}
@@ -424,7 +430,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                                 </span>
                                             </div>
                                             <input type="file" ref={boInputRef} className="hidden" accept=".csv" onChange={(e) => e.target.files && setBoFile(e.target.files[0])} />
-                                        </div>
+                                        </button>
                                     </div>
 
                                     {/* Action Buttons */}

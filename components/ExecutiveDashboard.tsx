@@ -137,12 +137,20 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
                         const hasSupersession = chain && chain.allParts.length > 1;
 
                         return (
-                            <div key={item.ItemCode} onClick={() => onItemSelect(item)} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm active:scale-[0.98] transition-all hover:border-blue-300 hover:shadow-md cursor-pointer relative overflow-hidden">
+                            <div 
+                                key={item.ItemCode} 
+                                onClick={() => onItemSelect(item)} 
+                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onItemSelect(item); } }}
+                                role="button"
+                                tabIndex={0}
+                                aria-label={`Xem chi tiết mã hàng ${item.ItemCode}`}
+                                className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm active:scale-[0.98] transition-all hover:border-blue-300 hover:shadow-md cursor-pointer relative overflow-hidden focus:outline-none focus:ring-4 focus:ring-blue-50"
+                            >
                                 <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/5 rounded-full -mr-8 -mt-8 pointer-events-none"></div>
                                 <div className="flex justify-between items-start mb-3">
                                     <div>
                                         <div className="flex items-center gap-2">
-                                            <Typography variant="mono" className="text-slate-900 text-lg !font-bold leading-none">{item.ItemCode}</Typography>
+                                            <Typography variant="mono" className="text-slate-900 text-lg !font-bold leading-none tabular-nums">{item.ItemCode}</Typography>
                                             {(() => {
                                                 const p = calculatePickingPriority(item, draftQty);
                                                 return <span className={`badge-p${Math.min(p, 5)} px-1.5 py-0.5 rounded font-black text-[10px] leading-none shrink-0`}>P{p}</span>;
@@ -176,7 +184,7 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
                                 <div className="grid grid-cols-2 gap-3 mb-4">
                                     <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
                                         <Typography variant="label" className="text-slate-400 block mb-1 uppercase tracking-tighter">DEMAND</Typography>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 tabular-nums">
                                             <span className="font-black text-slate-700">{(m1Actual || 0).toLocaleString()}</span>
                                             <div className="h-3 w-px bg-slate-300"></div>
                                             <span className="font-black text-emerald-600">{item.BaseForecast ? Math.round(item.BaseForecast).toLocaleString() : '-'}</span>
@@ -184,7 +192,7 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
                                     </div>
                                     <div className="bg-blue-50/50 p-2 rounded-xl border border-blue-100">
                                         <Typography variant="label" className="text-blue-400 block mb-1 uppercase tracking-tighter">Pipeline (In/PO)</Typography>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 tabular-nums">
                                             <span className="font-black text-blue-700">+{incomingThisMonth.toLocaleString()}</span>
                                             <div className="h-3 w-px bg-blue-200"></div>
                                             <span className="font-black text-indigo-600">PO: {item.TotalPO.toLocaleString()}</span>
@@ -204,13 +212,13 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
                                     <div className="flex justify-between items-end pt-2 border-t border-slate-50">
                                         <div className="flex flex-col">
                                             <Typography variant="label" className="text-slate-400">Runway (MOS)</Typography>
-                                            <Typography variant="h3" className={(item.computed?.mos || 0) < 1 ? 'text-rose-600' : 'text-slate-900'}>
+                                            <Typography variant="h3" className={`tabular-nums ${(item.computed?.mos || 0) < 1 ? 'text-rose-600' : 'text-slate-900'}`}>
                                                 {demandMonthly <= 0 ? '∞' : `${(item.computed?.mos || 0).toFixed(1)} M`}
                                             </Typography>
                                         </div>
                                         <div className="flex flex-col text-right">
                                             <Typography variant="label" className="text-slate-400">Stock Value</Typography>
-                                            <Typography variant="body" className="font-bold text-slate-800">{currencyFormatter.format(item.computed?.stockValue || 0)}</Typography>
+                                            <Typography variant="body" className="font-bold text-slate-800 tabular-nums">{currencyFormatter.format(item.computed?.stockValue || 0)}</Typography>
                                         </div>
                                     </div>
                                 </div>
@@ -251,12 +259,20 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
                                 const hasSupersession = chain && chain.allParts.length > 1;
 
                                 return (
-                                    <tr key={item.ItemCode} className="hover:bg-slate-50/80 transition-all group">
+                                    <tr 
+                                        key={item.ItemCode} 
+                                        onClick={() => onItemSelect(item)}
+                                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onItemSelect(item); } }}
+                                        role="button"
+                                        tabIndex={0}
+                                        aria-label={`Xem chi tiết mã hàng ${item.ItemCode}`}
+                                        className="hover:bg-slate-50/80 transition-all group focus:outline-none focus:bg-blue-50"
+                                    >
                                         <td className="px-4 py-3 text-center text-xs font-black text-slate-400 font-mono border-b border-slate-50 sticky left-0 z-10 bg-white group-hover:bg-slate-50/80">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
 
-                                        <td className="px-6 py-3 sticky left-12 z-10 bg-white group-hover:bg-slate-50/80 transition-colors sticky-column-shadow border-b border-slate-50 cursor-pointer" onClick={() => onItemSelect(item)}>
+                                        <td className="px-6 py-3 sticky left-12 z-10 bg-white group-hover:bg-slate-50/80 transition-colors sticky-column-shadow border-b border-slate-50 cursor-pointer">
                                             <div className="flex items-center gap-2">
-                                                <div className="text-lg font-black text-slate-900 group-hover:text-blue-600 transition-colors tracking-tight leading-none">{item.ItemCode}</div>
+                                                <div className="text-lg font-black text-slate-900 group-hover:text-blue-600 transition-colors tracking-tight leading-none tabular-nums">{item.ItemCode}</div>
                                                 {(() => {
                                                     const p = calculatePickingPriority(item, draftQty);
                                                     return <span className={`badge-p${Math.min(p, 5)} px-1.5 py-0.5 rounded font-black text-[10px] leading-none shrink-0`}>P{p}</span>;
@@ -283,7 +299,7 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
                                         {/* DEMAND SIGNAL */}
                                         <td className="px-4 py-3 text-center border-b border-slate-50">
                                             <div className="flex flex-col items-center gap-1">
-                                                <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200/80 shadow-sm" title="Bán M-1 thực tế / Dự báo FC">
+                                                <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200/80 shadow-sm tabular-nums" title="Bán M-1 thực tế / Dự báo FC">
                                                     <div className="flex flex-col items-start leading-tight">
                                                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">M-1</span>
                                                         <span className="font-black text-slate-800 text-sm leading-none">{(m1Actual || 0).toLocaleString()}</span>
@@ -308,7 +324,7 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
                                         <td className="px-4 py-3 text-center border-b border-slate-50">
                                             <div className="flex flex-col items-center gap-1">
                                                 {incomingThisMonth > 0 ? (
-                                                    <div className="flex flex-col items-center">
+                                                    <div className="flex flex-col items-center tabular-nums">
                                                         <Typography variant="body" className="font-bold text-blue-700">+{incomingThisMonth.toLocaleString()}</Typography>
                                                         <Typography variant="label" className="text-blue-400 !font-semibold normal-case leading-tight">Về tháng này</Typography>
                                                     </div>
@@ -316,7 +332,7 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
                                                     <Typography variant="body" className="font-bold text-slate-300">-</Typography>
                                                 )}
                                                 {item.TotalPO > 0 && (
-                                                    <div className="flex items-center gap-1 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                                                    <div className="flex items-center gap-1 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100 tabular-nums">
                                                         <i className="fas fa-ship text-indigo-400 text-[9px]"></i>
                                                         <span className="text-[10px] font-black text-indigo-600">PO: {item.TotalPO.toLocaleString()}</span>
                                                     </div>
@@ -335,15 +351,15 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
                                             )}
                                         </td>
                                         <td className="px-4 py-3 text-center border-b border-slate-50">
-                                            <Typography variant="body" className="font-bold text-slate-800">{(item.DealerInventory || 0).toLocaleString()}</Typography>
+                                            <Typography variant="body" className="font-bold text-slate-800 tabular-nums">{(item.DealerInventory || 0).toLocaleString()}</Typography>
                                             <div className="mt-1 flex flex-col items-center">
-                                                <div className={`text-sm font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200`}>
+                                                <div className={`text-sm font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 tabular-nums`}>
                                                     {demandMonthly <= 0 ? 'CST: ∞' : `CST: ${currentCst.toFixed(1)}`}
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-4 py-3 text-right border-b border-slate-50">
-                                            <Typography variant="body" className="font-bold text-slate-900">{currencyFormatter.format(item.computed?.stockValue || 0)}</Typography>
+                                            <Typography variant="body" className="font-bold text-slate-900 tabular-nums">{currencyFormatter.format(item.computed?.stockValue || 0)}</Typography>
                                         </td>
                                         <td className="px-4 py-3 text-center sticky right-0 z-40 bg-white group-hover:bg-slate-50/80 border-b border-slate-50 border-l border-slate-200"><i className="fas fa-chevron-right text-slate-300 group-hover:text-blue-500 transition-colors"></i></td>
                                     </tr>
@@ -363,7 +379,7 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
                         <option value={200}>200 {t('common_rows')}</option>
                     </select>
                     <Typography variant="label" className="text-slate-400 whitespace-nowrap">
-                        {t('common_total')}: <Typography as="span" variant="label" className="text-slate-700">{sortedList.length}</Typography>
+                        {t('common_total')}: <Typography as="span" variant="label" className="text-slate-700 tabular-nums">{sortedList.length}</Typography>
                     </Typography>
                 </div>
                 <div className="flex items-center gap-1 overflow-x-auto no-scrollbar max-w-full pb-1 sm:pb-0">
@@ -374,7 +390,7 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
                             if (page === 2 || page === totalPages - 1) return <span key={i} className="px-1 text-slate-300">…</span>; 
                             return null; 
                         } 
-                        return <button key={i} onClick={() => setCurrentPage(page)} className={`pagination-pill shrink-0 ${currentPage === page ? 'active' : 'text-slate-600'}`}>{page}</button>; 
+                        return <button key={i} onClick={() => setCurrentPage(page)} className={`pagination-pill shrink-0 tabular-nums ${currentPage === page ? 'active' : 'text-slate-600'}`}>{page}</button>; 
                     })}
                     <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} className="pagination-pill text-slate-600 shrink-0"><i className="fas fa-chevron-right text-[10px]"></i></button>
                 </div>

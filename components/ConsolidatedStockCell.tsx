@@ -1,4 +1,4 @@
-﻿
+
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { InventoryItem } from '../types/inventory';
 import { SupersessionGraph, calculateConsolidatedInventory } from '../utils/supersessionGraph';
@@ -21,7 +21,15 @@ const ConsolidatedInventoryPopup: React.FC<{ item: InventoryItem; allItems: Inve
 
     return (
         <div className="relative inline-block" ref={ref}>
-            <div onClick={() => setOpen(o => !o)} className="cursor-pointer">{children}</div>
+        <button 
+            onClick={() => setOpen(o => !o)} 
+            className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-100 rounded"
+            aria-haspopup="true"
+            aria-expanded={open}
+            aria-label="Xem chi tiết tồn kho gộp"
+        >
+            {children}
+        </button>
             {open && (
                 <div className="absolute right-0 top-full mt-2 z-50 w-72 bg-white rounded-2xl shadow-2xl border border-slate-200 p-4 animate-fadeIn">
                     <Typography variant="label" className="text-slate-500 mb-3 flex items-center gap-2">
@@ -31,14 +39,14 @@ const ConsolidatedInventoryPopup: React.FC<{ item: InventoryItem; allItems: Inve
                         {consolidated.breakdown.map((b) => (
                             <div key={b.partNumber} className={`flex justify-between items-center p-2 rounded-lg transition-all duration-200 ${b.partNumber === item.ItemCode ? 'bg-blue-50 border border-blue-200 shadow-sm scale-[1.02]' : 'bg-slate-50 border border-slate-100 hover:bg-slate-100'
                                 }`}>
-                                <Typography variant="mono" className={`!font-extrabold ${b.partNumber === item.ItemCode ? 'text-blue-900' : 'text-slate-900'}`}>{b.partNumber}</Typography>
-                                <Typography variant="body-sm" className={b.partNumber === item.ItemCode ? 'text-blue-700 !font-black' : 'text-slate-700 !font-bold'}>{b.stock.toLocaleString()}</Typography>
+                                <Typography variant="mono" className={`!font-extrabold tabular-nums ${b.partNumber === item.ItemCode ? 'text-blue-900' : 'text-slate-900'}`}>{b.partNumber}</Typography>
+                                <Typography variant="body-sm" className={`tabular-nums ${b.partNumber === item.ItemCode ? 'text-blue-700 !font-black' : 'text-slate-700 !font-bold'}`}>{b.stock.toLocaleString()}</Typography>
                             </div>
                         ))}
                     </div>
                     <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center">
                         <Typography variant="label" className="text-slate-500">Tổng gộp</Typography>
-                        <Typography variant="body" className="!font-black text-indigo-700 text-lg">{consolidated.totalStock.toLocaleString()}</Typography>
+                        <Typography variant="body" className="!font-black text-indigo-700 text-lg tabular-nums">{consolidated.totalStock.toLocaleString()}</Typography>
                     </div>
                 </div>
             )}
@@ -74,7 +82,7 @@ export const ConsolidatedStockCell: React.FC<ConsolidatedStockCellProps> = ({ it
     // 3. Nếu là mã đơn lẻ, hiển thị bình thường
     if (!hasChain || !graph) {
         return (
-            <Typography variant="body" className={`!font-bold text-slate-900 mb-0.5 block ${className}`}>
+            <Typography variant="body" className={`!font-bold text-slate-900 mb-0.5 block tabular-nums ${className}`}>
                 {currentSkuStock.toLocaleString()}
             </Typography>
         );
@@ -86,7 +94,7 @@ export const ConsolidatedStockCell: React.FC<ConsolidatedStockCellProps> = ({ it
             <div className={`flex flex-col items-end group ${className}`}>
                 <div className="flex items-center gap-1.5 mb-0.5">
                     {/* SỐ CHÍNH: Tồn kho SKU hiện tại */}
-                    <Typography variant="body" className="!font-bold text-slate-900 group-hover:text-blue-700 transition-colors">
+                    <Typography variant="body" className="!font-bold text-slate-900 group-hover:text-blue-700 transition-colors tabular-nums">
                         {currentSkuStock.toLocaleString()}
                     </Typography>
 
@@ -94,7 +102,7 @@ export const ConsolidatedStockCell: React.FC<ConsolidatedStockCellProps> = ({ it
                     <Typography
                         as="span"
                         variant="label"
-                        className="bg-indigo-50 text-indigo-600 border border-indigo-100 px-1.5 py-0.5 rounded-md flex items-center gap-1 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-700 transition-all shadow-sm"
+                        className="bg-indigo-50 text-indigo-600 border border-indigo-100 px-1.5 py-0.5 rounded-md flex items-center gap-1 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-700 transition-all shadow-sm tabular-nums"
                         title={`Tổng tồn gộp cả chuỗi: ${totalConsolidated.toLocaleString()}`}
                     >
                         <Layers size={10} /> {totalConsolidated.toLocaleString()}

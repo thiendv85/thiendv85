@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Typography } from './Typography';
 import { useLanguage } from '../utils/i18n';
 
@@ -81,7 +81,9 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
     };
 
     const scaleY = (value: number) => {
-        return PADDING.top + chartHeight - ((value - yMin) / (yMax - yMin)) * chartHeight;
+        const diff = yMax - yMin || 1;
+        const val = isFinite(value) ? value : 0;
+        return PADDING.top + chartHeight - ((val - yMin) / diff) * chartHeight;
     };
 
     // Format large numbers
@@ -100,9 +102,11 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
     }));
 
     // Generate path data
-    const pathData = points.reduce((acc, point, i) =>
-        i === 0 ? `M ${point.x},${point.y}` : `${acc} L ${point.x},${point.y}`,
-        '');
+    const pathData = points.reduce((acc, point, i) => {
+        const x = isFinite(point.x) ? point.x : 0;
+        const y = isFinite(point.y) ? point.y : 0;
+        return i === 0 ? `M ${x},${y}` : `${acc} L ${x},${y}`;
+    }, '');
 
     // Y-axis ticks
     const yTicks = [
