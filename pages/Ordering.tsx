@@ -586,7 +586,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                     return undefined;
                 })()}
             />
-            <DraftAnalysisCharts itemMap={enrichedMap} orderQuantities={orderQuantities} costBasis={settings.costBasis} />
+            {!isMobile && <DraftAnalysisCharts itemMap={enrichedMap} orderQuantities={orderQuantities} costBasis={settings.costBasis} />}
 
             <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden flex-1 flex flex-col shadow-sm">
 
@@ -775,18 +775,17 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                                 <span className={`badge-p${Math.min(priority, 5)} px-1.5 py-0.5 rounded font-black text-[10px] leading-none shrink-0`}>P{priority}</span>
                                                 {draftQtyTotal > 0 && <span className="bg-blue-100 text-blue-700 text-[9px] font-black px-1.5 py-0.5 rounded uppercase">Draft</span>}
                                             </div>
-                                            <div className="text-xs text-slate-500 font-semibold truncate">{item.ItemName}</div>
-                                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                                                <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100">LOIS {item.LOISGroup}</span>
-                                                {item.TrendFlag && <TrendBadge trend={item.TrendFlag} />}
-                                                <DebtStatusBadge item={item} />
+                                            <div className="flex items-center gap-1 mt-1 flex-wrap">
+                                                <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100">L{item.LOISGroup}</span>
+                                                {!isMobile && item.TrendFlag && <TrendBadge trend={item.TrendFlag} />}
+                                                {!isMobile && <DebtStatusBadge item={item} />}
                                             </div>
                                         </div>
                                         <div className="text-right shrink-0">
-                                            <div className={`text-lg font-black ${mos < 1 ? 'text-rose-600' : mos > 12 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                                            <div className={`text-base font-black ${mos < 1 ? 'text-rose-600' : mos > 12 ? 'text-amber-600' : 'text-emerald-600'}`}>
                                                 {demandMonthly <= 0 ? '∞' : `${mos.toFixed(1)}M`}
                                             </div>
-                                            <div className="text-[9px] font-black text-slate-400 uppercase">MOS</div>
+                                            <div className="text-[8px] font-black text-slate-400 uppercase">MOS</div>
                                         </div>
                                     </div>
 

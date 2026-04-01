@@ -13,6 +13,7 @@ import { CsvExportOptions } from '../utils/csvParser';
 import { computeInventoryBatch, makeComputeParams } from '../utils/inventoryEngine';
 import { DemandIntelligence } from './DemandIntelligence';
 import { SupersessionManagement } from './SupersessionManagement';
+import { useDevice } from '../hooks/useDevice';
 
 const formatPct = (val: number) => `${(val || 0).toFixed(1)}%`;
 
@@ -78,6 +79,8 @@ const LoisRow = React.memo(({
     matrixData, grandStats, loisTargets, selectedSubgroup,
     onToggleSubgroup, formatNum
 }: LoisRowProps) => {
+    const { isMobile } = useDevice();
+
     const row = { items: 0, turnover: 0, noStock: 0, short: 0, stockVal: 0, poVal: 0, excessItems: 0, excessVal: 0, boItems: 0, boValue: 0, bmwCount: 0, trendSum: 0, trendCount: 0 };
     subKeys.forEach(k => {
         if (matrixData[k]) {
@@ -143,13 +146,13 @@ const LoisRow = React.memo(({
                 <Typography variant="body-sm" className="font-bold">
                     {formatNum(row.turnover)}
                 </Typography>
-                {!isHeader && subKeys.length === 1 && row.turnover > 0 && (
+                {!isHeader && !isMobile && subKeys.length === 1 && row.turnover > 0 && (
                     <Typography variant="label" className={`ml-1 ${avgTrend > 0 ? 'text-atp-success' : 'text-atp-action'}`}>
                         {avgTrend > 0 ? '↑' : '↓'}{Math.abs(avgTrend).toFixed(0)}%
                     </Typography>
                 )}
             </td>
-            <td className="px-3 py-1.5 text-right">
+            <td className={`px-3 py-1.5 text-right ${isMobile ? 'hidden' : ''}`}>
                 <Typography variant="label" className="text-slate-400 font-bold !italic">
                     {(row.turnover / (grandStats.grandTurnover || 1) * 100).toFixed(1)}%
                 </Typography>
@@ -164,17 +167,17 @@ const LoisRow = React.memo(({
                     {row.noStock > 0 ? row.noStock.toLocaleString() : '—'}
                 </Typography>
             </td>
-            <td className={`px-3 py-2 text-center ${row.short > 0 ? 'bg-atp-accent/5' : ''}`}>
+            <td className={`px-3 py-2 text-center ${row.short > 0 ? 'bg-atp-accent/5' : ''} ${isMobile ? 'hidden' : ''}`}>
                 <Typography variant="body-sm" className={`font-bold ${row.short > 0 ? 'text-atp-accent' : 'text-slate-300'}`}>
                     {row.short > 0 ? row.short.toLocaleString() : '—'}
                 </Typography>
             </td>
-            <td className={`px-3 py-1.5 text-right bg-blue-50/20`}>
+            <td className={`px-3 py-1.5 text-right bg-blue-50/20 ${isMobile ? 'hidden' : ''}`}>
                 <Typography variant="body-sm" className="font-bold text-blue-700">
                     {formatNum(row.stockVal)}
                 </Typography>
             </td>
-            <td className="px-3 py-1 text-center border-x border-blue-100 bg-blue-50/20">
+            <td className={`px-3 py-1 text-center border-x border-blue-100 bg-blue-50/20 ${isMobile ? 'hidden' : ''}`}>
                 <Typography variant="label" className={`!italic ${mosOk === true ? 'text-emerald-600' : mosOk === false ? 'text-rose-500' : 'text-slate-600'}`}>
                     {actualMOS > 0 ? actualMOS.toFixed(1) : '-'}M
                 </Typography>
@@ -184,7 +187,7 @@ const LoisRow = React.memo(({
                     </Typography>
                 )}
             </td>
-            <td className="px-3 py-1.5 text-right uppercase">
+            <td className={`px-3 py-1.5 text-right uppercase ${isMobile ? 'hidden' : ''}`}>
                 <Typography variant="body-sm" className="font-bold text-slate-500">
                     {formatNum(row.poVal)}
                 </Typography>
@@ -194,7 +197,7 @@ const LoisRow = React.memo(({
                     {row.boItems > 0 ? row.boItems.toLocaleString() : '—'}
                 </Typography>
             </td>
-            <td className={`px-3 py-2 text-right ${row.boValue > 0 ? 'bg-rose-50/30' : ''}`}>
+            <td className={`px-3 py-2 text-right ${row.boValue > 0 ? 'bg-rose-50/30' : ''} ${isMobile ? 'hidden' : ''}`}>
                 <Typography variant="body-sm" className={`font-bold ${row.boValue > 0 ? 'text-rose-700' : 'text-slate-200'}`}>
                     {row.boValue > 0 ? formatNum(row.boValue) : '—'}
                 </Typography>
@@ -240,6 +243,7 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
     };
 }) => {
     const { t } = useLanguage();
+    const { isMobile } = useDevice();
     const [subTab, setSubTab] = useState<DashboardSubTab>(initialState?.subTab || 'overview');
     const [settings, setSettings] = useState<DashboardSettings>(initialState?.settings || {
         snapshotDate: new Date().toISOString().split('T')[0],
@@ -816,7 +820,7 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
                 )}
 
                 {/* KPI GRID */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                     <MetricCard label={t('kpi_turnover')} value={formatCurrency(grandStats.grandTurnover)} subValue={t('kpi_turnover_sub')} icon="fa-arrow-trend-up" color="professional" />
                     <MetricCard label={t('kpi_stock')} value={formatCurrency(grandStats.grandStock)} subValue={t('kpi_stock_sub')} icon="fa-warehouse" color="emerald" />
                     <MetricCard label={t('kpi_pipeline')} value={formatCurrency(grandStats.grandPOVal)} subValue={t('kpi_pipeline_sub')} icon="fa-truck-fast" color="blue" />
@@ -863,37 +867,37 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse" style={{ tableLayout: 'fixed' }}>
                         <colgroup>
-                            <col style={{ width: '145px' }} /> {/* Nhóm */}
+                            <col style={{ width: isMobile ? '120px' : '145px' }} /> {/* Nhóm */}
                             <col style={{ width: '100px' }} />  {/* Turnover */}
-                            <col style={{ width: '68px' }} />   {/* % Turn */}
+                            <col style={{ width: '68px' }} className={isMobile ? 'hidden' : ''} />   {/* % Turn */}
                             <col style={{ width: '60px' }} />   {/* SKU */}
                             <col style={{ width: '60px' }} />   {/* OOS */}
-                            <col style={{ width: '60px' }} />   {/* Risk */}
-                            <col style={{ width: '100px' }} />  {/* Stock Val */}
-                            <col style={{ width: '75px' }} />   {/* MOS w Tgt */}
-                            <col style={{ width: '100px' }} />  {/* PO Val */}
+                            <col style={{ width: '60px' }} className={isMobile ? 'hidden' : ''} />   {/* Risk */}
+                            <col style={{ width: '100px' }} className={isMobile ? 'hidden' : ''} />  {/* Stock Val */}
+                            <col style={{ width: '75px' }} className={isMobile ? 'hidden' : ''} />   {/* MOS w Tgt */}
+                            <col style={{ width: '100px' }} className={isMobile ? 'hidden' : ''} />  {/* PO Val */}
                             <col style={{ width: '60px' }} />   {/* BO # */}
-                            <col style={{ width: '100px' }} />  {/* BO Val */}
-                            <col style={{ width: '60px' }} />   {/* Exc # */}
-                            <col style={{ width: '100px' }} />  {/* Exc Val */}
-                            <col style={{ width: '75px' }} />   {/* % Exc w Tgt */}
+                            <col style={{ width: '100px' }} className={isMobile ? 'hidden' : ''} />  {/* BO Val */}
+                            <col style={{ width: '60px' }} className={isMobile ? 'hidden' : ''} />   {/* Exc # */}
+                            <col style={{ width: '100px' }} className={isMobile ? 'hidden' : ''} />  {/* Exc Val */}
+                            <col style={{ width: '75px' }} className={isMobile ? 'hidden' : ''} />   {/* % Exc w Tgt */}
                         </colgroup>
                         <thead className="bg-slate-50/50 border-b border-slate-200/60 backdrop-blur-sm">
                             <tr>
                                 <th className="px-3 py-3 border-r border-slate-100"><Typography variant="label" className="font-black text-[11px] text-slate-900">{t('matrix_segment')}</Typography></th>
-                                <th className="px-3 py-3 text-right"><Typography variant="label" className="font-black text-[11px] text-slate-900">Turnover (tr)</Typography></th>
-                                <th className="px-3 py-3 text-right"><Typography variant="label" className="font-extrabold text-[11px] !italic text-slate-500">% Turn</Typography></th>
+                                <th className="px-3 py-3 text-right"><Typography variant="label" className="font-black text-[11px] text-slate-900">Turnover</Typography></th>
+                                <th className={`px-3 py-3 text-right ${isMobile ? 'hidden' : ''}`}><Typography variant="label" className="font-extrabold text-[11px] !italic text-slate-500">% Turn</Typography></th>
                                 <th className="px-3 py-3 text-center"><Typography variant="label" className="font-black text-[11px] text-slate-900">SKU</Typography></th>
                                 <th className="px-3 py-3 text-center"><Typography variant="label" className="font-black text-[11px] text-rose-600">OOS</Typography></th>
-                                <th className="px-3 py-3 text-center"><Typography variant="label" className="font-black text-[11px] text-amber-600">Risk</Typography></th>
-                                <th className="px-3 py-3 text-right bg-blue-50/10"><Typography variant="label" className="font-black text-[11px] text-emerald-700">Stock Val</Typography></th>
-                                <th className="px-3 py-3 text-center border-x border-blue-100 bg-blue-50/10"><Typography variant="label" className="font-black text-[11px] !italic text-slate-600">MOS</Typography></th>
-                                <th className="px-3 py-3 text-right"><Typography variant="label" className="font-black text-[11px] text-blue-600">PO Val</Typography></th>
+                                <th className={`px-3 py-3 text-center ${isMobile ? 'hidden' : ''}`}><Typography variant="label" className="font-black text-[11px] text-amber-600">Risk</Typography></th>
+                                <th className={`px-3 py-3 text-right bg-blue-50/10 ${isMobile ? 'hidden' : ''}`}><Typography variant="label" className="font-black text-[11px] text-emerald-700">Stock Val</Typography></th>
+                                <th className={`px-3 py-3 text-center border-x border-blue-100 bg-blue-50/10 ${isMobile ? 'hidden' : ''}`}><Typography variant="label" className="font-black text-[11px] !italic text-slate-600">MOS</Typography></th>
+                                <th className={`px-3 py-3 text-right ${isMobile ? 'hidden' : ''}`}><Typography variant="label" className="font-black text-[11px] text-blue-600">PO Val</Typography></th>
                                 <th className="px-3 py-3 text-center bg-rose-50/10"><Typography variant="label" className="font-black text-[11px] text-rose-700">BO #</Typography></th>
-                                <th className="px-3 py-3 text-right bg-rose-50/10"><Typography variant="label" className="font-black text-[11px] text-rose-700">BO Val</Typography></th>
-                                <th className="px-3 py-3 text-center"><Typography variant="label" className="font-black text-[11px] text-slate-600">Exc #</Typography></th>
-                                <th className="px-3 py-3 text-right"><Typography variant="label" className="font-black text-[11px] text-slate-600">Exc Val</Typography></th>
-                                <th className="px-3 py-3 text-center border-l border-slate-200"><Typography variant="label" className="font-extrabold text-[11px] !italic text-slate-500">% Exc</Typography></th>
+                                <th className={`px-3 py-3 text-right bg-rose-50/10 ${isMobile ? 'hidden' : ''}`}><Typography variant="label" className="font-black text-[11px] text-rose-700">BO Val</Typography></th>
+                                <th className={`px-3 py-3 text-center ${isMobile ? 'hidden' : ''}`}><Typography variant="label" className="font-black text-[11px] text-slate-600">Exc #</Typography></th>
+                                <th className={`px-3 py-3 text-right ${isMobile ? 'hidden' : ''}`}><Typography variant="label" className="font-black text-[11px] text-slate-600">Exc Val</Typography></th>
+                                <th className={`px-3 py-3 text-center border-l border-slate-200 ${isMobile ? 'hidden' : ''}`}><Typography variant="label" className="font-extrabold text-[11px] !italic text-slate-500">% Exc</Typography></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -940,7 +944,7 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
                                 <td className="px-3 py-2.5 text-right">
                                     <Typography variant="body" className="font-black text-[13px] text-slate-900">{formatNum(grandStats.grandTurnover)}</Typography>
                                 </td>
-                                <td className="px-3 py-2.5 text-right">
+                                <td className={`px-3 py-2.5 text-right ${isMobile ? 'hidden' : ''}`}>
                                     <Typography variant="label" className="font-black text-[11px] !italic text-slate-400">100%</Typography>
                                 </td>
                                 <td className="px-3 py-2.5 text-center">
@@ -949,31 +953,31 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
                                 <td className="px-3 py-2.5 text-center">
                                     <Typography variant="body" className="font-black text-[13px] text-rose-600">{grandStats.grandNoStock.toLocaleString()}</Typography>
                                 </td>
-                                <td className="px-3 py-2.5 text-center">
+                                <td className={`px-3 py-2.5 text-center ${isMobile ? 'hidden' : ''}`}>
                                     <Typography variant="body" className="font-black text-[13px] text-amber-600">{grandStats.grandShort.toLocaleString()}</Typography>
                                 </td>
-                                <td className="px-3 py-2.5 text-right">
+                                <td className={`px-3 py-2.5 text-right ${isMobile ? 'hidden' : ''}`}>
                                     <Typography variant="body" className="font-black text-[13px] text-blue-700">{formatNum(grandStats.grandStock)}</Typography>
                                 </td>
-                                <td className="px-3 py-2.5 text-center border-x border-slate-200 bg-slate-200/50">
+                                <td className={`px-3 py-1 text-center border-x border-slate-200 bg-slate-200/50 ${isMobile ? 'hidden' : ''}`}>
                                     <Typography variant="label" className="font-black text-[12px] !italic text-blue-800">{(grandStats.grandTurnover > 0 ? (grandStats.grandStock * 12 / grandStats.grandTurnover) : 0).toFixed(1)}M</Typography>
                                 </td>
-                                <td className="px-3 py-4 text-right">
+                                <td className={`px-3 py-4 text-right ${isMobile ? 'hidden' : ''}`}>
                                     <Typography variant="body" className="font-black text-[13px] text-slate-600">{formatNum(grandStats.grandPOVal)}</Typography>
                                 </td>
                                 <td className="px-3 py-4 text-center bg-rose-50/30">
                                     <Typography variant="body" className="font-black text-[13px] text-rose-700">{grandStats.grandBOItems.toLocaleString()}</Typography>
                                 </td>
-                                <td className="px-3 py-4 text-right bg-rose-50/30">
+                                <td className={`px-3 py-4 text-right bg-rose-50/30 ${isMobile ? 'hidden' : ''}`}>
                                     <Typography variant="body" className="font-black text-[13px] text-rose-700">{formatNum(grandStats.grandBOValue)}</Typography>
                                 </td>
-                                <td className="px-3 py-4 text-center">
+                                <td className={`px-3 py-4 text-center ${isMobile ? 'hidden' : ''}`}>
                                     <Typography variant="body" className="font-black text-[13px] text-slate-500">{grandStats.grandExcessItems.toLocaleString()}</Typography>
                                 </td>
-                                <td className="px-3 py-4 text-right">
+                                <td className={`px-3 py-4 text-right ${isMobile ? 'hidden' : ''}`}>
                                     <Typography variant="body" className="font-black text-[13px] text-slate-500">{formatNum(grandStats.grandExcess)}</Typography>
                                 </td>
-                                <td className="px-3 py-4 text-center rounded-br-xl border-l border-slate-200">
+                                <td className={`px-3 py-4 text-center rounded-br-xl border-l border-slate-200 ${isMobile ? 'hidden' : ''}`}>
                                     <Typography variant="label" className="text-blue-700 font-black text-[12px] !italic">{(grandStats.grandStock > 0 ? (grandStats.grandExcess / grandStats.grandStock) * 100 : 0).toFixed(1)}%</Typography>
                                 </td>
                             </tr>
