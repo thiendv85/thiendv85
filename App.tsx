@@ -21,6 +21,7 @@ import { ResetPasswordScreen } from './pages/ResetPasswordScreen';
 import { ApprovalQueue } from './pages/ApprovalQueue';
 import { Typography } from './components/Typography';
 import { resolveItemProfile } from './utils/inventoryEngine';
+import { mergeMonthlyIntoItems } from './utils/csvParser';
 import { loadFromCloudStorage, loadLatestMonthlyData } from './utils/supabase';
 import { useDevice } from './hooks/useDevice';
 import { 
@@ -44,6 +45,13 @@ const AppContent = () => {
     const [monthlyDataDate, setMonthlyDataDate] = useState<string | null>(null);
     const [isMonthlyLoading, setIsMonthlyLoading] = useState(false);
     const [isDataModalOpen, setIsDataModalOpen] = useState(false);
+    
+    // Auto-sync: Re-apply monthly coefficients whenever the selection changes
+    useEffect(() => {
+        if (data.length > 0 && monthlyData) {
+            setData(prev => mergeMonthlyIntoItems(prev, monthlyData));
+        }
+    }, [monthlyData]);
 
     const [supersessionMappings, setSupersessionMappings] = useState<SupersessionMapping[]>(() => {
         try {
@@ -474,9 +482,10 @@ const AppContent = () => {
                     userDepartment={profile?.department}
                     onSelectInventory={handleDataUpload}
                     onSelectMonthly={async (monthData, monthDate, updatedAt) => {
-                        setMonthlyData(monthData as any);
+                        const mData = monthData as Record<string, MonthlyData>;
+                        setMonthlyData(mData);
                         setMonthlyDataDate(monthDate);
-                        await cacheMonthlyData(monthData as any, monthDate, updatedAt);
+                        await cacheMonthlyData(mData, monthDate, updatedAt);
                     }}
                 />
 
