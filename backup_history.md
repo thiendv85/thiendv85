@@ -27,3 +27,4 @@
 | 2026-03-31 16:49 | Cố định menu header (Sticky) và bổ sung Footer chuyên nghiệp cho Dashboard/Ordering |
 | 2026-04-01 08:23 | Fix lỗi đồng bộ hóa Brand-ID cho Cloud Snapshot và Quy trình Phê duyệt |
 | 2026-04-01 15:05 | Modernization Roadmap - Pre-Refactor: Hoàn tất đánh giá 31 components & chuẩn bị tái cấu trúc toàn diện |
+| 2026-04-02 16:03 | Restore Vibrant Premium UI (Dark Mode) & Fix Cloud Data Selection Sync |
