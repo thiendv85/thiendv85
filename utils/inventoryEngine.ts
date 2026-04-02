@@ -18,6 +18,49 @@ import { InventoryItem, SourceProfile } from '../types/inventory';
 
 /** Ngưỡng MOS phân loại "tồn thấp" / P2 priority (tháng) */
 export const MOS_LOW_STOCK_THRESHOLD = 1.5;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * Thử phân giải chuỗi ngày từ tiêu đề OO (vd: "25/05", "OO 03/26") thành Timestamp
+ */
+function parsePipelineDate(key: string, snapshotYYMM: string): number | null {
+    const clean = key.toLowerCase().replace(/[^0-9/]/g, '').trim();
+    if (!clean) return null;
+
+    const snapMM = parseInt(snapshotYYMM.slice(2, 4));
+    const snapYY = parseInt(snapshotYYMM.slice(0, 2));
+    const snapYYYY = 2000 + snapYY;
+
+    // Trường hợp DD/MM (vd: 25/05) -> lấy năm từ snapshot
+    if (clean.includes('/') && clean.split('/').length === 2) {
+        const parts = clean.split('/');
+        if (parts[1].length === 2 && parts[1] !== '05' && parseInt(parts[1]) > 12) {
+            // Probably MM/YY (legacy check)
+        } else {
+            const [d, m] = parts.map(n => parseInt(n));
+            if (!isNaN(d) && !isNaN(m)) {
+                const year = (m < snapMM) ? snapYYYY + 1 : snapYYYY;
+                return new Date(year, m - 1, d).getTime();
+            }
+        }
+    }
+
+    // Trường hợp MM/YY (vd: 03/26)
+    if (clean.includes('/') && clean.split('/').length === 2 && clean.split('/')[1].length === 2) {
+        const [m, y] = clean.split('/').map(n => parseInt(n));
+        const fullY = 2000 + y;
+        return new Date(fullY, m - 1, 1).getTime();
+    }
+
+    // Trường hợp YYMM (vd: 2603)
+    if (clean.length === 4 && !clean.includes('/')) {
+        const y = parseInt(clean.slice(0, 2));
+        const m = parseInt(clean.slice(2, 4));
+        return new Date(2000 + y, m - 1, 1).getTime();
+    }
+
+    return null;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -438,6 +481,42 @@ export function computeInventory(
         )
         : 0;
 
+    // ── 8c. STOCKOUT GAP ANALYSIS (Predictive) ─────────────────────────────
+    let soonestPO: { date: number; qty: number; key: string } | null = null;
+    if (item.Pipeline) {
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        const todayTs = now.getTime();
+
+        Object.entries(item.Pipeline).forEach(([k, v]) => {
+            const dt = parsePipelineDate(k, params.snapshotYYMM);
+            if (dt && dt > todayTs && v > 0) {
+                if (!soonestPO || dt < soonestPO.date) {
+                    soonestPO = { date: dt, qty: v, key: k };
+                }
+            }
+        });
+    }
+
+    const mosDays = mos * 30.44;
+    const depletionDateTs = Date.now() + (mosDays * MS_PER_DAY);
+    let hasStkGap = false;
+    let gapDays = 0;
+
+    if (soonestPO && depletionDateTs < soonestPO.date && mos < 1.0) {
+        hasStkGap = true;
+        gapDays = Math.ceil((soonestPO.date - depletionDateTs) / MS_PER_DAY);
+        
+        const startStr = new Date(depletionDateTs).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+        const endStr = new Date(soonestPO.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+        
+        warnings.push({
+            type: 'Warning',
+            code: 'STK_GAP',
+            message: `Hụt cung ứng dự kiến: ${gapDays} ngày (từ ${startStr} đến ${endStr})`
+        });
+    }
+
     // ── 9. PRIORITY ────────────────────────────────────────────────────────
     const priorityBucket = resolvePriority(available, onOrder, bo, rop, demandMonthly, isStop);
 
@@ -448,8 +527,9 @@ export function computeInventory(
 
     if (!isStop) {
         // Mục tiêu đặt hàng: Đưa quy mô tồn lên mức lý tưởng (Max). 
-        // Nếu nợ đơn (BO) lớn hơn cả Max thì nâng mục tiêu lên đủ trả nợ.
-        const targetStock = Math.max(stockMax, bo);
+        // Nếu có cảnh báo TREND_DECLINE (xu hướng giảm), chỉ đặt đến mức ROP (Safety) để tránh tồn kho chết.
+        const isDecline = warnings.some(w => w.code === 'TREND_DECLINE');
+        const targetStock = isDecline ? Math.max(rop, bo) : Math.max(stockMax, bo);
         
         if (reserve < targetStock) {
             gapOrExcess = Math.ceil((targetStock - reserve) / snp) * snp;

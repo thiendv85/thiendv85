@@ -80,22 +80,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     useEffect(() => {
-        // Lấy session hiện tại khi mount — setIsLoading(false) ngay, load profile nền
+        console.log("AuthProvider: Initializing...");
+        
         supabase.auth.getSession().then(({ data: { session: s } }) => {
+            console.log("AuthProvider: Session retrieved:", s ? "Logged In" : "No Session");
             setSession(s);
             setUser(s?.user ?? null);
             setIsLoading(false);
-            if (s?.user) fetchProfile(s.user.id).then(setProfile);
-        }).catch(() => setIsLoading(false));
+            if (s?.user) {
+                console.log("AuthProvider: Fetching profile for", s.user.id);
+                fetchProfile(s.user.id).then(p => {
+                    console.log("AuthProvider: Profile loaded:", p ? p.role : "NULL (Empty profiles table?)");
+                    setProfile(p);
+                });
+            }
+        }).catch(err => {
+            console.error("AuthProvider: Session error:", err);
+            setIsLoading(false);
+        });
 
-        // Lắng nghe thay đổi auth state
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+            console.log("AuthProvider: Auth state change:", _event, s ? "Logged In" : "Logged Out");
             setSession(s);
             setUser(s?.user ?? null);
-            setIsLoading(false);
-            if (event === 'PASSWORD_RECOVERY') {
-                setNeedsPasswordReset(true);
-            } else if (s?.user) {
+            if (s?.user) {
                 fetchProfile(s.user.id).then(setProfile);
             } else {
                 setProfile(null);

@@ -185,9 +185,9 @@ const ActionTag: React.FC<{
     <Typography
       as="span"
       variant="label"
-      className={`${config.className} border px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-all duration-300`}
+      className={`${config.className} border px-2 py-0.5 rounded-md flex items-center gap-1.5 transition-all duration-300 text-xs whitespace-nowrap font-black`}
     >
-      {config.icon && <i className={`fas ${config.icon} text-2xs`}></i>}
+      {config.icon && <i className={`fas ${config.icon} text-[10px]`}></i>}
       {config.text}
     </Typography>
   );
@@ -367,11 +367,7 @@ export const StockProgressBar: React.FC<StockProgressBarProps> = (props) => {
               </>
             )}
 
-            <Typography variant="body-sm" className="flex items-center gap-1 text-slate-500 font-semibold" title="Available Physical">
-              <i className="fas fa-boxes text-2xs text-slate-400"></i>
-              <span>{current.toLocaleString()}</span>
-            </Typography>
-            <Typography variant="body-sm" className="text-slate-300 !font-light">•</Typography>
+
             <Typography variant="body-sm" className="flex items-center gap-1 text-slate-500 font-semibold" title="Total PO Pipeline">
               <i className="fas fa-truck text-2xs text-blue-500"></i>
               <span>{onOrder.toLocaleString()}</span>
@@ -422,11 +418,20 @@ export const StockProgressBar: React.FC<StockProgressBarProps> = (props) => {
         aria-valuemax={safeMax}
         aria-label={`Stock level: ${current} of ${safeMax}`}
       >
+        {/* SS (Danger) Zone Background */}
+        {!metrics.isNoPlanning && (
+          <div
+            className="absolute h-full bg-amber-50/70 z-0"
+            style={{ width: `${positions.ss}%` }}
+            aria-hidden="true"
+          />
+        )}
+
         {/* ROP Zone Background */}
         {!metrics.isNoPlanning && (
           <div
-            className="absolute h-full bg-rose-50/60 z-0"
-            style={{ width: `${positions.rop}%` }}
+            className="absolute h-full bg-rose-50/50 z-0"
+            style={{ width: `${positions.rop}%`, left: 0 }}
             aria-hidden="true"
           />
         )}
@@ -472,7 +477,7 @@ export const StockProgressBar: React.FC<StockProgressBarProps> = (props) => {
         {/* Policy Markers */}
         {!metrics.isNoPlanning && (
           <>
-            <PolicyMarker position={positions.ss} label="Safety Stock" value={ss} color="bg-white/80" />
+            <PolicyMarker position={positions.ss} label="Safety Stock" value={ss} color="bg-amber-500" />
             <PolicyMarker position={positions.rop} label="Reorder Point" value={rop} color="bg-rose-500" />
             {baseFc > 0 && (
               <PolicyMarker position={positions.fc} label="Base Forecast" value={baseFc} color="border-amber-500" isDashed isHighlight />
@@ -484,16 +489,17 @@ export const StockProgressBar: React.FC<StockProgressBarProps> = (props) => {
 
       {/* Metrics Line — hidden in compact mode */}
       {!compact && (
-        <div className="flex gap-4 mt-1.5">
-          <Typography variant="label" className="text-slate-500">ROP: <Typography as="span" variant="label" className="text-slate-800 !font-bold">{Math.ceil(rop).toLocaleString()}</Typography></Typography>
-          <Typography variant="label" className="text-slate-500">Max: <Typography as="span" variant="label" className="text-slate-800 !font-bold">{Math.ceil(max).toLocaleString()}</Typography></Typography>
-          {backorder > 0 && <Typography variant="label" className="text-rose-600 !font-bold">BO: {backorder.toLocaleString()}</Typography>}
+        <div className="flex gap-4 mt-1.5 opacity-90">
+          <Typography variant="label" className="text-slate-400">SS: <Typography as="span" variant="label" className="text-amber-600 !font-black">{Math.ceil(ss).toLocaleString()}</Typography></Typography>
+          <Typography variant="label" className="text-slate-400">ROP: <Typography as="span" variant="label" className="text-rose-600 !font-black">{Math.ceil(rop).toLocaleString()}</Typography></Typography>
+          <Typography variant="label" className="text-slate-400">MAX: <Typography as="span" variant="label" className="text-slate-800 !font-black">{Math.ceil(max).toLocaleString()}</Typography></Typography>
         </div>
       )}
       {/* Compact: ROP/MAX inline tiny */}
       {compact && (
         <div className="flex gap-2 mt-0.5">
-          <span className="text-[9px] text-slate-400">ROP:<span className="text-slate-600 font-bold ml-0.5">{Math.ceil(rop).toLocaleString()}</span></span>
+          <span className="text-[9px] text-slate-400">SS:<span className="text-amber-600 font-bold ml-0.5">{Math.ceil(ss).toLocaleString()}</span></span>
+          <span className="text-[9px] text-slate-400">ROP:<span className="text-rose-600 font-bold ml-0.5">{Math.ceil(rop).toLocaleString()}</span></span>
           <span className="text-[9px] text-slate-400">MAX:<span className="text-slate-600 font-bold ml-0.5">{Math.ceil(max).toLocaleString()}</span></span>
         </div>
       )}

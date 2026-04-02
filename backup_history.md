@@ -28,3 +28,4 @@
 | 2026-04-01 08:23 | Fix lỗi đồng bộ hóa Brand-ID cho Cloud Snapshot và Quy trình Phê duyệt |
 | 2026-04-01 15:05 | Modernization Roadmap - Pre-Refactor: Hoàn tất đánh giá 31 components & chuẩn bị tái cấu trúc toàn diện |
 | 2026-04-02 16:03 | Restore Vibrant Premium UI (Dark Mode) & Fix Cloud Data Selection Sync |
+| 2026-04-02 18:57 | S?a l?i dang nh?p m�n h�nh den, th�m Error Boundary v� Fix Logic Stockout Gap (MS_PER_DAY/parsePipelineDate scope) |

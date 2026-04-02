@@ -409,6 +409,8 @@ export interface SnapshotData {
         backorder_NB?: number;
         backorder_BB?: number;
         effectiveLT?: number; // leadtime in days from source profile
+        qtyNB?: number;
+        qtyBB?: number;
     }>;
     submitted_at: string;
     app_version: string;

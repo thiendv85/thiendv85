@@ -32,9 +32,30 @@ import {
     clearCachedUploadedData 
 } from './utils/db';
 
-// Rule: bundle-dynamic-imports — Lazy load heavy modals
 const DataSelectionModal = React.lazy(() => import('./components/DataSelectionModal').then(m => ({ default: m.DataSelectionModal })));
 const SupersessionEditModal = React.lazy(() => import('./components/SupersessionEditModal').then(m => ({ default: m.SupersessionEditModal })));
+
+// simple error boundary for debugging
+class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: any}> {
+    constructor(props: any) { super(props); this.state = { hasError: false, error: null }; }
+    static getDerivedStateFromError(error: any) { return { hasError: true, error }; }
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="min-h-screen bg-slate-900 text-white p-10 flex flex-col items-center justify-center font-mono">
+                    <h1 className="text-2xl font-bold mb-4 text-rose-500">RUNTIME ERROR DETECTED</h1>
+                    <pre className="bg-slate-800 p-4 rounded-xl border border-slate-700 max-w-full overflow-auto text-xs mb-4">
+                        {this.state.error?.toString()}
+                        {"\n\n"}
+                        {this.state.error?.stack}
+                    </pre>
+                    <button onClick={() => window.location.reload()} className="px-6 py-2 bg-blue-600 rounded-lg font-bold">RELOAD APP</button>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
 
 const AppContent = () => {
     const { isMobile } = useDevice();
@@ -137,7 +158,10 @@ const AppContent = () => {
         notes: Record<string, string>;
     }>({ quantities: {}, notes: {} });
 
+    const hasRepairedRef = useRef(false);
     useEffect(() => {
+        if (hasRepairedRef.current) return;
+        
         // Auto-repair brand in source profiles if missing
         const needsRepair = appSettings.sourceProfiles.some(p => !p.brand);
         
@@ -147,6 +171,8 @@ const AppContent = () => {
         const needsProfileMigration = !hasOEM || !hasCXD;
 
         if (needsRepair || needsProfileMigration) {
+            console.log("App: Repairing settings profiles...");
+            hasRepairedRef.current = true;
             let updatedProfiles = appSettings.sourceProfiles.map(p => ({
                 ...p,
                 brand: p.brand || (p.id === 'BMWASIA' ? 'BMW' : 'Kia')
@@ -280,8 +306,16 @@ const AppContent = () => {
             <i className="fas fa-circle-notch fa-spin text-blue-400 text-3xl"></i>
         </div>
     );
-    if (!session) return <LoginScreen />;
-    if (needsPasswordReset) return <ResetPasswordScreen />;
+    console.log("App: Auth State - Session:", session ? "YES" : "NO", "Profile:", profile ? profile.role : "NONE");
+
+    if (!session) {
+        console.log("App: Redirecting to LoginScreen");
+        return <LoginScreen />;
+    }
+    if (needsPasswordReset) {
+        console.log("App: Redirecting to ResetPasswordScreen");
+        return <ResetPasswordScreen />;
+    }
 
     if (view === 'upload') return (
         <FileUpload
@@ -520,5 +554,13 @@ const AppContent = () => {
     );
 };
 
-const App = () => (<AuthProvider><LanguageProvider><AppContent /></LanguageProvider></AuthProvider>);
+const App = () => (
+    <ErrorBoundary>
+        <AuthProvider>
+            <LanguageProvider>
+                <AppContent />
+            </LanguageProvider>
+        </AuthProvider>
+    </ErrorBoundary>
+);
 export default App;

@@ -264,8 +264,8 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
         rows.forEach((ctx, idx) => {
             const q = localQtys[ctx.itemCode] || { air: 0, sea: 0 };
             const isSelected = selectedItems.has(ctx.itemCode);
-            const qtyBB = isSelected ? q.sea : 0; // sea = BB = Miền Bắc
-            const qtyNB = isSelected ? q.air : 0; // air = NB = Miền Nam
+            const qtyNB = isSelected ? (ctx.qtyNB || 0) : 0; 
+            const qtyBB = isSelected ? (ctx.qtyBB || 0) : 0; 
             const qty = qtyBB + qtyNB;
             const value = (ctx.unitCost || 0) * qty;
             const totalStock = (ctx.available || 0) + (ctx.dealerInventory || 0);
@@ -738,20 +738,15 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                                             <span className="text-[8px] uppercase font-bold tracking-tighter leading-none">All</span>
                                         </div>
                                     </th>
-                                    <th className="px-3 py-2.5 min-w-[200px] sticky left-10 z-40 bg-slate-50/95 border-b border-slate-200 border-r border-slate-200">SKU Identity</th>
-                                    <th className="px-3 py-2.5 text-center border-b border-slate-200 min-w-[150px]">Pipeline & PO</th>
-                                    <th className="px-3 py-2.5 text-center border-b border-slate-200 min-w-[110px]">Health & MOS</th>
-                                    <th className="px-3 py-2.5 text-center border-b border-slate-200 min-w-[100px]">Nhu cầu (M1/FC)</th>
-                                    <th className="px-3 py-2.5 text-right border-b border-slate-200 min-w-[110px]">Kho & Đại lý</th>
-                                    <th className="px-2 py-2.5 text-center border-x border-slate-200 bg-rose-50/30 border-b border-slate-200 min-w-[85px]">
-                                        <span className="text-rose-600">Air Qty</span>
-                                    </th>
-                                    <th className="px-2 py-2.5 text-center border-r border-slate-200 bg-blue-50/30 border-b border-slate-200 min-w-[85px]">
-                                        <span className="text-blue-700">Sea Qty</span>
-                                    </th>
-                                    <th className="px-3 py-2.5 min-w-[150px] border-b border-slate-200">Warnings / Notes</th>
-                                    <th className="px-3 py-2.5 text-right border-b border-slate-200 border-l border-slate-200 min-w-[110px]">Thành Tiền</th>
-                                    <th className="px-3 py-2.5 sticky right-0 z-40 bg-slate-50/95 border-b border-slate-200 border-l border-slate-200 min-w-[85px] text-center">Action</th>
+                                    <th className="px-3 py-2.5 min-w-[200px] sticky left-10 z-40 bg-slate-50/95 border-b border-slate-200 border-r border-slate-200">SKU Identity & Health</th>
+                                    <th className="px-3 py-2.5 text-center border-b border-slate-200 min-w-[100px]">Vận chuyển</th>
+                                    <th className="px-2 py-2.5 text-center border-b border-slate-200 bg-indigo-50/30 min-w-[80px]">Đặt MN (NB)</th>
+                                    <th className="px-2 py-2.5 text-center border-b border-slate-200 bg-blue-50/30 min-w-[80px]">Đặt MB (BB)</th>
+                                    <th className="px-2 py-2.5 text-center border-b border-slate-200 bg-slate-100/50 min-w-[90px] font-black">Tổng đặt</th>
+                                    <th className="px-3 py-2.5 text-right border-b border-slate-200 min-w-[100px]">Đơn giá</th>
+                                    <th className="px-3 py-2.5 min-w-[150px] border-b border-slate-200">Ghi chú / Cảnh báo</th>
+                                    <th className="px-3 py-2.5 text-right border-b border-slate-200 border-l border-slate-200 min-w-[110px] bg-slate-100/30">Thành Tiền</th>
+                                    <th className="px-3 py-2.5 sticky right-0 z-40 bg-slate-50/95 border-b border-slate-200 border-l border-slate-200 min-w-[70px] text-center">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white">

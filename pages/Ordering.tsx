@@ -211,6 +211,8 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                     backorderBreakdown: item?.BackorderBreakdown || [],
                     dealerBreakdown: item?.DealerBreakdown || [],
                     effectiveLT: profile.profile?.lt ?? settings.params.lt ?? 90,
+                    qtyNB: c?.transfer?.suggestedOrderNB || 0,
+                    qtyBB: c?.transfer?.suggestedOrderBB || 0,
                 };
             }),
         submitted_at: new Date().toISOString(),
@@ -808,7 +810,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                     <div className="grid grid-cols-2 gap-px bg-slate-100 border-t border-slate-100">
                                         <div className="bg-rose-50/80 px-3 py-2.5">
                                             <div className="text-[9px] font-black text-rose-500 uppercase mb-1 flex items-center gap-1">
-                                                <i className="fas fa-plane-up text-[8px]" />{t('ord_th_air')}
+                                                <i className="fas fa-plane-up text-[8px]" />Air
                                             </div>
                                             <input
                                                 type="number"
@@ -825,7 +827,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                         </div>
                                         <div className="bg-blue-50/80 px-3 py-2.5">
                                             <div className="text-[9px] font-black text-blue-500 uppercase mb-1 flex items-center gap-1">
-                                                <i className="fas fa-ship text-[8px]" />{t('ord_th_sea')}
+                                                <i className="fas fa-ship text-[8px]" />Sea
                                             </div>
                                             <input
                                                 type="number"
@@ -864,14 +866,12 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                 <th className="px-4 py-4 w-12 text-center text-slate-400 border-b border-slate-200 sticky left-0 z-40 bg-white shadow-sm"><Typography variant="label">#</Typography></th>
                                 <th className="px-4 py-4 min-w-[180px] sticky left-12 z-40 bg-white border-b border-slate-200 sticky-column-shadow"><Typography variant="label">{t('ord_th_sku')}</Typography></th>
                                 <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[110px] hidden xl:table-cell"><Typography variant="label">DEMAND</Typography></th>
-                                <th className="px-4 py-4 min-w-[145px] text-right border-b border-slate-200"><Typography variant="label">{t('ord_th_health')}</Typography></th>
-                                <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[110px] hidden lg:table-cell"><Typography variant="label">COMING (M0/M+1)</Typography></th>
-                                <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[100px] hidden lg:table-cell"><Typography variant="label">PO PIPELINE</Typography></th>
+                                <th className="px-4 py-4 min-w-[200px] text-right border-b border-slate-200"><Typography variant="label">Stock Health | MOS</Typography></th>
+                                <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[110px] hidden lg:table-cell"><Typography variant="label">PO PIPELINE</Typography></th>
                                 <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[120px] hidden lg:table-cell"><Typography variant="label">{t('ord_th_momentum')}</Typography></th>
-                                <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[80px]"><Typography variant="label">{t('ord_th_mos')}</Typography></th>
                                 <th className="px-4 py-4 text-center border-b border-slate-200 hidden md:table-cell"><Typography variant="label">{t('ord_th_dealer_cst')}</Typography></th>
-                                <th className="px-4 py-4 text-center border-x border-slate-200 bg-rose-50/20 border-b border-slate-200"><Typography variant="label" className="text-rose-600">{t('ord_th_air')}</Typography></th>
-                                <th className="px-4 py-4 text-center border-r border-slate-200 bg-blue-50/20 border-b border-slate-200"><Typography variant="label" className="text-blue-600">{t('ord_th_sea')}</Typography></th>
+                                <th className="px-4 py-4 text-center border-x border-slate-200 bg-rose-50/20 border-b border-slate-200"><Typography variant="label" className="text-rose-600">Air</Typography></th>
+                                <th className="px-4 py-4 text-center border-r border-slate-200 bg-blue-50/20 border-b border-slate-200"><Typography variant="label" className="text-blue-600">Sea</Typography></th>
                                 <th className="px-4 py-4 min-w-[150px] border-b border-slate-200 hidden xl:table-cell">{t('ord_th_note')}</th>
                                 <th className="px-4 py-4 text-right sticky right-0 z-40 bg-white border-b border-slate-200 border-l border-slate-200 shadow-inner">{t('ord_th_amount')}</th>
                             </tr>
@@ -904,6 +904,12 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                             <div className="text-xs text-slate-500 font-bold truncate max-w-[200px]">{item.ItemName}</div>
                                             <div className="mt-1 flex flex-wrap items-center gap-2">
                                                 <DebtStatusBadge item={item} />
+                                                {item.computed?.warnings?.find(w => w.code === 'STK_GAP') && (
+                                                    <span className="text-xs font-black px-1.5 py-0.5 rounded uppercase bg-rose-600 text-white border border-rose-700 shadow-sm animate-pulse flex items-center gap-1 cursor-help" title={item.computed.warnings.find(w => w.code === 'STK_GAP')?.message}>
+                                                        <i className="fas fa-clock-rotate-left text-[10px]" />
+                                                        Gap: {item.computed.warnings.find(w => w.code === 'STK_GAP')?.message.split(': ')[1].split(' ngày')[0]}d
+                                                    </span>
+                                                )}
                                                 <span className="text-xs font-black px-1.5 py-0.5 rounded uppercase bg-blue-50 text-blue-700 border border-blue-100">LOIS {item.LOISGroup}</span>
                                                 {item.SourceId && (
                                                     <Typography variant="label" className="bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded font-bold">
@@ -934,10 +940,26 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                                 <TrendBadge trend={item.TrendFlag} />
                                             </div>
                                         </td>
-                                        {/* STOCK HEALTH */}
                                         <td className="px-4 py-3 text-right border-b border-slate-50">
                                             <div className="flex flex-col items-end">
-                                                <ConsolidatedStockCell item={item} allItems={enrichedList} graph={graph} />
+                                                <div className="flex items-center justify-end gap-2 mb-1.5">
+                                                    <ConsolidatedStockCell item={item} allItems={enrichedList} graph={graph} />
+                                                    {(() => {
+                                                        const effStock = (item.computed?.available || 0) + (incomingThisMonth || 0) - (item.Backorder || 0);
+                                                        const effMos = demandMonthly <= 0 ? 99 : effStock / demandMonthly;
+                                                        const colorClass = effMos < 1.0 
+                                                            ? 'bg-rose-100 text-rose-700 border-rose-200' 
+                                                            : effMos <= 2.0 
+                                                                ? 'bg-amber-100 text-amber-700 border-amber-200' 
+                                                                : 'bg-emerald-100 text-emerald-700 border-emerald-200';
+                                                        return (
+                                                            <div className={`px-2 py-0.5 rounded-md border font-black text-xs text-center shadow-sm flex items-center gap-1 transition-all hover:scale-105 active:scale-95 cursor-help ${colorClass}`} title={`MOS tính cả hàng về & BO: ${effMos === 99 ? '∞' : effMos.toFixed(1)}M`}>
+                                                                <i className={`fas ${effMos < 1.0 ? 'fa-triangle-exclamation' : 'fa-hourglass-half'} text-[10px] opacity-70`} />
+                                                                {demandMonthly <= 0 ? '∞' : `${item.computed!.mos?.toFixed(1)}M`}
+                                                            </div>
+                                                        );
+                                                    })()}
+                                                </div>
                                                 <StockProgressBar current={item.computed?.available || 0} rop={item.computed?.rop || 0}
                                                     max={item.computed?.isStopBiz ? 0 : (item.computed?.stockMax || 1)}
                                                     ss={item.computed?.safetyStock} onOrder={item.TotalPO} incoming={incomingThisMonth} incomingNext={item.computed?.incomingNextMonth} backorder={item.Backorder} breakdown={item.BackorderBreakdown} draftAdd={draftQtyTotal} baseFc={item.BaseForecast} />
@@ -966,19 +988,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                         <td className="px-4 py-3 text-center border-b border-slate-50 hidden lg:table-cell">
                                             <SalesMomentum values={[item.AvgQty24M, item.AvgQty12M, item.AvgQty6M, item.AvgQty3M]} history={item.SalesHistory} forecast={item.BaseForecast} />
                                         </td>
-                                        {/* MOS — fix bug khi demand = 0 */}
-                                        <td className="px-4 py-3 text-center border-b border-slate-50">
-                                            {demandMonthly <= 0 ? (
-                                                <div className="flex flex-col items-center">
-                                                    <div className="text-base font-black text-slate-300">∞</div>
-                                                    <div className="text-[10px] font-bold text-slate-400 uppercase">No demand</div>
-                                                </div>
-                                            ) : (
-                                                <div className={`text-base font-black ${item.computed!.mos < 1 ? 'text-rose-700' : (item.computed!.mos > 12 ? 'text-amber-700' : 'text-emerald-700')}`}>
-                                                    {(item.computed?.mos || 0).toFixed(1)} <span className="text-xs text-slate-500">M</span>
-                                                </div>
-                                            )}
-                                        </td>
+
                                         <td className="px-4 py-3 text-center border-b border-slate-50 hidden md:table-cell">
                                             <div className="mt-1 flex flex-col items-center">
                                                 <DealerStockPopup items={item.DealerBreakdown || []}>
@@ -999,24 +1009,31 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                             <input type="number" value={d.sea || ''} onChange={e => !isLocked && handleQtyChange(item.ItemCode, 'sea', parseInt(e.target.value) || 0)} readOnly={isLocked} className="w-full bg-blue-50 border-0 focus:ring-0 text-center text-base font-black text-blue-700 p-0 h-full" placeholder="0" />
                                             {((item.computed?.gapOrExcess || 0) > 0) && d.sea === 0 && (
                                                 <button 
-                                                    onClick={() => {
-                                                        const isDecline = item.computed?.warnings?.some(w => w.code === 'TREND_DECLINE');
-                                                        const targetVal = isDecline 
-                                                            ? Math.max(0, (item.computed?.rop || 0) - (item.computed?.available || 0) - (item.TotalPO || 0))
-                                                            : item.computed!.gapOrExcess!;
-                                                        handleQtyChange(item.ItemCode, 'sea', Math.ceil((targetVal || 1) / (item.SNP || 1)) * (item.SNP || 1));
-                                                    }} 
-                                                    className={`block mx-auto mt-1.5 text-xs font-black px-2 py-0.5 rounded-full border transition-all ${
+                                                    onClick={() => handleQtyChange(item.ItemCode, 'sea', item.computed!.gapOrExcess)} 
+                                                    className={`block mx-auto mt-1.5 text-xs font-black px-3 py-1 rounded-full border transition-all shadow-sm ${
                                                         item.computed?.warnings?.some(w => w.code === 'TREND_DECLINE')
                                                             ? 'text-amber-600 bg-amber-50 border-amber-100 hover:bg-amber-100'
                                                             : 'text-blue-600 bg-blue-50 border-blue-100 hover:bg-blue-100'
                                                     }`}
                                                 >
-                                                    {item.computed?.warnings?.some(w => w.code === 'TREND_DECLINE') ? 'Thận trọng: ' : 'Suggest: '}
-                                                    {item.computed?.warnings?.some(w => w.code === 'TREND_DECLINE') 
-                                                        ? Math.ceil(Math.max(0, (item.computed?.rop || 0) - (item.computed?.available || 0) - (item.TotalPO || 0)) / (item.SNP || 1)) * (item.SNP || 1)
-                                                        : item.computed.gapOrExcess}
+                                                    <i className={`fas ${item.computed?.warnings?.some(w => w.code === 'TREND_DECLINE') ? 'fa-triangle-exclamation' : 'fa-lightbulb'} mr-1.5`} />
+                                                    <span className="opacity-80 uppercase tracking-tight mr-1">
+                                                        {item.computed?.warnings?.some(w => w.code === 'TREND_DECLINE') ? 'Thận trọng: ' : ''}
+                                                    </span>
+                                                    {item.computed.gapOrExcess}
                                                 </button>
+                                            )}
+                                            {(d.sea > 0 || (item.computed?.gapOrExcess || 0) > 0) && item.computed?.transfer && (item.computed.transfer.suggestedOrderNB > 0 || item.computed.transfer.suggestedOrderBB > 0) && (
+                                                <div className="mt-1 flex items-center justify-center gap-1.5 no-print scale-110">
+                                                    <div className="flex items-center gap-1 bg-indigo-50/50 px-1.5 py-0.5 rounded border border-indigo-100/50" title="Miền Nam (NB)">
+                                                        <span className="text-[9px] font-black text-indigo-400 uppercase leading-none">NB</span>
+                                                        <span className="text-[11px] font-black text-indigo-700 leading-none">{item.computed.transfer.suggestedOrderNB.toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1 bg-blue-50/50 px-1.5 py-0.5 rounded border border-blue-100/50" title="Miền Bắc (BB)">
+                                                        <span className="text-[9px] font-black text-blue-400 uppercase leading-none">BB</span>
+                                                        <span className="text-[11px] font-black text-blue-700 leading-none">{item.computed.transfer.suggestedOrderBB.toLocaleString()}</span>
+                                                    </div>
+                                                </div>
                                             )}
                                             {item.computed?.transfer && item.computed.transfer.transferNBtoBB > 0 && (
                                                 <div className="mt-1 flex justify-center"><span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded uppercase border border-amber-200" title="Chuyển từ NB sang BB">NB <i className="fas fa-arrow-right mx-0.5"></i> BB: {item.computed.transfer.transferNBtoBB}</span></div>
