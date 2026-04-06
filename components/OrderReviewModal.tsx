@@ -17,6 +17,7 @@ import { DecisionSummaryPanel } from './DecisionSupport/DecisionSummaryPanel';
 import { AdjustmentImpactPanel } from './DecisionSupport/AdjustmentImpactPanel';
 import { DecisionConfirmDialog } from './DecisionSupport/DecisionConfirmDialog';
 import { OrderItemRow } from './DecisionSupport/OrderItemRow';
+import { useLanguage } from '../utils/i18n';
 
 
 
@@ -41,6 +42,7 @@ const ACTION_STYLE: Record<string, { icon: string; cls: string }> = {
 export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefresh }: Props) => {
     const { user, profile } = useAuth();
     const { canApproveLevel, allowedLevels, canUnlock: canUnlockRole } = useApprovalAuth();
+    const { t } = useLanguage();
     const snap = request.snapshot_data;
     const proposerName = usersMap[request.submitted_by] || 'N/A';
 
@@ -301,7 +303,7 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
         });
 
         const footerRow = `<tr>
-            <td colspan="7" class="b">TỔNG CỘNG</td>
+            <td colspan="7" class="b">${t('review_print_grand_total')}</td>
             <td class="r"></td><td class="r"></td><td class="r"></td><td class="r"></td><td class="r"></td>
             <td class="r"></td><td class="r"></td><td class="r"></td>
             <td class="r b">${fmt(totalQty)}</td>

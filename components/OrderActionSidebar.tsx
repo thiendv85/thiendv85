@@ -74,7 +74,7 @@ export const OrderActionSidebar: React.FC<Props> = ({
                             {hasChanges && (
                                 <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-200 px-3 py-1.5 rounded-xl animate-pulse">
                                     <i className="fas fa-pen-nib text-amber-600 text-xs" />
-                                    <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Adjustment Mode</span>
+                                    <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">{t('approval_adjustment_mode')}</span>
                                 </div>
                             )}
                             <div className="flex gap-2">
@@ -149,7 +149,7 @@ export const OrderActionSidebar: React.FC<Props> = ({
                         <div className="ml-auto flex items-center gap-6">
                             <div className="flex items-center gap-2 text-xs font-bold text-slate-400 italic">
                                 <i className="fas fa-circle-check text-blue-500" />
-                                Đã chọn {selectedItems.size}/{rows.length} SKU
+                                {t('common_selected')} {selectedItems.size}/{rows.length} SKU
                             </div>
                             {hasChanges && (
                                 <button onClick={onReset}
@@ -176,7 +176,7 @@ export const OrderActionSidebar: React.FC<Props> = ({
                                         {actions.map(a => {
                                             const s = ACTION_STYLE[a.action] || ACTION_STYLE.commented;
                                             const actorName = usersMap[a.actor_id] || 'N/A';
-                                            const actionLabels: Record<string, string> = { approved: 'Đã duyệt', returned: 'Trả lại', rejected: 'Từ chối', commented: 'Bình luận' };
+                                            const actionLabels: Record<string, string> = { approved: t('approval_action_approved'), returned: t('approval_action_returned'), rejected: t('approval_action_rejected'), commented: t('approval_action_commented') };
                                             return (
                                                 <div key={a.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm relative pl-10 overflow-hidden">
                                                     <div className={`absolute left-0 top-0 bottom-0 w-8 flex items-center justify-center ${s.cls.replace('text-', 'bg-')}/10 border-r border-slate-100`}>
@@ -184,7 +184,7 @@ export const OrderActionSidebar: React.FC<Props> = ({
                                                     </div>
                                                     <div className="flex justify-between items-start mb-1">
                                                         <span className={`text-xs font-black uppercase ${s.cls}`}>{actionLabels[a.action] || a.action}</span>
-                                                        <span className="text-[10px] font-black text-slate-400">Lv{a.level}</span>
+                                                        <span className="text-[10px] font-black text-slate-400">{t('common_level_abbrev')}{a.level}</span>
                                                     </div>
                                                     <div className="text-xs font-bold text-slate-700 mb-1">{actorName}</div>
                                                     {a.comment && <p className="text-xs text-slate-500 italic mb-2">"{a.comment}"</p>}

@@ -96,14 +96,14 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
                             onChange={(e) => setSortKey(e.target.value)}
                             className="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer tracking-tight"
                         >
-                            <option value="priority">Sắp xếp: Ưu tiên</option>
-                            <option value="mos_asc">MOS (Thấp → Cao)</option>
-                            <option value="mos_desc">MOS (Cao → Thấp)</option>
-                            <option value="fc_desc">Dự báo (FC) Cao</option>
-                            <option value="stock_desc">Tồn kho Cao</option>
-                            <option value="val_desc">Giá trị Cao</option>
-                            <option value="bo_desc">Nợ BO Cao</option>
-                            <option value="price_desc">Đơn giá Cao</option>
+                            <option value="priority">{t('sort_priority')}</option>
+                            <option value="mos_asc">{t('sort_mos_asc')}</option>
+                            <option value="mos_desc">{t('sort_mos_desc')}</option>
+                            <option value="fc_desc">{t('sort_fc_desc')}</option>
+                            <option value="stock_desc">{t('sort_stock_desc')}</option>
+                            <option value="val_desc">{t('sort_val_desc')}</option>
+                            <option value="bo_desc">{t('sort_bo_desc')}</option>
+                            <option value="price_desc">{t('sort_price_desc')}</option>
                         </select>
                     </div>
 
@@ -143,7 +143,7 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
                                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onItemSelect(item); } }}
                                 role="button"
                                 tabIndex={0}
-                                aria-label={`Xem chi tiết mã hàng ${item.ItemCode}`}
+                                aria-label={`${t('aria_view_item')} ${item.ItemCode}`}
                                 className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm active:scale-[0.98] transition-all hover:border-blue-300 hover:shadow-md cursor-pointer relative overflow-hidden focus:outline-none focus:ring-4 focus:ring-blue-50"
                             >
                                 <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/5 rounded-full -mr-8 -mt-8 pointer-events-none"></div>
@@ -265,7 +265,7 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
                                         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onItemSelect(item); } }}
                                         role="button"
                                         tabIndex={0}
-                                        aria-label={`Xem chi tiết mã hàng ${item.ItemCode}`}
+                                        aria-label={`${t('aria_view_item')} ${item.ItemCode}`}
                                         className="hover:bg-slate-50/80 transition-all group focus:outline-none focus:bg-blue-50"
                                     >
                                         <td className="px-4 py-3 text-center text-xs font-black text-slate-400 font-mono border-b border-slate-50 sticky left-0 z-10 bg-white group-hover:bg-slate-50/80">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
@@ -299,7 +299,7 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
                                         {/* DEMAND SIGNAL */}
                                         <td className="px-4 py-3 text-center border-b border-slate-50">
                                             <div className="flex flex-col items-center gap-1">
-                                                <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200/80 shadow-sm tabular-nums" title="Bán M-1 thực tế / Dự báo FC">
+                                                <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200/80 shadow-sm tabular-nums" title={t('db_demand_actual')}>
                                                     <div className="flex flex-col items-start leading-tight">
                                                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">M-1</span>
                                                         <span className="font-black text-slate-800 text-sm leading-none">{(m1Actual || 0).toLocaleString()}</span>
@@ -326,7 +326,7 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
                                                 {incomingThisMonth > 0 ? (
                                                     <div className="flex flex-col items-center tabular-nums">
                                                         <Typography variant="body" className="font-bold text-blue-700">+{incomingThisMonth.toLocaleString()}</Typography>
-                                                        <Typography variant="label" className="text-blue-400 !font-semibold normal-case leading-tight">Về tháng này</Typography>
+                                                        <Typography variant="label" className="text-blue-400 !font-semibold normal-case leading-tight">{t('supply_incoming_this_month')}</Typography>
                                                     </div>
                                                 ) : (
                                                     <Typography variant="body" className="font-bold text-slate-300">-</Typography>

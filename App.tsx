@@ -348,7 +348,7 @@ const AppContent = () => {
                         {isMonthlyLoading ? (
                             <div className="flex items-center gap-1.5 bg-blue-500/20 border border-blue-400/30 text-blue-200 px-3 py-1.5 rounded-lg text-xs font-bold animate-pulse">
                                 <i className="fas fa-sync fa-spin text-blue-400 text-xs" />
-                                <span className="hidden xl:inline">Đang đồng bộ tháng...</span>
+                                <span className="hidden xl:inline">{t('status_syncing_monthly')}</span>
                                 <span className="xl:hidden">...</span>
                             </div>
                         ) : (
@@ -359,11 +359,11 @@ const AppContent = () => {
                                         ? 'bg-emerald-600/20 border border-emerald-400/30 text-emerald-300 hover:bg-emerald-600/30' 
                                         : 'bg-amber-500/20 border border-amber-400/30 text-amber-200 hover:bg-amber-500/30'
                                 }`}
-                                title={monthlyDataDate ? `Dữ liệu tháng: ${monthlyDataDate} — Click để chọn bản khác` : "Chưa có dữ liệu tháng — Click để chọn"}
+                                title={monthlyDataDate ? `${t('status_monthly_tooltip')}: ${monthlyDataDate}` : t('status_monthly_tooltip_none')}
                             >
                                 <i className={monthlyDataDate ? "fas fa-database" : "fas fa-triangle-exclamation text-amber-300"}></i>
                                 <span className="hidden xl:inline">
-                                    {monthlyDataDate ? `Dữ liệu Tháng: ${monthlyDataDate.split('-').reverse().join('/')}` : 'Chưa có d/l tháng'}
+                                    {monthlyDataDate ? `${t('status_monthly_data')}: ${monthlyDataDate.split('-').reverse().join('/')}` : t('status_no_monthly')}
                                 </span>
                                 <span className="xl:hidden">
                                     {monthlyDataDate ? monthlyDataDate.split('-').reverse().join('/') : '!'}
@@ -374,7 +374,7 @@ const AppContent = () => {
                         
                         <button 
                             onClick={() => setIsDataModalOpen(true)}
-                            title="Chọn dữ liệu từ Cloud (Bản sao lưu kho hoặc Dữ liệu tháng)"
+                            title={t('nav_cloud_select')}
                             className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition-all flex items-center justify-center shrink-0"
                         >
                             <i className="fas fa-cloud text-xs" />
@@ -388,7 +388,7 @@ const AppContent = () => {
                             { id: 'transfer', label: t('nav_transfer'), icon: 'fa-right-left' },
                             { id: 'kitting', label: t('nav_kitting'), icon: 'fa-boxes-stacked' },
                             ...(profile?.role && ['admin', 'approver'].includes(profile.role)
-                                ? [{ id: 'approval-queue', label: 'Phê duyệt', icon: 'fa-clipboard-check' }]
+                                ? [{ id: 'approval-queue', label: t('nav_approval'), icon: 'fa-clipboard-check' }]
                                 : []),
                         ].map((nav) => {
                             const isActive = view === nav.id;
@@ -423,19 +423,19 @@ const AppContent = () => {
                         </div>
                         <button
                             onClick={() => setIsDataModalOpen(true)}
-                            title="Tải Dữ Liệu Cloud"
+                            title={t('nav_cloud_data')}
                             className="text-slate-400 hover:text-blue-500 hover:bg-blue-500/20 transition-colors p-2 rounded-lg"
                         >
                             <i className="fas fa-cloud text-base md:text-lg" />
                         </button>
                         <button
                             onClick={() => setView('settings')}
-                            title="Cấu hình hệ thống"
+                            title={t('nav_settings')}
                             className={`p-2 rounded-lg transition-all ${view === 'settings' ? 'bg-purple-100/20 text-purple-400' : 'text-slate-400 hover:text-purple-400 hover:bg-purple-500/20'}`}
                         >
                             <i className="fas fa-sliders text-base md:text-lg" />
                         </button>
-                        <button onClick={() => { handleExit(); signOut(); }} title={`${profile?.full_name || 'User'} — Đăng xuất`} className="text-slate-400 hover:text-rose-500 transition-colors p-2 hover:bg-rose-50 rounded-lg"><i className="fas fa-power-off text-base md:text-lg"></i></button>
+                        <button onClick={() => { handleExit(); signOut(); }} title={`${profile?.full_name || 'User'} — ${t('nav_logout')}`} className="text-slate-400 hover:text-rose-500 transition-colors p-2 hover:bg-rose-50 rounded-lg"><i className="fas fa-power-off text-base md:text-lg"></i></button>
                     </div>
                 </div>
             </header >
@@ -459,12 +459,12 @@ const AppContent = () => {
             {isMobile && (
                 <nav className="bottom-nav-bar fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(15,23,42,0.08)] flex items-stretch" style={{ height: 56 }}>
                     {[
-                        { id: 'dashboard', label: 'Dashboard', icon: 'fa-chart-simple' },
-                        { id: 'ordering', label: 'Đặt hàng', icon: 'fa-cart-shopping' },
-                        { id: 'transfer', label: 'Phân bổ', icon: 'fa-right-left' },
-                        { id: 'kitting', label: 'Kitting', icon: 'fa-boxes-stacked' },
+                        { id: 'dashboard', label: t('nav_dashboard'), icon: 'fa-chart-simple' },
+                        { id: 'ordering', label: t('nav_ordering'), icon: 'fa-cart-shopping' },
+                        { id: 'transfer', label: t('nav_transfer'), icon: 'fa-right-left' },
+                        { id: 'kitting', label: t('nav_kitting'), icon: 'fa-boxes-stacked' },
                         ...(profile?.role && ['admin', 'approver'].includes(profile.role)
-                            ? [{ id: 'approval-queue', label: 'Duyệt', icon: 'fa-clipboard-check' }]
+                            ? [{ id: 'approval-queue', label: t('nav_approval'), icon: 'fa-clipboard-check' }]
                             : []),
                     ].map((nav) => {
                         const isActive = view === nav.id;
@@ -491,16 +491,16 @@ const AppContent = () => {
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                        <span className="font-bold text-slate-500 uppercase tracking-widest text-[10px]">System Online</span>
+                        <span className="font-bold text-slate-500 uppercase tracking-widest text-[10px]">{t('status_system_online')}</span>
                     </div>
                     <span className="opacity-30">|</span>
                     <span className="font-medium">ATP Supply Chain v14.0 — Executive Intelligence</span>
                 </div>
                 <div className="flex items-center gap-6">
                     <div className="flex gap-4">
-                        <span className="hover:text-blue-500 cursor-pointer transition-colors">Documentation</span>
-                        <span className="hover:text-blue-500 cursor-pointer transition-colors">Support</span>
-                        <span className="hover:text-blue-500 cursor-pointer transition-colors">Privacy</span>
+                        <span className="hover:text-blue-500 cursor-pointer transition-colors">{t('footer_documentation')}</span>
+                        <span className="hover:text-blue-500 cursor-pointer transition-colors">{t('footer_support')}</span>
+                        <span className="hover:text-blue-500 cursor-pointer transition-colors">{t('footer_privacy')}</span>
                     </div>
                     <span className="opacity-30 hidden md:inline">|</span>
                     <span className="text-slate-500 font-bold">© 2026 Auto Parts Governance</span>

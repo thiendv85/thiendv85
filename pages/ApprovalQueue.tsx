@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../utils/authContext';
 import { useApprovalAuth } from '../hooks/useApprovalAuth';
+import { useLanguage } from '../utils/i18n';
 import { ApprovalStatusBadge } from '../components/ApprovalStatusBadge';
 import { OrderReviewModal } from '../components/OrderReviewModal';
 import { Typography } from '../components/Typography';
@@ -21,6 +22,7 @@ type TabFilter = 'pending' | 'mine' | 'all';
 export const ApprovalQueue = () => {
     const { user, profile } = useAuth();
     const { hasApprovalRole, allowedLevels } = useApprovalAuth();
+    const { t } = useLanguage();
     const [activeTab, setActiveTab] = useState<TabFilter>('pending');
     const [requests, setRequests] = useState<ApprovalRequest[]>([]);
     const [usersMap, setUsersMap] = useState<Record<string, string>>({});
@@ -83,7 +85,7 @@ export const ApprovalQueue = () => {
             setRequests(sortedData);
         } catch (e) {
             console.error(e);
-            showToast("Lỗi khi nạp dữ liệu", "error");
+            showToast(t('approval_toast_load_error'), "error");
         } finally {
             setIsLoading(false);
         }
@@ -109,19 +111,19 @@ export const ApprovalQueue = () => {
     const handleAction = async (requestId: string, action: 'approved' | 'rejected') => {
         if (!user) return;
         setIsProcessing(requestId);
-        showToast(`Đang ${action === 'approved' ? 'duyệt' : 'từ chối'}...`, 'loading');
+        showToast(action === 'approved' ? t('approval_toast_approving') : t('approval_toast_rejecting'), 'loading');
         try {
             const { processApprovalAction } = await import('../utils/supabase');
             const result = await processApprovalAction(requestId, user.id, action);
             if (result.success) {
-                showToast(`Đã ${action === 'approved' ? 'phê duyệt' : 'từ chối'} đơn hàng`, 'success');
+                showToast(action === 'approved' ? t('approval_toast_approved') : t('approval_toast_rejected'), 'success');
                 await loadRequests();
             } else {
-                showToast("Không thể thực hiện thao tác", "error");
+                showToast(t('approval_toast_error'), "error");
             }
         } catch (err) {
             console.error("Action error:", err);
-            showToast("Lỗi hệ thống", "error");
+            showToast(t('approval_toast_system_error'), "error");
         } finally {
             setIsProcessing(null);
         }
@@ -130,7 +132,7 @@ export const ApprovalQueue = () => {
     const handleBulkAction = async (action: 'approved' | 'rejected') => {
         if (!user || selectedIds.size === 0) return;
         const idsArray = Array.from(selectedIds);
-        showToast(`Đang xử lý ${idsArray.length} đơn hàng...`, 'loading');
+        showToast(`${t('approval_toast_bulk_processing')} ${idsArray.length}...`, 'loading');
         
         try {
             const { processApprovalAction } = await import('../utils/supabase');
@@ -141,11 +143,11 @@ export const ApprovalQueue = () => {
                 if (res.success) successCount++;
             }
             
-            showToast(`Hoàn tất: ${successCount}/${idsArray.length} thành công`, successCount === idsArray.length ? 'success' : 'error');
+            showToast(`${t('approval_toast_bulk_done')}: ${successCount}/${idsArray.length} ${t('approval_toast_bulk_success')}`, successCount === idsArray.length ? 'success' : 'error');
             setSelectedIds(new Set());
             await loadRequests();
         } catch (err) {
-            showToast("Lỗi xử lý hàng loạt", "error");
+            showToast(t('approval_toast_bulk_error'), "error");
         }
     };
 
@@ -165,9 +167,9 @@ export const ApprovalQueue = () => {
     };
 
     const TABS: { id: TabFilter; label: string; icon: string }[] = [
-        { id: 'pending', label: 'Cần duyệt', icon: 'fa-clock' },
-        { id: 'mine', label: 'Của tôi', icon: 'fa-user' },
-        { id: 'all', label: 'Tất cả', icon: 'fa-layer-group' },
+        { id: 'pending', label: t('approval_tab_pending'), icon: 'fa-clock' },
+        { id: 'mine', label: t('approval_tab_mine'), icon: 'fa-user' },
+        { id: 'all', label: t('approval_tab_all'), icon: 'fa-layer-group' },
     ];
 
     const filteredAndSortedRequests = useMemo(() => {
@@ -234,11 +236,11 @@ export const ApprovalQueue = () => {
     }), [requests]);
 
     const STATUS_UI: Record<string, { label: string; icon: string; cls: string; border: string }> = {
-        pending: { label: 'Cần duyệt (Pending)', icon: 'fa-clock', cls: 'text-amber-600 bg-amber-50', border: 'border-amber-200' },
-        in_progress: { label: 'Đang xử lý (In Progress)', icon: 'fa-spinner fa-spin', cls: 'text-blue-600 bg-blue-50', border: 'border-blue-200' },
-        returned: { label: 'Bị trả lại (Returned)', icon: 'fa-rotate-left', cls: 'text-purple-600 bg-purple-50', border: 'border-purple-200' },
-        approved: { label: 'Đã duyệt (Approved)', icon: 'fa-check-circle', cls: 'text-emerald-600 bg-emerald-50', border: 'border-emerald-200' },
-        rejected: { label: 'Bị từ chối (Rejected)', icon: 'fa-times-circle', cls: 'text-rose-600 bg-rose-50', border: 'border-rose-200' },
+        pending: { label: t('approval_status_pending_long'), icon: 'fa-clock', cls: 'text-amber-600 bg-amber-50', border: 'border-amber-200' },
+        in_progress: { label: t('approval_status_in_progress_long'), icon: 'fa-spinner fa-spin', cls: 'text-blue-600 bg-blue-50', border: 'border-blue-200' },
+        returned: { label: t('approval_status_returned_long'), icon: 'fa-rotate-left', cls: 'text-purple-600 bg-purple-50', border: 'border-purple-200' },
+        approved: { label: t('approval_status_approved_long'), icon: 'fa-check-circle', cls: 'text-emerald-600 bg-emerald-50', border: 'border-emerald-200' },
+        rejected: { label: t('approval_status_rejected_long'), icon: 'fa-times-circle', cls: 'text-rose-600 bg-rose-50', border: 'border-rose-200' },
     };
 
     return (
@@ -256,27 +258,27 @@ export const ApprovalQueue = () => {
                             <i className="fas fa-check-double text-blue-400"></i>
                         </div>
                         <div>
-                            <h1 className="text-xl font-black tracking-tight text-white leading-none">Phê duyệt Đặt hàng</h1>
-                            <p className="text-[10px] text-blue-100/60 font-medium mt-0.5">Quản lý và phê duyệt các yêu cầu đặt hàng.</p>
+                            <h1 className="text-xl font-black tracking-tight text-white leading-none">{t('approval_title')}</h1>
+                            <p className="text-[10px] text-blue-100/60 font-medium mt-0.5">{t('approval_subtitle')}</p>
                         </div>
                     </div>
 
                     {/* Inline stat pills */}
                     <div className="flex items-center gap-2 mx-4">
                         <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg">
-                            <span className="text-[10px] font-black text-white/40 uppercase">Tổng</span>
+                            <span className="text-[10px] font-black text-white/40 uppercase">{t('approval_stat_total')}</span>
                             <span className="text-sm font-black text-white">{stats.total}</span>
                         </div>
                         {stats.pending > 0 && (
                             <div className="flex items-center gap-1.5 bg-amber-500/20 border border-amber-400/30 px-3 py-1.5 rounded-lg">
                                 <i className="fas fa-hourglass-half text-amber-300 text-[10px]"></i>
-                                <span className="text-[10px] font-black text-amber-300 uppercase">Chờ</span>
+                                <span className="text-[10px] font-black text-amber-300 uppercase">{t('approval_stat_pending')}</span>
                                 <span className="text-sm font-black text-amber-200">{stats.pending}</span>
                             </div>
                         )}
                         {stats.processing > 0 && (
                             <div className="flex items-center gap-1.5 bg-indigo-500/20 border border-indigo-400/30 px-3 py-1.5 rounded-lg">
-                                <span className="text-[10px] font-black text-indigo-300 uppercase">XL</span>
+                                <span className="text-[10px] font-black text-indigo-300 uppercase">{t('approval_stat_processing')}</span>
                                 <span className="text-sm font-black text-indigo-200">{stats.processing}</span>
                             </div>
                         )}
@@ -297,7 +299,7 @@ export const ApprovalQueue = () => {
                         )}
                     </div>
 
-                    <button onClick={loadRequests} disabled={isLoading} title="Làm mới" className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all flex items-center justify-center group">
+                    <button onClick={loadRequests} disabled={isLoading} title={t('common_refresh')} className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all flex items-center justify-center group">
                         <i className={`fas fa-arrows-rotate text-blue-400 text-xs group-hover:rotate-180 transition-transform duration-500 ${isLoading ? 'fa-spin' : ''}`} />
                     </button>
                 </div>
@@ -328,7 +330,7 @@ export const ApprovalQueue = () => {
                         <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
                         <input 
                             type="text"
-                            placeholder="Tìm kiếm nhanh..."
+                            placeholder={t('approval_search_placeholder')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-[14px] focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all text-xs font-bold shadow-sm"
@@ -339,16 +341,16 @@ export const ApprovalQueue = () => {
                             onClick={() => setIsFilterOpen(!isFilterOpen)}
                             className={`px-4 py-2.5 rounded-[14px] font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 ${isFilterOpen ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                         >
-                            <i className="fas fa-filter"></i> Bộ lọc
+                            <i className="fas fa-filter"></i> {t('common_filters')}
                         </button>
                         <select 
                             value={sortConfig.key}
                             onChange={(e) => setSortConfig(prev => ({ ...prev, key: e.target.value }))}
                             className="bg-slate-100 px-4 py-2.5 rounded-[14px] font-black text-[10px] uppercase tracking-widest text-slate-600 outline-none hover:bg-slate-200"
                         >
-                            <option value="submitted_at">Mới nhất</option>
-                            <option value="draft_name">Tên Draft</option>
-                            <option value="brand">Thương hiệu</option>
+                            <option value="submitted_at">{t('approval_sort_newest')}</option>
+                            <option value="draft_name">{t('approval_sort_draft_name')}</option>
+                            <option value="brand">{t('approval_sort_brand')}</option>
                         </select>
                         <button 
                             onClick={() => setSortConfig(prev => ({ ...prev, direction: prev.direction === 'asc' ? 'desc' : 'asc' }))}
@@ -363,20 +365,20 @@ export const ApprovalQueue = () => {
                 {isFilterOpen && (
                     <div className="p-6 bg-slate-50/50 rounded-3xl border border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-6 animate-slideDown shadow-inner">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Cấp độ phê duyệt</label>
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('approval_filter_level')}</label>
                             <select 
                                 value={filterLevel}
                                 onChange={(e) => setFilterLevel(e.target.value)}
                                 className="w-full bg-white px-4 py-3 rounded-xl border border-slate-200 font-bold text-sm outline-none focus:ring-4 focus:ring-blue-500/10 transition-all"
                             >
-                                <option value="">Tất cả các cấp</option>
-                                <option value="1">Cấp 1 (Regional)</option>
-                                <option value="2">Cấp 2 (National)</option>
-                                <option value="3">Cấp 3 (Executive)</option>
+                                <option value="">{t('approval_filter_all_levels')}</option>
+                                <option value="1">{t('approval_filter_level_1')}</option>
+                                <option value="2">{t('approval_filter_level_2')}</option>
+                                <option value="3">{t('approval_filter_level_3')}</option>
                             </select>
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Từ ngày</label>
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('approval_filter_from')}</label>
                             <input 
                                 type="date"
                                 value={dateRange.from}
@@ -385,7 +387,7 @@ export const ApprovalQueue = () => {
                             />
                         </div>
                         <div className="space-y-2 relative">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Đến ngày</label>
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('approval_filter_to')}</label>
                             <input 
                                 type="date"
                                 value={dateRange.to}
@@ -396,7 +398,7 @@ export const ApprovalQueue = () => {
                                 onClick={() => { setFilterLevel(''); setDateRange({ from: '', to: '' }); }}
                                 className="absolute right-0 top-0 text-[10px] font-black text-blue-600 uppercase hover:underline"
                             >
-                                Reset bộ lọc
+                                {t('approval_filter_reset')}
                             </button>
                         </div>
                     </div>
@@ -416,8 +418,8 @@ export const ApprovalQueue = () => {
                             <i className="fas fa-search text-5xl text-slate-200" />
                         </div>
                         <div className="text-center max-w-sm">
-                            <h3 className="text-slate-800 font-black text-xl">Không tìm thấy yêu cầu</h3>
-                            <p className="text-slate-400 font-bold text-sm mt-2">Hãy thử nới lỏng các tiêu chí tìm kiếm hoặc bộ lọc nâng cao.</p>
+                            <h3 className="text-slate-800 font-black text-xl">{t('approval_no_requests')}</h3>
+                            <p className="text-slate-400 font-bold text-sm mt-2">{t('approval_no_requests_hint')}</p>
                         </div>
                     </div>
                 ) : (
@@ -448,7 +450,7 @@ export const ApprovalQueue = () => {
                                                 </div>
                                                 <div>
                                                     <h3 className={`text-xs font-black uppercase tracking-widest ${config.cls.split(' ')[0]}`}>{config.label}</h3>
-                                                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0">{list.length} Yêu cầu</p>
+                                                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0">{list.length} {t('approval_unit_requests')}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -488,7 +490,7 @@ export const ApprovalQueue = () => {
                                                                     </div>
                                                                     <div className="flex items-center gap-2 mt-0.5">
                                                                         <span className="text-[9px] bg-slate-900 text-white px-2 py-0.5 rounded-full font-black uppercase tracking-wider">{req.brand || 'NO BRAND'}</span>
-                                                                        <span className="text-[9px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-black uppercase tracking-wider border border-blue-100">Cấp {req.current_level}</span>
+                                                                        <span className="text-[9px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-black uppercase tracking-wider border border-blue-100">{t('common_level')} {req.current_level}</span>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -500,7 +502,7 @@ export const ApprovalQueue = () => {
                                                                 <div className="text-base font-black text-slate-800">{skuCount}</div>
                                                             </div>
                                                             <div className="text-center">
-                                                                <div className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1">Tiến độ</div>
+                                                                <div className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1">{t('approval_progress')}</div>
                                                                 <ApprovalStatusBadge status={req.status} size="sm" />
                                                             </div>
                                                         </div>
@@ -527,7 +529,7 @@ export const ApprovalQueue = () => {
                                                                         className="h-8 px-3.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-1.5"
                                                                     >
                                                                         {isThisProcessing ? <i className="fas fa-circle-notch fa-spin"></i> : <i className="fas fa-check"></i>}
-                                                                        Duyệt
+                                                                        {t('approval_btn_approve')}
                                                                     </button>
                                                                     <button 
                                                                         onClick={(e) => { e.stopPropagation(); handleAction(req.id, 'rejected'); }}
@@ -542,7 +544,7 @@ export const ApprovalQueue = () => {
                                                                     onClick={() => openDetail(req)}
                                                                     className="h-8 px-3.5 bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 border border-slate-200"
                                                                 >
-                                                                    Chi tiết <i className="fas fa-chevron-right text-[7px]"></i>
+                                                                    {t('common_details')} <i className="fas fa-chevron-right text-[7px]"></i>
                                                                 </button>
                                                             )}
                                                         </div>
@@ -567,8 +569,8 @@ export const ApprovalQueue = () => {
                                 {selectedIds.size}
                             </div>
                             <div>
-                                <div className="text-[11px] font-black text-blue-400 uppercase tracking-widest">Đang lựa chọn</div>
-                                <div className="text-white font-black text-sm">Action hàng loạt</div>
+                                <div className="text-[11px] font-black text-blue-400 uppercase tracking-widest">{t('approval_bulk_selecting')}</div>
+                                <div className="text-white font-black text-sm">{t('approval_bulk_action')}</div>
                             </div>
                         </div>
                         <div className="h-10 w-px bg-white/10" />
@@ -577,19 +579,19 @@ export const ApprovalQueue = () => {
                                 onClick={() => handleBulkAction('approved')}
                                 className="px-8 py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-[20px] font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
                             >
-                                <i className="fas fa-check-double mr-2"></i> Duyệt tất cả
+                                <i className="fas fa-check-double mr-2"></i> {t('approval_btn_approve_all')}
                             </button>
                             <button 
                                 onClick={() => handleBulkAction('rejected')}
                                 className="px-8 py-3.5 bg-rose-500 hover:bg-rose-600 text-white rounded-[20px] font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-rose-500/20 active:scale-95"
                             >
-                                <i className="fas fa-times-circle mr-2"></i> Từ chối
+                                <i className="fas fa-times-circle mr-2"></i> {t('approval_btn_reject')}
                             </button>
                             <button 
                                 onClick={() => setSelectedIds(new Set())}
                                 className="text-white/60 hover:text-white font-black text-[10px] uppercase tracking-widest px-4"
                             >
-                                Hủy bỏ
+                                {t('common_cancel')}
                             </button>
                         </div>
                     </div>

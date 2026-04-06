@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useAuth } from '../utils/authContext';
+import { useLanguage } from '../utils/i18n';
 
 export const LoginScreen = () => {
     const { signIn } = useAuth();
+    const { t } = useLanguage();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
@@ -17,7 +19,7 @@ export const LoginScreen = () => {
         const { error: err } = await signIn(email.trim(), password);
         if (err) {
             console.error("LoginScreen: Sign in failed:", err);
-            setError('Email hoặc mật khẩu không đúng.');
+            setError(t('login_error_credentials'));
             setIsLoading(false);
         } else {
             console.log("LoginScreen: Sign in success, triggering animation and unmount...");
@@ -52,8 +54,8 @@ export const LoginScreen = () => {
                             <i className="fas fa-check text-emerald-400 text-4xl" />
                         </div>
                         <div className="text-center">
-                            <p className="text-white font-black text-xl tracking-widest uppercase">Xác thực thành công</p>
-                            <p className="text-slate-400 text-sm mt-1">Đang chuyển đến trang nhập dữ liệu...</p>
+                            <p className="text-white font-black text-xl tracking-widest uppercase">{t('login_auth_success')}</p>
+                            <p className="text-slate-400 text-sm mt-1">{t('login_redirecting')}</p>
                         </div>
                         <div className="flex gap-2">
                             {[0, 150, 300].map(d => (
@@ -75,7 +77,7 @@ export const LoginScreen = () => {
                     {/* Status badge */}
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-black uppercase tracking-widest backdrop-blur-md">
                         <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse shadow-[0_0_10px_#60a5fa]" />
-                        Hệ thống Sẵn sàng
+                        {t('login_system_ready')}
                     </div>
 
                     <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] drop-shadow-xl">
@@ -94,7 +96,7 @@ export const LoginScreen = () => {
                     </div>
 
                     <p className="text-slate-300 text-lg font-medium max-w-lg leading-relaxed border-l-4 border-slate-700/50 pl-6">
-                        Hệ thống phân tích tồn kho chuyên sâu. Tối ưu hóa mức tồn kho, phát hiện rủi ro và tự động hóa quy trình đặt hàng với độ chính xác cao.
+                        {t('login_tagline')}
                     </p>
 
                     {/* Feature pills */}
@@ -133,10 +135,10 @@ export const LoginScreen = () => {
                             <div>
                                 <h3 className="text-xl font-bold text-white flex items-center gap-2">
                                     <span className={`w-1.5 h-6 rounded-full bg-gradient-to-b transition-colors duration-500 ${loginSuccess ? 'from-emerald-400 to-emerald-600' : 'from-blue-400 to-purple-400'}`} />
-                                    {loginSuccess ? 'Xác thực thành công' : 'Đăng nhập hệ thống'}
+                                    {loginSuccess ? t('login_auth_success') : t('login_heading')}
                                 </h3>
                                 <p className="text-slate-400 text-xs font-medium mt-1 pl-3.5">
-                                    {loginSuccess ? 'Đang chuyển đến trang nhập dữ liệu...' : 'Nhập tài khoản để truy cập hệ thống'}
+                                    {loginSuccess ? t('login_redirecting') : t('login_enter_account')}
                                 </p>
                             </div>
 
@@ -161,7 +163,7 @@ export const LoginScreen = () => {
                                 {/* Password */}
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                                        <i className="fas fa-lock mr-1.5 opacity-60" />Mật khẩu
+                                        <i className="fas fa-lock mr-1.5 opacity-60" />{t('login_label_password')}
                                     </label>
                                     <input
                                         type="password"
@@ -197,11 +199,11 @@ export const LoginScreen = () => {
                                     }`}
                                 >
                                     {loginSuccess ? (
-                                        <><i className="fas fa-check" /> Đăng nhập thành công</>
+                                        <><i className="fas fa-check" /> {t('login_btn_success')}</>
                                     ) : isLoading ? (
-                                        <><i className="fas fa-circle-notch fa-spin" /> Đang xác thực...</>
+                                        <><i className="fas fa-circle-notch fa-spin" /> {t('login_btn_authenticating')}</>
                                     ) : (
-                                        <><i className="fas fa-arrow-right-to-bracket" /> Bắt đầu phân tích →</>
+                                        <><i className="fas fa-arrow-right-to-bracket" /> {t('login_btn_start')}</>
                                     )}
                                 </button>
                             </form>
@@ -209,7 +211,7 @@ export const LoginScreen = () => {
                             {/* Footer */}
                             <div className="flex items-center gap-2 pt-2 border-t border-white/5">
                                 <i className="fas fa-circle-info text-slate-600 text-xs shrink-0" />
-                                <p className="text-slate-600 text-xs">Liên hệ Admin để được cấp tài khoản.</p>
+                                <p className="text-slate-600 text-xs">{t('login_contact_admin')}</p>
                             </div>
                         </div>
                     </div>

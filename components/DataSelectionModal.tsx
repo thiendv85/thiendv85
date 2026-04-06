@@ -4,8 +4,7 @@ import { X, Cloud, Database, Calendar, Download, RefreshCw, AlertCircle, Trash2 
 import { Typography } from './Typography';
 import { SnapshotMetadataRow, listSnapshots, loadSnapshot, listMonthlyDataSnapshots, loadSpecificMonthlyData, deleteSnapshot, normalizeBrand } from '../utils/supabase';
 import { InventoryItem } from '../types/inventory';
-
-// Removed local extractBrandFromDepartment in favor of shared normalizeBrand from supabase.ts
+import { useLanguage } from '../utils/i18n';
 
 interface DataSelectionModalProps {
     isOpen: boolean;
@@ -26,6 +25,7 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
     userRole,
     userDepartment
 }) => {
+    const { t } = useLanguage();
     const [tab, setTab] = useState<'inventory' | 'monthly'>('inventory');
     const [snapshots, setSnapshots] = useState<SnapshotMetadataRow[]>([]);
     const [monthlySnapshots, setMonthlySnapshots] = useState<{ id: string; updated_at: string }[]>([]);
@@ -44,9 +44,7 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
                 const userBrand = isAdmin ? null : normalizeBrand(userDepartment);
 
                 const fetchLimit = selectedBrand && selectedBrand !== 'ALL' ? 50 : 100;
-                
-                // SEPARATION OF LOGIC:
-                // Admins can use the UI filter. Non-admins are strictly locked to their extracted brand.
+
                 let brandFilter: string | null = null;
                 if (!isAdmin) {
                     brandFilter = userBrand;
@@ -57,7 +55,6 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
                 const list = await listSnapshots(fetchLimit, brandFilter);
                 setSnapshots(list);
 
-                // Expose the brand filter pills ONLY to admins
                 if (isAdmin) {
                     if (!selectedBrand || selectedBrand === 'ALL') {
                         const brands = Array.from(new Set(list.map(s => s.brand).filter(Boolean))) as string[];
@@ -71,7 +68,7 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
                 setMonthlySnapshots(list);
             }
         } catch (err) {
-            setError('Không thể tải danh sách dữ liệu từ Cloud.');
+            setError(t('data_msg_load_list_error'));
         } finally {
             setIsLoading(false);
         }
@@ -79,7 +76,6 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
 
     useEffect(() => {
         if (isOpen) {
-            // Reset brand when opening or switching tabs if not already set
             if (tab === 'monthly') setSelectedBrand(null);
             fetchData();
         }
@@ -96,18 +92,18 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
                 onSelectInventory(data, snap.filename);
                 onClose();
             } else {
-                setError('Không thể tải bản sao lưu này.');
+                setError(t('data_msg_load_snapshot_error'));
             }
         } catch (err) {
-            setError('Lỗi khi tải dữ liệu.');
+            setError(t('data_msg_load_error'));
         } finally {
             setLoadingId(null);
         }
     };
 
     const handleDeleteSnapshot = async (snap: SnapshotMetadataRow) => {
-        if (!window.confirm(`Bạn có chắc chắn muốn xóa bản sao lưu "${snap.filename}"? Hành động này không thể hoàn tác.`)) return;
-        
+        if (!window.confirm(`${t('data_msg_delete_confirm')}\n\n"${snap.filename}"`)) return;
+
         setLoadingId(snap.id);
         setError(null);
         try {
@@ -115,10 +111,10 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
             if (success) {
                 setSnapshots(prev => prev.filter(s => s.id !== snap.id));
             } else {
-                setError('Xóa bản sao lưu thất bại.');
+                setError(t('data_msg_delete_error'));
             }
         } catch (err) {
-            setError('Lỗi khi xóa dữ liệu.');
+            setError(t('data_msg_delete_data_error'));
         } finally {
             setLoadingId(null);
         }
@@ -133,10 +129,10 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
                 onSelectMonthly(result.data, monthVersion, result.updatedAt);
                 onClose();
             } else {
-                setError('Không thể tải phiên bản dữ liệu tháng này.');
+                setError(t('data_msg_load_monthly_error'));
             }
         } catch (err) {
-            setError('Lỗi khi tải dữ liệu tháng.');
+            setError(t('data_msg_load_monthly_data_error'));
         } finally {
             setLoadingId(null);
         }
@@ -150,7 +146,7 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
     return (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
             <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col border border-white/20">
-                
+
                 {/* Header */}
                 <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50/50">
                     <div className="flex items-center gap-3">
@@ -158,8 +154,8 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
                             <Cloud size={20} />
                         </div>
                         <div>
-                            <Typography variant="h2">Truy xuất Dữ liệu Cloud</Typography>
-                            <Typography variant="label" className="mt-0.5">Chọn bản sao lưu hoặc dữ liệu tháng để làm việc</Typography>
+                            <Typography variant="h2">{t('data_title')}</Typography>
+                            <Typography variant="label" className="mt-0.5">{t('data_subtitle')}</Typography>
                         </div>
                     </div>
                     <button
@@ -181,7 +177,7 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
                         }`}
                     >
                         <Database size={16} />
-                        Lịch sử Tồn kho (File A)
+                        {t('data_tab_inventory')}
                     </button>
                     <button
                         onClick={() => setTab('monthly')}
@@ -192,7 +188,7 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
                         }`}
                     >
                         <Calendar size={16} />
-                        Dữ liệu Tháng (File B)
+                        {t('data_tab_monthly')}
                     </button>
                 </div>
 
@@ -200,7 +196,7 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
                 {tab === 'inventory' && availableBrands.length > 1 && (
                     <div className="px-6 mt-4">
                         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1 shrink-0">Lọc hãng:</span>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1 shrink-0">{t('data_filter_brand')}</span>
                             {availableBrands.map(brand => {
                                 const isAll = brand === 'ALL';
                                 const isActive = isAll ? selectedBrand === null : selectedBrand === brand;
@@ -235,13 +231,13 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
                         {isLoading ? (
                             <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-3">
                                 <RefreshCw className="animate-spin" size={32} />
-                                <Typography variant="label">Đang tải danh sách...</Typography>
+                                <Typography variant="label">{t('data_loading_list')}</Typography>
                             </div>
                         ) : tab === 'inventory' ? (
                             snapshots.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-60">
                                     <Database size={48} className="mb-4" />
-                                    <Typography variant="label">Không tìm thấy bản sao lưu nào</Typography>
+                                    <Typography variant="label">{t('data_no_snapshots')}</Typography>
                                 </div>
                             ) : snapshots.map(snap => (
                                 <div key={snap.id} className="group flex items-center gap-4 bg-slate-50 border border-slate-100 rounded-2xl p-4 hover:border-blue-400 hover:bg-blue-50/30 transition-all">
@@ -273,7 +269,7 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
                                             <button
                                                 onClick={() => handleDeleteSnapshot(snap)}
                                                 disabled={loadingId === snap.id}
-                                                title="Xóa bản sao lưu"
+                                                title={t('data_tooltip_delete')}
                                                 className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
                                                     loadingId === snap.id
                                                         ? 'bg-rose-100 text-rose-600'
@@ -286,7 +282,7 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
                                         <button
                                             onClick={() => handleLoadInventory(snap)}
                                             disabled={loadingId === snap.id}
-                                            title="Tải dữ liệu này"
+                                            title={t('data_tooltip_load')}
                                             className={`shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
                                                 loadingId === snap.id
                                                     ? 'bg-blue-100 text-blue-600'
@@ -302,30 +298,30 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
                             monthlySnapshots.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-60">
                                     <Calendar size={48} className="mb-4" />
-                                    <Typography variant="label">Không tìm thấy dữ liệu tháng nào</Typography>
+                                    <Typography variant="label">{t('data_no_monthly')}</Typography>
                                 </div>
                             ) : monthlySnapshots.map(m => {
                                 const isActive = currentMonthlyDate === m.id;
                                 return (
                                     <div key={m.id} className={`group flex items-center gap-4 border rounded-2xl p-4 transition-all ${
-                                        isActive 
-                                            ? 'bg-emerald-50 border-emerald-300' 
+                                        isActive
+                                            ? 'bg-emerald-50 border-emerald-300'
                                             : 'bg-slate-50 border-slate-100 hover:border-emerald-400 hover:bg-emerald-50/30'
                                     }`}>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-1">
                                                 <Typography variant="h3" className={isActive ? 'text-emerald-800' : 'text-slate-800'}>
-                                                    Tháng {m.id.split('-').reverse().join('/')}
+                                                    {t('data_label_month')} {m.id.split('-').reverse().join('/')}
                                                 </Typography>
                                                 {isActive && (
                                                     <span className="px-2 py-0.5 rounded-md bg-emerald-500 text-white text-[9px] font-black uppercase shadow-sm">
-                                                        Đang dùng
+                                                        {t('data_status_in_use')}
                                                     </span>
                                                 )}
                                             </div>
                                             <div className="flex items-center gap-3 text-slate-400 text-2xs font-bold">
                                                 <span className="flex items-center gap-1">
-                                                    <RefreshCw size={10} /> Cập nhật: {formatDate(m.updated_at)}
+                                                    <RefreshCw size={10} /> {t('data_label_updated')} {formatDate(m.updated_at)}
                                                 </span>
                                             </div>
                                         </div>
@@ -335,7 +331,7 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
                                             className={`shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
                                                 loadingId === m.id
                                                     ? 'bg-emerald-100 text-emerald-600'
-                                                    : isActive 
+                                                    : isActive
                                                         ? 'bg-emerald-100 text-emerald-600 border border-emerald-200 cursor-default'
                                                         : 'bg-white border border-slate-200 text-slate-400 hover:text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50 shadow-sm'
                                             }`}
@@ -355,7 +351,7 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
                         onClick={onClose}
                         className="px-8 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest text-slate-500 bg-white border border-slate-200 hover:bg-slate-50 hover:text-slate-800 transition-all font-sans"
                     >
-                        Đóng
+                        {t('common_close')}
                     </button>
                 </div>
             </div>

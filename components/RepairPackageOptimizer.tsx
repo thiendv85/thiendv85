@@ -6,6 +6,7 @@ import { saveToCloudStorage, loadFromCloudStorage, verifyAdminPin } from '../uti
 
 // Inline: RepairPackageMetrics
 const RepairPackageMetrics = ({ sets }: { sets: any[] }) => {
+    const { t } = useLanguage();
     const totalSets = sets.length;
     const readyNB = sets.filter(s => s.maxSetsNB > 0).length;
     const readyBB = sets.filter(s => s.maxSetsBB > 0).length;
@@ -15,11 +16,11 @@ const RepairPackageMetrics = ({ sets }: { sets: any[] }) => {
         : 0;
 
     const metrics = [
-        { label: 'Tổng số Gói', value: totalSets, icon: 'fa-boxes-packing', color: 'text-blue-700', bg: 'bg-blue-50' },
-        { label: 'Sẵn sàng (NB)', value: `${readyNB}/${totalSets}`, icon: 'fa-check-circle', color: 'text-emerald-700', bg: 'bg-emerald-50' },
-        { label: 'Sẵn sàng (BB)', value: `${readyBB}/${totalSets}`, icon: 'fa-check-circle', color: 'text-amber-700', bg: 'bg-amber-50' },
-        { label: 'Vốn tồn kho', value: `${(totalValue / 1000000).toFixed(1)}tr`, icon: 'fa-coins', color: 'text-purple-700', bg: 'bg-purple-50' },
-        { label: 'Hoàn thiện TB', value: `${Math.round(avgCompletion * 100)}%`, icon: 'fa-chart-pie', color: 'text-indigo-700', bg: 'bg-indigo-50' },
+        { label: t('kit_metric_total'), value: totalSets, icon: 'fa-boxes-packing', color: 'text-blue-700', bg: 'bg-blue-50' },
+        { label: t('kit_metric_ready_nb'), value: `${readyNB}/${totalSets}`, icon: 'fa-check-circle', color: 'text-emerald-700', bg: 'bg-emerald-50' },
+        { label: t('kit_metric_ready_bb'), value: `${readyBB}/${totalSets}`, icon: 'fa-check-circle', color: 'text-amber-700', bg: 'bg-amber-50' },
+        { label: t('kit_metric_capital'), value: `${(totalValue / 1000000).toFixed(1)}tr`, icon: 'fa-coins', color: 'text-purple-700', bg: 'bg-purple-50' },
+        { label: t('kit_metric_completion'), value: `${Math.round(avgCompletion * 100)}%`, icon: 'fa-chart-pie', color: 'text-indigo-700', bg: 'bg-indigo-50' },
     ];
 
     return (

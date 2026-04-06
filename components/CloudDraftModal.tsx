@@ -5,14 +5,13 @@ import { listOrderDrafts, saveOrderDraft, loadFromCloudStorage, fetchAllRequests
 import { ApprovalStatusBadge } from './ApprovalStatusBadge';
 import { ApprovalRequest, ApprovalStatus } from '../types/inventory';
 import { useAuth } from '../utils/authContext';
+import { useLanguage } from '../utils/i18n';
 
 interface CloudDraftModalProps {
     isOpen: boolean;
     onClose: () => void;
     currentDraft: { quantities: Record<string, { air: number, sea: number }>, notes: Record<string, string> };
-    // draftName được truyền lại để Ordering có thể fetch approvalRequest tương ứng
     onLoadDraft: (draft: { quantities: Record<string, { air: number, sea: number }>, notes: Record<string, string> }, draftName?: string) => void;
-    // Load trực tiếp từ snapshot của approval request (trường hợp không lưu cloud)
     onLoadReturnedRequest: (request: ApprovalRequest) => void;
 }
 
@@ -21,6 +20,7 @@ type Tab = 'LOAD' | 'RETURNED' | 'SAVE';
 export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, onLoadReturnedRequest }: CloudDraftModalProps) => {
     const BRANDS = ['Kia', 'Mazda', 'Peugeot', 'BMW'] as const;
     const { user } = useAuth();
+    const { t } = useLanguage();
     const [activeTab, setActiveTab] = useState<Tab>('LOAD');
     const [drafts, setDrafts] = useState<{ id: string, updated_at: string }[]>([]);
     const [returnedRequests, setReturnedRequests] = useState<ApprovalRequest[]>([]);
@@ -61,9 +61,9 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
     };
 
     const handleSave = async () => {
-        if (!draftName.trim()) return alert("Vui lòng nhập Tên dự thảo");
+        if (!draftName.trim()) return alert(t('draft_msg_enter_name'));
         const totalItems = Object.values(currentDraft.quantities).filter(v => v.air + v.sea > 0).length;
-        if (totalItems === 0) return alert("Dự thảo hiện tại đang trống. Vui lòng tạo dự thảo trước khi lưu.");
+        if (totalItems === 0) return alert(t('draft_msg_empty'));
 
         setIsLoading(true);
         const id = `order_draft_${draftBrand}_${draftName.trim()}`;
@@ -71,11 +71,11 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
         setIsLoading(false);
 
         if (success) {
-            alert(`Đã lưu bản nháp "${draftName}" (${draftBrand}) thành công!`);
+            alert(`${t('draft_msg_save_success')} "${draftName}" (${draftBrand})`);
             setDraftName('');
             onClose();
         } else {
-            alert("Lỗi khi lưu lên Cloud.");
+            alert(t('draft_msg_save_error'));
         }
     };
 
@@ -83,10 +83,9 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
         setIsLoading(true);
         const data = await loadFromCloudStorage(id);
         setIsLoading(false);
-        if (!data) return alert("Không thể tải dữ liệu.");
-        // Truyền draftName để Ordering tự fetch approvalRequest tương ứng
+        if (!data) return alert(t('draft_msg_load_error'));
         onLoadDraft(data.draftData, name);
-        alert("✅ Tải dự thảo thành công!");
+        alert(`✅ ${t('draft_msg_load_success')}`);
         onClose();
     };
 
@@ -114,9 +113,9 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
     if (!isOpen) return null;
 
     const TABS: { id: Tab; label: string; icon: string }[] = [
-        { id: 'LOAD', label: 'Tải Về', icon: 'fa-download' },
-        { id: 'RETURNED', label: 'Trả lại', icon: 'fa-rotate-left' },
-        { id: 'SAVE', label: 'Lưu Mới', icon: 'fa-cloud-upload-alt' },
+        { id: 'LOAD', label: t('draft_tab_load'), icon: 'fa-download' },
+        { id: 'RETURNED', label: t('draft_tab_returned'), icon: 'fa-rotate-left' },
+        { id: 'SAVE', label: t('draft_tab_save'), icon: 'fa-cloud-upload-alt' },
     ];
 
     return createPortal(
@@ -136,12 +135,12 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
 
                 {/* Tabs */}
                 <div className="grid grid-cols-3 bg-slate-50 border-b border-slate-200">
-                    {TABS.map(t => (
-                        <button key={t.id} onClick={() => setActiveTab(t.id)}
-                            className={`py-3 text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 ${activeTab === t.id ? 'bg-white border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'} ${t.id === 'RETURNED' && returnedRequests.length > 0 ? 'text-indigo-500' : ''}`}>
-                            <i className={`fas ${t.icon} text-[10px]`}></i>
-                            {t.label}
-                            {t.id === 'RETURNED' && returnedRequests.length > 0 && (
+                    {TABS.map(tab => (
+                        <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                            className={`py-3 text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 ${activeTab === tab.id ? 'bg-white border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'} ${tab.id === 'RETURNED' && returnedRequests.length > 0 ? 'text-indigo-500' : ''}`}>
+                            <i className={`fas ${tab.icon} text-[10px]`}></i>
+                            {tab.label}
+                            {tab.id === 'RETURNED' && returnedRequests.length > 0 && (
                                 <span className="bg-indigo-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">{returnedRequests.length}</span>
                             )}
                         </button>
@@ -150,47 +149,47 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
 
                 <div className="p-5 flex-1 flex flex-col min-h-0 overflow-hidden">
 
-                    {/* ── Tab: Tải Về ── */}
+                    {/* ── Tab: Load ── */}
                     {activeTab === 'LOAD' && (
                         <div className="flex flex-col h-full min-h-0">
                             <div className="grid grid-cols-2 gap-2 mb-4">
                                 <select value={filterBrand} onChange={e => setFilterBrand(e.target.value)}
                                     className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold outline-none focus:border-blue-500">
-                                    <option value="All">Tất cả thương hiệu</option>
+                                    <option value="All">{t('draft_filter_all_brands')}</option>
                                     {BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
-                                    <option value="Khác">Phổ thông / Khác</option>
+                                    <option value="Khác">{t('draft_filter_other')}</option>
                                 </select>
                                 <select value={filterDays} onChange={e => setFilterDays(Number(e.target.value))}
                                     className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold outline-none focus:border-blue-500">
-                                    <option value={7}>7 ngày qua</option>
-                                    <option value={30}>30 ngày qua</option>
-                                    <option value={90}>90 ngày qua</option>
-                                    <option value={0}>Toàn bộ thời gian</option>
+                                    <option value={7}>{t('draft_filter_7d')}</option>
+                                    <option value={30}>{t('draft_filter_30d')}</option>
+                                    <option value={90}>{t('draft_filter_90d')}</option>
+                                    <option value={0}>{t('draft_filter_all_time')}</option>
                                 </select>
                             </div>
                             <div className="relative mb-4">
                                 <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                                <input type="text" placeholder="Tìm tên dự thảo..." value={filterSearch}
+                                <input type="text" placeholder={t('draft_search_placeholder')} value={filterSearch}
                                     onChange={e => setFilterSearch(e.target.value)}
                                     className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 py-2 text-xs font-bold outline-none focus:border-blue-500" />
                             </div>
                             <div className="flex justify-between items-center mb-4">
                                 <Typography variant="label" className="text-slate-500 uppercase tracking-widest text-[10px] font-black">
-                                    Dự thảo của tôi ({filteredDrafts.length})
+                                    {t('draft_my_drafts')} ({filteredDrafts.length})
                                 </Typography>
                                 <button onClick={fetchDrafts} disabled={isLoading} className="text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1">
-                                    <i className={`fas fa-sync-alt ${isLoading ? 'fa-spin' : ''}`}></i> Làm mới
+                                    <i className={`fas fa-sync-alt ${isLoading ? 'fa-spin' : ''}`}></i> {t('common_refresh')}
                                 </button>
                             </div>
                             {isLoading ? (
                                 <div className="flex flex-col items-center justify-center py-12 text-blue-500">
                                     <i className="fas fa-spinner fa-spin text-3xl mb-2"></i>
-                                    <span className="text-xs font-bold uppercase tracking-widest">Đang tải...</span>
+                                    <span className="text-xs font-bold uppercase tracking-widest">{t('common_loading')}</span>
                                 </div>
                             ) : filteredDrafts.length === 0 ? (
                                 <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-2xl border border-slate-100">
                                     <i className="fas fa-folder-open text-3xl mb-3 text-slate-300"></i>
-                                    <Typography variant="body" className="block text-xs">Không tìm thấy dự thảo phù hợp.</Typography>
+                                    <Typography variant="body" className="block text-xs">{t('draft_no_match')}</Typography>
                                 </div>
                             ) : (
                                 <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
@@ -224,30 +223,30 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
                         </div>
                     )}
 
-                    {/* ── Tab: Trả lại ── */}
+                    {/* ── Tab: Returned ── */}
                     {activeTab === 'RETURNED' && (
                         <div className="flex flex-col h-full min-h-0">
                             <div className="mb-4 p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-700 leading-relaxed">
                                 <i className="fas fa-info-circle mr-1.5"></i>
-                                Các đơn bị approver trả lại để điều chỉnh. Tải về, sửa và gửi lại mà không cần lưu nháp.
+                                {t('draft_returned_info')}
                             </div>
                             <div className="flex justify-between items-center mb-3">
                                 <Typography variant="label" className="text-slate-500 uppercase tracking-widest text-[10px] font-black">
-                                    Đơn cần điều chỉnh ({returnedRequests.length})
+                                    {t('draft_returned_orders')} ({returnedRequests.length})
                                 </Typography>
                                 <button onClick={fetchReturned} disabled={isLoading} className="text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1">
-                                    <i className={`fas fa-sync-alt ${isLoading ? 'fa-spin' : ''}`}></i> Làm mới
+                                    <i className={`fas fa-sync-alt ${isLoading ? 'fa-spin' : ''}`}></i> {t('common_refresh')}
                                 </button>
                             </div>
                             {isLoading ? (
                                 <div className="flex flex-col items-center justify-center py-12 text-blue-500">
                                     <i className="fas fa-spinner fa-spin text-3xl mb-2"></i>
-                                    <span className="text-xs font-bold uppercase tracking-widest">Đang tải...</span>
+                                    <span className="text-xs font-bold uppercase tracking-widest">{t('common_loading')}</span>
                                 </div>
                             ) : returnedRequests.length === 0 ? (
                                 <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-2xl border border-slate-100">
                                     <i className="fas fa-check-circle text-3xl mb-3 text-emerald-300"></i>
-                                    <Typography variant="body" className="block text-xs">Không có đơn nào bị trả lại.</Typography>
+                                    <Typography variant="body" className="block text-xs">{t('draft_no_returned')}</Typography>
                                 </div>
                             ) : (
                                 <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1 custom-scrollbar">
@@ -263,14 +262,14 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
                                                             <Typography variant="body" className="font-black text-slate-800 truncate text-sm">{req.draft_name}</Typography>
                                                         </div>
                                                         <div className="flex items-center gap-3 text-[10px] text-slate-500">
-                                                            <span><i className="fas fa-box mr-1"></i>{itemCount} mã hàng</span>
+                                                            <span><i className="fas fa-box mr-1"></i>{itemCount} {t('draft_unit_items')}</span>
                                                             <span><i className="far fa-clock mr-1"></i>{new Date(req.submitted_at).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                                                             {req.brand && <span className="font-bold">{req.brand}</span>}
                                                         </div>
                                                     </div>
                                                     <button onClick={() => handleLoadReturned(req)}
                                                         className="shrink-0 bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all">
-                                                        <i className="fas fa-pencil"></i> Tải & Sửa
+                                                        <i className="fas fa-pencil"></i> {t('draft_btn_load_edit')}
                                                     </button>
                                                 </div>
                                             </div>
@@ -281,11 +280,11 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
                         </div>
                     )}
 
-                    {/* ── Tab: Lưu Mới ── */}
+                    {/* ── Tab: Save ── */}
                     {activeTab === 'SAVE' && (
                         <div className="space-y-4">
                             <div>
-                                <Typography variant="label" className="text-slate-500 font-bold block mb-2 uppercase tracking-wider text-xs">Thương hiệu</Typography>
+                                <Typography variant="label" className="text-slate-500 font-bold block mb-2 uppercase tracking-wider text-xs">{t('draft_label_brand')}</Typography>
                                 <div className="grid grid-cols-4 gap-2">
                                     {BRANDS.map(b => (
                                         <button key={b} onClick={() => setDraftBrand(b)}
@@ -296,19 +295,19 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
                                 </div>
                             </div>
                             <div>
-                                <Typography variant="label" className="text-slate-500 font-bold block mb-2 uppercase tracking-wider text-xs">Tên dự thảo</Typography>
+                                <Typography variant="label" className="text-slate-500 font-bold block mb-2 uppercase tracking-wider text-xs">{t('draft_label_name')}</Typography>
                                 <input type="text" value={draftName} onChange={e => setDraftName(e.target.value)}
                                     onKeyDown={e => e.key === 'Enter' && handleSave()}
-                                    placeholder="Ví dụ: Du_Thao_Thang_4"
+                                    placeholder={t('draft_name_example')}
                                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" />
                                 <Typography variant="label" className="text-slate-400 block mt-2 leading-tight text-[11px]">
-                                    Dự thảo chỉ hiển thị với tài khoản của bạn.
+                                    {t('draft_private_note')}
                                 </Typography>
                             </div>
                             <button onClick={handleSave} disabled={isLoading}
                                 className="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-xl uppercase tracking-widest transition-all shadow-lg shadow-emerald-600/20 active:scale-[0.98] flex items-center justify-center gap-2">
                                 {isLoading ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-cloud-upload-alt"></i>}
-                                Lưu Lên Cloud
+                                {t('draft_btn_save_cloud')}
                             </button>
                         </div>
                     )}
