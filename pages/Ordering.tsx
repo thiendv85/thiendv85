@@ -239,7 +239,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
 
     const handleResubmit = async () => {
         if (!approvalRequest) return;
-        if (!confirm(`Gửi lại yêu cầu phê duyệt "${approvalRequest.draft_name}" với dữ liệu đã chỉnh sửa?`)) return;
+        if (!confirm(`Resubmit approval request "${approvalRequest.draft_name}" with updated data?`)) return;
         setIsSubmitting(true);
         const ok = await resubmitApprovalRequest(approvalRequest.id, buildSnapshot());
         setIsSubmitting(false);
@@ -247,7 +247,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
             const req = await fetchRequestByDraftName(approvalRequest.draft_name);
             setApprovalRequest(req);
         } else {
-            alert('Lỗi khi gửi lại yêu cầu.');
+            alert('Error resubmitting request.');
         }
     };
 
@@ -456,7 +456,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
         // Add automatic note
         setOrderNotes(prev => {
             const currentNote = prev[newPart] || "";
-            const autoNote = `Mã cũ: ${oldPart} | SL: ${qty}`;
+            const autoNote = `Old part: ${oldPart} | Qty: ${qty}`;
             return {
                 ...prev,
                 [newPart]: currentNote ? `${currentNote}\n${autoNote}` : autoNote
@@ -497,7 +497,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                 if (item) list.push({ item, airQty: qty.air, seaQty: qty.sea, note: orderNotes[code] || '' });
             }
         });
-        if (list.length === 0) return alert('Dự thảo trống');
+        if (list.length === 0) return alert('Draft is empty');
         const exportOptions: CsvExportOptions | undefined = appSettings ? {
             separator: appSettings.exportSeparator === 'semicolon' ? ';' : appSettings.exportSeparator === 'tab' ? '\t' : ',',
             encoding: appSettings.exportEncoding,
@@ -515,10 +515,10 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
         reader.onload = (event) => {
             const text = event.target?.result as string;
             const { quantities, notes } = parseOrderingDraftCSV(text);
-            if (Object.keys(quantities).length === 0) return alert("Không tìm thấy dữ liệu đặt hàng hợp lệ.");
+            if (Object.keys(quantities).length === 0) return alert("No valid order data found.");
             setOrderQuantities(p => ({ ...p, ...quantities }));
             setOrderNotes(p => ({ ...p, ...notes }));
-            alert(`Đã nhập dự thảo thành công cho ${Object.keys(quantities).length} mã hàng.`);
+            alert(`Successfully imported draft for ${Object.keys(quantities).length} SKUs.`);
         };
         reader.readAsText(file);
     };
@@ -597,14 +597,14 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2 text-amber-800">
                                 <i className="fas fa-triangle-exclamation"></i>
-                                <span className="text-sm font-black uppercase tracking-wider">Cảnh báo thay thế mã ({Object.keys(supersessionWarnings).length})</span>
+                                <span className="text-sm font-black uppercase tracking-wider">Supersession Warning ({Object.keys(supersessionWarnings).length})</span>
                             </div>
                             {Object.keys(supersessionWarnings).length > 1 && (
                                 <button
                                     onClick={handleConvertAll}
                                     className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-sm active:scale-95 flex items-center gap-2"
                                 >
-                                    <i className="fas fa-sync-alt"></i> Chuyển tất cả sang mã mới
+                                    <i className="fas fa-sync-alt"></i> {t('ord_btn_convert_new')}
                                 </button>
                             )}
                         </div>
@@ -642,13 +642,13 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl shrink-0">
                                 <i className="fas fa-sort-amount-down text-slate-400 text-[10px]"></i>
                                 <select value={sortKey} onChange={(e) => setSortKey(e.target.value)} className="bg-transparent text-[10px] font-black text-slate-700 outline-none cursor-pointer uppercase">
-                                    <option value="priority">Sắp xếp: Hệ thống</option>
-                                    <option value="mos_asc">MOS (Thấp nhất)</option>
-                                    <option value="fc_desc">FC (Cao nhất)</option>
-                                    <option value="stock_desc">Tồn kho (Nhiều nhất)</option>
-                                    <option value="val_desc">Giá trị (Cao nhất)</option>
-                                    <option value="bo_desc">Nợ BO (Nhiều nhất)</option>
-                                    <option value="price_desc">Đơn giá (Cao nhất)</option>
+                                    <option value="priority">{t('sort_priority')}</option>
+                                    <option value="mos_asc">{t('sort_mos_asc')}</option>
+                                    <option value="fc_desc">{t('sort_fc_desc')}</option>
+                                    <option value="stock_desc">{t('sort_stock_desc')}</option>
+                                    <option value="val_desc">{t('sort_val_desc')}</option>
+                                    <option value="bo_desc">{t('sort_bo_desc')}</option>
+                                    <option value="price_desc">{t('sort_price_desc')}</option>
                                 </select>
                             </div>
                         </div>
@@ -669,7 +669,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                             </button>
                             {profile?.role && ['admin', 'planner'].includes(profile.role) && !isReturned && (
                                 <button onClick={handleOpenSubmitModal} disabled={Object.values(orderQuantities).every((v: any) => !v.air && !v.sea)} className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-glow flex items-center gap-2 border border-emerald-700">
-                                    <i className="fas fa-paper-plane"></i> Phê duyệt
+                                    <i className="fas fa-paper-plane"></i> {t('nav_approval')}
                                 </button>
                             )}
                             {approvalRequest && <ApprovalStatusBadge status={approvalRequest.status} size="sm" />}
@@ -688,11 +688,11 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                         <div className="md:hidden flex items-center justify-center w-9 h-9 bg-slate-50 border border-slate-200 rounded-xl relative shrink-0">
                             <i className="fas fa-sort-amount-down text-slate-500 text-xs"></i>
                             <select value={sortKey} onChange={(e) => setSortKey(e.target.value)} className="absolute inset-0 opacity-0 w-full h-full cursor-pointer">
-                                <option value="priority">Hệ thống</option>
-                                <option value="mos_asc">MOS</option>
-                                <option value="fc_desc">FC</option>
-                                <option value="stock_desc">Tồn</option>
-                                <option value="val_desc">Giá trị</option>
+                                <option value="priority">{t('sort_priority')}</option>
+                                <option value="mos_asc">{t('sort_mos_asc')}</option>
+                                <option value="fc_desc">{t('sort_fc_desc')}</option>
+                                <option value="stock_desc">{t('sort_stock_desc')}</option>
+                                <option value="val_desc">{t('sort_val_desc')}</option>
                             </select>
                         </div>
                         
@@ -716,7 +716,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                         <div className="flex items-center gap-3">
                             <i className="fas fa-rotate-left text-indigo-600 shrink-0" />
                             <div className="flex-1 min-w-0">
-                                <span className="text-indigo-800 font-black text-sm block">Draft bị trả lại — Approver đã điều chỉnh</span>
+                                <span className="text-indigo-800 font-black text-sm block">Draft returned — Approver has made adjustments</span>
                                 {returnReason && (
                                     <div className="flex items-start gap-1.5 mt-1">
                                         <i className="fas fa-comment-dots text-indigo-400 text-xs mt-0.5 shrink-0" />
@@ -730,12 +730,12 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                 className="shrink-0 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2"
                             >
                                 {isSubmitting ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-paper-plane" />}
-                                Gửi lại
+                                Resubmit
                             </button>
                         </div>
                         <div className="flex items-center gap-1.5 text-[11px] text-indigo-500 bg-indigo-100/60 rounded-lg px-3 py-1.5">
                             <i className="fas fa-circle-info text-indigo-400" />
-                            Số lượng đặt hàng đã được cập nhật theo điều chỉnh của approver. Xem lại, sửa nếu cần rồi nhấn Gửi lại.
+                            Order quantities have been updated per approver adjustments. Review, edit if needed, then click Resubmit.
                         </div>
                     </div>
                 )}
@@ -744,7 +744,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                 {isLocked && (
                     <div className="mx-4 mb-2 flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3">
                         <i className="fas fa-lock text-emerald-600" />
-                        <span className="text-emerald-700 font-black text-sm">Draft đã được phê duyệt và khóa. Liên hệ approver để mở khóa chỉnh sửa.</span>
+                        <span className="text-emerald-700 font-black text-sm">Draft approved and locked. Contact the approver to unlock for editing.</span>
                         <span className="ml-auto text-emerald-500 text-xs font-medium">{approvalRequest?.draft_name}</span>
                     </div>
                 )}
@@ -756,7 +756,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                         {paginatedData.length === 0 ? (
                             <div className="text-center py-12 text-slate-400">
                                 <i className="fas fa-box-open text-3xl mb-3 block" />
-                                <p className="font-bold">Không có dữ liệu</p>
+                                <p className="font-bold">No data</p>
                             </div>
                         ) : paginatedData.map((item, idx) => {
                             const d = (orderQuantities[item.ItemCode] || { air: 0, sea: 0 }) as { air: number, sea: number };
@@ -839,7 +839,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                                 placeholder="0"
                                             />
                                             {((item.computed?.gapOrExcess || 0) > 0) && d.sea === 0 && (
-                                                <button onClick={() => handleQtyChange(item.ItemCode, 'sea', Math.ceil((item.computed!.gapOrExcess! || 1) / (item.SNP || 1)) * (item.SNP || 1))} className="text-[9px] font-black text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-full border border-blue-200 mt-0.5">Gợi ý: {item.computed!.gapOrExcess}</button>
+                                                <button onClick={() => handleQtyChange(item.ItemCode, 'sea', Math.ceil((item.computed!.gapOrExcess! || 1) / (item.SNP || 1)) * (item.SNP || 1))} className="text-[9px] font-black text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-full border border-blue-200 mt-0.5">Suggest: {item.computed!.gapOrExcess}</button>
                                             )}
                                         </div>
                                     </div>
@@ -847,7 +847,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                     {/* Amount Footer */}
                                     {amount && (
                                         <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-                                            <span className="text-[10px] font-black text-slate-400 uppercase">Thành tiền</span>
+                                            <span className="text-[10px] font-black text-slate-400 uppercase">{t('ord_th_amount')}</span>
                                             <span className="font-black text-slate-800 text-sm">{amount}</span>
                                         </div>
                                     )}
@@ -926,7 +926,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                         {/* DEMAND SIGNAL — cột tách riêng, đứng trước Stock Health */}
                                         <td className="px-4 py-3 text-center border-b border-slate-50 hidden xl:table-cell">
                                             <div className="flex flex-col items-center gap-1">
-                                                <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200/80 shadow-sm" title="Bán M-1 thực tế / Dự báo FC">
+                                                <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200/80 shadow-sm" title={t('db_demand_actual')}>
                                                     <div className="flex flex-col items-start leading-tight">
                                                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">M-1</span>
                                                         <span className="font-black text-slate-800 text-sm leading-none">{(m1Actual || 0).toLocaleString()}</span>
@@ -953,7 +953,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                                                 ? 'bg-amber-100 text-amber-700 border-amber-200' 
                                                                 : 'bg-emerald-100 text-emerald-700 border-emerald-200';
                                                         return (
-                                                            <div className={`px-2 py-0.5 rounded-md border font-black text-xs text-center shadow-sm flex items-center gap-1 transition-all hover:scale-105 active:scale-95 cursor-help ${colorClass}`} title={`MOS tính cả hàng về & BO: ${effMos === 99 ? '∞' : effMos.toFixed(1)}M`}>
+                                                            <div className={`px-2 py-0.5 rounded-md border font-black text-xs text-center shadow-sm flex items-center gap-1 transition-all hover:scale-105 active:scale-95 cursor-help ${colorClass}`} title={`MOS incl. incoming & BO: ${effMos === 99 ? '∞' : effMos.toFixed(1)}M`}>
                                                                 <i className={`fas ${effMos < 1.0 ? 'fa-triangle-exclamation' : 'fa-hourglass-half'} text-[10px] opacity-70`} />
                                                                 {demandMonthly <= 0 ? '∞' : `${item.computed!.mos?.toFixed(1)}M`}
                                                             </div>
@@ -971,14 +971,14 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                                 {incomingThisMonth > 0 ? (
                                                     <div className="flex flex-col items-center leading-none">
                                                         <Typography variant="body" className="font-black text-blue-700">+{incomingThisMonth.toLocaleString()}</Typography>
-                                                        <Typography variant="label" className="text-blue-400 !font-bold normal-case text-[9px]">Về tháng này</Typography>
+                                                        <Typography variant="label" className="text-blue-400 !font-bold normal-case text-[9px]">{t('supply_incoming_this_month')}</Typography>
                                                     </div>
                                                 ) : (
                                                     <Typography variant="body" className="font-bold text-slate-300">—</Typography>
                                                 )}
                                                 
                                                 {(item.TotalPO || 0) > 0 && (
-                                                    <div className="inline-flex items-center gap-1 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 shadow-sm" title="Tổng PO Pipeline">
+                                                    <div className="inline-flex items-center gap-1 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 shadow-sm" title="Total PO Pipeline">
                                                         <i className="fas fa-ship text-indigo-400 text-[9px]" />
                                                         <span className="text-[10px] font-black text-indigo-600">PO: {(item.TotalPO || 0).toLocaleString()}</span>
                                                     </div>
@@ -1018,28 +1018,28 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                                 >
                                                     <i className={`fas ${item.computed?.warnings?.some(w => w.code === 'TREND_DECLINE') ? 'fa-triangle-exclamation' : 'fa-lightbulb'} mr-1.5`} />
                                                     <span className="opacity-80 uppercase tracking-tight mr-1">
-                                                        {item.computed?.warnings?.some(w => w.code === 'TREND_DECLINE') ? 'Thận trọng: ' : ''}
+                                                        {item.computed?.warnings?.some(w => w.code === 'TREND_DECLINE') ? 'Caution: ' : ''}
                                                     </span>
                                                     {item.computed.gapOrExcess}
                                                 </button>
                                             )}
                                             {(d.sea > 0 || (item.computed?.gapOrExcess || 0) > 0) && item.computed?.transfer && (item.computed.transfer.suggestedOrderNB > 0 || item.computed.transfer.suggestedOrderBB > 0) && (
                                                 <div className="mt-1 flex items-center justify-center gap-1.5 no-print scale-110">
-                                                    <div className="flex items-center gap-1 bg-indigo-50/50 px-1.5 py-0.5 rounded border border-indigo-100/50" title="Miền Nam (NB)">
+                                                    <div className="flex items-center gap-1 bg-indigo-50/50 px-1.5 py-0.5 rounded border border-indigo-100/50" title={t('ord_tooltip_south')}>
                                                         <span className="text-[9px] font-black text-indigo-400 uppercase leading-none">NB</span>
                                                         <span className="text-[11px] font-black text-indigo-700 leading-none">{item.computed.transfer.suggestedOrderNB.toLocaleString()}</span>
                                                     </div>
-                                                    <div className="flex items-center gap-1 bg-blue-50/50 px-1.5 py-0.5 rounded border border-blue-100/50" title="Miền Bắc (BB)">
+                                                    <div className="flex items-center gap-1 bg-blue-50/50 px-1.5 py-0.5 rounded border border-blue-100/50" title={t('ord_tooltip_north')}>
                                                         <span className="text-[9px] font-black text-blue-400 uppercase leading-none">BB</span>
                                                         <span className="text-[11px] font-black text-blue-700 leading-none">{item.computed.transfer.suggestedOrderBB.toLocaleString()}</span>
                                                     </div>
                                                 </div>
                                             )}
                                             {item.computed?.transfer && item.computed.transfer.transferNBtoBB > 0 && (
-                                                <div className="mt-1 flex justify-center"><span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded uppercase border border-amber-200" title="Chuyển từ NB sang BB">NB <i className="fas fa-arrow-right mx-0.5"></i> BB: {item.computed.transfer.transferNBtoBB}</span></div>
+                                                <div className="mt-1 flex justify-center"><span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded uppercase border border-amber-200" title={t('ord_transfer_nb_bb')}>NB <i className="fas fa-arrow-right mx-0.5"></i> BB: {item.computed.transfer.transferNBtoBB}</span></div>
                                             )}
                                             {item.computed?.transfer && item.computed.transfer.transferBBtoNB > 0 && (
-                                                <div className="mt-1 flex justify-center"><span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded uppercase border border-amber-200" title="Chuyển từ BB sang NB">BB <i className="fas fa-arrow-right mx-0.5"></i> NB: {item.computed.transfer.transferBBtoNB}</span></div>
+                                                <div className="mt-1 flex justify-center"><span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded uppercase border border-amber-200" title={t('ord_transfer_bb_nb')}>BB <i className="fas fa-arrow-right mx-0.5"></i> NB: {item.computed.transfer.transferBBtoNB}</span></div>
                                             )}
                                         </td>
                                         <td className="px-4 py-3 border-b border-slate-50 hidden xl:table-cell"><textarea value={orderNotes[item.ItemCode] || ''} onChange={e => setOrderNotes(p => ({ ...p, [item.ItemCode]: e.target.value }))} className="w-full text-xs font-bold text-slate-600 bg-slate-50 p-2 rounded-xl border border-slate-200 outline-none focus:bg-white focus:border-blue-300 resize-none h-10" placeholder="..." /></td>
@@ -1093,9 +1093,9 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                         <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-3xl mb-6 mx-auto">
                             <i className="fas fa-triangle-exclamation"></i>
                         </div>
-                        <Typography variant="h2" className="text-center text-slate-900 mb-2">Kiểm tra rủi ro</Typography>
+                        <Typography variant="h2" className="text-center text-slate-900 mb-2">Risk Check</Typography>
                         <Typography variant="body" className="text-center text-slate-500 mb-6 block">
-                            Mã hàng <span className="font-black text-slate-900">{confirmationQueue[0].code}</span> có các cảnh báo cần lưu ý:
+                            SKU <span className="font-black text-slate-900">{confirmationQueue[0].code}</span> has warnings that require attention:
                         </Typography>
 
                         {/* ENRICHED METRICS SECTION */}
@@ -1114,7 +1114,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                             return (
                                 <div className="grid grid-cols-2 gap-3 mb-6 bg-slate-50/80 p-4 rounded-2xl border border-slate-100">
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] font-black text-slate-400 uppercase">Tồn kho / PO</span>
+                                        <span className="text-[10px] font-black text-slate-400 uppercase">Stock / PO</span>
                                         <div className="flex items-center gap-2">
                                             <span className="text-sm font-black text-slate-700">{available}</span>
                                             <span className="text-slate-300">/</span>
@@ -1122,17 +1122,17 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                         </div>
                                     </div>
                                     <div className="flex flex-col text-right">
-                                        <span className="text-[10px] font-black text-slate-400 uppercase">Khả năng cung ứng (Pos)</span>
+                                        <span className="text-[10px] font-black text-slate-400 uppercase">Supply Capability (Pos)</span>
                                         <div className={`text-sm font-black ${supplyCapability < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
                                             {supplyCapability > 0 ? '+' : ''}{supplyCapability}
                                         </div>
                                     </div>
                                     <div className="flex flex-col pt-2 border-t border-slate-200/50">
-                                        <span className="text-[10px] font-black text-slate-400 uppercase">Nợ hàng (BO)</span>
+                                        <span className="text-[10px] font-black text-slate-400 uppercase">Backorder (BO)</span>
                                         <span className="text-sm font-black text-rose-600">{bo}</span>
                                     </div>
                                     <div className="flex flex-col text-right pt-2 border-t border-slate-200/50">
-                                        <span className="text-[10px] font-black text-slate-400 uppercase">Xu hướng (Slope)</span>
+                                        <span className="text-[10px] font-black text-slate-400 uppercase">Trend (Slope)</span>
                                         <div className={`text-sm font-black ${slope < -1 ? 'text-rose-600' : slope > 1 ? 'text-emerald-600' : 'text-slate-600'}`}>
                                             <i className={`fas ${slope < -1 ? 'fa-arrow-trend-down' : slope > 1 ? 'fa-arrow-trend-up' : 'fa-minus'} mr-1`}></i>
                                             {slope.toFixed(2)}
@@ -1145,11 +1145,11 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                                 <span className="text-xs font-black text-slate-700">{avg12M.toFixed(1)}</span>
                                             </div>
                                             <div className="flex flex-col text-center">
-                                                <span className="text-[10px] font-black text-blue-400 uppercase tracking-tighter">Tháng N-2</span>
+                                                <span className="text-[10px] font-black text-blue-400 uppercase tracking-tighter">Month N-2</span>
                                                 <span className="text-xs font-black text-blue-700">{history[history.length - 2] || 0}</span>
                                             </div>
                                             <div className="flex flex-col text-center">
-                                                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-tighter">Tháng N-1</span>
+                                                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-tighter">Month N-1</span>
                                                 <span className="text-xs font-black text-indigo-700">{history[history.length - 1] || 0}</span>
                                             </div>
                                             <div className="flex flex-col text-center border-l border-slate-200 pl-1">
@@ -1193,13 +1193,13 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                 onClick={() => setConfirmationQueue(prev => prev.slice(1))}
                                 className="py-4 px-6 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95"
                             >
-                                Hủy bỏ
+                                {t('common_cancel')}
                             </button>
-                            <button 
+                            <button
                                 onClick={confirmWarning}
                                 className="py-4 px-6 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-amber-200 active:scale-95 ml-auto w-full"
                             >
-                                Xác nhận
+                                {t('ord_btn_confirm')}
                             </button>
                         </div>
                     </div>
@@ -1249,23 +1249,23 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                     <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsSubmitModalOpen(false)} />
                     <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 space-y-5 border border-slate-200">
                         <div className="flex items-center justify-between">
-                            <Typography variant="h3" className="text-slate-800">Gửi Phê duyệt</Typography>
+                            <Typography variant="h3" className="text-slate-800">{t('ord_submit_title')}</Typography>
                             <button onClick={() => setIsSubmitModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1"><i className="fas fa-xmark" /></button>
                         </div>
                         <div className="space-y-3">
                             <div>
-                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5">Tên Draft</label>
+                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5">{t('ord_label_draft_name')}</label>
                                 <input
                                     value={submitDraftName}
                                     onChange={e => setSubmitDraftName(e.target.value)}
-                                    placeholder="VD: KIA_NB_Tháng4_2026"
+                                    placeholder={t('ord_ph_draft_name')}
                                     className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-blue-400 text-slate-800"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5">Workflow Phê duyệt</label>
+                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5">{t('ord_label_workflow')}</label>
                                 {workflows.length === 0 ? (
-                                    <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5">Chưa có workflow nào. Vui lòng tạo trong Settings.</p>
+                                    <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5">{t('ord_no_workflow')}</p>
                                 ) : (
                                     <select
                                         value={selectedWorkflowId}
@@ -1282,7 +1282,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                             disabled={isSubmitting || !submitDraftName.trim() || !selectedWorkflowId}
                             className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black py-3 rounded-2xl text-sm uppercase tracking-widest flex items-center justify-center gap-2"
                         >
-                            {isSubmitting ? <><i className="fas fa-circle-notch fa-spin" /> Đang gửi...</> : <><i className="fas fa-paper-plane" /> Xác nhận gửi</>}
+                            {isSubmitting ? <><i className="fas fa-circle-notch fa-spin" /> {t('ord_btn_submitting')}</> : <><i className="fas fa-paper-plane" /> {t('ord_btn_confirm')}</>}
                         </button>
                     </div>
                 </div>

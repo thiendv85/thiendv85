@@ -315,7 +315,7 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
 
         const html = `<!DOCTYPE html><html lang="vi"><head>
 <meta charset="UTF-8">
-<title>Phiếu Đặt Hàng – ${request.draft_name}</title>
+<title>${t('review_print_title')} – ${request.draft_name}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
 <style>
@@ -334,8 +334,8 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
 @media print { body { margin: 0; } }
 </style>
 </head><body>
-<div class="title">BẢNG KÊ DANH MỤC PHỤ TÙNG, VẬT TƯ THƯƠNG HIỆU<br/>ĐỀ XUẤT ĐẶT HÀNG TUẦN ${weekOfMonth} THÁNG ${pad(month)} NĂM ${year}</div>
-<div class="subtitle">(Đính kèm theo tờ trình số:&hellip;/&hellip;/ Ngày &hellip;&hellip; tháng ${pad(month)} năm ${year})</div>
+<div class="title">${t('review_print_header')}<br/>${t('review_print_header2')} ${weekOfMonth} - ${pad(month)}/${year}</div>
+<div class="subtitle">(${t('review_print_subtitle')}&hellip;/&hellip;/ ${pad(month)}/${year})</div>
 <table>
 <colgroup>
 <col style="width:22px"><col style="width:62px"><col style="width:110px"><col style="width:32px"><col style="width:48px">
@@ -347,26 +347,26 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
 </colgroup>
 <thead>
 <tr>
-<th rowspan="2">STT</th>
-<th rowspan="2">Mã Phụ Tùng</th>
-<th rowspan="2">Tên Phụ Tùng</th>
-<th rowspan="2">Nhóm loại hình</th>
-<th rowspan="2">Mẫu xe</th>
+<th rowspan="2">${t('review_print_col_stt')}</th>
+<th rowspan="2">${t('review_print_col_part_code')}</th>
+<th rowspan="2">${t('review_print_col_part_name')}</th>
+<th rowspan="2">${t('review_print_col_group')}</th>
+<th rowspan="2">${t('review_print_col_model')}</th>
 <th rowspan="2">LOIS</th>
-<th rowspan="2">Thời gian hàng về<br/>(Tháng)</th>
-<th colspan="3" class="hdr-group">Tồn Việt Nam</th>
-<th rowspan="2">BQ bán hàng GT</th>
-<th rowspan="2">Cơ số tồn Việt Nam<br/>(Tháng BH)</th>
-<th rowspan="2">Đặt NCC chưa giao</th>
-<th rowspan="2">Số lượng nợ</th>
-<th rowspan="2">Số lượng tồn kho<br/>định mức</th>
-<th colspan="4" class="hdr-group">Đề xuất đặt hàng dự trữ tuần ${pad(weekOfMonth)} tháng ${pad(month)}, năm ${year}</th>
-<th rowspan="2">Tổng Cơ số tồn sau đặt<br/>(tháng BH)</th>
-<th rowspan="2">Cơ số tồn định mức<br/>đã duyệt</th>
+<th rowspan="2">${t('review_print_col_lead_time')}</th>
+<th colspan="3" class="hdr-group">${t('review_print_col_vn_stock')}</th>
+<th rowspan="2">${t('review_print_col_avg_sales')}</th>
+<th rowspan="2">${t('review_print_col_mos_vn')}</th>
+<th rowspan="2">${t('review_print_col_pending_po')}</th>
+<th rowspan="2">${t('review_print_col_bo_qty')}</th>
+<th rowspan="2">${t('review_print_col_stock_max')}</th>
+<th colspan="4" class="hdr-group">${t('review_print_col_order_proposal')} ${pad(weekOfMonth)}-${pad(month)}/${year}</th>
+<th rowspan="2">${t('review_print_col_mos_after')}</th>
+<th rowspan="2">${t('review_print_col_approved_max')}</th>
 </tr>
 <tr>
-<th>PP</th><th>ĐL</th><th>Tổng tồn</th>
-<th>Tổng số</th><th>Miền Bắc</th><th>Miền Nam</th><th>Thành tiền<br/>(Tr. đ)</th>
+<th>PP</th><th>ĐL</th><th>Total</th>
+<th>${t('review_print_col_total_qty')}</th><th>${t('review_print_col_north')}</th><th>${t('review_print_col_south')}</th><th>${t('review_print_col_amount')}</th>
 </tr>
 </thead>
 <tbody>${bodyRows}</tbody>
@@ -375,7 +375,7 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
 </body></html>`;
 
         const w = window.open('', '_blank', 'width=1200,height=800');
-        if (!w) return alert('Trình duyệt đã chặn popup. Hãy cho phép popup để in.');
+        if (!w) return alert(t('review_popup_blocked'));
         w.document.write(html);
         w.document.close();
         w.focus();
@@ -521,9 +521,9 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                         {/* Tabs */}
                         <div className="flex bg-slate-100/50 p-1 rounded-xl gap-1 shrink-0 border border-slate-200/60">
                             {[
-                                { id: 'info', icon: 'fa-circle-info', label: 'Duyệt đơn' },
-                                { id: 'history', icon: 'fa-clock-rotate-left', label: 'Lịch sử', count: actions.length },
-                                { id: 'matrix', icon: 'fa-table-cells', label: 'Ma trận' }
+                                { id: 'info', icon: 'fa-circle-info', label: t('review_tab_approve') },
+                                { id: 'history', icon: 'fa-clock-rotate-left', label: t('common_history'), count: actions.length },
+                                { id: 'matrix', icon: 'fa-table-cells', label: t('review_tab_matrix') }
                             ].map(tab => (
                                 <button 
                                     key={tab.id}
@@ -601,7 +601,7 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                                 <div className="flex items-center gap-4 shrink-0">
                                     <div className="flex items-center gap-2">
                                         <div className="w-1.5 h-4 bg-emerald-500 rounded-full" />
-                                        <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Sức khoẻ tồn kho</span>
+                                        <span className="text-xs font-black text-slate-500 uppercase tracking-widest">{t('review_stock_health')}</span>
                                     </div>
                                     <div className="flex gap-2">
                                         {totals.oos > 0 && (
@@ -634,12 +634,12 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                                 <div className="ml-auto flex items-center gap-6">
                                     <div className="flex items-center gap-2 text-xs font-bold text-slate-400 italic">
                                         <i className="fas fa-circle-check text-blue-500" />
-                                        Đã chọn {selectedItems.size}/{rows.length} SKU
+                                        {t('common_selected')} {selectedItems.size}/{rows.length} SKU
                                     </div>
                                     {hasChanges && (
                                         <button onClick={() => setLocalQtys(Object.fromEntries(Object.entries(snap.quantities).map(([k, v]) => [k, { air: v.air, sea: v.sea }])))}
                                             className="text-[10px] text-amber-600 hover:text-amber-700 font-black bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200/50 flex items-center gap-1.5 transition-colors">
-                                            <i className="fas fa-arrow-rotate-left" /> Hoàn tác thay đổi
+                                            <i className="fas fa-arrow-rotate-left" /> {t('review_undo_changes')}
                                         </button>
                                     )}
                                 </div>
@@ -661,7 +661,7 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                                                 {actions.map(a => {
                                                     const s = ACTION_STYLE[a.action] || ACTION_STYLE.commented;
                                                     const actorName = usersMap[a.actor_id] || 'N/A';
-                                                    const actionLabels: Record<string, string> = { approved: 'Đã duyệt', returned: 'Trả lại', rejected: 'Từ chối', commented: 'Bình luận' };
+                                                    const actionLabels: Record<string, string> = { approved: t('approval_action_approved'), returned: t('approval_action_returned'), rejected: t('approval_action_rejected'), commented: t('approval_action_commented') };
                                                     return (
                                                         <div key={a.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm relative pl-10 overflow-hidden">
                                                             <div className={`absolute left-0 top-0 bottom-0 w-8 flex items-center justify-center ${s.cls.replace('text-', 'bg-')}/10 border-r border-slate-100`}>
@@ -687,7 +687,7 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                                     <div className="space-y-4">
                                         <div className="flex items-center gap-2 mb-4">
                                             <div className="w-2 h-5 bg-blue-500 rounded-full" />
-                                            <span className="text-xs font-black text-slate-600 uppercase tracking-widest">Ma trận cung ứng</span>
+                                            <span className="text-xs font-black text-slate-600 uppercase tracking-widest">{t('review_matrix_title')}</span>
                                         </div>
                                         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm p-4">
                                             <SnapshotMatrix items={rows} draftQtys={localQtys} compact />
@@ -741,13 +741,13 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                                         </div>
                                     </th>
                                     <th className="px-3 py-2.5 min-w-[200px] sticky left-10 z-40 bg-slate-50/95 border-b border-slate-200 border-r border-slate-200">SKU Identity & Health</th>
-                                    <th className="px-3 py-2.5 text-center border-b border-slate-200 min-w-[100px]">Vận chuyển</th>
-                                    <th className="px-2 py-2.5 text-center border-b border-slate-200 bg-indigo-50/30 min-w-[80px]">Đặt MN (NB)</th>
-                                    <th className="px-2 py-2.5 text-center border-b border-slate-200 bg-blue-50/30 min-w-[80px]">Đặt MB (BB)</th>
-                                    <th className="px-2 py-2.5 text-center border-b border-slate-200 bg-slate-100/50 min-w-[90px] font-black">Tổng đặt</th>
-                                    <th className="px-3 py-2.5 text-right border-b border-slate-200 min-w-[100px]">Đơn giá</th>
-                                    <th className="px-3 py-2.5 min-w-[150px] border-b border-slate-200">Ghi chú / Cảnh báo</th>
-                                    <th className="px-3 py-2.5 text-right border-b border-slate-200 border-l border-slate-200 min-w-[110px] bg-slate-100/30">Thành Tiền</th>
+                                    <th className="px-3 py-2.5 text-center border-b border-slate-200 min-w-[100px]">{t('review_th_transport')}</th>
+                                    <th className="px-2 py-2.5 text-center border-b border-slate-200 bg-indigo-50/30 min-w-[80px]">{t('review_th_order_south')}</th>
+                                    <th className="px-2 py-2.5 text-center border-b border-slate-200 bg-blue-50/30 min-w-[80px]">{t('review_th_order_north')}</th>
+                                    <th className="px-2 py-2.5 text-center border-b border-slate-200 bg-slate-100/50 min-w-[90px] font-black">{t('review_th_total_order')}</th>
+                                    <th className="px-3 py-2.5 text-right border-b border-slate-200 min-w-[100px]">{t('review_th_unit_price')}</th>
+                                    <th className="px-3 py-2.5 min-w-[150px] border-b border-slate-200">{t('review_th_notes_warning')}</th>
+                                    <th className="px-3 py-2.5 text-right border-b border-slate-200 border-l border-slate-200 min-w-[110px] bg-slate-100/30">{t('review_th_total_amount')}</th>
                                     <th className="px-3 py-2.5 sticky right-0 z-40 bg-slate-50/95 border-b border-slate-200 border-l border-slate-200 min-w-[70px] text-center">Action</th>
                                 </tr>
                             </thead>
@@ -861,7 +861,7 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                             {/* Demand & Momentum */}
                             <div className="space-y-6">
                                 <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                                    <div className="w-1.5 h-4 bg-blue-500 rounded-full" /> Nhu cầu & Xu hướng
+                                    <div className="w-1.5 h-4 bg-blue-500 rounded-full" /> {t('review_inspect_demand')}
                                 </h3>
                                 <div className="bg-slate-50 p-8 rounded-[32px] border border-slate-200/60 h-[280px] flex items-center justify-center shadow-inner">
                                     <SalesMomentum
@@ -871,14 +871,14 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                                 </div>
                                 <div className="bg-blue-50/50 p-5 rounded-2xl border border-blue-100/50 flex items-center justify-between">
                                     <div>
-                                        <div className="text-[10px] text-blue-500 font-black uppercase">Xu hướng dự báo</div>
+                                        <div className="text-[10px] text-blue-500 font-black uppercase">{t('review_inspect_demand')}</div>
                                         <div className="text-sm font-black text-blue-800 mt-1 flex items-center gap-2">
                                             <TrendBadge trend={inspectingItem.trendFlag} />
-                                            {inspectingItem.trendFlag === 'up' ? 'Tăng trưởng' : inspectingItem.trendFlag === 'down' ? 'Giảm dần' : 'Ổn định'}
+                                            {inspectingItem.trendFlag === 'up' ? t('review_inspect_trend_up') : inspectingItem.trendFlag === 'down' ? t('review_inspect_trend_down') : t('review_inspect_trend_stable')}
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <div className="text-[10px] text-blue-500 font-black uppercase">Dự báo (FC)</div>
+                                        <div className="text-[10px] text-blue-500 font-black uppercase">{t('review_inspect_forecast')}</div>
                                         <div className="text-xl font-black text-blue-900">{(inspectingItem.baseForecast || 0).toLocaleString()}</div>
                                     </div>
                                 </div>

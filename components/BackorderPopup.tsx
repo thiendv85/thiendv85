@@ -3,23 +3,24 @@ import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { BackorderDetail } from '../types/inventory';
 import { Typography } from './Typography';
+import { useLanguage } from '../utils/i18n';
 
 interface BackorderPopupProps {
     items: BackorderDetail[];
     children?: React.ReactNode;
 }
 
-// --- HELPER: PHÂN LOẠI ĐƠN (Đồng nhất với BackorderProcessing) ---
-const ORDER_GROUPS = [
-    { key: 'VOR', label: '1. VOR (Xe nằm đường)', color: 'text-red-600 bg-red-50 border-red-100', icon: 'fa-truck-medical' },
-    { key: 'WARRANTY', label: '2. Bảo Hành', color: 'text-orange-600 bg-orange-50 border-orange-100', icon: 'fa-shield-halved' },
-    { key: 'URGENT', label: '3. Khẩn (EO/Emergency)', color: 'text-rose-600 bg-rose-50 border-rose-100', icon: 'fa-bolt' },
-    { key: 'CAMPAIGN', label: '4. Chiến dịch', color: 'text-blue-600 bg-blue-50 border-blue-100', icon: 'fa-bullhorn' },
-    { key: 'STOCK', label: '5. Dự trữ (Stock)', color: 'text-indigo-600 bg-indigo-50 border-indigo-100', icon: 'fa-cubes' },
-    { key: 'OTHER', label: '6. Khác', color: 'text-slate-600 bg-slate-50 border-slate-100', icon: 'fa-box' },
+// --- HELPER: ORDER CLASSIFICATION (synced with BackorderProcessing) ---
+const ORDER_GROUP_DEFS = [
+    { key: 'VOR', labelKey: 'bo_group_vor' as const, color: 'text-red-600 bg-red-50 border-red-100', icon: 'fa-truck-medical' },
+    { key: 'WARRANTY', labelKey: 'bo_group_warranty' as const, color: 'text-orange-600 bg-orange-50 border-orange-100', icon: 'fa-shield-halved' },
+    { key: 'URGENT', labelKey: 'bo_group_urgent' as const, color: 'text-rose-600 bg-rose-50 border-rose-100', icon: 'fa-bolt' },
+    { key: 'CAMPAIGN', labelKey: 'bo_group_campaign' as const, color: 'text-blue-600 bg-blue-50 border-blue-100', icon: 'fa-bullhorn' },
+    { key: 'STOCK', labelKey: 'bo_group_stock' as const, color: 'text-indigo-600 bg-indigo-50 border-indigo-100', icon: 'fa-cubes' },
+    { key: 'OTHER', labelKey: 'bo_group_other' as const, color: 'text-slate-600 bg-slate-50 border-slate-100', icon: 'fa-box' },
 ] as const;
 
-type OrderGroupKey = typeof ORDER_GROUPS[number]['key'];
+type OrderGroupKey = typeof ORDER_GROUP_DEFS[number]['key'];
 
 const getOrderGroup = (bo: BackorderDetail): OrderGroupKey => {
     const doc = (bo.DocNo || '').trim().toUpperCase();
@@ -35,13 +36,15 @@ const getOrderGroup = (bo: BackorderDetail): OrderGroupKey => {
 };
 
 export const BackorderPopup = ({ items, children }: BackorderPopupProps) => {
+    const { t } = useLanguage();
     const [isOpen, setIsOpen] = useState(false);
     const [portalStyle, setPortalStyle] = useState<React.CSSProperties>({});
     const triggerRef = useRef<HTMLDivElement>(null);
     const popupRef = useRef<HTMLDivElement>(null);
     const [arrowClass, setArrowClass] = useState('');
 
-    // Nhóm dữ liệu theo loại đơn
+    const orderGroups = useMemo(() => ORDER_GROUP_DEFS.map(g => ({ ...g, label: t(g.labelKey) })), [t]);
+
     const groupedItems = useMemo(() => {
         if (!items || items.length === 0) return {} as Record<OrderGroupKey, BackorderDetail[]>;
 
@@ -70,7 +73,7 @@ export const BackorderPopup = ({ items, children }: BackorderPopupProps) => {
         const GAP = 10;
         const POPUP_MAX_HEIGHT = 500;
 
-        const activeGroupCount = ORDER_GROUPS.filter(g => groupedItems[g.key]?.length > 0).length;
+        const activeGroupCount = ORDER_GROUP_DEFS.filter(g => groupedItems[g.key]?.length > 0).length;
         const contentHeight = Math.min((items.length * 45) + (activeGroupCount * 30) + 100, POPUP_MAX_HEIGHT);
 
         let left = rect.left;
@@ -142,10 +145,10 @@ export const BackorderPopup = ({ items, children }: BackorderPopupProps) => {
                         {/* Header Popup */}
                         <div className="bg-gradient-blue px-5 py-3 flex justify-between items-center shadow-lg">
                             <Typography variant="label" className="text-white flex items-center gap-2">
-                                <i className="fas fa-list-check"></i> Phân loại chi tiết Booking
+                                <i className="fas fa-list-check"></i> {t('bo_popup_title')}
                             </Typography>
                             <Typography variant="label" className="bg-white/20 backdrop-blur-md text-white px-2 py-1 rounded-lg border border-white/20">
-                                {items?.length || 0} ĐƠN HÀNG
+                                {items?.length || 0} {t('bo_popup_orders')}
                             </Typography>
                         </div>
 
@@ -155,14 +158,14 @@ export const BackorderPopup = ({ items, children }: BackorderPopupProps) => {
                                     <table className="w-full text-xs border-collapse">
                                         <thead className="bg-slate-50 sticky top-0 z-20 border-b border-slate-100">
                                             <tr>
-                                                <th className="px-4 py-2 text-left"><Typography variant="label-muted">Ngày / Chứng từ</Typography></th>
-                                                <th className="px-4 py-2 text-left"><Typography variant="label-muted">Kho / Showroom</Typography></th>
-                                                <th className="px-4 py-2 text-center"><Typography variant="label" className="text-blue-600">Hẹn (ETA)</Typography></th>
+                                                <th className="px-4 py-2 text-left"><Typography variant="label-muted">{t('bo_col_date_doc')}</Typography></th>
+                                                <th className="px-4 py-2 text-left"><Typography variant="label-muted">{t('bo_col_warehouse')}</Typography></th>
+                                                <th className="px-4 py-2 text-center"><Typography variant="label" className="text-blue-600">{t('bo_col_eta')}</Typography></th>
                                                 <th className="px-4 py-2 text-right"><Typography variant="label" className="text-rose-600">SL</Typography></th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {ORDER_GROUPS.map((group) => {
+                                            {orderGroups.map((group) => {
                                                 const groupItems = groupedItems[group.key];
                                                 if (!groupItems || groupItems.length === 0) return null;
 
@@ -177,7 +180,7 @@ export const BackorderPopup = ({ items, children }: BackorderPopupProps) => {
                                                                     <i className={`fas ${group.icon} opacity-70`}></i> {group.label}
                                                                 </Typography>
                                                                 <Typography variant="label" className="ml-auto opacity-70">
-                                                                    ({groupItems.length} đơn - {groupTotalQty.toLocaleString()} units)
+                                                                    ({groupItems.length} {t('bo_unit_orders')} - {groupTotalQty.toLocaleString()} units)
                                                                 </Typography>
                                                             </td>
                                                         </tr>
@@ -217,7 +220,7 @@ export const BackorderPopup = ({ items, children }: BackorderPopupProps) => {
                                 {/* Footer Popup */}
                                 <div className="bg-slate-50 px-5 py-3 border-t border-slate-100 flex justify-between items-center">
                                     <div className="flex gap-3">
-                                        {ORDER_GROUPS.map(g => {
+                                        {orderGroups.map(g => {
                                             const count = groupedItems[g.key]?.length || 0;
                                             if (count === 0) return null;
                                             return (
@@ -229,7 +232,7 @@ export const BackorderPopup = ({ items, children }: BackorderPopupProps) => {
                                         })}
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <Typography variant="label" className="text-slate-400">Tổng nợ:</Typography>
+                                        <Typography variant="label" className="text-slate-400">{t('bo_footer_total')}</Typography>
                                         <Typography variant="h3" className="text-rose-600 !font-bold">{items.reduce((s, c) => s + c.Qty, 0).toLocaleString()}</Typography>
                                         <Typography variant="label" className="text-rose-400">Units</Typography>
                                     </div>
@@ -240,8 +243,8 @@ export const BackorderPopup = ({ items, children }: BackorderPopupProps) => {
                                 <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center mx-auto mb-4 text-slate-200">
                                     <i className="fas fa-folder-open text-2xl"></i>
                                 </div>
-                                <Typography variant="label" className="text-slate-500 mb-1">Dữ liệu trống</Typography>
-                                <Typography variant="body-sm" className="text-slate-400 max-w-[200px] mx-auto">Vui lòng kiểm tra lại file Backorder đã tải lên.</Typography>
+                                <Typography variant="label" className="text-slate-500 mb-1">{t('bo_empty_title')}</Typography>
+                                <Typography variant="body-sm" className="text-slate-400 max-w-[200px] mx-auto">{t('bo_empty_desc')}</Typography>
                             </div>
                         )}
                     </div>

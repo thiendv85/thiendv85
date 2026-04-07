@@ -69,12 +69,12 @@ function getServiceLevel(loisGroup: string): string {
     return '95%';
 }
 
-const GROUP_CONFIG: Record<IntelGroup, { color: string; bgColor: string; borderColor: string; label: string; icon: string; actionLabel: string; actionIcon: string }> = {
-    STOCKOUT: { color: 'text-rose-700', bgColor: 'bg-rose-50', borderColor: 'border-rose-200', label: 'Hết hàng', icon: 'fa-circle-xmark', actionLabel: 'Order AIR', actionIcon: 'fa-plane-departure' },
-    RISK: { color: 'text-amber-700', bgColor: 'bg-amber-50', borderColor: 'border-amber-200', label: 'Rủi ro', icon: 'fa-triangle-exclamation', actionLabel: 'Expedite PO', actionIcon: 'fa-truck-fast' },
-    SPIKE: { color: 'text-yellow-700', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-200', label: 'Nhu cầu tăng', icon: 'fa-arrow-trend-up', actionLabel: 'Review FC', actionIcon: 'fa-magnifying-glass-chart' },
-    OVERSTOCK: { color: 'text-blue-700', bgColor: 'bg-blue-50', borderColor: 'border-blue-200', label: 'Tồn dư', icon: 'fa-boxes-stacked', actionLabel: 'Transfer/Cắt PO', actionIcon: 'fa-scissors' },
-    DECLINING: { color: 'text-slate-600', bgColor: 'bg-slate-50', borderColor: 'border-slate-200', label: 'Xu hướng giảm', icon: 'fa-arrow-trend-down', actionLabel: 'Hold PO', actionIcon: 'fa-hand' },
+const GROUP_CONFIG: Record<IntelGroup, { color: string; bgColor: string; borderColor: string; labelKey: string; icon: string; actionLabel: string; actionIcon: string }> = {
+    STOCKOUT: { color: 'text-rose-700', bgColor: 'bg-rose-50', borderColor: 'border-rose-200', labelKey: 'di_status_oos', icon: 'fa-circle-xmark', actionLabel: 'Order AIR', actionIcon: 'fa-plane-departure' },
+    RISK: { color: 'text-amber-700', bgColor: 'bg-amber-50', borderColor: 'border-amber-200', labelKey: 'di_status_risk', icon: 'fa-triangle-exclamation', actionLabel: 'Expedite PO', actionIcon: 'fa-truck-fast' },
+    SPIKE: { color: 'text-yellow-700', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-200', labelKey: 'di_status_spike', icon: 'fa-arrow-trend-up', actionLabel: 'Review FC', actionIcon: 'fa-magnifying-glass-chart' },
+    OVERSTOCK: { color: 'text-blue-700', bgColor: 'bg-blue-50', borderColor: 'border-blue-200', labelKey: 'di_status_overstock', icon: 'fa-boxes-stacked', actionLabel: 'Transfer/Cut PO', actionIcon: 'fa-scissors' },
+    DECLINING: { color: 'text-slate-600', bgColor: 'bg-slate-50', borderColor: 'border-slate-200', labelKey: 'di_status_declining', icon: 'fa-arrow-trend-down', actionLabel: 'Hold PO', actionIcon: 'fa-hand' },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -259,19 +259,19 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
             let insightText = '';
             switch (group) {
                 case 'STOCKOUT':
-                    insightText = `HẾT HÀNG — Demand ${demandMonthly.toFixed(0)}/th, BO ${item.Backorder || 0}. PO: ${item.TotalPO || 0}. → AIR ${computed.suggestedBO || Math.ceil(newROP - available)} units`;
+                    insightText = `STOCKOUT — Demand ${demandMonthly.toFixed(0)}/mo, BO ${item.Backorder || 0}. PO: ${item.TotalPO || 0}. → AIR ${computed.suggestedBO || Math.ceil(newROP - available)} units`;
                     break;
                 case 'RISK':
-                    insightText = `Còn ${mos.toFixed(1)}M — dưới ROP ${Math.ceil(newROP)}. Thiếu ${Math.ceil(newROP - available)} units. → Expedite PO`;
+                    insightText = `${mos.toFixed(1)}M left — below ROP ${Math.ceil(newROP)}. Short ${Math.ceil(newROP - available)} units. → Expedite PO`;
                     break;
                 case 'SPIKE':
-                    insightText = `Bán ${actualM1} vs TB ${mean12M.toFixed(0)} (+${mean12M > 0 ? ((actualM1 / mean12M - 1) * 100).toFixed(0) : 'N/A'}%). → Tăng FC lên ${Math.ceil(forecastLinReg || actualM1)}/th`;
+                    insightText = `Sold ${actualM1} vs avg ${mean12M.toFixed(0)} (+${mean12M > 0 ? ((actualM1 / mean12M - 1) * 100).toFixed(0) : 'N/A'}%). → Increase FC to ${Math.ceil(forecastLinReg || actualM1)}/mo`;
                     break;
                 case 'OVERSTOCK':
-                    insightText = `Tồn ${mos.toFixed(1)}M, thừa ${excessQty} = ${Math.round(excessValue).toLocaleString()}đ. → ${item.TotalPO > 0 ? 'Cắt PO ' + item.TotalPO : 'Transfer'}`;
+                    insightText = `${mos.toFixed(1)}M stock, excess ${excessQty} = ${Math.round(excessValue).toLocaleString()}. → ${item.TotalPO > 0 ? 'Cut PO ' + item.TotalPO : 'Transfer'}`;
                     break;
                 case 'DECLINING':
-                    insightText = `Giảm ${slope.toFixed(1)}/th. TB12M=${avg12M.toFixed(0)} → FC ${forecastLinReg.toFixed(0)}. → Hold PO, giảm FC`;
+                    insightText = `Trend ${slope.toFixed(1)}/mo. Avg12M=${avg12M.toFixed(0)} → FC ${forecastLinReg.toFixed(0)}. → Hold PO, reduce FC`;
                     break;
             }
 
@@ -373,25 +373,25 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
             {/* KPI Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 <MetricCard
-                    label="Hết hàng"
+                    label={t('di_status_oos')}
                     value={metrics.stockout.toString()}
-                    subValue={metrics.stockoutGapValue > 0 ? `Gap: ${(metrics.stockoutGapValue / 1e6).toFixed(1)}M đ` : 'Cần order AIR'}
+                    subValue={metrics.stockoutGapValue > 0 ? `Gap: ${(metrics.stockoutGapValue / 1e6).toFixed(1)}M` : 'Need AIR order'}
                     icon="fa-circle-xmark"
                     color="rose"
                     onClick={() => { setGroupFilter('STOCKOUT'); setCurrentPage(1); }}
                     isActive={groupFilter === 'STOCKOUT'}
                 />
                 <MetricCard
-                    label="Rủi ro"
+                    label={t('di_status_risk')}
                     value={metrics.risk.toString()}
-                    subValue="Dưới ROP — expedite"
+                    subValue="Below ROP — expedite"
                     icon="fa-triangle-exclamation"
                     color="amber"
                     onClick={() => { setGroupFilter('RISK'); setCurrentPage(1); }}
                     isActive={groupFilter === 'RISK'}
                 />
                 <MetricCard
-                    label="Nhu cầu tăng"
+                    label={t('di_status_spike')}
                     value={metrics.spike.toString()}
                     subValue="Demand spike — review FC"
                     icon="fa-arrow-trend-up"
@@ -400,9 +400,9 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                     isActive={groupFilter === 'SPIKE'}
                 />
                 <MetricCard
-                    label="Tồn dư"
+                    label={t('di_status_overstock')}
                     value={metrics.overstock.toString()}
-                    subValue={metrics.excessValue > 0 ? `Excess: ${(metrics.excessValue / 1e6).toFixed(1)}M đ` : 'Transfer/cắt PO'}
+                    subValue={metrics.excessValue > 0 ? `Excess: ${(metrics.excessValue / 1e6).toFixed(1)}M` : 'Transfer/Cut PO'}
                     icon="fa-boxes-stacked"
                     color="slate"
                     onClick={() => { setGroupFilter('OVERSTOCK'); setCurrentPage(1); }}
@@ -411,7 +411,7 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                 <MetricCard
                     label="FC Accuracy"
                     value={metrics.accuracyCount > 0 ? `${metrics.avgAccuracy.toFixed(0)}%` : 'N/A'}
-                    subValue={`${metrics.accuracyCount} SKU có FC`}
+                    subValue={`${metrics.accuracyCount} SKU with FC`}
                     icon="fa-bullseye"
                     color="emerald"
                     onClick={() => { setGroupFilter('ALL'); setCurrentPage(1); }}
@@ -432,7 +432,7 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                                     onClick={() => { setGroupFilter(f); setCurrentPage(1); }}
                                     className={`px-3 py-1 text-[10px] font-black rounded-lg transition-all uppercase ${groupFilter === f ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                                 >
-                                    {f === 'ALL' ? 'Tất cả' : GROUP_CONFIG[f].label}
+                                    {f === 'ALL' ? t('common_all') : t(GROUP_CONFIG[f].labelKey)}
                                     {f !== 'ALL' && (
                                         <span className="ml-1 text-[9px] opacity-60">
                                             {f === 'STOCKOUT' ? metrics.stockout : f === 'RISK' ? metrics.risk : f === 'SPIKE' ? metrics.spike : f === 'OVERSTOCK' ? metrics.overstock : metrics.declining}
@@ -446,12 +446,12 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                         <div className="flex items-center gap-2 px-3 py-1 bg-slate-50 border border-slate-200 rounded-xl">
                             <i className="fas fa-sort-amount-down text-slate-400 text-[10px]"></i>
                             <select value={sortKey} onChange={(e) => setSortKey(e.target.value)} className="bg-transparent text-[10px] font-black text-slate-700 outline-none cursor-pointer uppercase">
-                                <option value="group">Nhóm hành động</option>
-                                <option value="mos_asc">MOS (Thấp nhất)</option>
-                                <option value="mos_desc">MOS (Cao nhất)</option>
-                                <option value="demand_desc">Demand (Cao nhất)</option>
-                                <option value="excess_desc">Excess Value (Cao nhất)</option>
-                                <option value="gap_desc">Gap Value (Cao nhất)</option>
+                                <option value="group">Action Group</option>
+                                <option value="mos_asc">MOS (Lowest)</option>
+                                <option value="mos_desc">MOS (Highest)</option>
+                                <option value="demand_desc">Demand (Highest)</option>
+                                <option value="excess_desc">Excess Value (Highest)</option>
+                                <option value="gap_desc">Gap Value (Highest)</option>
                             </select>
                         </div>
                     </div>
@@ -479,15 +479,15 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                         <thead className="bg-slate-50/95 backdrop-blur-sm border-b-2 border-slate-200 text-slate-600 font-black uppercase text-[10px] tracking-widest sticky top-0 z-30 shadow-sm">
                             <tr>
                                 <th className="px-3 py-3 w-10 text-center text-slate-400 border-b border-slate-100">#</th>
-                                <th className="px-3 py-3 w-[90px] border-b border-slate-100">Nhóm</th>
+                                <th className="px-3 py-3 w-[90px] border-b border-slate-100">Group</th>
                                 <th className="px-4 py-3 min-w-[220px] sticky left-0 z-40 bg-slate-50/95 border-b border-slate-100">SKU</th>
                                 <th className="px-4 py-3 text-center border-b border-slate-100 w-[120px]">Trend</th>
                                 <th className="px-4 py-3 text-center border-b border-slate-100 w-[100px]">Demand</th>
-                                <th className="px-4 py-3 text-center border-b border-slate-100 w-[130px]">Tồn / ROP</th>
+                                <th className="px-4 py-3 text-center border-b border-slate-100 w-[130px]">Stock / ROP</th>
                                 <th className="px-3 py-3 text-center border-b border-slate-100 w-[60px]">MOS</th>
                                 <th className="px-3 py-3 text-center border-b border-slate-100 w-[80px]">Pipeline</th>
                                 <th className="px-4 py-3 text-center border-b border-slate-100 w-[110px]">Gap/Excess</th>
-                                <th className="px-4 py-3 border-b border-slate-100 min-w-[280px] bg-slate-100/30 border-l border-slate-200">Hành động</th>
+                                <th className="px-4 py-3 border-b border-slate-100 min-w-[280px] bg-slate-100/30 border-l border-slate-200">Action</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white">
@@ -504,7 +504,7 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                                         <td className="px-3 py-2.5">
                                             <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-black uppercase ${cfg.bgColor} ${cfg.color} border ${cfg.borderColor}`}>
                                                 <i className={`fas ${cfg.icon} text-[8px]`}></i>
-                                                {cfg.label}
+                                                {t(cfg.labelKey)}
                                             </span>
                                         </td>
 
@@ -598,7 +598,7 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                         {t('common_total')}: <span className="text-slate-700">{filteredData.length} SKU</span>
                         {groupFilter === 'ALL' && (
                             <span className="ml-2 normal-case font-bold text-[10px]">
-                                (Ẩn {data.length - analyzedItems.length} mã NORMAL)
+                                (Hiding {data.length - analyzedItems.length} NORMAL SKUs)
                             </span>
                         )}
                     </span>

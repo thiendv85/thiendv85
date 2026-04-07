@@ -4,9 +4,11 @@ import { InventoryItem } from '../types/inventory';
 import { SupersessionGraph, calculateConsolidatedInventory } from '../utils/supersessionGraph';
 import { Layers } from 'lucide-react';
 import { Typography } from './Typography';
+import { useLanguage } from '../utils/i18n';
 
 // Inline: ConsolidatedInventoryPopup
 const ConsolidatedInventoryPopup: React.FC<{ item: InventoryItem; allItems: InventoryItem[]; graph: SupersessionGraph; children: React.ReactNode }> = ({ item, allItems, graph, children }) => {
+    const { t } = useLanguage();
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
 
@@ -26,14 +28,14 @@ const ConsolidatedInventoryPopup: React.FC<{ item: InventoryItem; allItems: Inve
             className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-100 rounded"
             aria-haspopup="true"
             aria-expanded={open}
-            aria-label="Xem chi tiết tồn kho gộp"
+            aria-label={t('consol_aria')}
         >
             {children}
         </button>
             {open && (
                 <div className="absolute right-0 top-full mt-2 z-50 w-72 bg-white rounded-2xl shadow-2xl border border-slate-200 p-4 animate-fadeIn">
                     <Typography variant="label" className="text-slate-500 mb-3 flex items-center gap-2">
-                        <Layers size={12} /> Tồn kho gộp cả chuỗi
+                        <Layers size={12} /> {t('consol_title')}
                     </Typography>
                     <div className="space-y-2">
                         {consolidated.breakdown.map((b) => (
@@ -45,7 +47,7 @@ const ConsolidatedInventoryPopup: React.FC<{ item: InventoryItem; allItems: Inve
                         ))}
                     </div>
                     <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center">
-                        <Typography variant="label" className="text-slate-500">Tổng gộp</Typography>
+                        <Typography variant="label" className="text-slate-500">{t('consol_total')}</Typography>
                         <Typography variant="body" className="!font-black text-indigo-700 text-lg tabular-nums">{consolidated.totalStock.toLocaleString()}</Typography>
                     </div>
                 </div>
@@ -103,7 +105,7 @@ export const ConsolidatedStockCell: React.FC<ConsolidatedStockCellProps> = ({ it
                         as="span"
                         variant="label"
                         className="bg-indigo-50 text-indigo-600 border border-indigo-100 px-1.5 py-0.5 rounded-md flex items-center gap-1 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-700 transition-all shadow-sm tabular-nums"
-                        title={`Tổng tồn gộp cả chuỗi: ${totalConsolidated.toLocaleString()}`}
+                        title={`${t('consol_tooltip')} ${totalConsolidated.toLocaleString()}`}
                     >
                         <Layers size={10} /> {totalConsolidated.toLocaleString()}
                     </Typography>

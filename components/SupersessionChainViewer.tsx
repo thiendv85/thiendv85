@@ -3,6 +3,7 @@ import React, { useMemo } from 'react';
 import { InventoryItem } from '../types/inventory';
 import { SupersessionGraph, calculateConsolidatedInventory } from '../utils/supersessionGraph';
 import { ArrowRight, Package, Info, Link, ArrowLeftRight } from 'lucide-react';
+import { useLanguage } from '../utils/i18n';
 
 interface SupersessionChainViewerProps {
     partNumber: string;
@@ -17,6 +18,7 @@ export const SupersessionChainViewer: React.FC<SupersessionChainViewerProps> = (
     items,
     onPartClick
 }) => {
+    const { t } = useLanguage();
     // 1. Calculate Data using robust getter
     const { chainData, consolidated } = useMemo(() => {
         const chain = graph.getChain(partNumber);
@@ -31,8 +33,8 @@ export const SupersessionChainViewer: React.FC<SupersessionChainViewerProps> = (
                 <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center mb-2 shadow-sm text-slate-300 border border-slate-100">
                     <Package size={16} />
                 </div>
-                <h4 className="text-2xs font-black text-slate-700 uppercase tracking-wide mb-0.5">Mã Độc Lập</h4>
-                <p className="text-2xs text-slate-500 font-medium max-w-[150px]">Mã {partNumber} không có lịch sử thay thế.</p>
+                <h4 className="text-2xs font-black text-slate-700 uppercase tracking-wide mb-0.5">{t('sschain_standalone')}</h4>
+                <p className="text-2xs text-slate-500 font-medium max-w-[150px]">{partNumber} — {t('sschain_standalone_desc')}</p>
             </div>
         );
     }
@@ -63,11 +65,11 @@ export const SupersessionChainViewer: React.FC<SupersessionChainViewerProps> = (
 
                 <div className="flex items-center gap-3 text-2xs">
                     <div className="flex items-center gap-1 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
-                        <span className="font-bold text-slate-400 uppercase">Tổng tồn:</span>
+                        <span className="font-bold text-slate-400 uppercase">{t('sschain_total_stock')}</span>
                         <span className="font-black text-slate-900">{consolidated.totalStock.toLocaleString()}</span>
                     </div>
                     <div className="flex items-center gap-1 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
-                        <span className="font-bold text-slate-400 uppercase">Giá trị:</span>
+                        <span className="font-bold text-slate-400 uppercase">{t('sschain_value')}</span>
                         <span className="font-black text-blue-700">
                             {new Intl.NumberFormat('vi-VN', { notation: "compact" }).format(consolidated.totalValue)}
                         </span>
@@ -153,12 +155,12 @@ export const SupersessionChainViewer: React.FC<SupersessionChainViewerProps> = (
                                             ${isInterchangeable 
                                                 ? 'bg-emerald-50 border-emerald-300 text-emerald-600' 
                                                 : 'bg-white border-slate-200 text-slate-300'}
-                                        `} title={isInterchangeable ? "Thay thế 2 chiều (Lẫn nhau)" : "Thay thế 1 chiều (Cũ -> Mới)"}>
+                                        `} title={isInterchangeable ? t('sschain_tooltip_bidir') : t('sschain_tooltip_unidir')}>
                                             {isInterchangeable ? <ArrowLeftRight size={10} /> : <ArrowRight size={10} />}
                                         </div>
                                         {isInterchangeable && (
                                             <div className="absolute -bottom-4 text-2xs font-black text-emerald-600 bg-emerald-50 px-1 rounded uppercase tracking-tighter border border-emerald-100">
-                                                2 Chiều
+                                                {t('sschain_label_bidir')}
                                             </div>
                                         )}
                                     </div>
@@ -172,8 +174,8 @@ export const SupersessionChainViewer: React.FC<SupersessionChainViewerProps> = (
             {/* Mini Footer */}
             <div className="bg-white px-3 py-1.5 border-t border-slate-100 flex justify-between items-center text-2xs">
                 <div className="flex items-center gap-3 text-slate-400">
-                    <span className="flex items-center gap-1"><Info size={8} /> Lịch sử: Trái (Cũ) → Phải (Mới)</span>
-                    <span className="flex items-center gap-1"><ArrowLeftRight size={8} className="text-emerald-500" /> = Thay thế lẫn nhau</span>
+                    <span className="flex items-center gap-1"><Info size={8} /> Old → New</span>
+                    <span className="flex items-center gap-1"><ArrowLeftRight size={8} className="text-emerald-500" /> {t('sschain_footer_interchangeable')}</span>
                 </div>
                 {consolidated.currentPart && (
                     <div className="flex items-center gap-1">

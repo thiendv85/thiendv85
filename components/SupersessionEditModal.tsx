@@ -3,6 +3,7 @@ import { X, Save, AlertCircle, Search } from 'lucide-react';
 import { Typography } from './Typography';
 import { SupersessionMapping } from '../utils/supersessionGraph';
 import { InventoryItem } from '../types/inventory';
+import { useLanguage } from '../utils/i18n';
 
 interface SupersessionEditModalProps {
     isOpen: boolean;
@@ -21,6 +22,7 @@ export const SupersessionEditModal: React.FC<SupersessionEditModalProps> = ({
     existingMappings,
     items
 }) => {
+    const { t } = useLanguage();
     const [oldPart, setOldPart] = useState('');
     const [newPart, setNewPart] = useState('');
     const [interchangeable, setInterchangeable] = useState(false);
@@ -86,12 +88,12 @@ export const SupersessionEditModal: React.FC<SupersessionEditModalProps> = ({
         const np = newPart.trim();
 
         if (!op || !np) {
-            setError('Vui lòng nhập đầy đủ mã cũ và mã mới.');
+            setError(t('ssedit_error_required'));
             return;
         }
 
         if (op === np) {
-            setError('Mã cũ và mã mới không được trùng nhau.');
+            setError(t('ssedit_error_same'));
             return;
         }
 
@@ -102,7 +104,7 @@ export const SupersessionEditModal: React.FC<SupersessionEditModalProps> = ({
         );
 
         if (isDuplicate) {
-            setError('Liên kết này đã tồn tại trong danh sách.');
+            setError(t('ssedit_error_duplicate'));
             return;
         }
 
@@ -117,10 +119,10 @@ export const SupersessionEditModal: React.FC<SupersessionEditModalProps> = ({
                 <div className="flex justify-between items-center p-8 border-b border-slate-100 bg-slate-50/50 rounded-t-[32px]">
                     <div>
                         <Typography variant="h2">
-                            {initialData ? 'Chỉnh sửa Mapping' : 'Thêm Mapping Mới'}
+                            {initialData ? t('ssedit_title_edit') : t('ssedit_title_add')}
                         </Typography>
                         <Typography variant="label" className="mt-1">
-                            Cấu hình chuỗi thay thế phụ tùng
+                            {t('ssedit_subtitle')}
                         </Typography>
                     </div>
                     <button
@@ -141,13 +143,13 @@ export const SupersessionEditModal: React.FC<SupersessionEditModalProps> = ({
 
                     {/* OLD PART FIELD */}
                     <div className="relative" ref={oldPartRef}>
-                        <Typography variant="label" className="mb-3 px-1">Mã cũ (Old Part)</Typography>
+                        <Typography variant="label" className="mb-3 px-1">{t('ssedit_label_old')}</Typography>
                         <div className="relative group">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={16} />
                             <input
                                 type="text"
                                 className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all uppercase placeholder:text-slate-300"
-                                placeholder="NHẬP MÃ CŨ..."
+                                placeholder={t('ssedit_ph_old')}
                                 value={oldPart}
                                 onChange={e => { setOldPart(e.target.value); setShowOldPartSuggestions(true); }}
                                 onFocus={() => setShowOldPartSuggestions(true)}
@@ -172,13 +174,13 @@ export const SupersessionEditModal: React.FC<SupersessionEditModalProps> = ({
 
                     {/* NEW PART FIELD */}
                     <div className="relative" ref={newPartRef}>
-                        <Typography variant="label" className="mb-3 px-1">Mã mới (New Part)</Typography>
+                        <Typography variant="label" className="mb-3 px-1">{t('ssedit_label_new')}</Typography>
                         <div className="relative group">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={16} />
                             <input
                                 type="text"
                                 className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all uppercase placeholder:text-slate-300"
-                                placeholder="NHẬP MÃ MỚI..."
+                                placeholder={t('ssedit_ph_new')}
                                 value={newPart}
                                 onChange={e => { setNewPart(e.target.value); setShowNewPartSuggestions(true); }}
                                 onFocus={() => setShowNewPartSuggestions(true)}
@@ -213,10 +215,10 @@ export const SupersessionEditModal: React.FC<SupersessionEditModalProps> = ({
                         </div>
                         <div className="flex-1 text-left">
                             <Typography variant="h3" className="text-slate-700 group-hover:text-emerald-700 transition-colors">
-                                Hai chiều (Interchangeable)
+                                {t('ssedit_interchangeable')}
                             </Typography>
                             <Typography variant="label" className="mt-0.5 lowercase first-letter:uppercase">
-                                Hai mã có thể thay thế qua lại cho nhau
+                                {t('ssedit_interchangeable_desc')}
                             </Typography>
                         </div>
                     </button>
@@ -227,13 +229,13 @@ export const SupersessionEditModal: React.FC<SupersessionEditModalProps> = ({
                         onClick={onClose}
                         className="px-8 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest text-slate-500 bg-white border border-slate-200 hover:bg-slate-50 hover:text-slate-800 transition-all font-sans"
                     >
-                        Hủy
+                        {t('common_cancel')}
                     </button>
                     <button
                         onClick={handleSave}
                         className="px-8 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest text-white bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-200 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2 font-sans"
                     >
-                        <Save size={16} /> Lưu Mapping
+                        <Save size={16} /> {t('ssedit_btn_save')}
                     </button>
                 </div>
             </div>

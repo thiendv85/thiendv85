@@ -4,6 +4,7 @@
  * tồn kho của các mã đang trong dự thảo.
  */
 import React, { useMemo, useState } from 'react';
+import { useLanguage } from '../utils/i18n';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -43,14 +44,7 @@ const LOIS_HIERARCHY = [
     { label: 'U (OTHERS)', sub: ['U_OTHER'], color: 'bg-slate-300' },
 ];
 
-const SUBGROUP_DESC: Record<string, string> = {
-    L1: '> 300 đvt/năm', L2: '101–300', L3: '61–100', L4: '25–60',
-    L5: '13–24', L6: '7–12', L7: '< 6',
-    O8: 'LOIS 8', OE: 'Ngừng SX', ON: 'Lỗi thời', OA: 'Lỗi thời lâu', OV: 'NCC ngừng',
-    I: 'Không giao dịch',
-    SX: 'Đặc thù X', SY: 'Đặc thù Y', SZ: 'Đặc thù Z', SC: 'Đặc thù C', SK: 'Đặc thù K', SD: 'Đặc thù D',
-    U_OTHER: 'Chưa phân loại',
-};
+// SUBGROUP_DESC moved inside component as subgroupDesc (uses i18n)
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -87,7 +81,17 @@ const fmtTr = (v: number) => {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props) => {
+    const { t } = useLanguage();
     const [showSim, setShowSim] = useState(false);
+
+    const subgroupDesc: Record<string, string> = useMemo(() => ({
+        L1: t('matrix_sub_l1'), L2: t('matrix_sub_l2'), L3: t('matrix_sub_l3'), L4: t('matrix_sub_l4'),
+        L5: t('matrix_sub_l5'), L6: t('matrix_sub_l6'), L7: t('matrix_sub_l7'),
+        O8: t('matrix_sub_o8'), OE: t('matrix_sub_oe'), ON: t('matrix_sub_on'), OA: t('matrix_sub_oa'), OV: t('matrix_sub_ov'),
+        I: t('matrix_sub_i'),
+        SX: t('matrix_sub_sx'), SY: t('matrix_sub_sy'), SZ: t('matrix_sub_sz'), SC: t('matrix_sub_sc'), SK: t('matrix_sub_sk'), SD: t('matrix_sub_sd'),
+        U_OTHER: t('matrix_sub_other'),
+    }), [t]);
 
     const { matrixData, grand } = useMemo(() => {
         const matrix: Record<string, {
@@ -212,8 +216,8 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
                         {isHeader && groupColor && <div className={`w-1.5 h-3 ${groupColor} rounded-full shrink-0`} />}
                         <span className={isHeader ? 'font-bold' : 'font-semibold'}>
                             {label}
-                            {!isHeader && SUBGROUP_DESC[label] && (
-                                <span className="text-slate-400 font-normal ml-1.5 text-[10px]">— {SUBGROUP_DESC[label]}</span>
+                            {!isHeader && subgroupDesc[label] && (
+                                <span className="text-slate-400 font-normal ml-1.5 text-[10px]">— {subgroupDesc[label]}</span>
                             )}
                         </span>
                     </div>
@@ -342,7 +346,7 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
         return (
             <div className="border border-slate-200 rounded-xl overflow-hidden bg-white">
                 <div className="flex items-center justify-between px-3 py-2 bg-slate-800 text-white">
-                    <span className="font-black text-[10px] uppercase tracking-widest">Ma Trận Cung Ứng</span>
+                    <span className="font-black text-[10px] uppercase tracking-widest">{t('review_matrix_title')}</span>
                     <button
                         onClick={() => setShowSim(p => !p)}
                         className={`text-[9px] font-black px-2 py-0.5 rounded border transition-colors ${showSim ? 'bg-blue-500 border-blue-400 text-white' : 'border-slate-500 text-slate-400 hover:text-white'}`}
@@ -353,7 +357,7 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
                 <table className="w-full text-[10px] border-separate border-spacing-0">
                     <thead>
                         <tr className="bg-slate-50 text-slate-500 text-[9px] uppercase tracking-wider font-black">
-                            <th className="px-2 py-1.5 text-left border-r border-slate-100">Phân Khúc</th>
+                            <th className="px-2 py-1.5 text-left border-r border-slate-100">{t('matrix_segment')}</th>
                             <th className="px-2 py-1.5 text-center">SKU</th>
                             <th className="px-2 py-1.5 text-center text-rose-600">OOS</th>
                             <th className="px-2 py-1.5 text-center text-amber-600">Risk</th>
@@ -387,14 +391,14 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-slate-800 to-slate-700 text-white">
                 <div>
-                    <h3 className="font-black text-sm uppercase tracking-widest">Ma Trận Cung Ứng Tổng Thể</h3>
-                    <p className="text-xs text-slate-400 mt-0.5">Tính cho {totalItems} mã trong dự thảo</p>
+                    <h3 className="font-black text-sm uppercase tracking-widest">{t('matrix_title')}</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">{t('matrix_computed_for').replace('{0}', String(totalItems))}</p>
                 </div>
                 <button
                     onClick={() => setShowSim(p => !p)}
                     className={`text-xs font-black px-3 py-1.5 rounded-lg border transition-colors ${showSim ? 'bg-blue-500 border-blue-400 text-white' : 'border-slate-500 text-slate-400 hover:text-white hover:border-slate-400'}`}
                 >
-                    {showSim ? 'SIMULATED' : 'HIỆN TẠI'}
+                    {showSim ? 'SIMULATED' : t('matrix_current')}
                 </button>
             </div>
 
@@ -403,7 +407,7 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
                 <table className="w-full text-xs border-separate border-spacing-0 min-w-[900px]">
                     <thead>
                         <tr className="bg-slate-50 border-b-2 border-slate-200 text-slate-500 text-[10px] uppercase tracking-wider font-black">
-                            <th className="px-3 py-2.5 text-left border-r border-slate-100">Phân Khúc Chiến Lược</th>
+                            <th className="px-3 py-2.5 text-left border-r border-slate-100">{t('matrix_segment')}</th>
                             <th className="px-3 py-2.5 text-right">Turnover (tr)</th>
                             <th className="px-3 py-2.5 text-right">% Turn</th>
                             <th className="px-3 py-2.5 text-center">SKU</th>
@@ -434,7 +438,7 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
 
                         {/* Grand Total */}
                         <tr className="bg-slate-800 text-white text-xs font-black border-t-2 border-slate-600">
-                            <td className="px-3 py-3 border-r border-slate-600">TỔNG CỘNG</td>
+                            <td className="px-3 py-3 border-r border-slate-600">{t('matrix_grand_total')}</td>
                             <td className="px-3 py-3 text-right">{fmtTr(grand.grandTurnover)}</td>
                             <td className="px-3 py-3 text-right text-slate-400 italic">100%</td>
                             <td className="px-3 py-3 text-center">{totalItems}</td>
