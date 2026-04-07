@@ -81,7 +81,7 @@ const PackageDetailPopup = ({
                 {/* Header */}
                 <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
                     <div>
-                        <Typography variant="label" className="text-blue-600 mb-1 block">Chi tiết gói phụ tùng</Typography>
+                        <Typography variant="label" className="text-blue-600 mb-1 block">{t('sku_detail_title')}</Typography>
                         <Typography variant="h3" className="text-slate-900">{packageName}</Typography>
                         <Typography variant="mono-sm" className="text-slate-500 font-bold">{packageCode}</Typography>
                     </div>
@@ -91,7 +91,7 @@ const PackageDetailPopup = ({
                                 onClick={() => onOpenOptimizer(packageCode)}
                                 className="bg-white border border-blue-200 text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-2xs font-black uppercase tracking-widest transition-all flex items-center gap-2"
                             >
-                                <i className="fas fa-wand-magic-sparkles"></i> Tối ưu hóa
+                                <i className="fas fa-wand-magic-sparkles"></i> {t('sku_detail_optimize')}
                             </button>
                         )}
                         <button onClick={onClose} className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:border-rose-200 transition-all">
@@ -105,12 +105,12 @@ const PackageDetailPopup = ({
                     <table className="w-full text-left text-xs border-collapse">
                         <thead className="bg-white sticky top-0 z-10 border-b border-slate-100 shadow-sm">
                             <tr>
-                                <th className="px-6 py-3"><Typography variant="label" className="text-slate-500">Mã linh kiện</Typography></th>
-                                <th className="px-4 py-3"><Typography variant="label" className="text-slate-500">Tên phụ tùng</Typography></th>
-                                <th className="px-4 py-3 text-center"><Typography variant="label" className="text-slate-500">Định mức</Typography></th>
-                                <th className="px-4 py-3 text-center"><Typography variant="label" className="text-slate-500">Tồn kho</Typography></th>
-                                <th className="px-4 py-3 text-right"><Typography variant="label" className="text-slate-500">Đơn giá</Typography></th>
-                                <th className="px-4 py-3 text-right"><Typography variant="label" className="text-slate-500">Thành tiền</Typography></th>
+                                <th className="px-6 py-3"><Typography variant="label" className="text-slate-500">{t('sku_detail_part_code')}</Typography></th>
+                                <th className="px-4 py-3"><Typography variant="label" className="text-slate-500">{t('sku_detail_part_name')}</Typography></th>
+                                <th className="px-4 py-3 text-center"><Typography variant="label" className="text-slate-500">{t('sku_detail_std_qty')}</Typography></th>
+                                <th className="px-4 py-3 text-center"><Typography variant="label" className="text-slate-500">{t('sku_detail_stock')}</Typography></th>
+                                <th className="px-4 py-3 text-right"><Typography variant="label" className="text-slate-500">{t('sku_detail_unit_price')}</Typography></th>
+                                <th className="px-4 py-3 text-right"><Typography variant="label" className="text-slate-500">{t('sku_detail_total_price')}</Typography></th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
@@ -146,10 +146,10 @@ const PackageDetailPopup = ({
                 {/* Footer */}
                 <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
                     <Typography variant="body-sm" className="text-slate-400 font-bold">
-                        Tổng số linh kiện: <span className="text-slate-900 border-b border-slate-200">{components.length}</span>
+                        {t('sku_detail_total_parts')}: <span className="text-slate-900 border-b border-slate-200">{components.length}</span>
                     </Typography>
                     <div className="flex items-center gap-4">
-                        <Typography variant="label" className="text-slate-400">Tổng giá trị gói:</Typography>
+                        <Typography variant="label" className="text-slate-400">{t('sku_detail_total_value')}:</Typography>
                         <Typography variant="h2" className="text-blue-700">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalPackageValue)}</Typography>
                     </div>
                 </div>
@@ -212,7 +212,7 @@ const WarehouseRow = ({ code, oh, dc, poTotal, poMonth, bo, boBreakdown, fc, mos
             </div>
 
             {/* PO(M) */}
-            <div className="w-24 border-l border-slate-100 pl-1" title="Tổng PO (Trong tháng)">
+            <div className="w-24 border-l border-slate-100 pl-1" title={t('sku_detail_total_po')}>
                 <Typography variant="label" className="text-indigo-500 block mb-0.5 text-[10px] font-black">PO (T/M)</Typography>
                 {poTotal !== undefined ? (
                     <Typography variant="mono" className="font-bold text-sm md:text-base text-indigo-700">
@@ -378,7 +378,7 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
                         </div>
 
                         <StatCard label={t('sd_net_bal')} value={`${item.NetDemand > 0 ? '+' : ''}${item.NetDemand.toLocaleString()}`} icon="fa-balance-scale" color={item.NetDemand >= 0 ? "bg-blue-50 text-blue-600" : "bg-rose-50 text-rose-600"} />
-                        <StatCard label={t('sd_pipeline')} value={(item.computed?.incomingCurrentMonth || 0).toLocaleString()} sub={`Tổng PO: ${(item.TotalPO || 0).toLocaleString()}`} icon="fa-ship" color="bg-blue-50 text-blue-600" />
+                        <StatCard label={t('sd_pipeline')} value={(item.computed?.incomingCurrentMonth || 0).toLocaleString()} sub={`${t('sku_detail_total_po_short')}: ${(item.TotalPO || 0).toLocaleString()}`} icon="fa-ship" color="bg-blue-50 text-blue-600" />
                         <StatCard label={t('sd_val')} value={new Intl.NumberFormat('en-US', { notation: "compact" }).format(item.computed?.stockValue || 0)} icon="fa-coins" color="bg-amber-50 text-amber-600" />
                     </div>
                 </div>
@@ -441,40 +441,40 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-slate-100">
                                 <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 shadow-sm transition-all hover:bg-white hover:shadow-md group">
                                     <div className="flex justify-between items-center mb-2">
-                                        <Typography variant="label" className="text-slate-500 font-bold uppercase tracking-widest !text-[10px]">Độ biến thiên (CV)</Typography>
+                                        <Typography variant="label" className="text-slate-500 font-bold uppercase tracking-widest !text-[10px]">{t('sku_detail_cv')}</Typography>
                                         <i className={`fas fa-wave-square p-2 rounded-lg ${item.computed?.cv > 0.5 ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-500'}`}></i>
                                     </div>
                                     <Typography variant="h2" className={item.computed?.cv > 0.5 ? 'text-rose-600' : 'text-slate-800'}>
                                         {(item.computed?.cv || 0).toFixed(2)}
                                     </Typography>
                                     <Typography variant="label" className="text-slate-400 mt-1 block !text-[10px]">
-                                        {item.computed?.cv > 0.5 ? '🔴 Nhu cầu không ổn định' : '🟢 Nhu cầu ổn định'}
+                                        {item.computed?.cv > 0.5 ? `🔴 ${t('sku_detail_cv_unstable')}` : `🟢 ${t('sku_detail_cv_stable')}`}
                                     </Typography>
                                 </div>
 
                                 <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 shadow-sm transition-all hover:bg-white hover:shadow-md group">
                                     <div className="flex justify-between items-center mb-2">
-                                        <Typography variant="label" className="text-slate-500 font-bold uppercase tracking-widest !text-[10px]">Hệ số góc (Slope)</Typography>
+                                        <Typography variant="label" className="text-slate-500 font-bold uppercase tracking-widest !text-[10px]">{t('sku_detail_slope')}</Typography>
                                         <i className={`fas ${item.computed?.slope < -1 ? 'fa-arrow-trend-down text-rose-500' : 'fa-arrow-trend-up text-emerald-500'} p-2 rounded-lg bg-slate-100`}></i>
                                     </div>
                                     <Typography variant="h2" className={item.computed?.slope < -1 ? 'text-rose-600' : 'text-slate-800'}>
                                         {(item.computed?.slope || 0).toFixed(2)}
                                     </Typography>
                                     <Typography variant="label" className="text-slate-400 mt-1 block !text-[10px]">
-                                        {item.computed?.slope < -1 ? '🔴 Xu hướng giảm mạnh' : item.computed?.slope > 1 ? '🔵 Xu hướng tăng' : '⚪ Xu hướng ổn định'}
+                                        {item.computed?.slope < -1 ? `🔴 ${t('sku_detail_slope_down')}` : item.computed?.slope > 1 ? `🔵 ${t('sku_detail_slope_up')}` : `⚪ ${t('sku_detail_slope_stable')}`}
                                     </Typography>
                                 </div>
 
                                 <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 shadow-sm transition-all hover:bg-white hover:shadow-md group">
                                     <div className="flex justify-between items-center mb-2">
-                                        <Typography variant="label" className="text-slate-500 font-bold uppercase tracking-widest !text-[10px]">Dự báo LinReg</Typography>
+                                        <Typography variant="label" className="text-slate-500 font-bold uppercase tracking-widest !text-[10px]">{t('sku_detail_linreg')}</Typography>
                                         <i className="fas fa-magic p-2 rounded-lg bg-indigo-50 text-indigo-500"></i>
                                     </div>
                                     <Typography variant="h2" className="text-indigo-600">
                                         {(item.computed?.forecastLinReg || 0).toFixed(1)}
                                     </Typography>
                                     <Typography variant="label" className="text-slate-400 mt-1 block !text-[10px]">
-                                        Dự báo toán học tháng tới
+                                        {t('sku_detail_linreg_desc')}
                                     </Typography>
                                 </div>
                             </div>
@@ -627,7 +627,7 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
                                 <Typography variant="label" className="text-slate-400 uppercase tracking-widest flex items-center gap-2 font-bold">
                                     <i className="fas fa-boxes-packing text-indigo-500"></i> CẤU THÀNH GÓI
                                 </Typography>
-                                <Typography variant="mono-sm" className="bg-indigo-50 text-indigo-600 px-2.5 py-0.5 rounded-lg border border-indigo-100 font-bold">{relatedPackages.length} Gói</Typography>
+                                <Typography variant="mono-sm" className="bg-indigo-50 text-indigo-600 px-2.5 py-0.5 rounded-lg border border-indigo-100 font-bold">{relatedPackages.length} {t('sku_detail_packages')}</Typography>
                             </div>
 
                             {relatedPackages.length > 0 ? (
@@ -653,7 +653,7 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
                                 </div>
                             ) : (
                                 <div className="text-center py-8 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
-                                    <p className="text-slate-400 text-2xs font-bold uppercase tracking-widest">Không nằm trong gói nào</p>
+                                    <p className="text-slate-400 text-2xs font-bold uppercase tracking-widest">{t('sku_detail_no_package')}</p>
                                 </div>
                             )}
                         </div>

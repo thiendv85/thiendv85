@@ -152,7 +152,7 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
     };
 
     const handleExportCSV = () => {
-        const headers = ['SKU', 'Tên hàng', 'Loại hình', 'Hướng đi', 'Số lượng', 'Giá trị', 'Tồn NB', 'MOS NB', 'Hàng về NB', 'Tồn BB', 'MOS BB', 'Hàng về BB'];
+        const headers = ['SKU', t('inv_dist_product_name'), t('inv_dist_type'), t('inv_dist_direction'), t('inv_dist_qty'), t('inv_dist_value'), 'Stock NB', 'MOS NB', 'Incoming NB', 'Stock BB', 'MOS BB', 'Incoming BB'];
         const rows: string[] = [];
         
         const exportSet = selectedItems.size > 0 
@@ -212,22 +212,22 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                         </div>
                         <div>
                             <Typography variant="h2" className="text-white !text-lg md:!text-xl tracking-tight leading-none">
-                                {isMobile ? 'Phân Bổ & Điều Chuyển' : t('transfer_title')}
+                                {t('inv_dist_title')}
                             </Typography>
                             <Typography variant="label" className="text-white/60 !text-[10px] font-medium block mt-0.5">
-                                {activeTab === 'rebalance' ? 'Cân đối tồn kho giữa các miền (Rebalance)' : 'Phân bổ lô hàng đang về (Allocation)'}
+                                {activeTab === 'rebalance' ? t('inv_dist_rebalance') : t('inv_dist_allocation')}
                             </Typography>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-2">
                         <div className="flex flex-col items-end bg-black/20 px-3 py-1.5 rounded-lg border border-white/10">
-                            <span className="text-[9px] font-black text-white/50 uppercase">Tổng Giá Trị</span>
+                            <span className="text-[9px] font-black text-white/50 uppercase">{t('inv_dist_total_value')}</span>
                             <span className="text-sm font-black tracking-tight text-emerald-400">${stats.totalValue.toLocaleString()}</span>
                         </div>
                         <div className="flex flex-col items-end bg-black/20 px-3 py-1.5 rounded-lg border border-white/10">
-                            <span className="text-[9px] font-black text-white/50 uppercase break-keep">Kế Hoạch</span>
-                            <span className="text-sm font-black text-white">{(stats.rebalanceCount + stats.allocationCount).toLocaleString()} <span className="text-[10px] font-normal opacity-60">Mã</span></span>
+                            <span className="text-[9px] font-black text-white/50 uppercase break-keep">{t('inv_dist_plan')}</span>
+                            <span className="text-sm font-black text-white">{(stats.rebalanceCount + stats.allocationCount).toLocaleString()} <span className="text-[10px] font-normal opacity-60">{t('inv_dist_sku_unit')}</span></span>
                         </div>
                     </div>
                 </div>
@@ -240,7 +240,7 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                             ${activeTab === 'rebalance' ? 'bg-white text-blue-900 shadow-sm' : 'text-white/70 hover:text-white hover:bg-white/10'}`}
                     >
                         <i className={`fas fa-right-left text-[10px] ${activeTab === 'rebalance' ? 'text-blue-600' : ''}`}></i>
-                        Điều phối tồn kho
+                        {t('inv_dist_rebalance_nav')}
                         <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full leading-none ${activeTab === 'rebalance' ? 'bg-blue-100 text-blue-800' : 'bg-white/20 text-white'}`}>{stats.rebalanceCount}</span>
                     </button>
                     <button
@@ -249,7 +249,7 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                             ${activeTab === 'allocation' ? 'bg-white text-indigo-900 shadow-sm' : 'text-white/70 hover:text-white hover:bg-white/10'}`}
                     >
                         <i className={`fas fa-cart-plus text-[10px] ${activeTab === 'allocation' ? 'text-indigo-600' : ''}`}></i>
-                        Phân bổ đặt hàng
+                        {t('inv_dist_allocation_nav')}
                         <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full leading-none ${activeTab === 'allocation' ? 'bg-indigo-100 text-indigo-800' : 'bg-white/20 text-white'}`}>{stats.allocationCount}</span>
                     </button>
                 </div>
@@ -261,7 +261,7 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                     {/* Search */}
                     <div className="relative group w-full md:w-80">
                         <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm group-focus-within:text-blue-600 transition-colors"></i>
-                        <input type="text" placeholder="Tìm mã hoặc tên..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} className="w-full pl-9 pr-3 py-2 bg-slate-50 md:bg-white border border-slate-200 rounded-xl text-sm shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all font-medium" />
+                        <input type="text" placeholder={t('inv_dist_search')} value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} className="w-full pl-9 pr-3 py-2 bg-slate-50 md:bg-white border border-slate-200 rounded-xl text-sm shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all font-medium" />
                     </div>
 
                     {/* Filter & Sort Row (Mobile flat grid) */}
@@ -269,32 +269,32 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                         <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 md:bg-white border border-slate-200 rounded-xl shadow-sm relative shrink-0">
                             <i className="fas fa-filter text-slate-400 text-xs shrink-0"></i>
                             <select value={necessityFilter} onChange={(e) => { setNecessityFilter(e.target.value as any); setCurrentPage(1); }} className="bg-transparent text-[10px] md:text-xs font-black text-slate-700 outline-none cursor-pointer uppercase absolute inset-0 opacity-0 md:opacity-100 md:relative w-full">
-                                <option value="All">Lọc: Tất cả</option>
-                                <option value="P1">Khẩn (MOS &lt; 0.5)</option>
-                                <option value="P2">Cảnh báo (MOS &lt; 1.5)</option>
-                                <option value="P3">Cần bù (MOS &lt; 3)</option>
-                                <option value="P4">An toàn</option>
-                                <option value="P5">Tồn nhiều</option>
+                                <option value="All">{t('inv_dist_filter_all')}</option>
+                                <option value="P1">{t('inv_dist_filter_p1')}</option>
+                                <option value="P2">{t('inv_dist_filter_p2')}</option>
+                                <option value="P3">{t('inv_dist_filter_p3')}</option>
+                                <option value="P4">{t('inv_dist_filter_p4')}</option>
+                                <option value="P5">{t('inv_dist_filter_p5')}</option>
                             </select>
-                            <span className="md:hidden text-[10px] font-black text-slate-700 uppercase pointer-events-none truncate">{necessityFilter === 'All' ? 'Lọc: Tất cả' : necessityFilter}</span>
+                            <span className="md:hidden text-[10px] font-black text-slate-700 uppercase pointer-events-none truncate">{necessityFilter === 'All' ? t('inv_dist_filter_all') : necessityFilter}</span>
                         </div>
 
                         <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 md:bg-white border border-slate-200 rounded-xl shadow-sm relative shrink-0">
                             <i className="fas fa-sort-amount-down text-slate-400 text-xs shrink-0"></i>
                             <select value={sortKey} onChange={(e) => { setSortKey(e.target.value); setCurrentPage(1); }} className="bg-transparent text-[10px] md:text-xs font-black text-slate-700 outline-none cursor-pointer uppercase absolute inset-0 opacity-0 md:opacity-100 md:relative w-full">
-                                <option value="mos_asc">Sắp xếp: MOS</option>
-                                <option value="val_desc">Giá trị giảm dần</option>
-                                <option value="qty_desc">Lượng giảm dần</option>
-                                <option value="code">Mã hàng (A-Z)</option>
+                                <option value="mos_asc">{t('inv_dist_sort_mos')}</option>
+                                <option value="val_desc">{t('inv_dist_sort_val')}</option>
+                                <option value="qty_desc">{t('inv_dist_sort_qty')}</option>
+                                <option value="code">{t('inv_dist_sort_code')}</option>
                             </select>
-                            <span className="md:hidden text-[10px] font-black text-slate-700 uppercase pointer-events-none truncate">{sortKey === 'mos_asc' ? 'Xếp: MOS' : sortKey === 'val_desc' ? 'Xếp: Giá trị' : sortKey === 'qty_desc' ? 'Xếp: Số lượng' : 'Xếp: Tên'}</span>
+                            <span className="md:hidden text-[10px] font-black text-slate-700 uppercase pointer-events-none truncate">{sortKey === 'mos_asc' ? 'MOS' : sortKey === 'val_desc' ? t('inv_dist_value') : sortKey === 'qty_desc' ? t('inv_dist_qty') : 'A-Z'}</span>
                         </div>
                     </div>
                 </div>
 
                 <button onClick={handleExportCSV} className="bg-slate-900 text-white px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 shrink-0 md:w-auto w-full mt-2 md:mt-0">
                     <i className="fas fa-file-csv"></i>
-                    {selectedItems.size > 0 ? `Xuất ${selectedItems.size} mã` : (isMobile ? 'Xuất Data' : t('transfer_export'))}
+                    {selectedItems.size > 0 ? t('inv_dist_export_n').replace('{0}', String(selectedItems.size)) : t('inv_dist_export')}
                 </button>
             </div>
 
@@ -305,7 +305,7 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                     {paginatedData.length === 0 ? (
                         <div className="text-center py-16 text-slate-300">
                             <i className={`fas ${activeTab === 'rebalance' ? 'fa-shuffle' : 'fa-cart-flatbed'} text-5xl mb-4 block opacity-50`}></i>
-                            <Typography variant="h3" className="text-slate-400 font-bold">{searchTerm ? 'Không tìm thấy' : 'Không có kế hoạch'}</Typography>
+                            <Typography variant="h3" className="text-slate-400 font-bold">{searchTerm ? t('inv_dist_not_found') : t('inv_dist_no_plan')}</Typography>
                         </div>
                     ) : paginatedData.map((item) => {
                         const tr = item.computed!.transfer!;
@@ -349,12 +349,12 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                                     <div className="flex items-center justify-between mt-1 mb-2">
                                         {/* FROM Node */}
                                         <div className="flex flex-col items-center w-20">
-                                            <span className="text-[10px] font-black text-slate-400 uppercase">{line.from === 'NB' ? 'Miền Nam' : line.from === 'BB' ? 'Miền Bắc' : 'Hàng Về'}</span>
+                                            <span className="text-[10px] font-black text-slate-400 uppercase">{line.from === 'NB' ? t('inv_dist_south') : line.from === 'BB' ? t('inv_dist_north') : t('inv_dist_incoming')}</span>
                                             <div className="text-sm font-black text-slate-800 mt-0.5">{line.from}</div>
                                         </div>
                                         {/* Line */}
                                         <div className="flex-1 flex flex-col items-center px-2 relative -mt-3">
-                                            <div className="text-[10px] uppercase font-black tracking-widest text-slate-400 mb-1">{isRebalance ? 'Điều Chuyển' : 'Phân Bổ'}</div>
+                                            <div className="text-[10px] uppercase font-black tracking-widest text-slate-400 mb-1">{isRebalance ? t('inv_dist_transfer') : t('inv_dist_allocate')}</div>
                                             <div className={`px-4 py-1.5 rounded-full font-black text-sm shadow-sm z-10 ${isRebalance ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' : 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white'}`}>
                                                 {line.qty.toLocaleString()}
                                             </div>
@@ -363,7 +363,7 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                                         </div>
                                         {/* TO Node */}
                                         <div className="flex flex-col items-center w-20">
-                                            <span className="text-[10px] font-black text-slate-400 uppercase">{line.to === 'NB' ? 'Miền Nam' : 'Miền Bắc'}</span>
+                                            <span className="text-[10px] font-black text-slate-400 uppercase">{line.to === 'NB' ? t('inv_dist_south') : t('inv_dist_north')}</span>
                                             <div className="text-sm font-black text-slate-800 mt-0.5">{line.to}</div>
                                         </div>
                                     </div>
@@ -392,11 +392,11 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                                     <th className="px-6 py-4 w-12 text-center">
                                         <input type="checkbox" checked={selectedItems.size === suggestions.length && suggestions.length > 0} onChange={toggleSelectAll} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
                                     </th>
-                                    <th className="px-6 py-4 text-left"><Typography variant="label" className="text-slate-400 uppercase tracking-widest">Chi tiết Mã hàng</Typography></th>
-                                    <th className="px-6 py-4 text-center"><Typography variant="label" className="text-slate-400 uppercase tracking-widest">Số lượng Cân đối</Typography></th>
-                                    <th className="px-6 py-4 text-center bg-emerald-50/50"><Typography variant="label" className="text-emerald-700 uppercase tracking-widest">Cơ sở quyết định (Miền Nam — NB)</Typography></th>
-                                    <th className="px-6 py-4 text-center bg-blue-50/50"><Typography variant="label" className="text-blue-700 uppercase tracking-widest">Cơ sở quyết định (Miền Bắc — BB)</Typography></th>
-                                    <th className="px-6 py-4 text-right"><Typography variant="label" className="text-slate-400 uppercase tracking-widest">Giá trị dự kiến</Typography></th>
+                                    <th className="px-6 py-4 text-left"><Typography variant="label" className="text-slate-400 uppercase tracking-widest">{t('inv_dist_sku_detail')}</Typography></th>
+                                    <th className="px-6 py-4 text-center"><Typography variant="label" className="text-slate-400 uppercase tracking-widest">{t('inv_dist_balance_qty')}</Typography></th>
+                                    <th className="px-6 py-4 text-center bg-emerald-50/50"><Typography variant="label" className="text-emerald-700 uppercase tracking-widest">{t('inv_dist_basis_south')}</Typography></th>
+                                    <th className="px-6 py-4 text-center bg-blue-50/50"><Typography variant="label" className="text-blue-700 uppercase tracking-widest">{t('inv_dist_basis_north')}</Typography></th>
+                                    <th className="px-6 py-4 text-right"><Typography variant="label" className="text-slate-400 uppercase tracking-widest">{t('inv_dist_est_value')}</Typography></th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
@@ -526,7 +526,7 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                                         <td colSpan={7} className="py-24 text-center">
                                             <div className="flex flex-col items-center gap-4 opacity-20">
                                                 <i className={`fas ${activeTab === 'rebalance' ? 'fa-shuffle' : 'fa-cart-flatbed'} text-6xl`}></i>
-                                                <Typography variant="h3" className="italic">{searchTerm ? 'Không tìm thấy mã phù hợp' : 'Hiện chưa có đề xuất nào'}</Typography>
+                                                <Typography variant="h3" className="italic">{searchTerm ? t('inv_dist_no_match') : t('inv_dist_no_suggestion')}</Typography>
                                             </div>
                                         </td>
                                     </tr>
@@ -541,11 +541,11 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
             <div className="p-4 md:p-6 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between text-xs font-black uppercase tracking-widest text-slate-600 bg-white/50 gap-4 mt-2 rounded-2xl">
                 <div className="flex items-center gap-4 w-full md:w-auto overflow-x-auto no-scrollbar">
                     <select value={itemsPerPage} onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }} className="bg-white border border-slate-200 rounded-xl px-3 py-2 outline-none cursor-pointer text-slate-700 font-bold text-sm shadow-sm shrink-0">
-                        <option value={10}>10 dòng</option>
-                        <option value={20}>20 dòng</option>
-                        <option value={50}>50 dòng</option>
+                        <option value={10}>10 {t('inv_dist_rows')}</option>
+                        <option value={20}>20 {t('inv_dist_rows')}</option>
+                        <option value={50}>50 {t('inv_dist_rows')}</option>
                     </select>
-                    <span className="text-slate-400 whitespace-nowrap">Tổng: <span className="text-slate-700">{suggestions.length}</span></span>
+                    <span className="text-slate-400 whitespace-nowrap">{t('inv_dist_total')}: <span className="text-slate-700">{suggestions.length}</span></span>
                 </div>
                 
                 <div className="flex items-center gap-1 w-full md:w-auto justify-center md:justify-end">

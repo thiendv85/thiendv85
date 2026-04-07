@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { SupersessionMapping, SupersessionGraph } from '../utils/supersessionGraph';
 import { Typography } from './Typography';
+import { useLanguage } from '../utils/i18n';
 import {
     Search,
     Filter,
@@ -38,6 +39,7 @@ export const SupersessionMappingsTable: React.FC<SupersessionMappingsTableProps>
     onEditMapping,
     onDeleteMapping
 }) => {
+    const { t } = useLanguage();
     // --- STATE ---
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState<FilterType>('ALL');
@@ -215,7 +217,7 @@ export const SupersessionMappingsTable: React.FC<SupersessionMappingsTableProps>
                                 <Typography variant="label" className="flex items-center">Final Part {getSortIcon('current')}</Typography>
                             </th>
                             <th className="px-6 py-4 text-center sticky right-0 bg-slate-50 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)] border-l border-slate-200">
-                                <Typography variant="label">Thao Tác</Typography>
+                                <Typography variant="label">{t('ss_mgmt_actions')}</Typography>
                             </th>
                         </tr>
                     </thead>

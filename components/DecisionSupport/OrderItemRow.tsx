@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLanguage } from '../../utils/i18n';
 import { useRowExplanation } from '../../hooks/useRowExplanation';
 import { TrendBadge } from '../TrendBadge';
 import { StockProgressBar } from '../StockProgressBar';
@@ -23,7 +24,7 @@ export const OrderItemRow = ({
     ctx, idx, globalIdx, safePage, isSelected, localQty, origQty, 
     onToggle, onSetQty, onInspect, currencyVND 
 }: Props) => {
-    
+    const { t } = useLanguage();
     const changed = localQty.air !== origQty.air || localQty.sea !== origQty.sea;
     const currentQty = localQty.air + localQty.sea;
     const rowValue = (ctx.unitCost || 0) * currentQty;
@@ -56,7 +57,7 @@ export const OrderItemRow = ({
                     </div>
                     <div className="flex items-center gap-2 mt-1.5">
                         <div className="flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded text-[9px] font-black text-slate-600">
-                            Tồn: {ctx.available?.toLocaleString()}
+                            {t('stock_label')} {ctx.available?.toLocaleString()}
                         </div>
                         <div className={`px-1.5 py-0.5 rounded text-[9px] font-black ${ctx.mos < 1 ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
                             {ctx.mos?.toFixed(1)}M

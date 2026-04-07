@@ -342,6 +342,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
 
 const UserManagementTab = () => {
     const { user } = useAuth();
+    const { t } = useLanguage();
     const [users, setUsers] = useState<UserProfile[]>([]);
     const [workflows, setWorkflowList] = useState<ApprovalWorkflow[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -482,22 +483,22 @@ const UserManagementTab = () => {
     return (
         <div className="space-y-6 animate-fadeIn pb-24">
             {/* Users Table */}
-            <SectionCard title="Danh sách người dùng" icon="fa-users">
+            <SectionCard title={t('settings_user_list')} icon="fa-users">
                 <div className="overflow-auto rounded-xl border border-slate-200">
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-widest border-b border-slate-200">
-                                <th className="px-4 py-3 text-left font-black">Họ tên</th>
+                                <th className="px-4 py-3 text-left font-black">{t('settings_full_name')}</th>
                                 <th className="px-4 py-3 text-left font-black">Role</th>
                                 <th className="px-4 py-3 text-left font-black">Brand</th>
-                                <th className="px-4 py-3 text-center font-black">Trạng thái</th>
-                                <th className="px-4 py-3 text-right font-black">Hành động</th>
+                                <th className="px-4 py-3 text-center font-black">{t('settings_status')}</th>
+                                <th className="px-4 py-3 text-right font-black">{t('settings_actions')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {users.map(u => (
                                 <tr key={u.id} className="border-t border-slate-100 hover:bg-slate-50">
-                                    <td className="px-4 py-3 font-bold text-slate-800">{u.full_name || <span className="text-slate-400 italic">Chưa đặt tên</span>}</td>
+                                    <td className="px-4 py-3 font-bold text-slate-800">{u.full_name || <span className="text-slate-400 italic">{t('settings_unnamed')}</span>}</td>
                                     <td className="px-4 py-3">
                                         <select
                                             value={u.role}
@@ -533,13 +534,13 @@ const UserManagementTab = () => {
                                                 onClick={() => { setResetTarget(u); setResetPw(''); setResetMsg(''); }}
                                                 className="text-xs font-black px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all"
                                             >
-                                                <i className="fas fa-key mr-1" />Đổi mật khẩu
+                                                <i className="fas fa-key mr-1" />{t('settings_change_pw')}
                                             </button>
                                             <button
                                                 onClick={() => handleToggleActive(u.id, u.is_active)}
                                                 className={`text-xs font-black px-3 py-1.5 rounded-lg border transition-all ${u.is_active ? 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100' : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}
                                             >
-                                                {u.is_active ? 'Vô hiệu hoá' : 'Kích hoạt'}
+                                                {u.is_active ? t('settings_inactive') : t('settings_active')}
                                             </button>
                                         </div>
                                     </td>
@@ -557,7 +558,7 @@ const UserManagementTab = () => {
                                     <i className="fas fa-key text-blue-600" />
                                 </div>
                                 <div>
-                                    <p className="font-black text-slate-800 text-sm">Đổi mật khẩu</p>
+                                    <p className="font-black text-slate-800 text-sm">{t('settings_change_pw')}</p>
                                     <p className="text-xs text-slate-500">{resetTarget.full_name || 'Người dùng'}</p>
                                 </div>
                             </div>
@@ -565,13 +566,13 @@ const UserManagementTab = () => {
                                 <p className={`text-xs px-3 py-2 rounded-lg border ${resetMsg.startsWith('✓') ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-rose-50 border-rose-200 text-rose-600'}`}>{resetMsg}</p>
                             )}
                             <div>
-                                <label className="block text-xs font-black text-slate-500 mb-1">Mật khẩu mới</label>
+                                <label className="block text-xs font-black text-slate-500 mb-1">{t('settings_new_pw')}</label>
                                 <input
                                     type="password"
                                     value={resetPw}
                                     onChange={e => setResetPw(e.target.value)}
                                     onKeyDown={e => e.key === 'Enter' && handleAdminResetPassword()}
-                                    placeholder="Ít nhất 6 ký tự"
+                                    placeholder={t('settings_min_6')}
                                     autoFocus
                                     className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-400 font-medium"
                                 />
@@ -582,13 +583,13 @@ const UserManagementTab = () => {
                                     disabled={isResetting || resetPw.length < 6}
                                     className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-black py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 transition-all"
                                 >
-                                    {isResetting ? <><i className="fas fa-circle-notch fa-spin" /> Đang lưu...</> : <><i className="fas fa-check" /> Xác nhận</>}
+                                    {isResetting ? <><i className="fas fa-circle-notch fa-spin" /> {t('settings_saving')}</> : <><i className="fas fa-check" /> {t('settings_confirm')}</>}
                                 </button>
                                 <button
                                     onClick={() => setResetTarget(null)}
                                     className="px-4 py-2.5 rounded-xl text-sm font-black border border-slate-200 text-slate-500 hover:bg-slate-50 transition-all"
                                 >
-                                    Hủy
+                                    {t('settings_cancel')}
                                 </button>
                             </div>
                         </div>
@@ -598,15 +599,15 @@ const UserManagementTab = () => {
                 {/* Create User Form */}
                 {showCreateUser ? (
                     <div className="mt-4 p-4 border border-blue-200 bg-blue-50 rounded-xl space-y-3">
-                        <Typography variant="label" className="text-blue-700 font-black uppercase tracking-widest block">Tạo tài khoản mới</Typography>
+                        <Typography variant="label" className="text-blue-700 font-black uppercase tracking-widest block">{t('settings_create_account')}</Typography>
                         {createError && <p className="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{createError}</p>}
                         <div className="grid grid-cols-2 gap-2">
                             <div>
-                                <label className="block text-xs font-black text-slate-500 mb-1">Họ tên</label>
-                                <input value={newFullName} onChange={e => setNewFullName(e.target.value)} placeholder="Nguyễn Văn A" className="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-blue-400" />
+                                <label className="block text-xs font-black text-slate-500 mb-1">{t('settings_full_name')}</label>
+                                <input value={newFullName} onChange={e => setNewFullName(e.target.value)} placeholder={t('settings_name_placeholder')} className="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-blue-400" />
                             </div>
                             <div>
-                                <label className="block text-xs font-black text-slate-500 mb-1">Role</label>
+                                <label className="block text-xs font-black text-slate-500 mb-1">{t('settings_role')}</label>
                                 <select value={newRole} onChange={e => setNewRole(e.target.value as UserRole)} className="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm bg-white outline-none focus:border-blue-400">
                                     {(Object.keys(ROLE_LABELS) as UserRole[]).map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
                                 </select>
@@ -616,26 +617,26 @@ const UserManagementTab = () => {
                                 <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="user@company.com" className="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-blue-400" />
                             </div>
                             <div>
-                                <label className="block text-xs font-black text-slate-500 mb-1">Mật khẩu</label>
-                                <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Ít nhất 6 ký tự" className="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-blue-400" />
+                                <label className="block text-xs font-black text-slate-500 mb-1">{t('settings_new_pw')}</label>
+                                <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder={t('settings_min_6')} className="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-blue-400" />
                             </div>
                         </div>
                         <div className="flex gap-2">
                             <button onClick={handleCreateUser} disabled={isCreating || !newEmail || !newPassword} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-xs font-black flex items-center gap-2">
-                                {isCreating ? <><i className="fas fa-circle-notch fa-spin" /> Đang tạo...</> : <><i className="fas fa-user-plus" /> Tạo tài khoản</>}
+                                {isCreating ? <><i className="fas fa-circle-notch fa-spin" /> {t('settings_creating')}</> : <><i className="fas fa-user-plus" /> {t('settings_create')}</>}
                             </button>
-                            <button onClick={() => { setShowCreateUser(false); setCreateError(''); }} className="px-4 py-2 rounded-lg text-xs font-black border border-slate-200 text-slate-500 hover:bg-slate-50">Hủy</button>
+                            <button onClick={() => { setShowCreateUser(false); setCreateError(''); }} className="px-4 py-2 rounded-lg text-xs font-black border border-slate-200 text-slate-500 hover:bg-slate-50">{t('settings_cancel')}</button>
                         </div>
                     </div>
                 ) : (
                     <button onClick={() => setShowCreateUser(true)} className="mt-3 flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-black">
-                        <i className="fas fa-user-plus" /> Tạo tài khoản mới
+                        <i className="fas fa-user-plus" /> {t('settings_create_account')}
                     </button>
                 )}
             </SectionCard>
 
             {/* Workflows */}
-            <SectionCard title="Cấu hình Workflow Phê duyệt" icon="fa-sitemap">
+            <SectionCard title={t('settings_workflow_config')} icon="fa-sitemap">
                 <div className="space-y-2">
                     {workflows.map(wf => {
                         const getName = (id: string) => users.find(u => u.id === id)?.full_name || id.slice(0, 8);
@@ -655,7 +656,7 @@ const UserManagementTab = () => {
                                     </button>
                                     <button onClick={() => handleToggleWorkflow(wf)}
                                         className={`text-xs font-black px-3 py-1.5 rounded-lg border transition-all ${wf.is_active ? 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100' : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}>
-                                        {wf.is_active ? 'Tắt' : 'Bật'}
+                                        {wf.is_active ? t('settings_disabled') : t('settings_enabled')}
                                     </button>
                                 </div>
                             </div>
@@ -745,7 +746,7 @@ const UserManagementTab = () => {
                         {/* Levels builder */}
                         <div>
                             <div className="flex items-center justify-between mb-2">
-                                <label className="text-xs font-black text-slate-500">CẤP PHÊ DUYỆT</label>
+                                <label className="text-xs font-black text-slate-500">{t('settings_levels_required').toUpperCase()}</label>
                                 <button
                                     type="button"
                                     onClick={() => setNewWfLevels(prev => [...prev, { level: prev.length + 1, approver_ids: [], require_all: false }])}
@@ -804,11 +805,11 @@ const UserManagementTab = () => {
 
                         <div className="flex gap-2 pt-1">
                             <button onClick={handleSaveWf} disabled={!newWfName.trim()} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-2 rounded-xl text-sm font-black flex items-center gap-2">
-                                <i className="fas fa-check" /> {editingWf ? 'Lưu thay đổi' : 'Tạo workflow'}
+                                <i className="fas fa-check" /> {editingWf ? t('settings_save_config') : t('settings_create')}
                             </button>
                             <button onClick={() => { setShowNewWfForm(false); setEditingWf(null); setNewWfName(''); setNewWfBrand(''); setNewWfProposers([]); setNewWfLevels([{ level: 1, approver_ids: [], require_all: false }]); }}
                                 className="px-4 py-2 rounded-xl text-sm font-black border border-slate-200 text-slate-500 hover:bg-slate-50">
-                                Hủy
+                                {t('settings_cancel')}
                             </button>
                         </div>
                     </div>
@@ -820,17 +821,17 @@ const UserManagementTab = () => {
             </SectionCard>
 
             {/* Change Password */}
-            <SectionCard title="Đổi mật khẩu" icon="fa-lock">
+            <SectionCard title={t('settings_change_pw')} icon="fa-lock">
                 {!showChangePw ? (
                     <button onClick={() => setShowChangePw(true)} className="flex items-center gap-2 text-slate-600 hover:text-blue-600 text-sm font-black border border-slate-200 px-4 py-2 rounded-xl hover:border-blue-300 transition-all">
-                        <i className="fas fa-key" /> Đổi mật khẩu của tôi
+                        <i className="fas fa-key" /> {t('settings_change_pw')}
                     </button>
                 ) : (
                     <div className="space-y-3 max-w-sm">
                         {pwMsg && <p className={`text-xs px-3 py-2 rounded-lg border ${pwMsg.startsWith('✓') ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-rose-50 border-rose-200 text-rose-600'}`}>{pwMsg}</p>}
                         <div>
-                            <label className="block text-xs font-black text-slate-500 mb-1">Mật khẩu mới</label>
-                            <input type="password" value={newPw} onChange={e => setNewPw(e.target.value)} placeholder="Ít nhất 6 ký tự" className="w-full border border-slate-300 rounded-xl px-4 py-2 text-sm outline-none focus:border-blue-400" />
+                            <label className="block text-xs font-black text-slate-500 mb-1">{t('settings_new_pw')}</label>
+                            <input type="password" value={newPw} onChange={e => setNewPw(e.target.value)} placeholder={t('settings_min_6')} className="w-full border border-slate-300 rounded-xl px-4 py-2 text-sm outline-none focus:border-blue-400" />
                         </div>
                         <div>
                             <label className="block text-xs font-black text-slate-500 mb-1">Xác nhận mật khẩu</label>
@@ -838,9 +839,9 @@ const UserManagementTab = () => {
                         </div>
                         <div className="flex gap-2">
                             <button onClick={handleChangePassword} disabled={isChangingPw || !newPw || !confirmPw} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2">
-                                {isChangingPw ? <><i className="fas fa-circle-notch fa-spin" /> Đang lưu...</> : <><i className="fas fa-check" /> Xác nhận</>}
+                                {isChangingPw ? <><i className="fas fa-circle-notch fa-spin" /> {t('settings_saving')}</> : <><i className="fas fa-check" /> {t('settings_confirm')}</>}
                             </button>
-                            <button onClick={() => { setShowChangePw(false); setNewPw(''); setConfirmPw(''); setPwMsg(''); }} className="px-4 py-2 rounded-xl text-xs font-black border border-slate-200 text-slate-500 hover:bg-slate-50">Hủy</button>
+                            <button onClick={() => { setShowChangePw(false); setNewPw(''); setConfirmPw(''); setPwMsg(''); }} className="px-4 py-2 rounded-xl text-xs font-black border border-slate-200 text-slate-500 hover:bg-slate-50">{t('settings_cancel')}</button>
                         </div>
                     </div>
                 )}
@@ -1909,7 +1910,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                         monthlyUploadStatus === 'saving' ? 'fa-spinner fa-spin' :
                                         monthlyUploadStatus === 'done' ? 'fa-check' : 'fa-cloud-arrow-up'
                                     }`} />
-                                    {monthlyUploadStatus === 'saving' ? 'Đang lưu...' :
+                                    {monthlyUploadStatus === 'saving' ? t('settings_saving') :
                                      monthlyUploadStatus === 'done' ? 'Xong!' : 'Upload'}
                                 </button>
                             </div>
@@ -1977,7 +1978,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                     </div>
                     <div className="flex items-center gap-3">
                         <button onClick={() => setDraft(settings)} className="px-5 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-xs font-black uppercase hover:bg-slate-200 transition-all border border-slate-200">
-                            <i className="fas fa-xmark mr-1.5" /> Hủy thay đổi
+                            <i className="fas fa-xmark mr-1.5" /> {t('settings_cancel')}
                         </button>
                         <button
                             onClick={handleSave}
@@ -1987,7 +1988,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                 }`}
                         >
                             <i className={`fas ${saved ? 'fa-check' : 'fa-floppy-disk'}`} />
-                            {saved ? 'Đã lưu!' : 'Lưu cấu hình'}
+                            {saved ? t('settings_saved') : t('settings_save_config')}
                         </button>
                     </div>
                 </div>

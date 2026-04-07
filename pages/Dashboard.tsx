@@ -47,16 +47,7 @@ const LOIS_HIERARCHY = [
     { label: 'U (OTHERS)', sub: ['U_OTHER'], color: 'bg-slate-300' }
 ];
 
-const SUBGROUP_DESC: Record<string, string> = {
-    'L1': '> 300 đvt/năm', 'L2': '101–300 đvt/năm', 'L3': '61–100 đvt/năm',
-    'L4': '25–60 đvt/năm', 'L5': '13–24 đvt/năm', 'L6': '7–12 đvt/năm', 'L7': '< 6 đvt/năm',
-    'O8': 'Nhóm LOIS 8', 'OE': 'Ngừng sản xuất', 'ON': 'Lỗi thời',
-    'OA': 'Lỗi thời lâu năm', 'OV': 'NCC ngừng cung',
-    'I': 'Không giao dịch',
-    'SX': 'Đặc thù X', 'SY': 'Đặc thù Y', 'SZ': 'Đặc thù Z',
-    'SC': 'Đặc thù C', 'SK': 'Đặc thù K', 'SD': 'Đặc thù D',
-    'U_OTHER': 'Chưa phân loại',
-};
+// SUBGROUP_DESC moved inside component as subgroupDesc (uses i18n)
 
 export type DashboardSubTab = 'overview' | 'intelligence' | 'supersession';
 
@@ -79,6 +70,14 @@ const LoisRow = React.memo(({
     matrixData, grandStats, loisTargets, selectedSubgroup,
     onToggleSubgroup, formatNum
 }: LoisRowProps) => {
+    const { t } = useLanguage();
+    const subgroupDescLocal: Record<string, string> = {
+        L1: t('matrix_sub_l1'), L2: t('matrix_sub_l2'), L3: t('matrix_sub_l3'), L4: t('matrix_sub_l4'),
+        L5: t('matrix_sub_l5'), L6: t('matrix_sub_l6'), L7: t('matrix_sub_l7'),
+        O8: t('matrix_sub_o8'), OE: t('matrix_sub_oe'), ON: t('matrix_sub_on'), OA: t('matrix_sub_oa'), OV: t('matrix_sub_ov'),
+        I: t('matrix_sub_i'), SX: t('matrix_sub_sx'), SY: t('matrix_sub_sy'), SZ: t('matrix_sub_sz'),
+        SC: t('matrix_sub_sc'), SK: t('matrix_sub_sk'), SD: t('matrix_sub_sd'), U_OTHER: t('matrix_sub_other'),
+    };
     const { isMobile } = useDevice();
 
     const row = { items: 0, turnover: 0, noStock: 0, short: 0, stockVal: 0, poVal: 0, excessItems: 0, excessVal: 0, boItems: 0, boValue: 0, bmwCount: 0, trendSum: 0, trendCount: 0 };
@@ -120,7 +119,7 @@ const LoisRow = React.memo(({
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); !isHeader && subKeys.length === 1 && onToggleSubgroup(subKeys[0]); } }}
             role={isHeader ? 'presentation' : 'button'}
             tabIndex={isHeader ? -1 : 0}
-            aria-label={isHeader ? undefined : `Lọc theo nhóm ${label}`}
+            aria-label={isHeader ? undefined : `Filter ${label}`}
             className={`${isHeader ? 'bg-slate-50/50 uppercase tracking-widest' : (isActive ? 'bg-blue-50/80 shadow-inner' : 'bg-white hover:bg-slate-50/80')} border-b border-slate-100 transition-all cursor-pointer text-sm hover:translate-x-1 duration-200 focus:outline-none focus:bg-blue-50`}
         >
             <td className={`px-3 py-2 border-r border-slate-100 ${isHeader ? 'text-slate-900 font-black' : 'text-slate-700'}`}>
@@ -141,8 +140,8 @@ const LoisRow = React.memo(({
                             {label}
                         </div>
                     )}
-                    {!isHeader && SUBGROUP_DESC[label] && (
-                        <span className="text-slate-400 font-bold ml-1.5 text-[9px] tracking-tight truncate opacity-70">— {SUBGROUP_DESC[label]}</span>
+                    {!isHeader && subgroupDescLocal[label] && (
+                        <span className="text-slate-400 font-bold ml-1.5 text-[9px] tracking-tight truncate opacity-70">— {subgroupDescLocal[label]}</span>
                     )}
                 </div>
             </td>
@@ -247,6 +246,14 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
     };
 }) => {
     const { t } = useLanguage();
+    const subgroupDesc: Record<string, string> = useMemo(() => ({
+        L1: t('matrix_sub_l1'), L2: t('matrix_sub_l2'), L3: t('matrix_sub_l3'), L4: t('matrix_sub_l4'),
+        L5: t('matrix_sub_l5'), L6: t('matrix_sub_l6'), L7: t('matrix_sub_l7'),
+        O8: t('matrix_sub_o8'), OE: t('matrix_sub_oe'), ON: t('matrix_sub_on'), OA: t('matrix_sub_oa'), OV: t('matrix_sub_ov'),
+        I: t('matrix_sub_i'),
+        SX: t('matrix_sub_sx'), SY: t('matrix_sub_sy'), SZ: t('matrix_sub_sz'), SC: t('matrix_sub_sc'), SK: t('matrix_sub_sk'), SD: t('matrix_sub_sd'),
+        U_OTHER: t('matrix_sub_other'),
+    }), [t]);
     const { isMobile } = useDevice();
     const [subTab, setSubTab] = useState<DashboardSubTab>(initialState?.subTab || 'overview');
     const [settings, setSettings] = useState<DashboardSettings>(initialState?.settings || {
@@ -453,7 +460,7 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
                 const hExPct = hRow.stockVal > 0 ? (hRow.excessVal / hRow.stockVal * 100) : 0;
                 const hTurnPct = gs.grandTurnover > 0 ? (hRow.turnover / gs.grandTurnover * 100) : 0;
                 const hMOS = hRow.turnover > 0 ? (hRow.stockVal * 12 / hRow.turnover) : 0;
-                const hDesc = SUBGROUP_DESC[group.label] || '';
+                const hDesc = subgroupDesc[group.label] || '';
 
                 rows += `<tr class="group-hdr">
                     <td>${group.label}</td>
@@ -479,7 +486,7 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
                     const exPct = d.stockVal > 0 ? (d.excessVal / d.stockVal * 100) : 0;
                     const turnPct = gs.grandTurnover > 0 ? (d.turnover / gs.grandTurnover * 100) : 0;
                     const dMOS = d.turnover > 0 ? (d.stockVal * 12 / d.turnover) : 0;
-                    const dDesc = SUBGROUP_DESC[k] || '';
+                    const dDesc = subgroupDesc[k] || '';
 
                     // Target Lookup
                     const tgtCfg = loisTargets[k] || null;
@@ -598,7 +605,7 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
             const exPctGrand = gs.grandStock > 0 ? (gs.grandExcess / gs.grandStock * 100) : 0;
             return `
             <div class="page-header">
-                <div class="logo-area"><div class="logo-box">ATP</div><div><div class="company-name">Auto Parts Governance</div><div class="page-title">Báo cáo Tồn Kho</div></div></div>
+                <div class="logo-area"><div class="logo-box">ATP</div><div><div class="company-name">Auto Parts Governance</div><div class="page-title">${t('dash_inventory_report')}</div></div></div>
                 <div class="header-right">
                     <div class="badge">${isSimulation ? '\u2726 SIMULATION ACTIVE \u2013 Bao g\u1ed3m D\u1ef1 Th\u1ea3o + PO' : '\u2714 HI\u1ec6N T\u1ea0I \u2013 T\u1ed3n kho th\u1ef1c t\u1ebf'}</div>
                     <div class="header-meta">In l\u00fac: ${dateStr} \u2014 ${timeStr} &nbsp;|&nbsp; SKU: ${gs.totalSKUs} &nbsp;|&nbsp; <span class="red">OOS: ${gs.grandNoStock}</span> &nbsp;|&nbsp; <span class="amb">Risk: ${gs.grandShort}</span></div>
@@ -654,7 +661,7 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
 
         const html = `<!DOCTYPE html><html lang="vi"><head>
             <meta charset="UTF-8">
-            <title>Báo cáo Tồn Kho – ${dateStr}</title>
+            <title>${t('dash_inventory_report')} – ${dateStr}</title>
             <link rel="preconnect" href="https://fonts.googleapis.com">
             <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
             <style>
@@ -713,7 +720,7 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
         </body></html>`;
 
         const w = window.open('', '_blank', 'width=1200,height=800');
-        if (!w) return alert('Trình duyệt đã chặn popup. Hãy cho phép popup để in.');
+        if (!w) return alert('Browser blocked the popup. Please allow popups to print.');
         w.document.write(html);
         w.document.close();
         w.focus();
@@ -809,7 +816,7 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
                     <div className="flex items-center gap-3 bg-rose-50 border border-rose-200 px-4 py-2.5 rounded-xl animate-fadeIn">
                         <i className="fas fa-triangle-exclamation text-rose-500 text-sm shrink-0"></i>
                         <span className="text-sm font-bold text-rose-800 flex-1">
-                            <span className="font-black">{criticalStockouts}</span> mã stockout ưu tiên cao cần xử lý ngay
+                            <span className="font-black">{criticalStockouts}</span> critical priority stockouts require immediate action
                         </span>
                         <button
                             onClick={() => {

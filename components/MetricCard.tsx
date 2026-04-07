@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Typography } from './Typography';
+import { useLanguage } from '../utils/i18n';
 
 // Modern Gradient Palette Map aligned with ATP Design Tokens
 const styleConfig = {
@@ -82,6 +83,7 @@ interface MetricCardProps {
 }
 
 export const MetricCard = React.memo(({ label, value, subValue, icon, color = 'slate', onClick, isActive, trend, badge, badgeColor }: MetricCardProps) => {
+  const { t } = useLanguage();
   const style = styleConfig[color] || styleConfig.slate;
 
   const badgeClasses = 'bg-white/20 text-white border-white/30';
@@ -92,7 +94,7 @@ export const MetricCard = React.memo(({ label, value, subValue, icon, color = 's
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
-      aria-label={`Chi tiết số liệu ${label}: ${value}`}
+      aria-label={`${t('metric_detail_aria')} ${label}: ${value}`}
       className={`
         group relative overflow-hidden border transition-all duration-300 rounded-2xl
         ${style.cardBg} ${style.cardGlow} ${style.innerGlow}

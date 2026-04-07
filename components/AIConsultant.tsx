@@ -1,5 +1,6 @@
 ﻿
 import React from 'react';
+import { useLanguage } from '../utils/i18n';
 
 interface AIConsultantProps {
   isLoading: boolean;
@@ -8,6 +9,7 @@ interface AIConsultantProps {
 }
 
 export const AIConsultant = ({ isLoading, response, onAnalyze }: AIConsultantProps) => {
+  const { t } = useLanguage();
   const isInitialState = !isLoading && !response;
   
   const getStatusText = () => {
@@ -128,8 +130,8 @@ export const AIConsultant = ({ isLoading, response, onAnalyze }: AIConsultantPro
       {isLoading && (
         <div className="text-center p-10 bg-white/50 rounded-2xl border border-emerald-100 border-dashed mt-6">
             <i className="fas fa-circle-notch animate-spin text-3xl text-emerald-500"></i>
-            <p className="mt-4 font-bold text-emerald-700">AI đang tư duy sâu...</p>
-            <p className="text-xs text-emerald-600">Vui lòng đợi trong giây lát.</p>
+            <p className="mt-4 font-bold text-emerald-700">{t('ai_thinking')}</p>
+            <p className="text-xs text-emerald-600">{t('ai_please_wait')}</p>
         </div>
       )}
 
@@ -143,7 +145,7 @@ export const AIConsultant = ({ isLoading, response, onAnalyze }: AIConsultantPro
               onClick={() => navigator.clipboard.writeText(response)}
               className="text-emerald-600 font-bold text-2xs uppercase flex items-center gap-2 hover:text-emerald-800 transition-colors"
             >
-              <i className="far fa-copy"></i> Sao chép báo cáo
+              <i className="far fa-copy"></i> {t('ai_copy_report')}
             </button>
           </div>
         </div>

@@ -64,6 +64,7 @@ interface ConsolidatedStockCellProps {
 }
 
 export const ConsolidatedStockCell: React.FC<ConsolidatedStockCellProps> = ({ item, allItems, graph, className = "" }) => {
+    const { t } = useLanguage();
     // 1. Lấy tồn kho vật lý của riêng SKU này
     const currentSkuStock = (item.QuantityInventory_NB || 0) + (item.QuantityInventory_BB || 0) + (item.QuantityDC_NB || 0) + (item.QuantityDC_BB || 0);
 

@@ -3,10 +3,11 @@ import React, { useMemo, useState } from 'react';
 import { InventoryItem, BackorderDetail } from '../types/inventory';
 import { SupersessionGraph } from '../utils/supersessionGraph';
 import { BackorderPopup } from './BackorderPopup';
-import { 
-    AlertTriangle, 
-    ChevronDown, 
-    ChevronRight, 
+import { useLanguage } from '../utils/i18n';
+import {
+    AlertTriangle,
+    ChevronDown,
+    ChevronRight,
     Archive,
     History,
     ArrowRight,
@@ -16,6 +17,7 @@ import {
     FilterX,
     Eye
 } from 'lucide-react';
+import { useLanguage } from '../utils/i18n';
 
 interface OldStockAlertProps {
     data: InventoryItem[];
@@ -90,6 +92,7 @@ const MetricCard = ({
 );
 
 export const OldStockAlert: React.FC<OldStockAlertProps> = ({ data, graph, onPartClick }) => {
+    const { t } = useLanguage();
     const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
     const [activeFilter, setActiveFilter] = useState<'ALL' | 'HAS_BO'>('ALL');
 
@@ -190,10 +193,10 @@ export const OldStockAlert: React.FC<OldStockAlertProps> = ({ data, graph, onPar
                 <div className="w-24 h-24 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mb-6">
                     <CheckCircle size={48} />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 uppercase">Hệ thống sạch</h3>
+                <h3 className="text-2xl font-bold text-gray-900 uppercase">{t('old_stock_system_clean')}</h3>
                 <p className="text-base text-gray-500 mt-3 max-w-lg leading-relaxed">
-                    Tuyệt vời! Không phát hiện tồn kho của các mã phụ tùng cũ (Superseded).
-                    Toàn bộ tồn kho hiện tại đều là mã mới nhất.
+                    {t('old_stock_clear')}
+                    {t('old_stock_clear_desc')}
                 </p>
             </div>
         );
@@ -206,39 +209,38 @@ export const OldStockAlert: React.FC<OldStockAlertProps> = ({ data, graph, onPar
                 <div>
                     <h2 className="text-2xl font-bold text-blue-800 uppercase tracking-tight flex items-center gap-3">
                         <History size={28} className="text-blue-800" />
-                        Cảnh Báo Tồn Mã Cũ
+                        {t('old_stock_header')}
                     </h2>
                     <p className="text-base text-gray-600 mt-2 max-w-4xl leading-relaxed">
-                        Danh sách các mã phụ tùng đã bị thay thế (Superseded) nhưng vẫn còn tồn kho thực tế.
-                        Cần ưu tiên xuất bán các mã này trước khi nhập thêm mã mới để tránh lãng phí vốn.
+                        {t('old_stock_header_desc')}
                     </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-                    <MetricCard 
-                        label="Cần Thanh Lý (Units)" 
-                        value={summary.totalVolume.toLocaleString()} 
-                        subLabel="Tổng tồn kho mã cũ" 
+                    <MetricCard
+                        label={t('old_stock_liquidate')}
+                        value={summary.totalVolume.toLocaleString()}
+                        subLabel={t('old_stock_total')}
                         icon={Package}
                         colorClass="text-red-600" 
                         bgClass="bg-red-50/30 border-red-100"
                         isActive={activeFilter === 'ALL'}
                         onClick={() => setActiveFilter('ALL')}
                     />
-                    <MetricCard 
-                        label="Cơ Hội Xử Lý BO" 
-                        value={summary.substitutionOpportunities.toString()} 
-                        subLabel="Mã Mới Nợ & Mã Cũ Còn" 
+                    <MetricCard
+                        label={t('old_stock_bo_opportunity')}
+                        value={summary.substitutionOpportunities.toString()}
+                        subLabel={t('old_stock_bo_sub')}
                         icon={ArrowLeftRight}
                         colorClass="text-amber-600" 
                         bgClass="bg-amber-50/30 border-amber-100"
                         isActive={activeFilter === 'HAS_BO'}
                         onClick={() => setActiveFilter('HAS_BO')}
                     />
-                    <MetricCard 
-                        label="Mã Bị Ảnh Hưởng" 
-                        value={summary.totalChains.toString()} 
-                        subLabel="SKU Active có tồn cũ" 
+                    <MetricCard
+                        label={t('old_stock_affected')}
+                        value={summary.totalChains.toString()}
+                        subLabel={t('old_stock_active_sku')}
                         icon={AlertTriangle}
                         colorClass="text-gray-800" 
                         isActive={activeFilter === 'ALL'}
@@ -249,12 +251,10 @@ export const OldStockAlert: React.FC<OldStockAlertProps> = ({ data, graph, onPar
                     <div className="bg-blue-800 rounded-xl p-6 text-white shadow-md flex flex-col justify-center h-full">
                         <div className="flex items-center gap-3 mb-3">
                             <Archive size={24} className="text-blue-300" />
-                            <h4 className="text-base font-bold uppercase tracking-wide">Chiến lược ưu tiên</h4>
+                            <h4 className="text-base font-bold uppercase tracking-wide">{t('old_stock_strategy')}</h4>
                         </div>
                         <p className="text-sm font-medium leading-7 opacity-90">
-                            1. Dừng nhập mã mới nếu tồn mã cũ {'>'} 3 tháng bán.<br/>
-                            2. Tự động chuyển đổi mã khi tạo đơn hàng.<br/>
-                            3. Gán nhãn "Ưu tiên xuất" trên phiếu kho.
+                            {t('old_stock_strategy_1')}<br/>{t('old_stock_strategy_2')}<br/>{t('old_stock_strategy_3')}
                         </p>
                     </div>
                 </div>
@@ -267,13 +267,13 @@ export const OldStockAlert: React.FC<OldStockAlertProps> = ({ data, graph, onPar
                     <div className="px-6 py-3 bg-amber-50 border-b border-amber-100 flex items-center justify-between">
                         <div className="flex items-center gap-2 text-sm font-bold text-amber-800">
                             <ArrowLeftRight size={16} />
-                            Đang lọc: Chỉ hiển thị mã mới đang nợ hàng (BO)
+                            {t('old_stock_filter_bo')}
                         </div>
                         <button 
                             onClick={() => setActiveFilter('ALL')}
                             className="flex items-center gap-1 text-xs font-black uppercase text-amber-700 hover:text-amber-900"
                         >
-                            <FilterX size={12} /> Xóa lọc
+                            <FilterX size={12} /> {t('old_stock_clear_filter')}
                         </button>
                     </div>
                 )}
@@ -283,21 +283,21 @@ export const OldStockAlert: React.FC<OldStockAlertProps> = ({ data, graph, onPar
                         <thead className="bg-gray-50 border-b border-gray-200">
                             <tr>
                                 <th className="px-6 py-5 text-sm font-bold text-gray-500 uppercase tracking-wider w-16"></th>
-                                <th className="px-6 py-5 text-sm font-bold text-gray-500 uppercase tracking-wider">Mã Hiện Hành (New)</th>
-                                <th className="px-6 py-5 text-sm font-bold text-gray-500 uppercase tracking-wider">Tên Sản Phẩm</th>
-                                <th className="px-6 py-5 text-sm font-bold text-gray-500 uppercase tracking-wider text-center">Tồn Mã Mới</th>
-                                <th className="px-6 py-5 text-sm font-bold text-red-600 uppercase tracking-wider text-center border-l border-gray-200">Nợ BO (Mới)</th>
-                                <th className="px-6 py-5 text-sm font-bold text-red-600 uppercase tracking-wider text-center bg-red-50/30 border-l border-red-50">Tồn Mã Cũ</th>
-                                <th className="px-6 py-5 text-sm font-bold text-red-600 uppercase tracking-wider text-center border-l border-gray-200">Nợ BO (Cũ)</th>
-                                <th className="px-6 py-5 text-sm font-bold text-gray-500 uppercase tracking-wider text-center">Số lượng mã</th>
-                                <th className="px-6 py-5 text-sm font-bold text-gray-500 uppercase tracking-wider text-center">Chi tiết</th>
+                                <th className="px-6 py-5 text-sm font-bold text-gray-500 uppercase tracking-wider">{t('old_stock_current_part')}</th>
+                                <th className="px-6 py-5 text-sm font-bold text-gray-500 uppercase tracking-wider">{t('old_stock_product_name')}</th>
+                                <th className="px-6 py-5 text-sm font-bold text-gray-500 uppercase tracking-wider text-center">{t('old_stock_new_stock')}</th>
+                                <th className="px-6 py-5 text-sm font-bold text-red-600 uppercase tracking-wider text-center border-l border-gray-200">{t('old_stock_bo_new')}</th>
+                                <th className="px-6 py-5 text-sm font-bold text-red-600 uppercase tracking-wider text-center bg-red-50/30 border-l border-red-50">{t('old_stock_old_stock')}</th>
+                                <th className="px-6 py-5 text-sm font-bold text-red-600 uppercase tracking-wider text-center border-l border-gray-200">{t('old_stock_bo_old')}</th>
+                                <th className="px-6 py-5 text-sm font-bold text-gray-500 uppercase tracking-wider text-center">{t('old_stock_sku_count')}</th>
+                                <th className="px-6 py-5 text-sm font-bold text-gray-500 uppercase tracking-wider text-center">{t('old_stock_details')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {filteredAlerts.length === 0 ? (
                                 <tr>
                                     <td colSpan={9} className="py-12 text-center text-gray-400">
-                                        Không tìm thấy dữ liệu phù hợp với bộ lọc.
+                                        {t('old_stock_no_filter_data')}
                                     </td>
                                 </tr>
                             ) : (
@@ -351,7 +351,7 @@ export const OldStockAlert: React.FC<OldStockAlertProps> = ({ data, graph, onPar
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
                                                     <span className="text-sm font-bold text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200">
-                                                        {row.oldSkusWithStockCount} mã
+                                                        {row.oldSkusWithStockCount} {t('old_stock_sku_unit')}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
@@ -369,20 +369,20 @@ export const OldStockAlert: React.FC<OldStockAlertProps> = ({ data, graph, onPar
                                                             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm max-w-4xl">
                                                                 <div className="px-6 py-4 bg-gray-100 border-b border-gray-200 flex justify-between items-center">
                                                                     <h4 className="text-sm font-bold text-gray-600 uppercase tracking-wide flex items-center gap-2">
-                                                                        <History size={18} /> Chi tiết các mã cũ còn tồn
+                                                                        <History size={18} /> {t('old_stock_detail')}
                                                                     </h4>
                                                                     <span className="text-sm font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded border border-blue-100">
-                                                                        Hành động: Ưu tiên xuất trước
+                                                                        {t('old_stock_action_priority')}
                                                                     </span>
                                                                 </div>
                                                                 <table className="w-full text-left">
                                                                     <thead className="bg-white border-b border-gray-100 text-gray-400">
                                                                         <tr>
-                                                                            <th className="px-6 py-3 text-sm font-bold uppercase w-1/3">Mã Phụ Tùng (Cũ)</th>
-                                                                            <th className="px-6 py-3 text-sm font-bold uppercase w-1/3">Quan Hệ</th>
-                                                                            <th className="px-6 py-3 text-sm font-bold uppercase text-right">Tồn Kho</th>
-                                                                            <th className="px-6 py-3 text-sm font-bold uppercase text-right">Nợ (BO)</th>
-                                                                            <th className="px-6 py-3 text-sm font-bold uppercase text-center">Thao tác</th>
+                                                                            <th className="px-6 py-3 text-sm font-bold uppercase w-1/3">{t('old_stock_part_old')}</th>
+                                                                            <th className="px-6 py-3 text-sm font-bold uppercase w-1/3">{t('old_stock_relation')}</th>
+                                                                            <th className="px-6 py-3 text-sm font-bold uppercase text-right">{t('old_stock_inventory')}</th>
+                                                                            <th className="px-6 py-3 text-sm font-bold uppercase text-right">{t('old_stock_bo_label')}</th>
+                                                                            <th className="px-6 py-3 text-sm font-bold uppercase text-center">{t('old_stock_action')}</th>
                                                                         </tr>
                                                                     </thead>
                                                                     <tbody className="divide-y divide-gray-100">
@@ -399,7 +399,7 @@ export const OldStockAlert: React.FC<OldStockAlertProps> = ({ data, graph, onPar
                                                                                 <td className="px-6 py-3">
                                                                                     <div className="flex items-center gap-2 text-sm font-medium text-gray-500">
                                                                                         <ArrowRight size={16} className="text-gray-300"/> 
-                                                                                        <span>Thay bởi <strong className="text-gray-700">{row.currentPart}</strong></span>
+                                                                                        <span>{t('old_stock_replaced_by')} <strong className="text-gray-700">{row.currentPart}</strong></span>
                                                                                     </div>
                                                                                 </td>
                                                                                 <td className="px-6 py-3 text-right">
@@ -418,7 +418,7 @@ export const OldStockAlert: React.FC<OldStockAlertProps> = ({ data, graph, onPar
                                                                                     <button 
                                                                                         onClick={(e) => { e.stopPropagation(); onPartClick && onPartClick(detail.partNumber); }}
                                                                                         className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all mx-auto"
-                                                                                        title="Xem chi tiết"
+                                                                                        title={t('old_stock_view_detail')}
                                                                                     >
                                                                                         <Eye size={18} />
                                                                                     </button>

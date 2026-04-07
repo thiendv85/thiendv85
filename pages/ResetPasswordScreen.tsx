@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { supabase } from '../utils/supabase';
 import { useAuth } from '../utils/authContext';
 import { Typography } from '../components/Typography';
+import { useLanguage } from '../utils/i18n';
 
 export const ResetPasswordScreen = () => {
     const { clearPasswordReset, signOut } = useAuth();
+    const { t } = useLanguage();
     const [password, setPassword] = useState('');
     const [confirm, setConfirm] = useState('');
     const [error, setError] = useState<string | null>(null);
@@ -13,8 +15,8 @@ export const ResetPasswordScreen = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (password.length < 6) { setError('Mật khẩu phải có ít nhất 6 ký tự.'); return; }
-        if (password !== confirm) { setError('Mật khẩu xác nhận không khớp.'); return; }
+        if (password.length < 6) { setError(t('reset_pw_min_chars')); return; }
+        if (password !== confirm) { setError(t('reset_pw_mismatch')); return; }
         setIsLoading(true);
         setError(null);
         const { error: err } = await supabase.auth.updateUser({ password });
@@ -38,7 +40,7 @@ export const ResetPasswordScreen = () => {
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-500/20 border border-blue-400/30 mb-4 backdrop-blur-sm">
                         <i className="fas fa-key text-blue-400 text-2xl"></i>
                     </div>
-                    <Typography variant="h1" className="text-white !text-3xl tracking-tight">Đặt mật khẩu mới</Typography>
+                    <Typography variant="h1" className="text-white !text-3xl tracking-tight">{t('reset_pw_title')}</Typography>
                     <Typography variant="body" className="text-slate-400 mt-1">ATP System</Typography>
                 </div>
 
@@ -46,30 +48,30 @@ export const ResetPasswordScreen = () => {
                     {success ? (
                         <div className="text-center py-4">
                             <i className="fas fa-circle-check text-emerald-400 text-4xl mb-3"></i>
-                            <p className="text-emerald-300 font-bold">Mật khẩu đã được cập nhật!</p>
-                            <p className="text-slate-400 text-sm mt-1">Đang chuyển hướng...</p>
+                            <p className="text-emerald-300 font-bold">{t('reset_pw_success')}</p>
+                            <p className="text-slate-400 text-sm mt-1">{t('reset_pw_redirecting')}</p>
                         </div>
                     ) : (
                         <form onSubmit={handleSubmit} className="space-y-5">
                             <div>
-                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Mật khẩu mới</label>
+                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">{t('reset_pw_new')}</label>
                                 <input
                                     type="password"
                                     value={password}
                                     onChange={e => setPassword(e.target.value)}
-                                    placeholder="Tối thiểu 6 ký tự"
+                                    placeholder={t('reset_pw_placeholder')}
                                     required
                                     autoFocus
                                     className="w-full bg-slate-900/50 border border-slate-600 rounded-2xl px-4 py-3 text-white placeholder-slate-500 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all font-medium"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Xác nhận mật khẩu</label>
+                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">{t('reset_pw_confirm')}</label>
                                 <input
                                     type="password"
                                     value={confirm}
                                     onChange={e => setConfirm(e.target.value)}
-                                    placeholder="Nhập lại mật khẩu"
+                                    placeholder={t('reset_pw_confirm_placeholder')}
                                     required
                                     className="w-full bg-slate-900/50 border border-slate-600 rounded-2xl px-4 py-3 text-white placeholder-slate-500 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all font-medium"
                                 />
@@ -88,9 +90,9 @@ export const ResetPasswordScreen = () => {
                                 className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-black py-3 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest text-sm mt-2"
                             >
                                 {isLoading ? (
-                                    <><i className="fas fa-circle-notch fa-spin"></i> Đang lưu...</>
+                                    <><i className="fas fa-circle-notch fa-spin"></i> {t('reset_pw_saving')}</>
                                 ) : (
-                                    <><i className="fas fa-floppy-disk"></i> Lưu mật khẩu</>
+                                    <><i className="fas fa-floppy-disk"></i> {t('reset_pw_save')}</>
                                 )}
                             </button>
 
@@ -99,7 +101,7 @@ export const ResetPasswordScreen = () => {
                                 onClick={() => { clearPasswordReset(); signOut(); }}
                                 className="w-full text-slate-500 hover:text-slate-400 text-sm py-2"
                             >
-                                Hủy, đăng xuất
+                                {t('reset_pw_cancel')}
                             </button>
                         </form>
                     )}

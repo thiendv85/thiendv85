@@ -65,7 +65,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
         if (data && data.length > 0) {
             onData(data, snap.filename, '');
         } else {
-            alert('Không thể tải snapshot. Vui lòng thử lại.');
+            alert(t('upload_snapshot_error'));
         }
     };
 
@@ -73,7 +73,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
         if (!confirm(`Xóa snapshot "${snap.filename}" (${snap.row_count.toLocaleString()} SKUs)?`)) return;
         const ok = await deleteSnapshot(snap.id, snap.storage_path);
         if (ok) setSnapshots(prev => prev.filter(s => s.id !== snap.id));
-        else alert('Lỗi khi xóa snapshot.');
+        else alert(t('upload_delete_error'));
     };
 
     const handleMainFileDrop = (e: React.DragEvent) => {
@@ -82,7 +82,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
             const file = e.dataTransfer.files[0];
             if (file.name.toLowerCase().endsWith('.csv')) setMainFile(file);
-            else alert("Vui lòng chỉ chọn file .csv");
+            else alert(t('upload_csv_only'));
         }
     };
 
@@ -147,17 +147,17 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                 boFilename: boFile?.name,
             }).then(result => {
                 if (result.deduplicated) {
-                    setUploadStatus({ type: 'success', msg: 'Dữ liệu đã tồn tại trên Cloud (bỏ qua upload trùng)' });
+                    setUploadStatus({ type: 'success', msg: t('upload_exists') });
                 } else if (result.success) {
-                    setUploadStatus({ type: 'success', msg: `Đã lưu ${inventoryData.length.toLocaleString()} SKUs lên Cloud` });
+                    setUploadStatus({ type: 'success', msg: t('upload_saved').replace('{0}', inventoryData.length.toLocaleString()) });
                 } else {
-                    setUploadStatus({ type: 'error', msg: `Cảnh báo: Không thể lưu bản sao lên Cloud. ${result.error || ''}` });
+                    setUploadStatus({ type: 'error', msg: `${t('upload_cloud_warn')} ${result.error || ''}`.trim() });
                 }
             }).catch(() => {
-                setUploadStatus({ type: 'error', msg: 'Cảnh báo: Đã nạp dữ liệu nhưng không thể lưu bản sao lên Cloud' });
+                setUploadStatus({ type: 'error', msg: t('upload_cloud_warn') });
             });
         } catch (error) {
-            alert("Lỗi khi đọc file. Vui lòng kiểm tra định dạng CSV.");
+            alert(t('upload_read_error'));
             console.error(error);
         } finally {
             setIsLoading(false);
@@ -175,7 +175,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
             }
             onData(inventoryData, mainFile.name, '');
         } catch (error) {
-            alert("Lỗi khi đọc file. Vui lòng kiểm tra định dạng CSV.");
+            alert(t('upload_read_error'));
             console.error(error);
         } finally {
             setIsLoading(false);
@@ -291,10 +291,10 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                 <div>
                                     <h3 className="text-xl font-bold text-white flex items-center gap-2">
                                         <span className="w-1.5 h-6 bg-gradient-to-b from-blue-400 to-purple-400 rounded-full"></span>
-                                        Nhập Dữ Liệu
+                                        {t('upload_title')}
                                     </h3>
                                     <p className="text-slate-400 text-xs font-medium mt-1 pl-3.5">
-                                        {mode === 'upload' ? 'Tải lên file snapshot tồn kho (.csv)' : 'Truy xuất bản sao lưu từ Cloud'}
+                                        {mode === 'upload' ? t('upload_subtitle') : 'Truy xuất bản sao lưu từ Cloud'}
                                     </p>
                                 </div>
                                 {/* Monthly Data Badge */}
@@ -302,7 +302,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                     isMonthlyLoading ? (
                                         <div className="flex items-center gap-1.5 bg-blue-500/20 border border-blue-400/40 text-blue-300 px-2.5 py-1 rounded-lg text-xs font-bold animate-pulse">
                                             <i className="fas fa-sync fa-spin" />
-                                            <span>Đang đồng bộ...</span>
+                                            <span>{t('upload_syncing')}</span>
                                         </div>
                                     ) : monthlyData ? (
                                         <div className="flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 px-2.5 py-1 rounded-lg text-xs font-bold">
@@ -329,7 +329,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                     }`}
                                 >
                                     <i className="fas fa-upload" />
-                                    Tải File
+                                    {t('upload_file_btn')}
                                 </button>
                                 <button
                                     onClick={() => setMode('history')}
@@ -340,7 +340,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                     }`}
                                 >
                                     <i className="fas fa-cloud" />
-                                    Cloud (Lịch sử)
+                                    {t('upload_cloud_btn')}
                                 </button>
                             </div>
 
@@ -354,7 +354,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                         onDragLeave={onDragLeave}
                                         onDrop={handleMainFileDrop}
                                         onClick={() => !isMonthlyLoading && mainInputRef.current?.click()}
-                                        aria-label="Tải file Inventory chính"
+                                        aria-label={t('upload_main_file')}
                                         className={`
                                       relative w-full h-24 rounded-2xl border-2 border-dashed transition-all cursor-pointer flex items-center px-6 group overflow-hidden focus:outline-none focus:ring-4 focus:ring-blue-50/50
                                       ${isDragging
@@ -373,11 +373,11 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                             <div className="flex flex-col">
                                                 <span className={`text-2xs font-black uppercase tracking-widest mb-1 ${isMonthlyLoading ? 'text-blue-400' : mainFile ? 'text-emerald-400' : 'text-blue-300'}`}>
                                                     {isMonthlyLoading
-                                                        ? 'Đang tải dữ liệu nguồn B...'
+                                                        ? t('upload_loading_source')
                                                         : mainFile ? 'Sẵn sàng phân tích' : 'Dữ liệu chính'}
                                                 </span>
                                                 <span className={`text-sm font-bold truncate transition-colors ${mainFile ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
-                                                    {isMonthlyLoading ? "Vui lòng đợi 10–20s để đồng bộ 80k mã…" : mainFile ? mainFile.name : "Kéo thả file Inventory tại đây…"}
+                                                    {isMonthlyLoading ? t('upload_loading_wait') : mainFile ? mainFile.name : "Kéo thả file Inventory tại đây…"}
                                                 </span>
                                             </div>
                                         </div>
@@ -390,7 +390,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                         <button
                                             type="button"
                                             onClick={() => dealerInputRef.current?.click()}
-                                            aria-label="Tải file tồn kho đại lý tùy chọn"
+                                            aria-label={t('upload_dealer_file')}
                                             className={`h-16 rounded-xl border flex items-center px-4 cursor-pointer transition-all relative overflow-hidden group focus:outline-none focus:ring-4 focus:ring-blue-50/50
                                           ${dealerFile
                                                     ? 'bg-blue-500/10 border-blue-500/50'
@@ -401,9 +401,9 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                                 <i className="fas fa-store"></i>
                                             </div>
                                             <div className="flex flex-col overflow-hidden">
-                                                <span className="text-2xs font-black text-slate-500 uppercase tracking-widest">Tồn Đại Lý</span>
+                                                <span className="text-2xs font-black text-slate-500 uppercase tracking-widest">{t('upload_dealer_stock')}</span>
                                                 <span className={`text-xs font-bold truncate ${dealerFile ? 'text-blue-200' : 'text-slate-400 group-hover:text-slate-200'}`}>
-                                                    {dealerFile ? dealerFile.name : "Tùy chọn"}
+                                                    {dealerFile ? dealerFile.name : t('upload_optional')}
                                                 </span>
                                             </div>
                                             <input type="file" ref={dealerInputRef} className="hidden" accept=".csv" onChange={(e) => e.target.files && setDealerFile(e.target.files[0])} />
@@ -413,7 +413,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                         <button
                                             type="button"
                                             onClick={() => boInputRef.current?.click()}
-                                            aria-label="Tải file đơn nợ BO tùy chọn"
+                                            aria-label={t('upload_bo_file')}
                                             className={`h-16 rounded-xl border flex items-center px-4 cursor-pointer transition-all relative overflow-hidden group focus:outline-none focus:ring-4 focus:ring-rose-50/50
                                           ${boFile
                                                     ? 'bg-rose-500/10 border-rose-500/50'
@@ -424,9 +424,9 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                                 <i className="fas fa-file-invoice"></i>
                                             </div>
                                             <div className="flex flex-col overflow-hidden">
-                                                <span className="text-2xs font-black text-slate-500 uppercase tracking-widest">Đơn Nợ (BO)</span>
+                                                <span className="text-2xs font-black text-slate-500 uppercase tracking-widest">{t('upload_bo')}</span>
                                                 <span className={`text-xs font-bold truncate ${boFile ? 'text-rose-200' : 'text-slate-400 group-hover:text-slate-200'}`}>
-                                                    {boFile ? boFile.name : "Tùy chọn"}
+                                                    {boFile ? boFile.name : t('upload_optional')}
                                                 </span>
                                             </div>
                                             <input type="file" ref={boInputRef} className="hidden" accept=".csv" onChange={(e) => e.target.files && setBoFile(e.target.files[0])} />
@@ -463,7 +463,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                         onClick={processFilesLocalOnly}
                                         className="w-full text-center text-xs font-bold text-slate-400 hover:text-slate-200 transition-colors py-1 disabled:opacity-30 disabled:cursor-not-allowed"
                                     >
-                                        Chỉ xem (không lưu Cloud)
+                                        {t('upload_view_only')}
                                     </button>
                                 </div>
                             )}

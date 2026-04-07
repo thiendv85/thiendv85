@@ -53,10 +53,10 @@ export const SupersessionManagement = ({
     const [isLoadingCloud, setIsLoadingCloud] = useState(false);
 
     const handleSaveToCloud = async () => {
-        const pin = prompt('Vui lòng nhập Mã Phê Duyệt (Admin PIN) để lưu cấu hình này lên máy chủ:\n(Mặc định: 2026)');
+        const pin = prompt(t('ss_mgmt_enter_pin'));
         if (pin === null) return;
         if (!verifyAdminPin(pin)) {
-            alert('❌ Mã phê duyệt không chính xác!');
+            alert(t('ss_mgmt_wrong_pin'));
             return;
         }
 
@@ -64,9 +64,9 @@ export const SupersessionManagement = ({
         const success = await saveToCloudStorage('supersession_draft', mappings);
         setIsSavingCloud(false);
         if (success) {
-            alert('✅ Đã lưu Dự thảo Mã chuyển đổi lên Cloud (Supabase) thành công!');
+            alert(t('ss_mgmt_cloud_saved'));
         } else {
-            alert('Lỗi khi lưu lên Cloud. Vui lòng kiểm tra thiết lập SQL Supabase.');
+            alert(t('ss_mgmt_cloud_save_error'));
         }
     };
 
@@ -76,9 +76,9 @@ export const SupersessionManagement = ({
         setIsLoadingCloud(false);
         if (data && Array.isArray(data)) {
             onUpdateMappings(data);
-            alert('Đã tải Dự thảo từ Cloud thành công!');
+            alert(t('ss_mgmt_cloud_loaded'));
         } else {
-            alert('Không tìm thấy bản dự thảo nào trên Cloud hoặc có lỗi.');
+            alert(t('ss_mgmt_cloud_load_error'));
         }
     };
 
@@ -122,7 +122,7 @@ export const SupersessionManagement = ({
     };
 
     const handleDeleteMapping = (mappingToDelete: SupersessionMapping) => {
-        if (window.confirm(`Bạn có chắc muốn xóa liên kết ${mappingToDelete.oldPart} -> ${mappingToDelete.newPart}?`)) {
+        if (window.confirm(`${t('ss_confirm_delete_mapping')} ${mappingToDelete.oldPart} -> ${mappingToDelete.newPart}?`)) {
             const newMappings = mappings.filter(m => !(m.oldPart === mappingToDelete.oldPart && m.newPart === mappingToDelete.newPart));
             onUpdateMappings(newMappings);
         }
@@ -165,7 +165,7 @@ export const SupersessionManagement = ({
                             </div>
                             <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg">
                                 <i className="fas fa-diagram-project text-emerald-300 text-[10px]"></i>
-                                <span className="text-[10px] font-black text-white/50 uppercase">Chuỗi</span>
+                                <span className="text-[10px] font-black text-white/50 uppercase">{t('ss_mgmt_chain')}</span>
                                 <span className="text-sm font-black text-white">{stats.totalChains.toLocaleString()}</span>
                             </div>
                             {stats.errors > 0 && (
@@ -184,19 +184,19 @@ export const SupersessionManagement = ({
                     {/* Action buttons — compact */}
                     <div className="flex items-center gap-1.5">
                         <button onClick={onAddMapping} className="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-black transition-colors">
-                            <Plus size={13} /> Thêm
+                            <Plus size={13} /> {t('ss_mgmt_add')}
                         </button>
-                        <button onClick={handleLoadFromCloud} disabled={isLoadingCloud} title="Tải từ Cloud" className="w-8 h-8 flex items-center justify-center bg-white/10 border border-white/20 text-white/70 hover:bg-white/20 rounded-lg transition-all">
+                        <button onClick={handleLoadFromCloud} disabled={isLoadingCloud} title={t('ss_mgmt_load_cloud_title')} className="w-8 h-8 flex items-center justify-center bg-white/10 border border-white/20 text-white/70 hover:bg-white/20 rounded-lg transition-all">
                             <i className={`fas ${isLoadingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-down'} text-xs`} />
                         </button>
-                        <button onClick={() => setShowUpload(!showUpload)} title={showUpload ? 'Hủy' : 'Nhập Local'} className={`w-8 h-8 flex items-center justify-center border rounded-lg transition-all ${showUpload ? 'bg-white/20 border-white/30 text-white' : 'bg-white/10 border-white/20 text-white/70 hover:bg-white/20'}`}>
+                        <button onClick={() => setShowUpload(!showUpload)} title={showUpload ? t('ss_mgmt_cancel') : t('ss_mgmt_import_local')} className={`w-8 h-8 flex items-center justify-center border rounded-lg transition-all ${showUpload ? 'bg-white/20 border-white/30 text-white' : 'bg-white/10 border-white/20 text-white/70 hover:bg-white/20'}`}>
                             {showUpload ? <X size={13} /> : <Upload size={13} />}
                         </button>
                         {mappings.length > 0 && (<>
-                            <button onClick={handleSaveToCloud} disabled={isSavingCloud} title="Lưu Cloud" className="w-8 h-8 flex items-center justify-center bg-white/10 border border-white/20 text-white/70 hover:bg-white/20 rounded-lg transition-all">
+                            <button onClick={handleSaveToCloud} disabled={isSavingCloud} title={t('ss_mgmt_save_cloud_title')} className="w-8 h-8 flex items-center justify-center bg-white/10 border border-white/20 text-white/70 hover:bg-white/20 rounded-lg transition-all">
                                 <i className={`fas ${isSavingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up'} text-xs`} />
                             </button>
-                            <button onClick={handleExport} title="Xuất Local" className="w-8 h-8 flex items-center justify-center bg-white/10 border border-white/20 text-white/70 hover:bg-white/20 rounded-lg transition-all">
+                            <button onClick={handleExport} title={t('ss_mgmt_export_local')} className="w-8 h-8 flex items-center justify-center bg-white/10 border border-white/20 text-white/70 hover:bg-white/20 rounded-lg transition-all">
                                 <Download size={13} />
                             </button>
                             <button onClick={handleClear} title={t('ss_clear')} className="w-8 h-8 flex items-center justify-center bg-white/10 border border-white/20 text-white/70 hover:bg-rose-500/40 hover:border-rose-400/30 rounded-lg transition-all">
@@ -216,7 +216,7 @@ export const SupersessionManagement = ({
                                     ? 'bg-white/15 text-white border border-white/25 shadow-inner'
                                     : 'text-white/40 hover:text-white/70 hover:bg-white/5 border border-transparent'}`}
                         >
-                            <List size={11} className={activeTab === 'MAPPING' ? 'text-purple-300' : ''} /> Danh sách Mapping
+                            <List size={11} className={activeTab === 'MAPPING' ? 'text-purple-300' : ''} /> {t('ss_mgmt_mapping_tab')}
                         </button>
                         <button
                             onClick={() => setActiveTab('OLD_STOCK')}
@@ -225,7 +225,7 @@ export const SupersessionManagement = ({
                                     ? 'bg-rose-500/20 text-rose-200 border border-rose-400/30 shadow-inner'
                                     : 'text-white/40 hover:text-white/70 hover:bg-white/5 border border-transparent'}`}
                         >
-                            <History size={11} className={activeTab === 'OLD_STOCK' ? 'text-rose-300' : ''} /> Cảnh báo Tồn Mã Cũ
+                            <History size={11} className={activeTab === 'OLD_STOCK' ? 'text-rose-300' : ''} /> {t('ss_mgmt_old_stock_tab')}
                             {stats.errors > 0 && <span className="bg-rose-500/40 text-rose-200 text-[9px] font-black px-1.5 py-0.5 rounded-full ml-0.5">{stats.errors}</span>}
                         </button>
                     </div>
@@ -344,9 +344,9 @@ export const SupersessionManagement = ({
                         <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6 text-slate-300">
                             <GitMerge size={48} />
                         </div>
-                        <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight mb-2">Chưa có dữ liệu Supersession</h3>
+                        <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight mb-2">{t('ss_mgmt_no_data')}</h3>
                         <p className="text-slate-500 text-sm font-medium max-w-md mb-8">
-                            Vui lòng nhập file CSV chứa thông tin thay thế mã (Mapping) để bắt đầu phân tích chuỗi thay thế và gộp tồn kho.
+                            {t('ss_mgmt_no_data_desc')}
                         </p>
                         <button
                             onClick={() => setShowUpload(true)}
