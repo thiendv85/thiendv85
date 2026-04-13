@@ -189,31 +189,42 @@ export interface ComputedFields {
  * 2. AvgQty theo demandSource setting
  * 3. Trung bình SalesHistory nếu AvgQty = 0
  * 4. Tối thiểu 0.01 (tránh chia 0)
+ * 5. Nhân với hệ số mùa vụ (nếu có)
  */
 function resolveDemand(item: InventoryItem, source: '3M' | '6M' | '12M'): number {
+    let baseDemand = 0;
+
     // Tầng 1: BaseForecast ưu tiên cao nhất
-    if (item.BaseForecast > 0) return item.BaseForecast;
+    if (item.BaseForecast > 0) {
+        baseDemand = item.BaseForecast;
+    } else {
+        // Tầng 2: Dùng theo demandSource setting
+        let avg = 0;
+        if (source === '3M') {
+            avg = item.AvgQty3M || item.AvgQty6M || item.AvgQty12M || 0;
+        } else if (source === '6M') {
+            avg = item.AvgQty6M || item.AvgQty3M || item.AvgQty12M || 0;
+        } else { // 12M
+            avg = item.AvgQty12M || item.AvgQty6M || item.AvgQty3M || 0;
+        }
 
-    // Tầng 2: Dùng theo demandSource setting
-    let avg = 0;
-    if (source === '3M') {
-        avg = item.AvgQty3M || item.AvgQty6M || item.AvgQty12M || 0;
-    } else if (source === '6M') {
-        avg = item.AvgQty6M || item.AvgQty3M || item.AvgQty12M || 0;
-    } else { // 12M
-        avg = item.AvgQty12M || item.AvgQty6M || item.AvgQty3M || 0;
+        if (avg > 0) {
+            baseDemand = avg;
+        } else if (item.SalesHistory && item.SalesHistory.length > 0) {
+            // Tầng 3: Trung bình SalesHistory 12 tháng
+            const total = item.SalesHistory.reduce((a, b) => a + b, 0);
+            const histAvg = total / item.SalesHistory.length;
+            baseDemand = histAvg > 0 ? histAvg : 0.01;
+        } else {
+            // Tầng 4: Fallback tối thiểu
+            baseDemand = 0.01;
+        }
     }
-    if (avg > 0) return avg;
 
-    // Tầng 3: Trung bình SalesHistory 12 tháng
-    if (item.SalesHistory && item.SalesHistory.length > 0) {
-        const total = item.SalesHistory.reduce((a, b) => a + b, 0);
-        const histAvg = total / item.SalesHistory.length;
-        if (histAvg > 0) return histAvg;
-    }
-
-    // Tầng 4: Fallback tối thiểu
-    return 0.01;
+    // Tầng 5: Áp dụng hệ số mùa vụ (Seasonality Factor)
+    // Nếu không có factor hoặc factor = 0, mặc định là 1 (không đổi)
+    const factor = (item as any).SeasonalityFactor || 1;
+    return baseDemand * (factor > 0 ? factor : 1);
 }
 
 /** Tính tồn kho vật lý (OH + DC) theo phạm vi kho */
@@ -397,6 +408,13 @@ export function computeInventory(
     // 🔵 Info
     if (item.LOISGroup === '7' || item.LOISGroup === '8' || isStop) {
         warnings.push({ type: 'Info', code: 'NEAR_EOL', message: 'Mã hàng sắp ngừng / Slow-mover' });
+    }
+
+    const factor = (item as any).SeasonalityFactor || 1;
+    if (factor > 1.2) {
+        warnings.push({ type: 'Info', code: 'SEASONAL_PEAK', message: `Đang ở mùa cao điểm (Hệ số x${factor.toFixed(1)})` });
+    } else if (factor < 0.8 && factor > 0) {
+        warnings.push({ type: 'Info', code: 'SEASONAL_LOW', message: `Đang ở mùa thấp điểm (Hệ số x${factor.toFixed(1)})` });
     }
 
     // ── 4. RISK FLAGS ──────────────────────────────────────────────────────
