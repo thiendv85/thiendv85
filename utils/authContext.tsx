@@ -82,19 +82,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         console.log("AuthProvider: Initializing...");
         
-        supabase.auth.getSession().then(({ data: { session: s } }) => {
+        supabase.auth.getSession().then(async ({ data: { session: s } }) => {
             console.log("AuthProvider: Session retrieved:", s ? "Logged In" : "No Session");
             setSession(s);
             setUser(s?.user ?? null);
-            setIsLoading(false);
+            
             if (s?.user) {
                 console.log("AuthProvider: Fetching profile for", s.user.id);
-                fetchProfile(s.user.id).then(p => {
-                    console.log("AuthProvider: Profile loaded:", p ? p.role : "NULL (Empty profiles table?)");
-                    setProfile(p);
-                });
+                const p = await fetchProfile(s.user.id);
+                console.log("AuthProvider: Profile loaded:", p ? p.role : "NULL");
+                setProfile(p);
             }
+            setIsLoading(false);
         }).catch(err => {
+            console.error("AuthProvider: Session error:", err);
+            setIsLoading(false);
+        });
             console.error("AuthProvider: Session error:", err);
             setIsLoading(false);
         });

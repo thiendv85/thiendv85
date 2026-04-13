@@ -138,9 +138,8 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                 alert("Không tìm thấy dữ liệu hợp lệ trong file chính.");
                 return;
             }
-            // Only admins and planners can save to cloud.
-            // Viewers and unauthenticated users must use processFilesLocalOnly.
-            const canUpload = profile?.role === 'admin' || profile?.role === 'planner';
+            // Only admin, planner, and approver can save to cloud
+            const canUpload = profile?.role === 'admin' || profile?.role === 'planner' || profile?.role === 'approver';
             
             if (!canUpload) {
                 console.log("FileUpload: Role not authorized for cloud saving. Defaulting to local analysis.");
@@ -446,11 +445,11 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                     {/* Action Buttons */}
                                     <div className="space-y-4 pt-1 w-full max-w-xs transition-all duration-300">
                                         <button
-                                            disabled={!mainFile || isLoading || isMonthlyLoading || (profile?.role !== 'admin' && profile?.role !== 'planner')}
+                                            disabled={!mainFile || isLoading || isMonthlyLoading || (profile?.role !== 'admin' && profile?.role !== 'planner' && profile?.role !== 'approver')}
                                             onClick={processFiles}
                                             className={`
                                                 w-full h-14 rounded-xl font-black uppercase tracking-[0.15em] shadow-lg transition-all flex items-center justify-center gap-3 mt-4 border border-white/10 group relative overflow-hidden
-                                                ${!mainFile || isLoading || isMonthlyLoading || (profile?.role !== 'admin' && profile?.role !== 'planner')
+                                                ${!mainFile || isLoading || isMonthlyLoading || (profile?.role !== 'admin' && profile?.role !== 'planner' && profile?.role !== 'approver')
                                                     ? 'bg-slate-700/50 text-slate-500 cursor-not-allowed'
                                                     : 'bg-gradient-blue hover:shadow-glow-blue hover:scale-[1.02] text-white'}
                                             `}
@@ -462,7 +461,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                                 </>
                                             ) : (
                                                 <>
-                                                    {(profile?.role !== 'admin' && profile?.role !== 'planner') && (
+                                                    {(profile?.role !== 'admin' && profile?.role !== 'planner' && profile?.role !== 'approver') && (
                                                         <i className="fas fa-lock text-[10px] opacity-70" title="Bạn không có quyền lưu Cloud. Vui lòng chọn bản Chỉ xem bên dưới." />
                                                     )}
                                                     <i className={`fas ${isLoading ? 'fa-circle-notch fa-spin' : 'fa-cloud-upload-alt'} group-hover:scale-110 transition-transform`}></i>
