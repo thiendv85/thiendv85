@@ -98,9 +98,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             console.error("AuthProvider: Session error:", err);
             setIsLoading(false);
         });
-            console.error("AuthProvider: Session error:", err);
-            setIsLoading(false);
-        });
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
             console.log("AuthProvider: Auth state change:", _event, s ? "Logged In" : "Logged Out");
