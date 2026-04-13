@@ -164,7 +164,7 @@ const StatCard = ({ label, value, sub, icon, color, onClick, children }: { label
     const cardContent = (
         <div
             onClick={onClick}
-            className={`bg-white p-3 md:p-4 rounded-2xl md:rounded-3xl border border-slate-100 shadow-sm md:shadow-glass flex flex-col justify-between hover:shadow-xl hover:scale-[1.02] transition-all group ${onClick ? 'cursor-pointer' : ''} h-full relative min-w-[140px] md:min-w-0 snap-start shrink-0`}
+            className={`p-3 md:p-4 rounded-2xl flex flex-col justify-between transition-all group ${onClick ? 'cursor-pointer' : ''} h-full relative min-w-[140px] md:min-w-0 snap-start shrink-0`}
         >
             <div className="flex justify-between items-start mb-1.5 md:mb-1.5 mb-1">
                 <Typography variant="label" className="text-slate-500 leading-tight !text-[10px] md:text-xs">{label}</Typography>
@@ -305,8 +305,8 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
 
     return (
         <div className="flex flex-col h-full bg-[#F8FAFC]">
-            {/* COMPACT STICKY HEADER */}
-            <div className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm shrink-0">
+            {/* Header Section - Sticky */}
+            <div className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-[#F8FAFC] border-b border-slate-200 sticky top-0 z-30 shrink-0">
                 <div className="flex justify-between items-center gap-2 md:gap-4">
                     <div className="relative group flex-1 max-w-sm">
                         <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
@@ -360,7 +360,7 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
 
                         <div className="h-full min-w-[140px] md:min-w-0 snap-start shrink-0">
                             <BackorderPopup items={item.BackorderBreakdown || []}>
-                                <div className="bg-white p-3 md:p-4 rounded-2xl md:rounded-3xl border border-slate-100 shadow-sm md:shadow-glass flex flex-col justify-between hover:shadow-xl hover:scale-[1.02] transition-all group h-full cursor-help relative">
+                                <div className="p-3 md:p-4 rounded-2xl flex flex-col justify-between transition-all group h-full cursor-help relative">
                                     <div className="flex justify-between items-start mb-1 md:mb-1.5">
                                         <Typography variant="label" className="text-slate-500 leading-tight !text-[10px] md:text-xs">BOOKING / BO</Typography>
                                         <div className={`w-6 h-6 md:w-7 md:h-7 rounded-lg flex items-center justify-center text-[10px] md:text-xs shadow-sm ${item.Backorder > 0 ? "bg-blue-50 text-blue-600" : "bg-slate-50 text-slate-400"} group-hover:scale-110 transition-transform shrink-0`}>
