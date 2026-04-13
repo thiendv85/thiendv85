@@ -74,6 +74,7 @@ export interface ComputeParams {
     warehouseScope: 'All' | 'NB' | 'BB';  // Phạm vi kho
     costBasis: 'PP' | 'FOB';              // Cơ sở tính giá
     snapshotYYMM: string;                  // Tháng snapshot, dạng "YYMM" để match Pipeline keys
+    applySeasonality: boolean;             // Toggle factor usage
     sourceProfiles?: SourceProfile[];      // Danh sách profiles để mapping tự động
 }
 
@@ -191,7 +192,7 @@ export interface ComputedFields {
  * 4. Tối thiểu 0.01 (tránh chia 0)
  * 5. Nhân với hệ số mùa vụ (nếu có)
  */
-function resolveDemand(item: InventoryItem, source: '3M' | '6M' | '12M'): number {
+function resolveDemand(item: InventoryItem, source: '3M' | '6M' | '12M', applySeasonality: boolean): number {
     let baseDemand = 0;
 
     // Tầng 1: BaseForecast ưu tiên cao nhất
@@ -221,10 +222,13 @@ function resolveDemand(item: InventoryItem, source: '3M' | '6M' | '12M'): number
         }
     }
 
-    // Tầng 5: Áp dụng hệ số mùa vụ (Seasonality Factor)
-    // Nếu không có factor hoặc factor = 0, mặc định là 1 (không đổi)
-    const factor = (item as any).SeasonalityFactor || 1;
-    return baseDemand * (factor > 0 ? factor : 1);
+    // Tầng 5: Áp dụng hệ số mùa vụ (Seasonality Factor) - CHỈ KHI BẬT
+    if (applySeasonality) {
+        const factor = (item as any).SeasonalityFactor || 1;
+        return baseDemand * (factor > 0 ? factor : 1);
+    }
+    
+    return baseDemand;
 }
 
 /** Tính tồn kho vật lý (OH + DC) theo phạm vi kho */
@@ -332,17 +336,16 @@ export function computeInventory(
     itemProfileResult?: { profile?: SourceProfile; isFallback?: boolean; fallbackReason?: string }
 ): ComputedFields {
     const draftQty = draftData.air + draftData.sea;
-    const itemProfile = itemProfileResult?.profile;
 
     // ── 0. PARAMS RESOLUTION ────────────────────────────────────────────────
-    // Nếu có profile truyền vào (ví dụ khớp từ SourceId), dùng tham số của profile đó.
-    // Nếu không, dùng tham số toàn cục từ params.
-    const effectiveLT = itemProfile?.lt ?? params.lt;
-    const effectiveSP = itemProfile?.sp ?? params.sp;
-    const effectiveSSP = itemProfile?.ssp ?? params.ssp;
+    // 1. Resolve Leadtime settings
+    const profile = itemProfileResult?.profile;
+    const effectiveLT = profile?.lt ?? params.lt;
+    const effectiveSP = profile?.sp ?? params.sp;
+    const effectiveSSP = profile?.ssp ?? params.ssp;
 
-    // ── 1. DEMAND ──────────────────────────────────────────────────────────
-    const demandMonthly = resolveDemand(item, params.demandSource);
+    // 2. Resolve Demand (Monthly) - TUÂN THỦ applySeasonality
+    const demandMonthly = resolveDemand(item, params.demandSource, params.applySeasonality);
     const demandRateDaily = demandMonthly / 30;
 
     // ── 2. STOCK POSITIONS ─────────────────────────────────────────────────
@@ -409,12 +412,14 @@ export function computeInventory(
     if (item.LOISGroup === '7' || item.LOISGroup === '8' || isStop) {
         warnings.push({ type: 'Info', code: 'NEAR_EOL', message: 'Mã hàng sắp ngừng / Slow-mover' });
     }
-
-    const factor = (item as any).SeasonalityFactor || 1;
-    if (factor > 1.2) {
-        warnings.push({ type: 'Info', code: 'SEASONAL_PEAK', message: `Đang ở mùa cao điểm (Hệ số x${factor.toFixed(1)})` });
-    } else if (factor < 0.8 && factor > 0) {
-        warnings.push({ type: 'Info', code: 'SEASONAL_LOW', message: `Đang ở mùa thấp điểm (Hệ số x${factor.toFixed(1)})` });
+    // 3b. Seasonality Warn (Chỉ hiện khi applySeasonality = true)
+    if (params.applySeasonality) {
+        const factor = (item as any).SeasonalityFactor || 1;
+        if (factor >= 1.2) {
+            warnings.push({ type: 'Info', code: 'SEASONAL_PEAK', message: `Mùa cao điểm (Hệ số x${factor})` });
+        } else if (factor <= 0.8 && factor > 0) {
+            warnings.push({ type: 'Info', code: 'SEASONAL_LOW', message: `Mùa thấp điểm (Hệ số x${factor})` });
+        }
     }
 
     // ── 4. RISK FLAGS ──────────────────────────────────────────────────────
@@ -835,11 +840,10 @@ export function makeComputeParams(
         costBasis: 'PP' | 'FOB';
         demandSource: '3M' | '6M' | '12M';
         params: { lt: number; sp: number; ssp: number };
+        applySeasonality?: boolean;
         sourceProfiles?: SourceProfile[];
     }
 ): ComputeParams {
-    const d = settings.snapshotDate;
-    const snapshotYYMM = d.slice(2, 4) + d.slice(5, 7);
     return {
         lt: settings.params.lt,
         sp: settings.params.sp,
@@ -847,7 +851,8 @@ export function makeComputeParams(
         demandSource: settings.demandSource,
         warehouseScope: settings.warehouseScope,
         costBasis: settings.costBasis,
-        snapshotYYMM,
-        sourceProfiles: settings.sourceProfiles,
+        snapshotYYMM: settings.snapshotDate.replace(/-/g, '').substring(2, 6),
+        applySeasonality: settings.applySeasonality || false,
+        sourceProfiles: settings.sourceProfiles
     };
 }

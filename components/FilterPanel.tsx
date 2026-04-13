@@ -188,6 +188,14 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
             </div>
             <div className="flex items-center gap-2">
               <button
+                onClick={() => onSettingsChange({ ...settings, applySeasonality: !settings.applySeasonality })}
+                className={`flex items-center gap-2 px-2.5 py-1 rounded-full text-[9px] font-black transition-all border ${settings.applySeasonality ? 'bg-emerald-600 text-white border-emerald-700 shadow-md shadow-emerald-500/20' : 'bg-white text-slate-400 border-slate-200 hover:text-slate-600'}`}
+                title="Áp dụng Hệ số Mùa vụ"
+              >
+                <i className={`fas ${settings.applySeasonality ? 'fa-calendar-check' : 'fa-calendar-circle-minus'}`}></i>
+                {settings.applySeasonality ? 'MÙA VỤ: ON' : 'MÙA VỤ: OFF'}
+              </button>
+              <button
                 onClick={() => {
                   const resetProfiles = settings.sourceProfiles?.map(p => {
                     const def = DEFAULT_SOURCE_PROFILES.find(d => d.id.toUpperCase() === p.id.toUpperCase());
