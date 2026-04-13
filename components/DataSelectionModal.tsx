@@ -57,8 +57,8 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
                 const list = await listSnapshots(fetchLimit, brandFilter);
                 setSnapshots(list);
 
-                // Expose the brand filter pills ONLY to admins
-                if (isAdmin) {
+                // Expose the brand filter pills to admins OR users with full data access (ALL)
+                if (isAdmin || userBrand === null) {
                     if (!selectedBrand || selectedBrand === 'ALL') {
                         const brands = Array.from(new Set(list.map(s => s.brand).filter(Boolean))) as string[];
                         setAvailableBrands(['ALL', ...brands]);

@@ -832,8 +832,25 @@ export async function uploadSnapshot(
 ): Promise<{ success: boolean; error?: string; deduplicated?: boolean }> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
+    
+    // Get user's department for security segregation if data doesn't provide brand
+    let userDepartmentBrand: string | null = null;
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('department')
+        .eq('id', user.id)
+        .single();
+      if (profile) {
+        userDepartmentBrand = normalizeBrand(profile.department);
+      }
+    }
+
     const rawBrand = data[0]?.BrandName || data[0]?.ThuongHieu || null;
-    const brand = normalizeBrand(rawBrand);
+    const dataBrand = normalizeBrand(rawBrand);
+    
+    // Final brand is either from the data itself or the user's current department/brand
+    const brand = dataBrand || userDepartmentBrand;
     const contentHash = computeSnapshotHash(data);
 
     // Dedup: skip if same hash exists within 24h
@@ -878,7 +895,8 @@ export async function uploadSnapshot(
       row_count: data.length,
       file_size_bytes: compressed.size,
       raw_size_bytes: rawSize,
-      uploaded_by: user?.id ?? null,
+      // Identity restriction: Set uploaded_by as null to maintain anonymity as requested
+      uploaded_by: null,
       brand,
       content_hash: contentHash,
     });

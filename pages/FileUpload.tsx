@@ -138,6 +138,16 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                 alert("Không tìm thấy dữ liệu hợp lệ trong file chính.");
                 return;
             }
+            // Only admins and planners can save to cloud.
+            // Viewers and unauthenticated users must use processFilesLocalOnly.
+            const canUpload = profile?.role === 'admin' || profile?.role === 'planner';
+            
+            if (!canUpload) {
+                console.log("FileUpload: Role not authorized for cloud saving. Defaulting to local analysis.");
+                processFilesLocalOnly();
+                return;
+            }
+
             // Phân tích ngay (không chờ upload)
             onData(inventoryData, mainFile.name, '');
 
@@ -434,37 +444,41 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                     </div>
 
                                     {/* Action Buttons */}
-                                    <button
-                                        disabled={!mainFile || isLoading || isMonthlyLoading}
-                                        onClick={processFiles}
-                                        className={`
-                                      w-full h-14 rounded-xl font-black uppercase tracking-[0.15em] shadow-lg transition-all flex items-center justify-center gap-3 mt-4 border border-white/10 group relative overflow-hidden
-                                      ${!mainFile || isLoading || isMonthlyLoading
-                                                ? 'bg-slate-700/50 text-slate-500 cursor-not-allowed'
-                                                : 'bg-gradient-blue hover:shadow-glow-blue hover:scale-[1.02] text-white'}
-                                  `}
-                                    >
-                                        {isLoading || isMonthlyLoading ? (
-                                            <>
-                                                <i className="fas fa-circle-notch animate-spin"></i>
-                                                <span>{isMonthlyLoading ? 'Syncing Monthly...' : 'Processing...'}</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <i className="fas fa-cloud-arrow-up relative z-10"></i>
-                                                <span className="relative z-10">Lưu & Phân Tích</span>
-                                                <i className="fas fa-arrow-right group-hover:translate-x-1 transition-transform relative z-10"></i>
-                                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-                                            </>
-                                        )}
-                                    </button>
-                                    <button
-                                        disabled={!mainFile || isLoading || isMonthlyLoading}
-                                        onClick={processFilesLocalOnly}
-                                        className="w-full text-center text-xs font-bold text-slate-400 hover:text-slate-200 transition-colors py-1 disabled:opacity-30 disabled:cursor-not-allowed"
-                                    >
-                                        Chỉ xem (không lưu Cloud)
-                                    </button>
+                                    <div className="space-y-4 pt-1 w-full max-w-xs transition-all duration-300">
+                                        <button
+                                            disabled={!mainFile || isLoading || isMonthlyLoading || (profile?.role !== 'admin' && profile?.role !== 'planner')}
+                                            onClick={processFiles}
+                                            className={`
+                                                w-full h-14 rounded-xl font-black uppercase tracking-[0.15em] shadow-lg transition-all flex items-center justify-center gap-3 mt-4 border border-white/10 group relative overflow-hidden
+                                                ${!mainFile || isLoading || isMonthlyLoading || (profile?.role !== 'admin' && profile?.role !== 'planner')
+                                                    ? 'bg-slate-700/50 text-slate-500 cursor-not-allowed'
+                                                    : 'bg-gradient-blue hover:shadow-glow-blue hover:scale-[1.02] text-white'}
+                                            `}
+                                        >
+                                            {isLoading || isMonthlyLoading ? (
+                                                <>
+                                                    <i className="fas fa-circle-notch animate-spin"></i>
+                                                    <span>{isMonthlyLoading ? 'Syncing Monthly...' : 'Processing...'}</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    {(profile?.role !== 'admin' && profile?.role !== 'planner') && (
+                                                        <i className="fas fa-lock text-[10px] opacity-70" title="Bạn không có quyền lưu Cloud. Vui lòng chọn bản Chỉ xem bên dưới." />
+                                                    )}
+                                                    <i className={`fas ${isLoading ? 'fa-circle-notch fa-spin' : 'fa-cloud-upload-alt'} group-hover:scale-110 transition-transform`}></i>
+                                                    <span className="font-bold tracking-widest text-xs uppercase">LƯU & PHÂN TÍCH</span>
+                                                </>
+                                            )}
+                                        </button>
+                                        
+                                        <button
+                                            disabled={!mainFile || isLoading || isMonthlyLoading}
+                                            onClick={processFilesLocalOnly}
+                                            className="w-full text-center text-xs font-bold text-slate-400 hover:text-slate-200 transition-colors py-1 disabled:opacity-30 disabled:cursor-not-allowed"
+                                        >
+                                            Chỉ xem (không lưu Cloud)
+                                        </button>
+                                    </div>
                                 </div>
                             )}
 
