@@ -371,14 +371,6 @@ const AppContent = () => {
                                 <i className="fas fa-chevron-down text-[8px] opacity-50 ml-0.5" />
                             </button>
                         )}
-                        
-                        <button 
-                            onClick={() => setIsDataModalOpen(true)}
-                            title="Chọn dữ liệu từ Cloud (Bản sao lưu kho hoặc Dữ liệu tháng)"
-                            className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition-all flex items-center justify-center shrink-0"
-                        >
-                            <i className="fas fa-cloud text-xs" />
-                        </button>
                     </div>
 
                     <nav className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10 overflow-x-auto no-scrollbar backdrop-blur-md shadow-inner">
@@ -421,13 +413,7 @@ const AppContent = () => {
                                 <Typography variant="label" className={language === 'en' ? 'text-blue-600' : 'text-slate-400'}>EN</Typography>
                             </button>
                         </div>
-                        <button
-                            onClick={() => setIsDataModalOpen(true)}
-                            title="Tải Dữ Liệu Cloud"
-                            className="text-slate-400 hover:text-blue-500 hover:bg-blue-500/20 transition-colors p-2 rounded-lg"
-                        >
-                            <i className="fas fa-cloud text-base md:text-lg" />
-                        </button>
+
                         <button
                             onClick={() => setView('settings')}
                             title="Cấu hình hệ thống"
