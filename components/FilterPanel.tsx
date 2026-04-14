@@ -15,7 +15,7 @@ interface FilterPanelProps {
 }
 
 const SpecialFilterButton = ({ label, icon, isActive, onClick }: { label: string, icon: string, isActive: boolean, onClick: () => void }) => (
-  <button onClick={onClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[11px] font-black transition-all shadow-sm border h-8 uppercase tracking-wide ${isActive ? 'bg-blue-600 text-white border-blue-700 shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600'}`}>
+  <button onClick={onClick} className={`flex items-center gap-2 px-2.5 py-1 rounded-lg text-[10px] font-black transition-all shadow-sm border h-8 uppercase tracking-wide ${isActive ? 'bg-blue-600 text-white border-blue-700 shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600'}`}>
     <i className={`fas ${icon} ${isActive ? 'text-white' : 'text-slate-400'}`}></i>
     <span className="hidden sm:inline">{label}</span>
   </button>
@@ -44,7 +44,7 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
   }, [data, settings.sourceProfiles]);
 
   const getSelectClass = (isActive: boolean) => {
-    const base = "w-full cursor-pointer px-3 py-1.5 bg-white border rounded-xl text-xs font-black focus:ring-4 focus:ring-blue-50 focus:border-blue-400 outline-none h-9 shadow-sm transition-all uppercase tracking-tighter appearance-none transition-all duration-200";
+    const base = "w-full cursor-pointer px-3 py-1 bg-white border rounded-xl text-xs font-black focus:ring-4 focus:ring-blue-50 focus:border-blue-400 outline-none h-9 shadow-sm transition-all uppercase tracking-tighter appearance-none transition-all duration-200";
     return isActive ? `${base} border-blue-600 text-blue-800 bg-blue-50/50` : `${base} border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-700`;
   };
 
@@ -87,12 +87,12 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
 
   // The full filter panel content — shared between desktop inline and mobile drawer
   const filterBody = (
-    <div className="bg-white p-3 sm:p-5 rounded-3xl shadow-soft hover:shadow-medium border border-slate-200/60 transition-all space-y-4">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div className="bg-white p-2.5 sm:p-3.5 rounded-3xl shadow-soft hover:shadow-medium border border-slate-200/60 transition-all space-y-3">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
         {/* LEFT COLUMN: FILTERS (8/12) */}
-        <div className="lg:col-span-8 space-y-5">
-          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-y-4 sm:gap-4">
+        <div className="lg:col-span-8 space-y-3">
+          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
             <div>
               <label className="block text-[10px] font-black text-blue-700/80 uppercase tracking-[0.15em] mb-1.5">{t('filter_scope')}</label>
               <div className="flex bg-slate-100/60 p-1 rounded-xl h-9 items-center border border-slate-200/50 shadow-inner">
@@ -201,7 +201,7 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
                   <button
                     key={opt.id}
                     onClick={() => toggleDebtStatus(opt.id)}
-                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black border transition-all uppercase tracking-wide
+                    className={`px-2.5 py-1 rounded-lg text-[9px] font-black border transition-all uppercase tracking-wide
                                         ${isActive
                         ? 'bg-blue-600 text-white border-blue-700 shadow-md'
                         : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-700 hover:shadow-sm'
@@ -217,9 +217,9 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
         </div>
 
         {/* RIGHT COLUMN: PLANNING PARAMS (4/12) */}
-        <div className="lg:col-span-4 flex flex-col gap-3 bg-slate-50/50 p-4 rounded-3xl border border-slate-200 shadow-inner overflow-hidden">
+        <div className="lg:col-span-4 flex flex-col gap-2.5 bg-slate-50/50 p-3 rounded-3xl border border-slate-200 shadow-inner overflow-hidden">
           <div className="flex items-center justify-between">
-            <div className="text-[11px] font-black text-blue-800 uppercase tracking-[0.15em] flex items-center gap-2">
+            <div className="text-[10px] font-black text-blue-800 uppercase tracking-[0.15em] flex items-center gap-1.5">
               <i className="fas fa-sliders-h text-blue-600/80"></i> {t('Planning Params')}
             </div>
             <div className="flex items-center gap-2">
