@@ -29,7 +29,7 @@ export interface InventoryFilters {
     costRange: number;
     fobCostRange: number;
     status: 'All' | 'Active' | 'Sleeping' | 'Dead Stock';
-    lois: string;
+    lois: string[];
     trend: string;
     specialFilter: 'none' | 'stockout' | 'critical_stockout' | 'excess' | 'low_stock' | 'has_po' | 'has_supersession' | 'has_warning';
     showBackorders: boolean;
@@ -43,7 +43,7 @@ export const DEFAULT_FILTERS: InventoryFilters = {
     costRange: 0,
     fobCostRange: 0,
     status: 'All',
-    lois: 'All',
+    lois: [],
     trend: 'All',
     specialFilter: 'none',
     showBackorders: false,

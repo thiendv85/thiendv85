@@ -304,7 +304,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
             if (viewFilter === 'suggested' && !hasSuggestion) return false;
             if (filters.priority !== 'All' && i.computed?.priorityBucket !== filters.priority) return false;
             if (filters.status !== 'All' && i.Status !== filters.status) return false;
-            if (filters.lois !== 'All' && i.LOISGroup !== filters.lois) return false;
+            if (filters.lois.length > 0 && !filters.lois.includes(i.LOISGroup)) return false;
             if (filters.source !== 'All') {
                 const [brand, sid] = filters.source.split('|');
                 if (i.BrandName !== brand || (i.SourceId || '') !== sid) return false;

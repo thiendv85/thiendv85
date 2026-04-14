@@ -56,13 +56,25 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
     onFiltersChange({ ...filters, debtStatus: next });
   };
 
+  const toggleLois = (lois: string) => {
+    const current = filters.lois || [];
+    const next = current.includes(lois)
+      ? current.filter(id => id !== lois)
+      : [...current, lois];
+    onFiltersChange({ ...filters, lois: next });
+  };
+
+  const toggleAllLois = () => {
+    onFiltersChange({ ...filters, lois: [] });
+  };
+
   const { isMobile } = useDevice();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Count active filters for badge
   const activeFilterCount = [
     filters.priority !== 'All',
-    filters.lois !== 'All',
+    (filters.lois || []).length > 0,
     filters.source !== 'All',
     filters.status !== 'All',
     filters.trend !== 'All',
@@ -89,13 +101,37 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
                 ))}
               </div>
             </div>
-            <div className="relative">
+            <div className="md:col-span-2">
               <label className="block text-[10px] font-black text-blue-700/80 uppercase tracking-[0.15em] mb-1.5">{t('filter_lois')}</label>
-              <select value={filters.lois} onChange={e => onFiltersChange({ ...filters, lois: e.target.value })} className={getSelectClass(filters.lois !== 'All')}>
-                <option value="All">All Clusters</option>
-                {loisGroups.map(g => <option key={g} value={g}>{g} - {LOIS_DESCRIPTIONS[g]?.substring(0, 15)}...</option>)}
-              </select>
-              <i className="fas fa-chevron-down absolute right-3 bottom-2.5 text-[10px] text-blue-300 pointer-events-none"></i>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  onClick={toggleAllLois}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-black border transition-all uppercase tracking-tighter h-8
+                    ${(filters.lois || []).length === 0
+                      ? 'bg-blue-600 text-white border-blue-700 shadow-md'
+                      : 'bg-white text-slate-400 border-slate-200 hover:border-blue-300 hover:text-blue-700'
+                    }`}
+                >
+                  ALL
+                </button>
+                {loisGroups.map(g => {
+                  const isActive = (filters.lois || []).includes(g);
+                  return (
+                    <button
+                      key={g}
+                      onClick={() => toggleLois(g)}
+                      title={LOIS_DESCRIPTIONS[g]}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black border transition-all uppercase tracking-tighter h-8
+                        ${isActive
+                          ? 'bg-blue-600 text-white border-blue-700 shadow-md'
+                          : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:text-blue-700'
+                        }`}
+                    >
+                      {g}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <div className="relative">
               <label className="block text-[10px] font-black text-blue-700/80 uppercase tracking-[0.15em] mb-1.5">Nguồn Hàng (Source)</label>
@@ -320,7 +356,7 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
           </button>
           {activeFilterCount > 0 && (
             <button
-              onClick={() => onFiltersChange({ priority: 'All', lois: 'All', status: 'All', source: 'All', trend: 'All', costRange: 0, fobCostRange: 0, showBackorders: false, specialFilter: null, debtStatus: [], search: filters.search })}
+              onClick={() => onFiltersChange({ priority: 'All', lois: [], status: 'All', source: 'All', trend: 'All', costRange: 0, fobCostRange: 0, showBackorders: false, specialFilter: null, debtStatus: [], search: filters.search })}
               className="text-[10px] font-black text-rose-500 bg-rose-50 border border-rose-100 px-2.5 py-1 rounded-lg"
             >
               Xóa bộ lọc

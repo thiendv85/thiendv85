@@ -388,7 +388,7 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
             if (!matchSearch(i, searchResult)) return false;
             if (filters.priority !== 'All' && i.computed?.priorityBucket !== filters.priority) return false;
             if (filters.status !== 'All' && i.Status !== filters.status) return false;
-            if (filters.lois !== 'All' && !filters.lois.split(',').includes(i.LOISGroup)) return false;
+            if (filters.lois.length > 0 && !filters.lois.includes(i.LOISGroup)) return false;
             if (filters.trend !== 'All' && i.TrendFlag !== filters.trend) return false;
 
             if (filters.costRange > 0) {
