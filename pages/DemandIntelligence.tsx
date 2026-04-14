@@ -16,11 +16,13 @@ interface DemandIntelligenceProps {
     onSaveState?: (state: any) => void;
 }
 
-type IntelGroup = 'STOCKOUT' | 'RISK' | 'SPIKE' | 'OVERSTOCK' | 'DECLINING';
+type IntelGroup = 'STOCKOUT' | 'RISK' | 'SEASONAL' | 'SPIKE' | 'OVERSTOCK' | 'DECLINING';
 
 interface AnalyzedItem {
     item: InventoryItem;
     group: IntelGroup;
+    isSeasonal: boolean;
+    seasonalWarn?: any;
     fullHistory: number[];
     actualM1: number;
     forecastM1: number;
@@ -72,6 +74,7 @@ function getServiceLevel(loisGroup: string): string {
 const GROUP_CONFIG: Record<IntelGroup, { color: string; bgColor: string; borderColor: string; label: string; icon: string; actionLabel: string; actionIcon: string }> = {
     STOCKOUT: { color: 'text-rose-700', bgColor: 'bg-rose-50', borderColor: 'border-rose-200', label: 'Hết hàng', icon: 'fa-circle-xmark', actionLabel: 'Order AIR', actionIcon: 'fa-plane-departure' },
     RISK: { color: 'text-amber-700', bgColor: 'bg-amber-50', borderColor: 'border-amber-200', label: 'Rủi ro', icon: 'fa-triangle-exclamation', actionLabel: 'Expedite PO', actionIcon: 'fa-truck-fast' },
+    SEASONAL: { color: 'text-purple-700', bgColor: 'bg-purple-50', borderColor: 'border-purple-200', label: 'Mùa vụ sắp tới', icon: 'fa-calendar-days', actionLabel: 'Tạo đơn Draft', actionIcon: 'fa-file-signature' },
     SPIKE: { color: 'text-yellow-700', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-200', label: 'Nhu cầu tăng', icon: 'fa-arrow-trend-up', actionLabel: 'Review FC', actionIcon: 'fa-magnifying-glass-chart' },
     OVERSTOCK: { color: 'text-blue-700', bgColor: 'bg-blue-50', borderColor: 'border-blue-200', label: 'Tồn dư', icon: 'fa-boxes-stacked', actionLabel: 'Transfer/Cắt PO', actionIcon: 'fa-scissors' },
     DECLINING: { color: 'text-slate-600', bgColor: 'bg-slate-50', borderColor: 'border-slate-200', label: 'Xu hướng giảm', icon: 'fa-arrow-trend-down', actionLabel: 'Hold PO', actionIcon: 'fa-hand' },
@@ -100,6 +103,7 @@ const Sparkline = ({ values, group }: { values: number[]; group: IntelGroup }) =
     const colorMap: Record<IntelGroup, string> = {
         STOCKOUT: '#e11d48',
         RISK: '#f97316',
+        SEASONAL: '#7e22ce',
         SPIKE: '#eab308',
         OVERSTOCK: '#3b82f6',
         DECLINING: '#64748b',
@@ -138,7 +142,7 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
         if (!data || data.length === 0) return { analyzedItems: [], metrics: { stockout: 0, risk: 0, spike: 0, overstock: 0, declining: 0, stockoutGapValue: 0, excessValue: 0, avgAccuracy: 0, accuracyCount: 0 } };
 
         const results: AnalyzedItem[] = [];
-        let mStockout = 0, mRisk = 0, mSpike = 0, mOverstock = 0, mDeclining = 0;
+        let mStockout = 0, mRisk = 0, mSeasonal = 0, mSpike = 0, mOverstock = 0, mDeclining = 0;
         let totalGapValue = 0, totalExcessValue = 0;
         let accuracySum = 0, accuracyCount = 0;
 
@@ -203,8 +207,9 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
             const avg12M = item.AvgQty12M || 0;
             const forecastLinReg = computed.forecastLinReg || 0;
 
-            // ── CLASSIFICATION (priority: STOCKOUT > RISK > SPIKE > OVERSTOCK > DECLINING) ──
+            // ── CLASSIFICATION (priority: STOCKOUT > RISK > SEASONAL > SPIKE > OVERSTOCK > DECLINING) ──
             let group: IntelGroup | null = null;
+            const seasonalWarn = computed.warnings.find(w => w.code === 'SEASONAL_UPCOMING');
 
             // STOCKOUT
             if (
@@ -220,6 +225,10 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                 (available < newROP && demandMonthly > 1 && available > 0)
             ) {
                 group = 'RISK';
+            }
+            // SEASONAL
+            else if (seasonalWarn) {
+                group = 'SEASONAL';
             }
             // SPIKE
             else if (
@@ -250,6 +259,7 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
             // Count metrics
             if (group === 'STOCKOUT') { mStockout++; totalGapValue += stockoutGapValue; }
             if (group === 'RISK') mRisk++;
+            if (seasonalWarn) mSeasonal++;
             if (group === 'SPIKE') mSpike++;
             if (group === 'OVERSTOCK') { mOverstock++; totalExcessValue += excessValue; }
             if (group === 'DECLINING') mDeclining++;
@@ -264,6 +274,9 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                 case 'RISK':
                     insightText = `Còn ${mos.toFixed(1)}M — dưới ROP ${Math.ceil(newROP)}. Thiếu ${Math.ceil(newROP - available)} units. → Expedite PO`;
                     break;
+                case 'SEASONAL':
+                    insightText = `${seasonalWarn?.message || 'Sắp đến mùa vụ cao điểm'}. → Review SNP & Tạo đơn Draft cho 2 tháng tới`;
+                    break;
                 case 'SPIKE':
                     insightText = `Bán ${actualM1} vs TB ${mean12M.toFixed(0)} (+${mean12M > 0 ? ((actualM1 / mean12M - 1) * 100).toFixed(0) : 'N/A'}%). → Tăng FC lên ${Math.ceil(forecastLinReg || actualM1)}/th`;
                     break;
@@ -275,9 +288,15 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                     break;
             }
 
+            if (seasonalWarn && group !== 'SEASONAL') {
+                insightText = `🌟 [MÙA VỤ] ${seasonalWarn.message}. ${insightText}`;
+            }
+
             results.push({
                 item,
                 group,
+                isSeasonal: !!seasonalWarn,
+                seasonalWarn,
                 fullHistory,
                 actualM1,
                 forecastM1,
@@ -308,6 +327,7 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
             metrics: {
                 stockout: mStockout,
                 risk: mRisk,
+                seasonal: mSeasonal,
                 spike: mSpike,
                 overstock: mOverstock,
                 declining: mDeclining,
@@ -324,14 +344,18 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
         let result = analyzedItems;
 
         if (groupFilter !== 'ALL') {
-            result = result.filter(d => d.group === groupFilter);
+            if (groupFilter === 'SEASONAL') {
+                result = result.filter(d => d.isSeasonal);
+            } else {
+                result = result.filter(d => d.group === groupFilter);
+            }
         }
 
         if (searchResult.type !== 'EMPTY') {
             result = result.filter(d => matchSearch(d.item, searchResult));
         }
 
-        const groupPriority: Record<IntelGroup, number> = { STOCKOUT: 0, RISK: 1, SPIKE: 2, OVERSTOCK: 3, DECLINING: 4 };
+        const groupPriority: Record<IntelGroup, number> = { STOCKOUT: 0, RISK: 1, SEASONAL: 2, SPIKE: 3, OVERSTOCK: 4, DECLINING: 5 };
 
         return result.sort((a, b) => {
             switch (sortKey) {
@@ -371,7 +395,7 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
     return (
         <div className="animate-fadeIn space-y-6 pb-24">
             {/* KPI Summary Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
                 <MetricCard
                     label="Hết hàng"
                     value={metrics.stockout.toString()}
@@ -391,11 +415,20 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                     isActive={groupFilter === 'RISK'}
                 />
                 <MetricCard
+                    label="Mùa vụ"
+                    value={metrics.seasonal.toString()}
+                    subValue="Sắp đến peak 2M tới"
+                    icon="fa-calendar-days"
+                    color="purple"
+                    onClick={() => { setGroupFilter('SEASONAL'); setCurrentPage(1); }}
+                    isActive={groupFilter === 'SEASONAL'}
+                />
+                <MetricCard
                     label="Nhu cầu tăng"
                     value={metrics.spike.toString()}
                     subValue="Demand spike — review FC"
                     icon="fa-arrow-trend-up"
-                    color="amber"
+                    color="yellow"
                     onClick={() => { setGroupFilter('SPIKE'); setCurrentPage(1); }}
                     isActive={groupFilter === 'SPIKE'}
                 />
@@ -426,7 +459,7 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                     <div className="flex flex-wrap items-center gap-3">
                         {/* Group filter tabs */}
                         <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200">
-                            {(['ALL', 'STOCKOUT', 'RISK', 'SPIKE', 'OVERSTOCK', 'DECLINING'] as const).map(f => (
+                            {(['ALL', 'STOCKOUT', 'RISK', 'SEASONAL', 'SPIKE', 'OVERSTOCK', 'DECLINING'] as const).map(f => (
                                 <button
                                     key={f}
                                     onClick={() => { setGroupFilter(f); setCurrentPage(1); }}
@@ -435,7 +468,7 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                                     {f === 'ALL' ? 'Tất cả' : GROUP_CONFIG[f].label}
                                     {f !== 'ALL' && (
                                         <span className="ml-1 text-[9px] opacity-60">
-                                            {f === 'STOCKOUT' ? metrics.stockout : f === 'RISK' ? metrics.risk : f === 'SPIKE' ? metrics.spike : f === 'OVERSTOCK' ? metrics.overstock : metrics.declining}
+                                            {f === 'STOCKOUT' ? metrics.stockout : f === 'RISK' ? metrics.risk : f === 'SEASONAL' ? metrics.seasonal : f === 'SPIKE' ? metrics.spike : f === 'OVERSTOCK' ? metrics.overstock : metrics.declining}
                                         </span>
                                     )}
                                 </button>
@@ -568,12 +601,12 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                                         <td className="px-4 py-2.5 text-center">
                                             {row.stockoutGapQty > 0 ? (
                                                 <div>
-                                                    <div className="font-black text-rose-700 text-sm">-{row.stockoutGapQty}</div>
+                                                    <div className="font-black text-rose-700 text-sm">-{Math.ceil(row.stockoutGapQty)}</div>
                                                     <div className="text-[9px] text-rose-500">{Math.round(row.stockoutGapValue / 1000).toLocaleString()}k</div>
                                                 </div>
                                             ) : row.excessQty > 0 ? (
                                                 <div>
-                                                    <div className="font-black text-blue-700 text-sm">+{row.excessQty}</div>
+                                                    <div className="font-black text-blue-700 text-sm">+{Math.floor(row.excessQty)}</div>
                                                     <div className="text-[9px] text-blue-500">{Math.round(row.excessValue / 1000).toLocaleString()}k</div>
                                                 </div>
                                             ) : (

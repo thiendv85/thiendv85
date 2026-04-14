@@ -422,6 +422,57 @@ export function computeInventory(
         }
     }
 
+    // --- Proactive Seasonality Warning (Lead Time Protection) ---
+    if (history.length >= 12) {
+        const monthlyAvg = new Array(12).fill(0);
+        const monthlyCount = new Array(12).fill(0);
+        const now = new Date();
+        now.setDate(1);
+        const startMonthIndex = ((now.getMonth() - 1) - (history.length - 1)) % 12;
+        const normalizedStartMonth = (startMonthIndex + 12) % 12;
+
+        history.forEach((val, i) => {
+            const actualMonth = (normalizedStartMonth + i) % 12;
+            monthlyAvg[actualMonth] += val;
+            monthlyCount[actualMonth]++;
+        });
+
+        const overallMean = (monthlyAvg.reduce((a, b) => a + b, 0) / history.length) || 0.01;
+        const currentMonth = now.getMonth();
+        const nextMonth = (currentMonth + 1) % 12;
+        const monthAfterNext = (currentMonth + 2) % 12;
+
+        // MA3 Model: Capture 3-month sustained peak clusters (>1.3x Mean)
+        const getVal = (m: number) => (monthlyAvg[m] / (monthlyCount[m] || 1));
+        const ma3 = new Array(12).fill(0).map((_, i) => {
+            return (getVal((i + 11) % 12) + getVal(i) + getVal((i + 1) % 12)) / 3;
+        });
+
+        const isAnyPeak = (m: number) => ma3[m] > overallMean * 1.3;
+
+        // Trend Analysis (Simple Linear Regression Slope)
+        let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+        const n = history.length;
+        history.forEach((val, i) => {
+            sumX += i;
+            sumY += val;
+            sumXY += i * val;
+            sumXX += i * i;
+        });
+        const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+        const isTrendingUp = slope > (overallMean * 0.05); // Growth > 5% per month
+
+        if (overallMean > 10 && (isAnyPeak(nextMonth) || isAnyPeak(monthAfterNext))) {
+            const peakMonth = isAnyPeak(nextMonth) ? nextMonth : monthAfterNext;
+            
+            warnings.push({
+                type: 'Warning',
+                code: 'SEASONAL_UPCOMING',
+                message: `Sắp đến cụm cao điểm (Tháng ${peakMonth + 1}) ${isTrendingUp ? '(Nhu cầu đang tăng trưởng)' : ''} – Cần đặt hàng trước 2 tháng`
+            });
+        }
+    }
+
     // ── 4. RISK FLAGS ──────────────────────────────────────────────────────
     // stockoutRiskFlag: so reserve (available + PO) với ROP → quyết định có cần đặt không
     const stockoutRiskFlag = !isStop && reserve < rop;

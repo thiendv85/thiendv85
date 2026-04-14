@@ -125,6 +125,7 @@ export const dictionary = {
         ord_tab_all: "Tất cả SKU",
         ord_tab_suggested: "Có đề xuất",
         ord_tab_draft: "Chỉ Dự Thảo",
+        ord_tab_seasonal: "Mùa vụ",
         ord_import_btn: "Nhập Dự Thảo",
         ord_export_btn: "Xuất Dự Thảo",
         ord_search_ph: "Tìm kiếm nhanh SKU…",

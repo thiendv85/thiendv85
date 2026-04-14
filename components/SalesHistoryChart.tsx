@@ -264,10 +264,17 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
         const monthlyAvg = new Array(12).fill(0);
         const monthlyCount = new Array(12).fill(0);
 
+        // Get the starting calendar month (0-11) based on current month
+        // consistent with monthLabels calculation (last index is previous month)
+        const now = new Date();
+        now.setDate(1);
+        const startMonthIndex = (now.getMonth() - 1 - (history.length - 1)) % 12;
+        const normalizedStartMonth = (startMonthIndex + 12) % 12;
+
         history.forEach((val, i) => {
-            const monthIndex = i % 12;
-            monthlyAvg[monthIndex] += val;
-            monthlyCount[monthIndex]++;
+            const actualMonth = (normalizedStartMonth + i) % 12;
+            monthlyAvg[actualMonth] += val;
+            monthlyCount[actualMonth]++;
         });
 
         monthlyAvg.forEach((sum, i) => {
@@ -278,15 +285,42 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
         const variance = monthlyAvg.reduce((sum, val) => sum + Math.pow(val - overallMean, 2), 0) / 12;
         const strength = overallMean > 0 ? Math.sqrt(variance) / overallMean : 0;
 
-        const peakMonths = monthlyAvg
-            .map((val, i) => ({ month: i, value: val }))
-            .filter(m => m.value > overallMean * 1.2)
-            .map(m => m.month);
+        const peakSet = new Set<number>();
+        const ma3 = new Array(12).fill(0);
+
+        for (let i = 0; i < 12; i++) {
+            const sum = monthlyAvg[i] + monthlyAvg[(i + 1) % 12] + monthlyAvg[(i + 2) % 12];
+            ma3[(i + 1) % 12] = sum / 3;
+        }
+
+        const ma3Threshold = overallMean * 1.3;
+        ma3.forEach((val, i) => {
+            if (val > ma3Threshold) {
+                // If a 3-month window is a peak, flag all 3 months
+                peakSet.add((i + 11) % 12);
+                peakSet.add(i);
+                peakSet.add((i + 1) % 12);
+            }
+        });
+
+        const peakMonths = Array.from(peakSet).sort((a, b) => a - b);
+
+        // Calculate approaching peaks (1-2 months ahead) for lead time warning
+        const currentMonth = new Date().getMonth();
+        const nextMonth = (currentMonth + 1) % 12;
+        const monthAfterNext = (currentMonth + 2) % 12;
+
+        let approachingPeak = null;
+        if (peakMonths.length > 0) {
+            if (peakMonths.includes(nextMonth)) approachingPeak = nextMonth;
+            else if (peakMonths.includes(monthAfterNext)) approachingPeak = monthAfterNext;
+        }
 
         return {
-            detected: strength > 0.15,
+            detected: (strength > 0.15 || peakMonths.length > 0) && overallMean > 10,
             strength,
-            peakMonths,
+            peakMonths: overallMean > 10 ? peakMonths : [],
+            approachingPeak: overallMean > 10 ? approachingPeak : null,
             monthlyPattern: monthlyAvg
         };
     }, [history]);
@@ -804,6 +838,12 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
                                     <>Tháng cao điểm: <span className="font-bold text-slate-600">{seasonality.peakMonths.map(m => m + 1).join(', ')}</span></>
                                 ) : 'Không phát hiện chu kỳ'}
                             </Typography>
+                            {seasonality.approachingPeak !== null && (
+                                <Typography variant="body-sm" className="text-amber-600 font-bold mt-1.5 !text-[10px] flex items-center gap-1 animate-pulse">
+                                    <i className="fas fa-exclamation-triangle"></i>
+                                    Sắp đến mùa cao điểm (Tháng {seasonality.approachingPeak + 1}) - Cần đặt hàng ngay!
+                                </Typography>
+                            )}
                         </div>
                     )}
 

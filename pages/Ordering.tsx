@@ -116,7 +116,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
     const [filters, setFilters] = useState<InventoryFilters>(initialState?.filters || DEFAULT_FILTERS);
     const [orderQuantities, setOrderQuantities] = useState<Record<string, { air: number, sea: number }>>(sharedDraft?.quantities || initialState?.quantities || {});
     const [orderNotes, setOrderNotes] = useState<Record<string, string>>(sharedDraft?.notes || initialState?.notes || {});
-    const [viewFilter, setViewFilter] = useState<'all' | 'draft' | 'suggested'>(initialState?.viewFilter || 'all');
+    const [viewFilter, setViewFilter] = useState<'all' | 'draft' | 'suggested' | 'seasonal'>(initialState?.viewFilter || 'all');
     const [sortKey, setSortKey] = useState<string>('priority');
     const [searchResult, setSearchResult] = useState<SearchResult>(() => initialState?.filters?.search ? parseInventorySearch(initialState.filters.search) : { type: 'EMPTY', tokens: [], displayTokens: [], raw: '' });
     const [currentPage, setCurrentPage] = useState(1);
@@ -302,6 +302,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
             const hasSuggestion = (i.computed?.gapOrExcess || 0) > 0 || (i.computed?.suggestedBO || 0) > 0;
             if (viewFilter === 'draft' && !hasDraft) return false;
             if (viewFilter === 'suggested' && !hasSuggestion) return false;
+            if (viewFilter === 'seasonal' && !i.computed?.warnings?.some((w: any) => w.code === 'SEASONAL_UPCOMING')) return false;
             if (filters.priority !== 'All' && i.computed?.priorityBucket !== filters.priority) return false;
             if (filters.status !== 'All' && i.Status !== filters.status) return false;
             if (filters.lois.length > 0 && !filters.lois.includes(i.LOISGroup)) return false;
@@ -636,6 +637,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                             <div className="flex bg-slate-100 p-1 rounded-xl w-full md:w-auto">
                                 <button onClick={() => { setViewFilter('all'); setCurrentPage(1); }} className={`flex-1 md:flex-none px-2 md:px-4 py-1.5 text-[10px] md:text-xs font-black rounded-lg transition-all ${viewFilter === 'all' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t('ord_tab_all')}</button>
                                 <button onClick={() => { setViewFilter('suggested'); setCurrentPage(1); }} className={`flex-1 md:flex-none px-2 md:px-4 py-1.5 text-[10px] md:text-xs font-black rounded-lg transition-all ${viewFilter === 'suggested' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t('ord_tab_suggested')}</button>
+                                <button onClick={() => { setViewFilter('seasonal'); setCurrentPage(1); }} className={`flex-1 md:flex-none px-2 md:px-4 py-1.5 text-[10px] md:text-xs font-black rounded-lg transition-all ${viewFilter === 'seasonal' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t('ord_tab_seasonal')}</button>
                                 <button onClick={() => { setViewFilter('draft'); setCurrentPage(1); }} className={`flex-1 md:flex-none px-2 md:px-4 py-1.5 text-[10px] md:text-xs font-black rounded-lg transition-all ${viewFilter === 'draft' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t('ord_tab_draft')}</button>
                             </div>
                             {/* Desktop Sort */}
