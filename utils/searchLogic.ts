@@ -117,8 +117,8 @@ const isLikelyCode = (token: string): boolean => {
     }
   }
   
-  // Threshold: >= 50 điểm → Là mã code
-  return score >= 50;
+  // Threshold: >= 40 điểm → Là mã code (Hạ xuống từ 50 để nhận diện mã thuần số 6-7 ký tự)
+  return score >= 40;
 };
 
 /**
