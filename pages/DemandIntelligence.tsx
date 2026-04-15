@@ -126,7 +126,7 @@ const Sparkline = ({ values, group }: { values: number[]; group: IntelGroup }) =
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveState }: DemandIntelligenceProps) => {
+export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveState, appSettings, updateTuning }: DemandIntelligenceProps) => {
     const { t } = useLanguage();
     const [groupFilter, setGroupFilter] = useState<'ALL' | IntelGroup>(initialState?.groupFilter || 'ALL');
     const [sortKey, setSortKey] = useState<string>(initialState?.sortKey || 'group');

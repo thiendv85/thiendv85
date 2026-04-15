@@ -54,10 +54,14 @@ graph TD
 - [x] **Structured Storage**: Snapshots are now grouped by brand in folders (e.g., `inventory_snapshots/kia/...`).
 - [x] **Filter Reliability**: Fixed "ID not found" errors for brand-specific accounts.
 - [x] **Approval Tagging**: Requests now correctly carry the user's normalized brand metadata.
+- [x] **SAA Engine (Phase 5)**: Unified Seasonal-Adaptive Anchor formula implemented.
+- [x] **RLS Stability**: Permanent SQL fix for Supabase Storage policies.
+- [x] **Seasonality Filter**: Added "Mùa vụ" button to smart filtering UI.
 
 ## 🔗 Internal References
 
 - [[backup_history.md|View Full Backup Logs]]
+- [[SAA_Engine_and_Seasonality.md|Phase 5: SAA Engine & Seasonality]]
 - [[utils/supabase.ts|Supabase Utility Core]]
 - [[utils/inventoryEngine.ts|Inventory Algorithm]]
 
