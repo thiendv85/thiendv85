@@ -19,7 +19,7 @@ export interface SearchResult {
 export interface SearchableItem {
   ItemCode?: string;
   ItemName?: string;
-  CarModel?: string;
+  TypeCar?: string;
   BackorderBreakdown?: { DocNo: string }[];
   _searchCache?: {
     code: string;
@@ -157,7 +157,7 @@ export const prepareSearchCache = (items: SearchableItem[]): SearchableItem[] =>
       _searchCache: {
         code: cleanAlphaNumeric(item.ItemCode || ''),
         fullText: removeAccents(
-          `${item.ItemCode || ''} ${item.ItemName || ''} ${item.CarModel || ''} ${orderDocs}`
+          `${item.ItemCode || ''} ${item.ItemName || ''} ${item.TypeCar || ''} ${orderDocs}`
         )
       }
     };
