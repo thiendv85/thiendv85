@@ -239,6 +239,7 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
     draftData?: OrderingDraft,
     graph?: SupersessionGraph,
     appSettings?: AppSettings,
+    onUpdateSettings?: (s: AppSettings) => void,
     supersessionProps?: {
         mappings: SupersessionMapping[];
         onUpdateMappings: (mappings: SupersessionMapping[]) => void;
@@ -256,14 +257,19 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
         demandSource: '3M',
         applySeasonality: false, // Default to OFF for safety
         params: initialParams || { lt: 90, sp: 30, ssp: 15 },
-        sourceProfiles: appSettings?.sourceProfiles
+        sourceProfiles: appSettings?.sourceProfiles,
+        seasonalityTuning: appSettings?.seasonalityTuning || { useSPD: true, tetWeight: 1.2, weatherWeight: 1.0 }
     });
 
     useEffect(() => {
-        if (appSettings?.sourceProfiles) {
-            setSettings(prev => ({ ...prev, sourceProfiles: appSettings.sourceProfiles }));
+        if (appSettings?.sourceProfiles || appSettings?.seasonalityTuning) {
+            setSettings(prev => ({ 
+                ...prev, 
+                sourceProfiles: appSettings?.sourceProfiles || prev.sourceProfiles,
+                seasonalityTuning: appSettings?.seasonalityTuning || prev.seasonalityTuning
+            }));
         }
-    }, [appSettings?.sourceProfiles]);
+    }, [appSettings?.sourceProfiles, appSettings?.seasonalityTuning]);
     const [filters, setFilters] = useState<InventoryFilters>(initialState?.filters || DEFAULT_FILTERS);
     const [selectedSubgroup, setSelectedSubgroup] = useState<string | null>(null);
     const [searchResult, setSearchResult] = useState<SearchResult>({ type: 'EMPTY', tokens: [], displayTokens: [], raw: '' });
@@ -406,6 +412,7 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
                 if (!isCriticalMatch) return false;
             }
             if (filters.specialFilter === 'excess' && (i.computed?.excessQty || 0) <= 0) return false;
+            if (filters.specialFilter === 'has_seasonality' && (i.computed?.ssi || 1) <= 1.0) return false;
             if (filters.specialFilter === 'has_po' && (i.TotalPO || 0) <= 0) return false;
             if (filters.specialFilter === 'has_supersession') {
                 if (!graph) return false;
@@ -786,6 +793,13 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
                 <DemandIntelligence
                     data={enrichedData}
                     onItemSelect={onItemSelect}
+                    appSettings={appSettings}
+                    updateTuning={(t) => {
+                        setSettings(prev => ({ ...prev, seasonalityTuning: t }));
+                        if (onUpdateSettings && appSettings) {
+                            onUpdateSettings({ ...appSettings, seasonalityTuning: t });
+                        }
+                    }}
                     initialState={initialState?.demandState}
                     onSaveState={(s) => { if (onSaveState) onSaveState({ settings, filters, subTab, demandState: s }); }}
                 />

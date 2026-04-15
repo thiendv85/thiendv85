@@ -94,6 +94,7 @@ interface OrderingProps {
     onUpdateDraft?: (draft: OrderingDraft) => void;
     graph?: SupersessionGraph;
     appSettings?: AppSettings;
+    onUpdateSettings?: (s: AppSettings) => void;
 }
 
 export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSaveState, sharedDraft, onUpdateDraft, graph, appSettings }: OrderingProps) => {
@@ -105,14 +106,19 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
         costBasis: 'FOB',
         demandSource: '3M',
         params: initialParams || { lt: 90, sp: 30, ssp: 15 },
-        sourceProfiles: appSettings?.sourceProfiles
+        sourceProfiles: appSettings?.sourceProfiles,
+        seasonalityTuning: appSettings?.seasonalityTuning || { useSPD: true, tetWeight: 1.2, weatherWeight: 1.0 }
     });
 
     useEffect(() => {
-        if (appSettings?.sourceProfiles) {
-            setSettings(prev => ({ ...prev, sourceProfiles: appSettings.sourceProfiles }));
+        if (appSettings?.sourceProfiles || appSettings?.seasonalityTuning) {
+            setSettings(prev => ({ 
+                ...prev, 
+                sourceProfiles: appSettings?.sourceProfiles || prev.sourceProfiles,
+                seasonalityTuning: appSettings?.seasonalityTuning || prev.seasonalityTuning
+            }));
         }
-    }, [appSettings?.sourceProfiles]);
+    }, [appSettings?.sourceProfiles, appSettings?.seasonalityTuning]);
     const [filters, setFilters] = useState<InventoryFilters>(initialState?.filters || DEFAULT_FILTERS);
     const [orderQuantities, setOrderQuantities] = useState<Record<string, { air: number, sea: number }>>(sharedDraft?.quantities || initialState?.quantities || {});
     const [orderNotes, setOrderNotes] = useState<Record<string, string>>(sharedDraft?.notes || initialState?.notes || {});

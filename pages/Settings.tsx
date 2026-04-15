@@ -127,6 +127,13 @@ export interface AppSettings {
     reportTitle: string;
     autoSaveState: boolean;
     snapshotDate: string;
+
+    // Seasonality Tuning
+    seasonalityTuning: {
+        useSPD: boolean;
+        tetWeight: number;
+        weatherWeight: number;
+    };
 }
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
@@ -201,6 +208,11 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
     reportTitle: 'Báo cáo Tồn Kho',
     autoSaveState: true,
     snapshotDate: new Date().toISOString().split('T')[0],
+    seasonalityTuning: {
+        useSPD: true,
+        tetWeight: 1.2,
+        weatherWeight: 1.0
+    }
 };
 
 const STORAGE_KEY = 'atp_app_settings';

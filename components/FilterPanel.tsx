@@ -186,6 +186,7 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
               <SpecialFilterButton label={t('term_excess')} icon="fa-arrow-down-wide-short" isActive={filters.specialFilter === 'excess'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'excess' ? 'none' : 'excess' })} />
               <SpecialFilterButton label={t('term_has_po')} icon="fa-ship" isActive={filters.specialFilter === 'has_po'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'has_po' ? 'none' : 'has_po' })} />
               <SpecialFilterButton label={t('term_supersession')} icon="fa-exchange-alt" isActive={filters.specialFilter === 'has_supersession'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'has_supersession' ? 'none' : 'has_supersession' })} />
+              <SpecialFilterButton label="Mùa vụ" icon="fa-calendar-star" isActive={filters.specialFilter === 'has_seasonality'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'has_seasonality' ? 'none' : 'has_seasonality' })} />
               <SpecialFilterButton label="Cảnh báo" icon="fa-triangle-exclamation" isActive={filters.specialFilter === 'has_warning'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'has_warning' ? 'none' : 'has_warning' })} />
             </div>
           </div>

@@ -29,3 +29,6 @@
 | 2026-04-01 15:05 | Modernization Roadmap - Pre-Refactor: HoÃ n táº¥t Ä‘Ã¡nh giÃ¡ 31 components & chuáº©n bá»‹ tÃ¡i cáº¥u trÃºc toÃ n diá»‡n |
 | 2026-04-02 16:03 | Restore Vibrant Premium UI (Dark Mode) & Fix Cloud Data Selection Sync |
 | 2026-04-02 18:57 | S?a l?i dang nh?p màn hình den, thêm Error Boundary và Fix Logic Stockout Gap (MS_PER_DAY/parsePipelineDate scope) |
+| 2026-04-14 17:35 | Nâng c?p Trí tu? Mùa v? chu?n MA3 & T?i uu Demand Intelligence Dashboard |
+
+| 2026-04-15 11:53 | Phase 5: Thêm b? l?c Mùa v? (SSI), tri?n khai SAA Engine và fix l?i RLS Supabase |

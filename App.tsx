@@ -427,13 +427,13 @@ const AppContent = () => {
             </header >
 
             <main className={`flex-1 max-w-[1920px] w-full mx-auto p-3 md:p-5 page-content-hd mt-[56px] md:mt-[64px] ${isMobile ? 'has-bottom-nav' : ''}`}>
-                {view === 'dashboard' && <Dashboard data={data} onItemSelect={handleSelectItem} initialParams={initialParams} initialState={pageStates.current.dashboard} onSaveState={(s) => pageStates.current.dashboard = s} draftData={sharedDraft} graph={supersessionGraph} appSettings={appSettings} supersessionProps={{
+                {view === 'dashboard' && <Dashboard data={data} onItemSelect={handleSelectItem} initialParams={initialParams} initialState={pageStates.current.dashboard} onSaveState={(s) => pageStates.current.dashboard = s} draftData={sharedDraft} graph={supersessionGraph} appSettings={appSettings} onUpdateSettings={(s) => { setAppSettings(s); saveAppSettings(s); }} supersessionProps={{
                     mappings: supersessionMappings,
                     onUpdateMappings: setSupersessionMappings,
                     onAddMapping: () => { setEditingSsMapping(null); setIsSsModalOpen(true); },
                     onEditMapping: (m) => { setEditingSsMapping(m); setIsSsModalOpen(true); },
                 }} />}
-                {view === 'ordering' && <Ordering data={data} onItemSelect={handleSelectItem} initialParams={initialParams} initialState={pageStates.current.ordering} onSaveState={(s) => pageStates.current.ordering = s} sharedDraft={sharedDraft} onUpdateDraft={setSharedDraft} graph={supersessionGraph} appSettings={appSettings} />}
+                {view === 'ordering' && <Ordering data={data} onItemSelect={handleSelectItem} initialParams={initialParams} initialState={pageStates.current.ordering} onSaveState={(s) => pageStates.current.ordering = s} sharedDraft={sharedDraft} onUpdateDraft={setSharedDraft} graph={supersessionGraph} appSettings={appSettings} onUpdateSettings={(s) => { setAppSettings(s); saveAppSettings(s); }} />}
                 { view === 'transfer' && <InventoryDistribution data={data} onItemSelect={handleSelectItem} appSettings={appSettings} />}
                 { view === 'log' && <UpdateLog />}
                 {view === 'kitting' && <RepairPackageOptimizer data={data} onItemSelect={handleSelectItem} initialState={pageStates.current.kitting} onSaveState={(s) => pageStates.current.kitting = s} draftData={sharedDraft} onUpdateDraft={setSharedDraft} kittingDefs={kittingDefs} onKittingDefsChange={setKittingDefs} />}

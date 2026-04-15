@@ -31,7 +31,7 @@ export interface InventoryFilters {
     status: 'All' | 'Active' | 'Sleeping' | 'Dead Stock';
     lois: string[];
     trend: string;
-    specialFilter: 'none' | 'stockout' | 'critical_stockout' | 'excess' | 'low_stock' | 'has_po' | 'has_supersession' | 'has_warning';
+    specialFilter: 'none' | 'stockout' | 'critical_stockout' | 'excess' | 'low_stock' | 'has_po' | 'has_supersession' | 'has_warning' | 'has_seasonality';
     showBackorders: boolean;
     debtStatus: string[];
     source: string;
@@ -251,6 +251,7 @@ export interface InventoryItem {
         cv: number;                    // Coefficient of Variation
         slope: number;                 // LinReg Slope
         forecastLinReg: number;        // LinReg Forecast for next month
+        ssi: number;                   // Seasonal Index (SAA)
         
         // Tiered Warning System
         warnings: {
@@ -475,4 +476,11 @@ export interface DashboardSettings {
         ssp: number;
     };
     sourceProfiles?: SourceProfile[];
+    seasonalityTuning: {
+        useSPD: boolean;
+        tetWeight: number;
+        weatherWeight: number;
+        normalizationMethod?: 'Dynamic' | 'Fixed';
+        workingDayFallback?: number; // e.g. 26
+    };
 }
