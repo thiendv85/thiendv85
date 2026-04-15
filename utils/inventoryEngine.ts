@@ -136,15 +136,17 @@ function calculateSSI(item: InventoryItem, params: ComputeParams): number {
     const ma3 = (h(curMonth - 1) + h(curMonth) + h(curMonth + 1)) / 3;
     const ma3Ratio = ma3 / annualMean;
 
-    // B2B Threshold: Only activate if MA3 exceeds 1.5x annual mean
-    // Below threshold → SSI = 1.0 (no seasonal adjustment)
-    if (ma3Ratio <= 1.5) return 1.0;
+    // B2B Threshold: Lowered to 1.2x to be more responsive to moderate seasonal shifts.
+    // IfSliders are boosted (>1.0), we allow SSI to activate even if data-driven MA3 is lower (min 1.05 threshold).
+    const boostActive = (tuning.tetWeight || 1.0) > 1.0 || (tuning.weatherWeight || 1.0) > 1.0;
+    const effectiveThreshold = boostActive ? 1.05 : 1.2;
+
+    if (ma3Ratio <= effectiveThreshold) return 1.0;
 
     // SSI starts at the MA3 ratio, capped at 2.0x to prevent runaway
     let ssi = Math.min(2.0, ma3Ratio);
 
     // ── 2. Causal Booster: Tet Proximity (Data from TET_DATES registry) ──
-    // Only amplifies if MA3 already detected a peak (ssi > 1.0)
     const tet = TET_DATES[curYear];
     if (tet) {
         const tetStart = new Date(curYear, tet.month, tet.day);
@@ -155,8 +157,7 @@ function calculateSSI(item: InventoryItem, params: ComputeParams): number {
         }
     }
 
-    // ── 3. Causal Booster: Weather (Only if MA3 peak already detected) ──
-    // No hardcoded months — applies whenever MA3 shows a peak AND slider > 1.0
+    // ── 3. Causal Booster: Weather
     if ((tuning.weatherWeight || 1.0) > 1.0) {
         ssi *= tuning.weatherWeight;
     }

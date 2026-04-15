@@ -36,3 +36,5 @@
 | 2026-04-15 11:57 | Hotfix: Fix ReferenceError appSettings in DemandIntelligence |
 
 | 2026-04-15 13:07 | Fix: Seasonality tuning sliders responsiveness (sync local state) |
+
+| 2026-04-15 13:13 | Fix: Sensitize SAA Engine & Enable Seasonality by default |

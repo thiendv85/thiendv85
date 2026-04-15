@@ -255,7 +255,7 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
         warehouseScope: 'All',
         costBasis: 'PP',
         demandSource: '3M',
-        applySeasonality: false, // Default to OFF for safety
+        applySeasonality: true, // Default to ON for immediate visibility of tuning effect
         params: initialParams || { lt: 90, sp: 30, ssp: 15 },
         sourceProfiles: appSettings?.sourceProfiles,
         seasonalityTuning: appSettings?.seasonalityTuning || { useSPD: true, tetWeight: 1.2, weatherWeight: 1.0 }
