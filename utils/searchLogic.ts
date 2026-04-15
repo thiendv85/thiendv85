@@ -245,7 +245,25 @@ export const parseInventorySearch = (input: string): SearchResult => {
   }
 
   // ---------------------------------------------------------
-  // MODE 2: ENHANCED AUTO-BATCH
+  // MODE 2: SPACE-SEPARATED CODE LIST
+  // ---------------------------------------------------------
+  const parts = rawClean.split(/\s+/).filter(p => p.length > 0);
+  
+  // ✅ KIỂM TRA TRƯỚC KHI QUA AUTO BATCH HOẶC TEXT_PHRASE
+  if (parts.length >= 2 && isSpaceSeparatedCodeList(parts)) {
+    const tokens = parts.map(t => cleanAlphaNumeric(t)).filter(t => t.length > 0);
+    return {
+      type: 'CONTEXT_LIST',
+      tokens: tokens,
+      displayTokens: parts,
+      raw: input,
+      modeDescription: `Space-Separated Codes (${tokens.length} SKU)`,
+      confidence: 95
+    };
+  }
+
+  // ---------------------------------------------------------
+  // MODE 2.5: ENHANCED AUTO-BATCH (ONLY IF NOT EXPLICIT LIST)
   // ---------------------------------------------------------
   const cleanStr = cleanAlphaNumeric(rawClean);
   const digitCount = cleanStr.replace(/[^0-9]/g, '').length;
@@ -264,24 +282,6 @@ export const parseInventorySearch = (input: string): SearchResult => {
         confidence: batchResult.confidence
       };
     }
-  }
-
-  // ---------------------------------------------------------
-  // MODE 2.5: SPACE-SEPARATED CODE LIST (NEW! - FIX CHO "YL000622ZD YL00539680")
-  // ---------------------------------------------------------
-  const parts = rawClean.split(/\s+/).filter(p => p.length > 0);
-  
-  // ✅ KIỂM TRA TRƯỚC KHI QUA TEXT_PHRASE
-  if (parts.length >= 2 && isSpaceSeparatedCodeList(parts)) {
-    const tokens = parts.map(t => cleanAlphaNumeric(t)).filter(t => t.length > 0);
-    return {
-      type: 'CONTEXT_LIST',
-      tokens: tokens,
-      displayTokens: parts,
-      raw: input,
-      modeDescription: `Space-Separated Codes (${tokens.length} SKU)`,
-      confidence: 95
-    };
   }
 
   // ---------------------------------------------------------
