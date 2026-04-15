@@ -117,7 +117,8 @@ function getDaysInMonth(m: number, y: number) {
  * 4. Higher threshold (1.5x) for B2B to avoid false positives from lumpy orders.
  */
 function calculateSSI(item: InventoryItem, params: ComputeParams): number {
-    if (!params.applySeasonality) return 1.0;
+    // Note: We always calculate SSI for identification/filtering purposes, 
+    // but its application to Demand/ROP is controlled by params.applySeasonality in the main loop.
 
     const tuning = params.seasonalityTuning || { tetWeight: 1.2, weatherWeight: 1.1 };
     const history = item.SalesHistory || [];
@@ -403,7 +404,7 @@ export function computeInventory(
      */
     const anchorDays = 26; 
     const ssi = calculateSSI(item, params);
-    const demandRateDaily = (demandMonthly / anchorDays) * ssi;
+    const demandRateDaily = (demandMonthly / anchorDays) * (params.applySeasonality ? ssi : 1.0);
     const now = new Date();
 
     const { oh, dc } = resolveAvailable(item, params.warehouseScope);
