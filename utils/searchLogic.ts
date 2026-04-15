@@ -97,15 +97,15 @@ const isLikelyCode = (token: string): boolean => {
   // Với 6 sốnumeric ròng rã, ở THACO thường là mã hàng hóa hoặc mã nhóm quan trọng -> Cho phép. 
   if (digitCount === cleaned.length && cleaned.length < 5) score -= 25;
 
-  // 4. Có chữ cái (uppercase trong original)
-  const letterCount = token.replace(/[^A-Z]/g, '').length;
+  // 4. Có chữ cái (Case-insensitive)
+  const letterCount = token.replace(/[^a-zA-Z]/g, '').length;
   if (letterCount > 0) score += 10;
   
   // 5. Mix số + chữ (pattern mã code)
   if (digitCount > 0 && letterCount > 0) score += 20;
   
-  // 6. Bắt đầu hoặc kết thúc bằng số/chữ hoa (Mã SKU chuẩn thường k có dấu cách ở đầu/cuối)
-  if (/^[A-Z0-9]/.test(token) && /[A-Z0-9]$/.test(token)) score += 10;
+  // 6. Bắt đầu hoặc kết thúc bằng số/chữ (Case-insensitive)
+  if (/^[a-zA-Z0-9]/.test(token) && /[a-zA-Z0-9]$/.test(token)) score += 10;
   
   // 7. Ưu tiên mã có độ dài trung bình (10-12 số Toyota/etc)
   if (cleaned.length >= 10 && digitCount === cleaned.length) score += 20;
@@ -135,8 +135,11 @@ const isSpaceSeparatedCodeList = (parts: string[]): boolean => {
   const codeLikeCount = parts.filter(p => isLikelyCode(p)).length;
   const ratio = codeLikeCount / parts.length;
   
-  // Nếu >= 80% tokens giống mã code → Coi là code list
-  return ratio >= 0.8;
+  // Nếu có 2 tokens -> Chỉ cần 1 trong 2 là mã code (ratio = 0.5) cũng cho phép list
+  // Nếu > 2 tokens -> Cần tỷ lệ cao hơn (80%) để tránh nhiễu với phrase
+  const requiredRatio = parts.length === 2 ? 0.49 : 0.8;
+  
+  return ratio >= requiredRatio;
 };
 
 // --- PRE-PROCESSING FUNCTION ---
