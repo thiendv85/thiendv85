@@ -93,6 +93,10 @@ const isLikelyCode = (token: string): boolean => {
   const digitRatio = digitCount / cleaned.length;
   if (digitRatio > 0.3) score += 15;
   
+  // 3b. PENALTY: Mã thuần số ngắn (< 8 chars) thường là category/year/model số
+  // Thường SKU thật có 10-12 số, hoặc có chữ. 6 số numeric ròng rã thường là mã chung.
+  if (digitCount === cleaned.length && cleaned.length < 8) score -= 15;
+
   // 4. Có chữ cái (uppercase trong original)
   const letterCount = token.replace(/[^A-Z]/g, '').length;
   if (letterCount > 0) score += 10;
@@ -326,8 +330,15 @@ export const matchSearch = (item: SearchableItem, result: SearchResult, useFuzzy
 
   switch (result.type) {
     case 'CONTEXT_LIST': {
-      for (const token of result.tokens) {
+      // 1. Chuẩn hóa tokens sang chữ thường để so khớp (Case-insensitive Fix)
+      const cleanTokens = result.tokens.map(t => cleanAlphaNumeric(t));
+      
+      for (const token of cleanTokens) {
+        // So khớp ItemCode
         if (itemCodeClean.includes(token)) return true;
+        
+        // So khớp DocNo (Order Number) - Bổ sung cho tính năng mới
+        if (orderDocs.toLowerCase().includes(token)) return true;
         
         if (useFuzzy && token.length >= 7 && token.length <= 13) {
           const distance = levenshteinDistance(token, itemCodeClean.substring(0, token.length));
