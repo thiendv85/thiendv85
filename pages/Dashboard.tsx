@@ -794,6 +794,7 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
                     data={enrichedData}
                     onItemSelect={onItemSelect}
                     appSettings={appSettings}
+                    seasonalityTuning={settings.seasonalityTuning}
                     updateTuning={(t) => {
                         setSettings(prev => ({ ...prev, seasonalityTuning: t }));
                         if (onUpdateSettings && appSettings) {

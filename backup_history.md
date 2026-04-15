@@ -34,3 +34,5 @@
 | 2026-04-15 11:53 | Phase 5: Thêm b? l?c Mùa v? (SSI), tri?n khai SAA Engine và fix l?i RLS Supabase |
 
 | 2026-04-15 11:57 | Hotfix: Fix ReferenceError appSettings in DemandIntelligence |
+
+| 2026-04-15 13:07 | Fix: Seasonality tuning sliders responsiveness (sync local state) |

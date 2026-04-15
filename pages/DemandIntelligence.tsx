@@ -15,6 +15,7 @@ interface DemandIntelligenceProps {
     data: (InventoryItem & { analyzed?: IntelResult })[];
     onItemSelect: (item: InventoryItem) => void;
     appSettings?: AppSettings;
+    seasonalityTuning?: AppSettings['seasonalityTuning'];
     updateTuning?: (t: AppSettings['seasonalityTuning']) => void;
     initialState?: any;
     onSaveState?: (state: any) => void;
@@ -126,7 +127,7 @@ const Sparkline = ({ values, group }: { values: number[]; group: IntelGroup }) =
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveState, appSettings, updateTuning }: DemandIntelligenceProps) => {
+export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveState, appSettings, updateTuning, seasonalityTuning }: DemandIntelligenceProps) => {
     const { t } = useLanguage();
     const [groupFilter, setGroupFilter] = useState<'ALL' | IntelGroup>(initialState?.groupFilter || 'ALL');
     const [sortKey, setSortKey] = useState<string>(initialState?.sortKey || 'group');
@@ -136,7 +137,7 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
     const [searchResult, setSearchResult] = useState<SearchResult>({ type: 'EMPTY', tokens: [], displayTokens: [], raw: '' });
     
     // Seasonality Tuning State (synced with global or local)
-    const tuning = appSettings?.seasonalityTuning || {
+    const tuning = seasonalityTuning || appSettings?.seasonalityTuning || {
         useSPD: true,
         tetWeight: 1.2,
         weatherWeight: 1.0
