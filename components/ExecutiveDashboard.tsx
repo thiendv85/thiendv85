@@ -139,18 +139,22 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
                         return (
                             <div 
                                 key={item.ItemCode} 
-                                onClick={() => onItemSelect(item)} 
-                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onItemSelect(item); } }}
-                                role="button"
-                                tabIndex={0}
-                                aria-label={`Xem chi tiết mã hàng ${item.ItemCode}`}
-                                className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm active:scale-[0.98] transition-all hover:border-blue-300 hover:shadow-md cursor-pointer relative overflow-hidden focus:outline-none focus:ring-4 focus:ring-blue-50"
+                                className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm active:scale-[0.98] transition-all hover:border-blue-300 hover:shadow-md relative overflow-hidden focus:outline-none focus:ring-4 focus:ring-blue-50"
                             >
                                 <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/5 rounded-full -mr-8 -mt-8 pointer-events-none"></div>
                                 <div className="flex justify-between items-start mb-3">
                                     <div>
                                         <div className="flex items-center gap-2">
-                                            <Typography variant="mono" className="text-slate-900 text-lg !font-bold leading-none tabular-nums">{item.ItemCode}</Typography>
+                                            <Typography 
+                                                variant="mono" 
+                                                className="text-slate-900 text-lg !font-bold leading-none tabular-nums cursor-pointer hover:text-blue-600 transition-colors"
+                                                onClick={(e) => { e.stopPropagation(); onItemSelect(item); }}
+                                                role="button"
+                                                tabIndex={0}
+                                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onItemSelect(item); } }}
+                                            >
+                                                {item.ItemCode}
+                                            </Typography>
                                             {(() => {
                                                 const p = calculatePickingPriority(item, draftQty);
                                                 return <span className={`badge-p${Math.min(p, 5)} px-1.5 py-0.5 rounded font-black text-[10px] leading-none shrink-0`}>P{p}</span>;
@@ -261,18 +265,22 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
                                 return (
                                     <tr 
                                         key={item.ItemCode} 
-                                        onClick={() => onItemSelect(item)}
-                                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onItemSelect(item); } }}
-                                        role="button"
-                                        tabIndex={0}
-                                        aria-label={`Xem chi tiết mã hàng ${item.ItemCode}`}
                                         className="hover:bg-slate-50/80 transition-all group focus:outline-none focus:bg-blue-50"
                                     >
                                         <td className="px-4 py-3 text-center text-xs font-black text-slate-400 font-mono border-b border-slate-50 sticky left-0 z-10 bg-white group-hover:bg-slate-50/80">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
 
                                         <td className="px-6 py-3 sticky left-12 z-10 bg-white group-hover:bg-slate-50/80 transition-colors sticky-column-shadow border-b border-slate-50 cursor-pointer">
                                             <div className="flex items-center gap-2">
-                                                <div className="text-lg font-black text-slate-900 group-hover:text-blue-600 transition-colors tracking-tight leading-none tabular-nums">{item.ItemCode}</div>
+                                                <div 
+                                                    className="text-lg font-black text-slate-900 hover:text-blue-600 transition-colors tracking-tight leading-none tabular-nums cursor-pointer underline-offset-4 hover:underline"
+                                                    onClick={(e) => { e.stopPropagation(); onItemSelect(item); }}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onItemSelect(item); } }}
+                                                    title={t('common_view_detail')}
+                                                >
+                                                    {item.ItemCode}
+                                                </div>
                                                 {(() => {
                                                     const p = calculatePickingPriority(item, draftQty);
                                                     return <span className={`badge-p${Math.min(p, 5)} px-1.5 py-0.5 rounded font-black text-[10px] leading-none shrink-0`}>P{p}</span>;

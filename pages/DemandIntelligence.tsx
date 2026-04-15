@@ -137,15 +137,26 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
     const [searchResult, setSearchResult] = useState<SearchResult>({ type: 'EMPTY', tokens: [], displayTokens: [], raw: '' });
     
     // Seasonality Tuning State (synced with global or local)
-    const tuning = seasonalityTuning || appSettings?.seasonalityTuning || {
+    const [localTuning, setLocalTuning] = useState(seasonalityTuning || appSettings?.seasonalityTuning || {
         useSPD: true,
         tetWeight: 1.2,
         weatherWeight: 1.0
-    };
+    });
+
+    // Sync from prop when it changes
+    useEffect(() => {
+        if (seasonalityTuning) {
+            setLocalTuning(seasonalityTuning);
+        }
+    }, [seasonalityTuning]);
+
+    const tuning = localTuning;
 
     const setTuningValue = (key: string, val: any) => {
+        const newTuning = { ...tuning, [key]: val };
+        setLocalTuning(newTuning);
         if (updateTuning) {
-            updateTuning({ ...tuning, [key]: val });
+            updateTuning(newTuning);
         }
     };
     

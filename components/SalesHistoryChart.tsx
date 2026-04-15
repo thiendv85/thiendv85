@@ -261,6 +261,9 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
     const seasonality = useMemo(() => {
         if (history.length < 12) return null;
 
+        const monthlyAvg = new Array(12).fill(0);
+        const monthlyCount = new Array(12).fill(0);
+
         const now = new Date();
         now.setDate(1);
         const startMonthIndex = (now.getMonth() - 1 - (history.length - 1)) % 12;
