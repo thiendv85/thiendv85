@@ -5,7 +5,7 @@ import { FilterPanel } from '../components/FilterPanel';
 import { MetricCard } from '../components/MetricCard';
 import { ExecutiveDashboard } from '../components/ExecutiveDashboard';
 import { Typography } from '../components/Typography';
-import { parseInventorySearch, SearchResult, matchSearch } from '../utils/searchLogic';
+import { parseInventorySearch, SearchResult, matchSearch, prepareSearchCache } from '../utils/searchLogic';
 import { useLanguage } from '../utils/i18n';
 import { SupersessionGraph, SupersessionMapping } from '../utils/supersessionGraph';
 import { AppSettings } from './Settings';
@@ -385,8 +385,12 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
         };
     }, [enrichedData, showSimulation]);
 
+    const indexedData = useMemo(() => {
+        return prepareSearchCache(enrichedData);
+    }, [enrichedData]);
+
     const filteredList = useMemo(() => {
-        let result = enrichedData;
+        let result = indexedData;
         if (selectedSubgroup) {
             result = result.filter(item => getLoisSubgroup(item) === selectedSubgroup);
         }

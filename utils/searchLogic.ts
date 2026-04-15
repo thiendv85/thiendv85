@@ -93,9 +93,9 @@ const isLikelyCode = (token: string): boolean => {
   const digitRatio = digitCount / cleaned.length;
   if (digitRatio > 0.3) score += 15;
   
-  // 3b. PENALTY: Mã thuần số ngắn (< 8 chars) thường là category/year/model số
-  // Thường SKU thật có 10-12 số, hoặc có chữ. 6 số numeric ròng rã thường là mã chung.
-  if (digitCount === cleaned.length && cleaned.length < 8) score -= 15;
+  // 3b. PENALTY: Mã thuần số quá ngắn (< 5 chars) thường là category/year/model số
+  // Với 6 sốnumeric ròng rã, ở THACO thường là mã hàng hóa hoặc mã nhóm quan trọng -> Cho phép. 
+  if (digitCount === cleaned.length && cleaned.length < 5) score -= 25;
 
   // 4. Có chữ cái (uppercase trong original)
   const letterCount = token.replace(/[^A-Z]/g, '').length;
@@ -104,10 +104,13 @@ const isLikelyCode = (token: string): boolean => {
   // 5. Mix số + chữ (pattern mã code)
   if (digitCount > 0 && letterCount > 0) score += 20;
   
-  // 6. Bắt đầu hoặc kết thúc bằng số/chữ hoa
+  // 6. Bắt đầu hoặc kết thúc bằng số/chữ hoa (Mã SKU chuẩn thường k có dấu cách ở đầu/cuối)
   if (/^[A-Z0-9]/.test(token) && /[A-Z0-9]$/.test(token)) score += 10;
   
-  // 7. PENALTY: Chứa từ tiếng Việt thường gặp
+  // 7. Ưu tiên mã có độ dài trung bình (10-12 số Toyota/etc)
+  if (cleaned.length >= 10 && digitCount === cleaned.length) score += 20;
+
+  // 8. PENALTY: Chứa từ tiếng Việt thường gặp
   const vietnameseWords = ['loc', 'phahn', 'gio', 'dau', 'nha', 'may', 'den', 'cua', 'banh', 'xe'];
   const lowerToken = cleaned.toLowerCase();
   for (const word of vietnameseWords) {
