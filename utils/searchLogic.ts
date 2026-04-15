@@ -333,13 +333,11 @@ export const matchSearch = (item: SearchableItem, result: SearchResult, useFuzzy
       // 1. Chuẩn hóa tokens sang chữ thường để so khớp (Case-insensitive Fix)
       const cleanTokens = result.tokens.map(t => cleanAlphaNumeric(t));
       
+      // 2. Tìm kiếm Inclusive OR: Duyệt qua từng token và kiểm tra toàn bộ thông tin (Mã, Tên, Đời xe, Đơn hàng)
       for (const token of cleanTokens) {
-        // So khớp ItemCode
-        if (itemCodeClean.includes(token)) return true;
+        if (fullTextSearch.includes(token)) return true;
         
-        // So khớp DocNo (Order Number) - Bổ sung cho tính năng mới
-        if (orderDocs.toLowerCase().includes(token)) return true;
-        
+        // Luôn giữ Logic Fuzzy nếu cần (Dữ liệu ItemCode thường dài 7-13 ký tự)
         if (useFuzzy && token.length >= 7 && token.length <= 13) {
           const distance = levenshteinDistance(token, itemCodeClean.substring(0, token.length));
           if (distance <= 1) return true;
