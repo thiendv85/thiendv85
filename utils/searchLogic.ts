@@ -20,6 +20,7 @@ export interface SearchableItem {
   ItemCode?: string;
   ItemName?: string;
   CarModel?: string;
+  BackorderBreakdown?: { DocNo: string }[];
   _searchCache?: {
     code: string;
     fullText: string;
@@ -134,15 +135,23 @@ const isSpaceSeparatedCodeList = (parts: string[]): boolean => {
 // --- PRE-PROCESSING FUNCTION ---
 
 export const prepareSearchCache = (items: SearchableItem[]): SearchableItem[] => {
-  return items.map(item => ({
-    ...item,
-    _searchCache: {
-      code: cleanAlphaNumeric(item.ItemCode || ''),
-      fullText: removeAccents(
-        `${item.ItemCode || ''} ${item.ItemName || ''} ${item.CarModel || ''}`
-      )
-    }
-  }));
+  return items.map(item => {
+    // Thu thập tất cả DocNo từ BackorderBreakdown
+    const orderDocs = (item.BackorderBreakdown || [])
+      .map(bo => bo.DocNo)
+      .filter(doc => !!doc)
+      .join(' ');
+
+    return {
+      ...item,
+      _searchCache: {
+        code: cleanAlphaNumeric(item.ItemCode || ''),
+        fullText: removeAccents(
+          `${item.ItemCode || ''} ${item.ItemName || ''} ${item.CarModel || ''} ${orderDocs}`
+        )
+      }
+    };
+  });
 };
 
 // --- AUTO-BATCH ALGORITHM ---
@@ -306,8 +315,13 @@ export const matchSearch = (item: SearchableItem, result: SearchResult, useFuzzy
   if (result.type === 'EMPTY') return true;
 
   const itemCodeClean = item._searchCache?.code || cleanAlphaNumeric(item.ItemCode || '');
+  const orderDocs = (item.BackorderBreakdown || [])
+    .map(bo => bo.DocNo)
+    .filter(doc => !!doc)
+    .join(' ');
+
   const fullTextSearch = item._searchCache?.fullText || removeAccents(
-    `${item.ItemCode || ''} ${item.ItemName || ''} ${item.CarModel || ''}`
+    `${item.ItemCode || ''} ${item.ItemName || ''} ${item.CarModel || ''} ${orderDocs}`
   );
 
   switch (result.type) {
