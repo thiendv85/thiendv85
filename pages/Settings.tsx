@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLanguage } from '../utils/i18n';
-import { saveToCloudStorage, loadFromCloudStorage, verifyAdminPin, saveMonthlyData, loadLatestMonthlyData, listMonthlyDataSnapshots, listProfiles, updateProfileRole, toggleUserActive, listWorkflows, createWorkflow, updateWorkflow, createUserByAdmin, adminResetPassword, listSnapshots, deleteSnapshot, getStorageUsage, SnapshotMetadataRow } from '../utils/supabase';
+import { saveToCloudStorage, loadFromCloudStorage, verifyAdminPin, saveMonthlyData, loadLatestMonthlyData, listMonthlyDataSnapshots, listProfiles, updateProfileRole, toggleUserActive, listWorkflows, createWorkflow, updateWorkflow, createUserByAdmin, adminResetPassword, listSnapshots, deleteSnapshot, getStorageUsage, SnapshotMetadataRow, deleteMonthlyData } from '../utils/supabase';
 import { supabase } from '../utils/supabase';
 import { parseMonthlyCSV } from '../utils/csvParser';
 import { Typography } from '../components/Typography';
@@ -1054,6 +1054,42 @@ const SnapshotManagerTab = () => {
                     </div>
                 )}
             </SectionCard>
+
+            {/* Monthly Data History Manager (Admin Only) */}
+            <SectionCard title="Quản lý Dữ liệu Tháng" icon="fa-calendar-days" badge={`${monthlyHistory.length} versions`}>
+                <div className="text-xs text-slate-500 font-bold mb-4">
+                    <i className="fas fa-info-circle mr-1.5 text-blue-400" />
+                    Quản lý các bản ghi Monthly SKU Data (File B) trên Cloud. Xóa dữ liệu cũ để dọn dẹp Database.
+                </div>
+                {monthlyHistory.length === 0 ? (
+                    <div className="text-center py-8 text-slate-400 italic text-xs">Chưa có dữ liệu tháng nào được upload</div>
+                ) : (
+                    <div className="space-y-2">
+                        {monthlyHistory.map(h => {
+                            const vName = h.id.replace('monthly_data_', '');
+                            return (
+                                <div key={h.id} className="flex items-center gap-3 px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 group hover:border-blue-200 transition-all">
+                                    <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600">
+                                        <i className="fas fa-calendar-check" />
+                                    </div>
+                                    <div>
+                                        <div className="font-black text-slate-800 text-sm">{vName}</div>
+                                        <div className="text-[10px] text-slate-400 font-bold">Ngày lưu: {new Date(h.updated_at).toLocaleString('vi-VN')}</div>
+                                    </div>
+                                    <div className="ml-auto flex items-center gap-2">
+                                        <button 
+                                            onClick={() => handleDeleteMonthly(vName)}
+                                            className="px-3 py-1.5 rounded-lg text-xs font-black bg-rose-50 text-rose-600 border border-rose-100 hover:bg-rose-100 transition-all flex items-center gap-1.5"
+                                        >
+                                            <i className="fas fa-trash" /> Xóa bản ghi
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </SectionCard>
         </div>
     );
 };
@@ -1078,6 +1114,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
     const [monthlyPreview, setMonthlyPreview] = useState<{ count: number; filename: string; data: Record<string, any> } | null>(null);
     const [monthlyHistory, setMonthlyHistory] = useState<{ id: string; updated_at: string }[]>([]);
     const [monthlyCurrentDate, setMonthlyCurrentDate] = useState<string | null>(null);
+    const [monthlyClearFirst, setMonthlyClearFirst] = useState(false);
     const monthlyInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -1120,7 +1157,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
         if (pin === null) return;
         if (!verifyAdminPin(pin)) { alert('❌ Mã phê duyệt không đúng!'); return; }
         setMonthlyUploadStatus('saving');
-        const ok = await saveMonthlyData(monthlyPreview.data);
+        const ok = await saveMonthlyData(monthlyPreview.data, { clearFirst: monthlyClearFirst });
         if (ok) {
             const today = new Date().toISOString().slice(0, 10);
             setMonthlyCurrentDate(today);
@@ -1132,6 +1169,25 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
         } else {
             alert('Lỗi khi lưu lên Cloud.');
             setMonthlyUploadStatus('error');
+        }
+    };
+
+    const handleDeleteMonthly = async (snapshotMonth: string) => {
+        if (!confirm(`Xóa toàn bộ dữ liệu tháng ${snapshotMonth} trên Cloud?\nHành động này không thể hoàn tác.`)) return;
+        const pin = prompt('Nhập Admin PIN để xác nhận xóa:');
+        if (pin === null) return;
+        if (!verifyAdminPin(pin)) { alert('❌ Mã phê duyệt không đúng!'); return; }
+
+        const ok = await deleteMonthlyData(snapshotMonth);
+        if (ok) {
+            alert('✅ Đã xóa dữ liệu thành công.');
+            const hist = await listMonthlyDataSnapshots();
+            setMonthlyHistory(hist);
+            // If deleted month was the current one, clear the current date label
+            const currentSnapshotMonth = new Date().toISOString().slice(0, 7);
+            if (snapshotMonth === currentSnapshotMonth) setMonthlyCurrentDate(null);
+        } else {
+            alert('Lỗi khi xóa dữ liệu.');
         }
     };
     // ───────────────────────────────────────────────────────────────────────
@@ -1895,6 +1951,13 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                 </div>
                             </div>
 
+                            {/* Options */}
+                            {monthlyPreview && (
+                                <div className="flex items-center gap-2 px-1">
+                                    <Toggle value={monthlyClearFirst} onChange={setMonthlyClearFirst} label="Xóa sạch dữ liệu tháng hiện tại trước khi đẩy lên (Khuyên dùng)" />
+                                </div>
+                            )}
+
                             {/* File Picker */}
                             <div className="flex items-center gap-3">
                                 <label className="flex-1 flex items-center gap-3 h-14 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl px-4 cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-all group">
@@ -1926,18 +1989,21 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                 </button>
                             </div>
 
-                            {/* History */}
+                            {/* History (Planners can see, but not delete here) */}
                             {monthlyHistory.length > 0 && (
                                 <div>
                                     <div className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Lịch sử upload</div>
                                     <div className="space-y-1 max-h-40 overflow-y-auto">
-                                        {monthlyHistory.map(h => (
-                                            <div key={h.id} className="flex items-center gap-3 px-3 py-2 bg-slate-50 rounded-lg border border-slate-100 text-xs">
-                                                <i className="fas fa-clock text-slate-400" />
-                                                <span className="font-bold text-slate-600">{h.id.replace('monthly_data_', '')}</span>
-                                                <span className="text-slate-400 ml-auto">{new Date(h.updated_at).toLocaleString('vi-VN')}</span>
-                                            </div>
-                                        ))}
+                                         {monthlyHistory.map(h => {
+                                            const vName = h.id.replace('monthly_data_', '');
+                                            return (
+                                                <div key={h.id} className="flex items-center gap-3 px-3 py-2 bg-slate-50 rounded-lg border border-slate-100 text-xs">
+                                                    <i className="fas fa-clock text-slate-400" />
+                                                    <span className="font-bold text-slate-600">{vName}</span>
+                                                    <span className="text-slate-400 ml-auto">{new Date(h.updated_at).toLocaleString('vi-VN')}</span>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             )}
@@ -1977,7 +2043,10 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
             )}
 
             {activeTab === 'storage' && currentUserProfile?.role === 'admin' && (
-                <SnapshotManagerTab />
+                <SnapshotManagerTab 
+                    monthlyHistory={monthlyHistory} 
+                    handleDeleteMonthly={handleDeleteMonthly}
+                />
             )}
 
             {/* Sticky Save Bar */}

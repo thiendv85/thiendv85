@@ -113,10 +113,15 @@ const BATCH_SIZE = 500; // Upsert 500 rows per request to avoid timeout
  * Uses batch upsert (BATCH_SIZE rows each) to safely handle 80,000+ SKUs.
  * snapshot_month format: 'YYYY-MM'
  */
-export async function saveMonthlyData(monthlyMap: Record<string, any>): Promise<boolean> {
+export async function saveMonthlyData(monthlyMap: Record<string, any>, options?: { clearFirst?: boolean }): Promise<boolean> {
   try {
     const snapshotMonth = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
     const now = new Date().toISOString();
+
+    // Phase: Clear existing data for this month if requested
+    if (options?.clearFirst) {
+      await deleteMonthlyData(snapshotMonth);
+    }
 
     // Build flat rows for the table
     const rows = Object.entries(monthlyMap).map(([itemCode, d]) => ({
@@ -359,6 +364,33 @@ export async function loadSpecificMonthlyData(month: string): Promise<{ data: Re
   } catch (error) {
     console.error('loadSpecificMonthlyData:', error);
     return null;
+  }
+}
+
+/**
+ * Deletes all records for a specific snapshot_month.
+ * Also removes the index record from cloud_storage.
+ */
+export async function deleteMonthlyData(snapshotMonth: string): Promise<boolean> {
+  try {
+    // 1. Delete rows from monthly_sku_data
+    const { error: dErr } = await supabase
+      .from('monthly_sku_data')
+      .delete()
+      .eq('snapshot_month', snapshotMonth);
+    
+    if (dErr) throw dErr;
+
+    // 2. Delete index record from cloud_storage
+    await supabase
+      .from('cloud_storage')
+      .delete()
+      .eq('id', `monthly_index_${snapshotMonth}`);
+
+    return true;
+  } catch (error) {
+    console.error('Lỗi khi xóa Monthly Data:', error);
+    return false;
   }
 }
 
