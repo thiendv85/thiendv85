@@ -861,8 +861,12 @@ const UserManagementTab = () => {
     );
 };
 
-// ─── Snapshot Manager Tab (Admin Only) ────────────────────────────────────────
-const SnapshotManagerTab = () => {
+interface SnapshotManagerTabProps {
+    monthlyHistory: { id: string; updated_at: string }[];
+    handleDeleteMonthly: (snapshotMonth: string) => Promise<void>;
+}
+
+const SnapshotManagerTab = ({ monthlyHistory, handleDeleteMonthly }: SnapshotManagerTabProps) => {
     const [snapshots, setSnapshots] = useState<SnapshotMetadataRow[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [deletingId, setDeletingId] = useState<string | null>(null);
