@@ -1038,7 +1038,7 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
                     }
 
                     const p = appSettings?.sourceProfiles?.find(p => p.id === appSettings?.activeSourceId);
-                    if (p) return `[${p.brand || 'Kia'}] ${p.id} – ${p.name}`;
+                    if (p) return `[${p.brand || 'Brand'}] ${p.id} – ${p.name}`;
 
                     return undefined;
                 })()}

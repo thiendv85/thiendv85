@@ -173,16 +173,32 @@ const AppContent = () => {
         if (needsRepair || needsProfileMigration) {
             console.log("App: Repairing settings profiles...");
             hasRepairedRef.current = true;
+            
+            // 1. Detect dominant brand from data if available, otherwise default to Kia for legacy
+            const dominantBrand = data.length > 0 
+                ? (Array.from(new Set(data.map(i => i.BrandName).filter(Boolean))).sort((a,b) => 
+                    data.filter(i => i.BrandName === b).length - data.filter(i => i.BrandName === a).length
+                  )[0] || 'Kia')
+                : 'Kia';
+
             let updatedProfiles = appSettings.sourceProfiles.map(p => ({
                 ...p,
-                brand: p.brand || (p.id === 'BMWASIA' ? 'BMW' : 'Kia')
+                brand: p.brand || (p.id === 'BMWASIA' ? 'BMW' : dominantBrand as any)
             }));
 
-            if (!hasOEM) {
-                updatedProfiles.push({ id: 'OEM', brand: 'Kia', name: 'OEM chưa xác định', lt: 90, sp: 30, ssp: 15 });
+            // 2. Ensure OEM/CXD exist for the dominant brand if not present
+            const hasOEMForBrand = updatedProfiles.some(p => p.id === 'OEM' && p.brand === dominantBrand);
+            const hasCXDForBrand = updatedProfiles.some(p => p.id === 'CXD' && p.brand === dominantBrand);
+
+            if (!hasOEMForBrand) {
+                const defOEM = DEFAULT_SOURCE_PROFILES.find(d => d.id === 'OEM' && d.brand === dominantBrand) || 
+                               { id: 'OEM', brand: dominantBrand as any, name: 'OEM chưa xác định', lt: 90, sp: 30, ssp: 15 };
+                updatedProfiles.push(defOEM);
             }
-            if (!hasCXD) {
-                updatedProfiles.push({ id: 'CXD', brand: 'Kia', name: 'Chưa xác định', lt: 90, sp: 30, ssp: 15 });
+            if (!hasCXDForBrand) {
+                const defCXD = DEFAULT_SOURCE_PROFILES.find(d => d.id === 'CXD' && d.brand === dominantBrand) ||
+                               { id: 'CXD', brand: dominantBrand as any, name: 'Chưa xác định', lt: 90, sp: 30, ssp: 15 };
+                updatedProfiles.push(defCXD);
             }
 
             const repaired: AppSettings = {

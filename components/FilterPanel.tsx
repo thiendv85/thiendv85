@@ -26,21 +26,22 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
   const loisGroups = useMemo(() => Array.from(new Set(data.map(item => item.LOISGroup).filter(Boolean))).sort(), [data]);
   const trendFlags = useMemo(() => Array.from(new Set(data.map(item => item.TrendFlag).filter(Boolean))).sort(), [data]);
   const uniqueSources = useMemo(() => {
-    return Array.from(new Set(data.map(i => `${i.BrandName || 'Kia'}|${i.SourceId || ''}`)))
+    return Array.from(new Set(data.map(i => `${i.BrandName || ''}|${i.SourceId || ''}`)))
+      .filter(key => key !== '|') // Skip empty combinations
       .map(key => {
         const [brand, sid] = key.split('|');
         const profile = settings.sourceProfiles?.find(p =>
-          p.brand.toLowerCase() === brand.toLowerCase() &&
+          p.brand.toLowerCase() === (brand || 'kia').toLowerCase() &&
           (p.id.toUpperCase() === sid.toUpperCase() || p.name.toLowerCase().includes(sid.toLowerCase()))
         );
         return {
           id: key,
-          label: `${brand} - ${profile?.name || sid || 'General'}`,
-          brand,
+          label: `${brand || 'General'} - ${profile?.name || sid || 'General'}`,
+          brand: brand || 'Other',
           sid: sid || 'GEN'
         };
       })
-      .sort((a, b) => a.label.localeCompare(b.label));
+      .sort((a, b) => a.brand.localeCompare(b.brand) || a.label.localeCompare(b.label));
   }, [data, settings.sourceProfiles]);
 
   const getSelectClass = (isActive: boolean) => {
@@ -259,40 +260,50 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
 
           <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-1 customer-scrollbar">
             {(() => {
-              const uniqueSources = Array.from(new Set(data.map(i => `${i.BrandName || 'Kia'}|${i.SourceId || ''}`)))
+              const uniqueSources = Array.from(new Set(data.map(i => `${i.BrandName || ''}|${i.SourceId || ''}`)))
+                .filter(key => key !== '|')
                 .map(key => {
                   const [brand, sid] = key.split('|');
-                  return { brand, sid };
+                  return { brand: brand || 'Other', sid: sid || 'GEN' };
                 })
                 .sort((a, b) => a.brand.localeCompare(b.brand) || a.sid.localeCompare(b.sid));
 
-              if (uniqueSources.length === 0) return null;
+              if (uniqueSources.length === 0) return <div className="text-[10px] text-slate-400 text-center py-4 italic">No source data found</div>;
 
               return uniqueSources.map(src => {
                 const profile = settings.sourceProfiles?.find(p =>
-                  p.brand.toLowerCase() === src.brand.toLowerCase() &&
-                  (p.id.toUpperCase() === src.sid.toUpperCase() || p.name.toLowerCase().includes(src.sid.toLowerCase()))
+                  p.brand.toLowerCase() === (src.brand === 'Other' ? 'kia' : src.brand).toLowerCase() &&
+                  p.id.toUpperCase() === src.sid.toUpperCase()
                 );
 
-                const defaultProfile = DEFAULT_SOURCE_PROFILES.find(d => d.id.toUpperCase() === src.sid.toUpperCase());
-                const valLT = profile?.lt ?? defaultProfile?.lt ?? settings.params.lt;
-                const valSP = profile?.sp ?? defaultProfile?.sp ?? settings.params.sp;
-                const valSSP = profile?.ssp ?? defaultProfile?.ssp ?? settings.params.ssp;
+                const brandKey = (src.brand === 'Other' ? 'kia' : src.brand).toLowerCase();
+                const defaultProfile = DEFAULT_SOURCE_PROFILES.find(d => 
+                    d.id.toUpperCase() === src.sid.toUpperCase() && 
+                    d.brand.toLowerCase() === brandKey
+                );
+
+                // For unknown IDs, use the max LT profile of that brand as fallback
+                const brandFallback = DEFAULT_SOURCE_PROFILES.filter(d => d.brand.toLowerCase() === brandKey)
+                    .reduce((max, d) => (d.lt > max.lt ? d : max), DEFAULT_SOURCE_PROFILES[0]);
+                
+                const valLT = profile?.lt ?? defaultProfile?.lt ?? brandFallback?.lt ?? settings.params.lt;
+                const valSP = profile?.sp ?? defaultProfile?.sp ?? brandFallback?.sp ?? settings.params.sp;
+                const valSSP = profile?.ssp ?? defaultProfile?.ssp ?? brandFallback?.ssp ?? settings.params.ssp;
 
                 const updateProfile = (field: string, value: number) => {
                   if (profile) {
                     const newProfiles = settings.sourceProfiles?.map(p =>
-                      p.id === profile.id ? { ...p, [field]: value } : p
+                      (p.id === profile.id && p.brand === profile.brand) ? { ...p, [field]: value } : p
                     );
                     onSettingsChange({ ...settings, sourceProfiles: newProfiles });
-                  } else if (src.brand || src.sid) {
+                  } else {
                     const newProfile: any = {
                       id: src.sid || 'GEN',
-                      brand: src.brand || 'Kia',
-                      name: `Source ${src.sid}`,
-                      lt: field === 'lt' ? value : settings.params.lt,
-                      sp: field === 'sp' ? value : settings.params.sp,
-                      ssp: field === 'ssp' ? value : settings.params.ssp
+                      brand: src.brand === 'Other' ? 'Kia' : src.brand,
+                      name: `Nguồn ${src.sid}`,
+                      lt: field === 'lt' ? value : (defaultProfile?.lt ?? settings.params.lt),
+                      sp: field === 'sp' ? value : (defaultProfile?.sp ?? settings.params.sp),
+                      ssp: field === 'ssp' ? value : (defaultProfile?.ssp ?? settings.params.ssp)
                     };
                     onSettingsChange({
                       ...settings,
@@ -304,7 +315,7 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
                 return (
                   <div key={`${src.brand}-${src.sid}`} className="flex items-center justify-between gap-3 bg-white p-2.5 rounded-2xl border border-slate-200 transition-all group shadow-sm hover:border-blue-400">
                     <div className="flex flex-col min-w-0 pr-2">
-                      <span className="text-[10px] font-black text-blue-800 uppercase leading-none truncate tracking-tight">
+                      <span className={`text-[10px] font-black uppercase leading-none truncate tracking-tight ${src.brand.toLowerCase() === 'kia' ? 'text-blue-800' : src.brand.toLowerCase() === 'mazda' ? 'text-emerald-800' : 'text-slate-800'}`}>
                         {src.brand} - {profile?.name || src.sid || 'General'}
                       </span>
                       <span className="text-[8px] font-bold text-slate-400 uppercase truncate mt-0.5 opacity-70">

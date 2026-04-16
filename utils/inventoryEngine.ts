@@ -551,13 +551,25 @@ export function computeInventory(
 }
 
 export function resolveItemProfile(item: InventoryItem, sourceProfiles?: SourceProfile[]): { profile?: SourceProfile; isFallback?: boolean; fallbackReason?: string } {
-    if (!sourceProfiles) return {};
+    if (!sourceProfiles || sourceProfiles.length === 0) return {};
     const sId = (item.SourceId || '').toLowerCase();
     const brand = (item.BrandName || '').toLowerCase();
+
+    // 1. Precise Match (ID + Brand)
     const exact = sourceProfiles.find(p => p.id.toLowerCase() === sId && p.brand.toLowerCase() === brand);
     if (exact) return { profile: exact };
-    const brandFallback = sourceProfiles.filter(p => p.brand.toLowerCase() === brand).reduce((max, p) => (p.lt > max.lt ? p : max), sourceProfiles[0]);
-    return { profile: brandFallback, isFallback: true, fallbackReason: `Dùng LT cao nhất của ${brand}` };
+
+    // 2. Brand-Specific Fallback: Use Max Lead Time of the same brand
+    const sameBrandProfiles = sourceProfiles.filter(p => p.brand.toLowerCase() === brand);
+    if (sameBrandProfiles.length > 0) {
+        // Pick the profile with the highest Lead Time as a conservative fallback for that brand (User requirement)
+        const brandFallback = sameBrandProfiles.reduce((max, p) => (p.lt > max.lt ? p : max), sameBrandProfiles[0]);
+        return { profile: brandFallback, isFallback: true, fallbackReason: `Dùng LT cao nhất của ${item.BrandName || 'thương hiệu'}` };
+    }
+
+    // 3. Absolute Fallback: Default to General profile (GEN) or first profile if Brand is completely unknown
+    const generalProfile = sourceProfiles.find(p => p.id.toUpperCase() === 'GEN') || sourceProfiles[0];
+    return { profile: generalProfile, isFallback: true, fallbackReason: brand ? `Không tìm thấy profile cho ${brand}` : 'Dùng profile chung' };
 }
 
 export function computeInventoryBatch(items: InventoryItem[], params: ComputeParams, draftData?: any): InventoryItem[] {

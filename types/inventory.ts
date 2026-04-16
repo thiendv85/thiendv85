@@ -12,6 +12,7 @@ export interface SourceProfile {
 }
 
 export const DEFAULT_SOURCE_PROFILES: SourceProfile[] = [
+    // Kia Profiles
     { id: 'NB', brand: 'Kia', name: 'Nhật Bản', lt: 90, sp: 30, ssp: 15 },
     { id: 'TL', brand: 'Kia', name: 'Thái Lan', lt: 60, sp: 20, ssp: 10 },
     { id: 'TQ', brand: 'Kia', name: 'Trung Quốc', lt: 75, sp: 25, ssp: 12 },
@@ -19,8 +20,19 @@ export const DEFAULT_SOURCE_PROFILES: SourceProfile[] = [
     { id: 'AD', brand: 'Kia', name: 'Ấn Độ', lt: 75, sp: 25, ssp: 12 },
     { id: 'OEM', brand: 'Kia', name: 'OEM chưa xác định', lt: 90, sp: 30, ssp: 15 },
     { id: 'CXD', brand: 'Kia', name: 'Chưa xác định', lt: 90, sp: 30, ssp: 15 },
-    { id: 'BMWASIA', brand: 'BMW', name: 'BMW Asia', lt: 60, sp: 15, ssp: 7 },
     { id: 'ML', brand: 'Kia', name: 'Malaysia', lt: 45, sp: 15, ssp: 7 },
+    
+    // Mazda Profiles
+    { id: 'NB', brand: 'Mazda', name: 'Nhật Bản', lt: 90, sp: 35, ssp: 15 },
+    { id: 'TL', brand: 'Mazda', name: 'Thái Lan', lt: 60, sp: 25, ssp: 12 },
+    { id: 'OEM', brand: 'Mazda', name: 'Nguồn nội địa', lt: 30, sp: 15, ssp: 7 },
+
+    // Stellantis / Peugeot Profiles
+    { id: 'EU', brand: 'Stellantis', name: 'Châu Âu', lt: 120, sp: 45, ssp: 20 },
+    { id: 'ML', brand: 'Stellantis', name: 'Malaysia', lt: 45, sp: 20, ssp: 10 },
+
+    // BMW Profiles
+    { id: 'BMWASIA', brand: 'BMW', name: 'BMW Asia', lt: 60, sp: 15, ssp: 7 },
 ];
 
 export interface InventoryFilters {
