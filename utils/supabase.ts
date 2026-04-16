@@ -190,24 +190,33 @@ export async function saveMonthlyData(monthlyMap: Record<string, any>, options?:
 
 /**
  * Loads the latest monthly data from monthly_sku_data table.
- * Finds the most recent snapshot_month, loads all rows for it,
- * rebuilds a Record<ItemCode, MonthlyData> map in memory.
+ * Uses cloud_storage index to find the latest version first.
  */
 export async function loadLatestMonthlyData(lastUpdatedAt?: string | null): Promise<{ data: Record<string, any>; updatedAt: string; isUpToDate?: boolean } | null> {
   try {
-    // Step 1: Find the latest snapshot_month
-    const { data: monthRows, error: mErr } = await supabase
-      .from('monthly_sku_data')
-      .select('snapshot_month, updated_at')
-      .order('snapshot_month', { ascending: false })
-      .limit(1);
+    // Step 1: Find the latest snapshot from cloud_storage index records
+    const { data: indexRows, error: idxErr } = await supabase
+      .from('cloud_storage')
+      .select('id, updated_at, data')
+      .ilike('id', 'monthly_index_%');
+    
+    if (idxErr || !indexRows || indexRows.length === 0) return null;
 
-    if (mErr || !monthRows || monthRows.length === 0) return null;
-    const latestMonth = monthRows[0].snapshot_month as string;
-    const updatedAt = monthRows[0].updated_at as string;
+    // Sort to find the latest month and latest update
+    const sorted = indexRows.sort((a, b) => {
+      // Primary sort: snapshotMonth (YYYY-MM)
+      const m1 = a.data?.snapshotMonth || '';
+      const m2 = b.data?.snapshotMonth || '';
+      if (m1 !== m2) return m2.localeCompare(m1);
+      // Secondary sort: updated_at
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    });
+
+    const latestIndex = sorted[0];
+    const latestMonth = latestIndex.data.snapshotMonth;
+    const updatedAt = latestIndex.updated_at;
 
     // Phase: Version Check Optimization
-    // If client provides a timestamp and it matches current Cloud timestamp, skip downloading 80k rows.
     if (lastUpdatedAt && updatedAt === lastUpdatedAt) {
         return { data: {}, updatedAt, isUpToDate: true };
     }

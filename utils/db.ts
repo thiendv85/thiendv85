@@ -103,3 +103,11 @@ export const clearCachedUploadedData = async () => {
     await clearDBStore(STORES.UPLOADED_DATA);
     await saveToDB(STORES.METADATA, 'upload_params', null);
 };
+
+export const clearAllAppCache = async () => {
+    await Promise.all([
+        clearDBStore(STORES.MONTHLY_DATA),
+        clearDBStore(STORES.UPLOADED_DATA),
+        clearDBStore(STORES.METADATA)
+    ]);
+};
