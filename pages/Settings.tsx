@@ -1435,8 +1435,8 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                                 <div className="col-span-1 text-center">SSP</div>
                                                 <div className="col-span-1"></div>
                                             </div>
-                                            {brandProfiles.map(profile => (
-                                                <div key={profile.id} className="grid grid-cols-12 gap-2 items-center py-2 border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                                            {brandProfiles.map((profile, idx) => (
+                                                <div key={`${brand}-${idx}`} className="grid grid-cols-12 gap-2 items-center py-2 border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
                                                     {/* Active radio */}
                                                     <div className="col-span-1 flex justify-center">
                                                         <input
