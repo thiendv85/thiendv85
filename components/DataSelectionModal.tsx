@@ -3,18 +3,20 @@ import React, { useState, useEffect } from 'react';
 import { X, Cloud, Database, Calendar, Download, RefreshCw, AlertCircle, Trash2 } from 'lucide-react';
 import { Typography } from './Typography';
 import { SnapshotMetadataRow, listSnapshots, loadSnapshot, listMonthlyDataSnapshots, loadSpecificMonthlyData, deleteSnapshot, normalizeBrand } from '../utils/supabase';
-import { InventoryItem } from '../types/inventory';
+import { InventoryItem, SourceProfile } from '../types/inventory';
 
 // Removed local extractBrandFromDepartment in favor of shared normalizeBrand from supabase.ts
 
 interface DataSelectionModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSelectInventory: (data: InventoryItem[], filename: string) => void;
+    onSelectInventory: (data: InventoryItem[], filename: string, sourceId: string) => void;
     onSelectMonthly: (data: Record<string, any>, date: string, updatedAt: string) => void;
     currentMonthlyDate?: string | null;
     userRole?: string;
     userDepartment?: string;
+    sourceProfiles: SourceProfile[];
+    activeSourceId: string;
 }
 
 export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
@@ -24,13 +26,16 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
     onSelectMonthly,
     currentMonthlyDate,
     userRole,
-    userDepartment
+    userDepartment,
+    sourceProfiles,
+    activeSourceId
 }) => {
     const [tab, setTab] = useState<'inventory' | 'monthly'>('inventory');
     const [snapshots, setSnapshots] = useState<SnapshotMetadataRow[]>([]);
     const [monthlySnapshots, setMonthlySnapshots] = useState<{ id: string; updated_at: string }[]>([]);
     const [availableBrands, setAvailableBrands] = useState<string[]>([]);
     const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+    const [selectedSourceId, setSelectedSourceId] = useState<string>(activeSourceId);
     const [isLoading, setIsLoading] = useState(false);
     const [loadingId, setLoadingId] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -93,7 +98,7 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
         try {
             const data = await loadSnapshot(snap.storage_path);
             if (data && data.length > 0) {
-                onSelectInventory(data, snap.filename);
+                onSelectInventory(data, snap.filename, selectedSourceId);
                 onClose();
             } else {
                 setError('Không thể tải bản sao lưu này.');
@@ -350,7 +355,25 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
                 </div>
 
                 {/* Footer */}
-                <div className="px-8 py-6 border-t border-slate-100 bg-slate-50/50 flex justify-end rounded-b-[32px]">
+                <div className="px-8 py-6 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center rounded-b-[32px]">
+                    <div className="flex-1 max-w-[300px]">
+                        {tab === 'inventory' && (
+                            <div className="flex flex-col gap-1">
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Áp dụng tham số nguồn:</span>
+                                <select
+                                    value={selectedSourceId}
+                                    onChange={(e) => setSelectedSourceId(e.target.value)}
+                                    className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all cursor-pointer hover:border-blue-400"
+                                >
+                                    {sourceProfiles.map(p => (
+                                        <option key={p.id} value={p.id}>
+                                            [{p.brand}] {p.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                    </div>
                     <button
                         onClick={onClose}
                         className="px-8 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest text-slate-500 bg-white border border-slate-200 hover:bg-slate-50 hover:text-slate-800 transition-all font-sans"

@@ -1,19 +1,22 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { InventoryItem, MonthlyData } from '../types/inventory';
+import { InventoryItem, MonthlyData, SourceProfile } from '../types/inventory';
 import { parseCSV, parseDealerStockCSV, parseBackorderCSV } from '../utils/csvParser';
 import { useLanguage } from '../utils/i18n';
 import { uploadSnapshot, listSnapshots, loadSnapshot, deleteSnapshot, getStorageUsage, SnapshotMetadataRow, normalizeBrand } from '../utils/supabase';
 import { useAuth } from '../utils/authContext';
 
 
-export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataDate }: {
+export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataDate, sourceProfiles, activeSourceId }: {
     onData: (data: InventoryItem[], filename: string, sourceId: string) => void;
     monthlyData?: Record<string, MonthlyData> | null;
     isMonthlyLoading?: boolean;
     monthlyDataDate?: string | null;
+    sourceProfiles: SourceProfile[];
+    activeSourceId: string;
 }) => {
     const [mainFile, setMainFile] = useState<File | null>(null);
+    const [selectedSourceId, setSelectedSourceId] = useState<string>(activeSourceId);
     const [dealerFile, setDealerFile] = useState<File | null>(null);
     const [boFile, setBoFile] = useState<File | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -63,7 +66,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
         const data = await loadSnapshot(snap.storage_path);
         setLoadingSnapshotId(null);
         if (data && data.length > 0) {
-            onData(data, snap.filename, '');
+            onData(data, snap.filename, selectedSourceId);
         } else {
             alert('Không thể tải snapshot. Vui lòng thử lại.');
         }
@@ -148,7 +151,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
             }
 
             // Phân tích ngay (không chờ upload)
-            onData(inventoryData, mainFile.name, '');
+            onData(inventoryData, mainFile.name, selectedSourceId);
 
             // Upload cloud song song (non-blocking)
             uploadSnapshot(inventoryData, mainFile.name, {
@@ -440,6 +443,30 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                             </div>
                                             <input type="file" ref={boInputRef} className="hidden" accept=".csv" onChange={(e) => e.target.files && setBoFile(e.target.files[0])} />
                                         </button>
+                                    </div>
+
+                                    {/* Source Selection Dropdown */}
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between px-1">
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nguồn hàng / Thương hiệu</span>
+                                            <span className="text-[9px] font-bold text-blue-400/80">Tham số LT/SP/SSP sẽ áp theo nguồn này</span>
+                                        </div>
+                                        <div className="relative group/select">
+                                            <select
+                                                value={selectedSourceId}
+                                                onChange={(e) => setSelectedSourceId(e.target.value)}
+                                                className="w-full h-12 bg-black/40 border border-white/10 rounded-xl px-4 text-sm font-bold text-white appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all cursor-pointer hover:border-blue-400/30"
+                                            >
+                                                {sourceProfiles.map(p => (
+                                                    <option key={p.id} value={p.id} className="bg-slate-900 text-white">
+                                                        [{p.brand}] {p.name} — (LT:{p.lt} SP:{p.sp} SSP:{p.ssp})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 group-hover/select:text-blue-400 transition-colors">
+                                                <i className="fas fa-chevron-down text-xs"></i>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     {/* Action Buttons */}

@@ -1206,13 +1206,24 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
         }
 
         setIsSavingCloud(true);
-        const success = await saveToCloudStorage('global_config', draft);
-        setIsSavingCloud(false);
-        if (success) {
+        try {
+            const { error } = await supabase
+                .from('cloud_storage')
+                .upsert({ 
+                    id: 'global_config', 
+                    data: draft, 
+                    updated_at: new Date().toISOString() 
+                });
+
+            if (error) throw error;
+            
             alert('✅ Đã lưu cấu hình lên Cloud (Supabase) thành công!');
             handleSave();
-        } else {
-            alert('Lỗi khi lưu cấu hình lên Cloud. Vui lòng kiểm tra lại thiết lập Database.');
+        } catch (err: any) {
+            console.error('Lỗi khi lưu lên Cloud:', err);
+            alert(`Lỗi khi lưu lên Cloud: ${err.message || 'Lỗi không xác định'}. Vui lòng kiểm tra lại thiết lập Database.`);
+        } finally {
+            setIsSavingCloud(false);
         }
     };
 
@@ -1356,11 +1367,6 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                         <button onClick={handleSaveToCloud} disabled={isSavingCloud} className="flex items-center gap-2 bg-emerald-500/30 border border-emerald-400/30 text-emerald-100 px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-emerald-500/50 transition-all shadow-lg shadow-emerald-500/20">
                             <i className={`fas ${isSavingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up'}`} /> Lưu Cloud
                         </button>
-                        <div className="w-px h-6 bg-white/20 mx-1 hidden md:block"></div>
-                        <label className="flex items-center gap-2 bg-white/10 border border-white/10 text-white px-4 py-2 rounded-xl text-xs font-black uppercase cursor-pointer hover:bg-white/20 transition-all">
-                            <i className="fas fa-file-import" /> Nhập file local
-                            <input type="file" accept=".json" className="hidden" onChange={handleImportConfig} />
-                        </label>
                         <button onClick={handleExportConfig} className="flex items-center gap-2 bg-white/10 border border-white/10 text-white px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-white/20 transition-all">
                             <i className="fas fa-file-export" /> Xuất file
                         </button>
@@ -1896,19 +1902,11 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                     <SectionCard title="Quản lý cấu hình" icon="fa-database">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                                <div className="font-black text-slate-800 text-sm uppercase mb-1">Xuất cấu hình</div>
-                                <div className="text-xs text-slate-500 mb-3">Lưu toàn bộ cài đặt ra file JSON để backup hoặc chia sẻ</div>
+                                <div className="font-black text-slate-800 text-sm uppercase mb-1">Dữ liệu Local</div>
+                                <div className="text-xs text-slate-500 mb-3">Tải về cấu hình hiện tại để lưu trữ cục bộ</div>
                                 <button onClick={handleExportConfig} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-blue-700 transition-all shadow-sm">
-                                    <i className="fas fa-download" /> Tải xuống JSON
+                                    <i className="fas fa-download" /> Tải cấu hình (.json)
                                 </button>
-                            </div>
-                            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                                <div className="font-black text-slate-800 text-sm uppercase mb-1">Nhập cấu hình</div>
-                                <div className="text-xs text-slate-500 mb-3">Khôi phục cài đặt từ file JSON đã xuất trước đó</div>
-                                <label className="flex items-center gap-2 bg-slate-700 text-white px-4 py-2 rounded-xl text-xs font-black uppercase cursor-pointer hover:bg-slate-800 transition-all shadow-sm w-fit">
-                                    <i className="fas fa-upload" /> Chọn file JSON
-                                    <input type="file" accept=".json" className="hidden" onChange={handleImportConfig} />
-                                </label>
                             </div>
                             <div className="p-4 bg-rose-50 rounded-xl border border-rose-200">
                                 <div className="font-black text-rose-800 text-sm uppercase mb-1">Đặt lại mặc định</div>

@@ -191,13 +191,11 @@ const AppContent = () => {
             const hasCXDForBrand = updatedProfiles.some(p => p.id === 'CXD' && p.brand === dominantBrand);
 
             if (!hasOEMForBrand) {
-                const defOEM = DEFAULT_SOURCE_PROFILES.find(d => d.id === 'OEM' && d.brand === dominantBrand) || 
-                               { id: 'OEM', brand: dominantBrand as any, name: 'OEM chưa xác định', lt: 90, sp: 30, ssp: 15 };
+                const defOEM = { id: 'OEM', brand: dominantBrand as any, name: 'OEM chưa xác định', lt: 90, sp: 30, ssp: 15 };
                 updatedProfiles.push(defOEM);
             }
             if (!hasCXDForBrand) {
-                const defCXD = DEFAULT_SOURCE_PROFILES.find(d => d.id === 'CXD' && d.brand === dominantBrand) ||
-                               { id: 'CXD', brand: dominantBrand as any, name: 'Chưa xác định', lt: 90, sp: 30, ssp: 15 };
+                const defCXD = { id: 'CXD', brand: dominantBrand as any, name: 'Chưa xác định', lt: 90, sp: 30, ssp: 15 };
                 updatedProfiles.push(defCXD);
             }
 
@@ -339,6 +337,8 @@ const AppContent = () => {
             monthlyData={monthlyData}
             isMonthlyLoading={isMonthlyLoading}
             monthlyDataDate={monthlyDataDate}
+            sourceProfiles={appSettings.sourceProfiles}
+            activeSourceId={appSettings.activeSourceId}
         />
     );
 
@@ -523,6 +523,8 @@ const AppContent = () => {
                         setMonthlyDataDate(monthDate);
                         await cacheMonthlyData(mData, monthDate, updatedAt);
                     }}
+                    sourceProfiles={appSettings.sourceProfiles}
+                    activeSourceId={appSettings.activeSourceId}
                 />
 
                 <SupersessionEditModal
