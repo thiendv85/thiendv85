@@ -1,6 +1,15 @@
-
 export const AVAILABLE_BRANDS = ['Kia', 'Mazda', 'Stellantis', 'BMW'] as const;
 export type Brand = (typeof AVAILABLE_BRANDS)[number];
+
+export interface LoisProfile {
+    id: string;             // Sub-group code (e.g., '1', 'E', 'L1')
+    parentGroup: string;    // Parent group name (e.g., 'L', 'O', 'U')
+    name: string;           // Description
+    noPlan: boolean;        // Stop planning/ordering if true
+    alertType: 'none' | 'info' | 'warning' | 'critical';
+    targetMOS: number;
+    targetExcessPct: number;
+}
 
 export interface SourceProfile {
     id: string;          // unique key, e.g. 'NB', 'BMWASIA'
@@ -404,7 +413,6 @@ export interface SnapshotData {
         priorityBucket: string;
         unitCost: number;
         warnings: string[];
-        // Extended fields for rich review modal
         m1Actual: number;
         avgQty3M: number;
         avgQty6M: number;
@@ -414,14 +422,13 @@ export interface SnapshotData {
         incomingNextMonth?: number;
         cst: number;
         salesHistory: number[];
-        // Regional breakdown (NB/BB) + leadtime for print form
         available_NB?: number;
         available_BB?: number;
         totalPO_NB?: number;
         totalPO_BB?: number;
         backorder_NB?: number;
         backorder_BB?: number;
-        effectiveLT?: number; // leadtime in days from source profile
+        effectiveLT?: number;
         qtyNB?: number;
         qtyBB?: number;
     }>;
@@ -442,12 +449,9 @@ export interface ApprovalRequest {
     unlocked_by: string | null;
     unlocked_at: string | null;
     unlock_reason: string | null;
-    // Phase 3: Rejection/Return reasons
     rejection_reason: string | null;
     returned_reason: string | null;
-    // Phase 5: Optimistic locking
     version: number;
-    // Phase 8: Escalation & Deadline
     deadline: string | null;
     escalated_at: string | null;
     escalated_to: string | null;
@@ -461,7 +465,6 @@ export interface ApprovalAction {
     actor_id: string;
     comment: string | null;
     acted_at: string;
-    // Phase 6: Audit metadata
     metadata?: {
         old_status?: ApprovalStatus;
         new_status?: ApprovalStatus;
@@ -473,8 +476,6 @@ export interface ApprovalAction {
         reason?: string;
     };
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 export interface DashboardSettings {
     snapshotDate: string;
@@ -488,6 +489,7 @@ export interface DashboardSettings {
         ssp: number;
     };
     sourceProfiles?: SourceProfile[];
+    loisProfiles?: LoisProfile[];
     seasonalityTuning: {
         useSPD: boolean;
         tetWeight: number;

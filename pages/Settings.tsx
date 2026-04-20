@@ -5,12 +5,11 @@ import { supabase } from '../utils/supabase';
 import { parseMonthlyCSV } from '../utils/csvParser';
 import { Typography } from '../components/Typography';
 import { clearAllAppCache } from '../utils/db';
-import { Brand, SourceProfile, AVAILABLE_BRANDS, DEFAULT_SOURCE_PROFILES, ApprovalWorkflow, WorkflowLevel } from '../types/inventory';
+import { Brand, SourceProfile, AVAILABLE_BRANDS, DEFAULT_SOURCE_PROFILES, ApprovalWorkflow, WorkflowLevel, LoisProfile } from '../types/inventory';
 import { useAuth } from '../utils/authContext';
 import { UserProfile, UserRole } from '../utils/authContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-// SourceProfile types moved to inventory.ts
 
 export interface AppSettings {
     // Source Profiles (replaces old bmw*/default* params)
@@ -117,11 +116,8 @@ export interface AppSettings {
         stockMax: boolean;        // Stock Max
     };
 
-    // LOIS KPI Targets per subgroup (for supply matrix)
-    loisTargets: Record<string, {
-        targetMOS: number;
-        targetExcessPct: number;
-    }>;
+    // LOIS Configuration
+    loisProfiles: LoisProfile[];
 
     // System
     companyName: string;
@@ -136,6 +132,22 @@ export interface AppSettings {
         weatherWeight: number;
     };
 }
+
+export const DEFAULT_LOIS_PROFILES: LoisProfile[] = [
+    { id: '1', parentGroup: 'L', name: '> 300 cái/năm (Fast)', noPlan: false, alertType: 'none', targetMOS: 3.5, targetExcessPct: 5 },
+    { id: '2', parentGroup: 'L', name: '101 - 300 cái/năm', noPlan: false, alertType: 'none', targetMOS: 4.0, targetExcessPct: 7 },
+    { id: '3', parentGroup: 'L', name: '61 - 100 cái/năm', noPlan: false, alertType: 'none', targetMOS: 4.5, targetExcessPct: 10 },
+    { id: '4', parentGroup: 'L', name: '25 - 60 cái/năm', noPlan: false, alertType: 'none', targetMOS: 5.0, targetExcessPct: 12 },
+    { id: '5', parentGroup: 'L', name: '13 - 24 cái/năm', noPlan: false, alertType: 'none', targetMOS: 5.5, targetExcessPct: 15 },
+    { id: '6', parentGroup: 'L', name: '7 - 12 cái/năm', noPlan: false, alertType: 'none', targetMOS: 6.0, targetExcessPct: 18 },
+    { id: '7', parentGroup: 'L', name: '4 - 6 cái/năm', noPlan: false, alertType: 'none', targetMOS: 7.0, targetExcessPct: 25 },
+    { id: '8', parentGroup: 'L', name: '1 - 3 cái/năm (Low)', noPlan: false, alertType: 'none', targetMOS: 8.0, targetExcessPct: 30 },
+    { id: 'E', parentGroup: 'O', name: 'Hàng thay thế cũ (Superseded)', noPlan: true, alertType: 'warning', targetMOS: 1.5, targetExcessPct: 10 },
+    { id: 'N', parentGroup: 'O', name: 'Không bán > 6 tháng', noPlan: true, alertType: 'warning', targetMOS: 1.5, targetExcessPct: 10 },
+    { id: 'A', parentGroup: 'O', name: 'Không bán 12 - 24 tháng', noPlan: true, alertType: 'critical', targetMOS: 1.0, targetExcessPct: 10 },
+    { id: 'V', parentGroup: 'O', name: 'Không bán > 24 tháng (Dead)', noPlan: true, alertType: 'critical', targetMOS: 1.0, targetExcessPct: 10 },
+    { id: 'I', parentGroup: 'I', name: 'Inactive (Ngưng hoạt động)', noPlan: true, alertType: 'critical', targetMOS: 0.5, targetExcessPct: 30 },
+];
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
     sourceProfiles: [...DEFAULT_SOURCE_PROFILES],
@@ -180,31 +192,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
         salesM1: false, mos: true, currentCst: false, cstAfterOrder: true,
         rop: false, stockMax: false,
     },
-    loisTargets: {
-        // L – Regular (by velocity)
-        L1: { targetMOS: 3.5, targetExcessPct: 5 },
-        L2: { targetMOS: 4.0, targetExcessPct: 7 },
-        L3: { targetMOS: 4.5, targetExcessPct: 10 },
-        L4: { targetMOS: 5.0, targetExcessPct: 12 },
-        L5: { targetMOS: 5.5, targetExcessPct: 15 },
-        L6: { targetMOS: 6.0, targetExcessPct: 18 },
-        L7: { targetMOS: 7.0, targetExcessPct: 25 },
-        // O – Obsolete
-        O8: { targetMOS: 3.0, targetExcessPct: 10 },
-        OE: { targetMOS: 1.5, targetExcessPct: 10 },
-        ON: { targetMOS: 1.5, targetExcessPct: 10 },
-        OA: { targetMOS: 1.0, targetExcessPct: 10 },
-        OV: { targetMOS: 1.0, targetExcessPct: 10 },
-        // I – Inactive
-        I: { targetMOS: 0.5, targetExcessPct: 30 },
-        // S – Special
-        SX: { targetMOS: 6.0, targetExcessPct: 10 },
-        SY: { targetMOS: 6.0, targetExcessPct: 10 },
-        SZ: { targetMOS: 6.0, targetExcessPct: 10 },
-        SC: { targetMOS: 6.0, targetExcessPct: 10 },
-        SK: { targetMOS: 6.0, targetExcessPct: 10 },
-        SD: { targetMOS: 6.0, targetExcessPct: 10 },
-    },
+    loisProfiles: [...DEFAULT_LOIS_PROFILES],
     companyName: 'Auto Parts Governance',
     reportTitle: 'Báo cáo Tồn Kho',
     autoSaveState: true,
@@ -1109,6 +1097,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
     const { t } = useLanguage();
     const [draft, setDraft] = useState<AppSettings>(settings);
     const [saved, setSaved] = useState(false);
+    const [adminPinInput, setAdminPinInput] = useState('');
     const [activeTab, setActiveTab] = useState<'inventory' | 'display' | 'export' | 'system' | 'users' | 'storage'>('inventory');
     const { profile: currentUserProfile } = useAuth();
     const [isSavingCloud, setIsSavingCloud] = useState(false);
@@ -1198,10 +1187,13 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
     // ───────────────────────────────────────────────────────────────────────
 
     const handleSaveToCloud = async () => {
-        const pin = prompt('Vui lòng nhập Mã Phê Duyệt (Admin PIN) để lưu lên Cloud:\n(Mặc định: 2026)');
-        if (pin === null) return;
-        if (!verifyAdminPin(pin)) {
+        if (!adminPinInput) {
+            alert('Vui lòng nhập Mã Phê Duyệt (Mã PIN Admin) để lưu lên Cloud!');
+            return;
+        }
+        if (!verifyAdminPin(adminPinInput)) {
             alert('❌ Mã phê duyệt không chính xác! Không thể lưu cấu hình.');
+            setAdminPinInput('');
             return;
         }
 
@@ -1597,81 +1589,173 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                         </Field>
                     </SectionCard>
 
-                    <SectionCard title="Mục tiêu KPI theo nhóm LOIS" icon="fa-bullseye">
+                    <SectionCard title="Cấu trúc Nhóm LOIS" icon="fa-bullseye">
                         <div className="text-xs text-slate-500 font-bold mb-4">
                             <i className="fas fa-info-circle mr-1.5 text-blue-400" />
-                            Target theo tốc độ bán và Brand Leadtime — so sánh thực tế vs kế hoạch trong bảng Ma trận cung ứng.
+                            Khai báo nhóm Mẹ (L, O, U...) và các nhóm Con. Tích chọn "Chặn đặt" để ngừng lập kế hoạch cho nhóm đó.
                         </div>
+                        
                         {(() => {
-                            const inp = (key: string, field: keyof typeof draft.loisTargets[string], max: number, step: number, unit: string) => (
-                                <div className="flex items-center justify-center gap-1">
-                                    <input
-                                        type="number" min={0} max={max} step={step}
-                                        value={(draft.loisTargets[key] || {})[field] ?? 0}
-                                        onChange={e => setDraft(prev => ({
-                                            ...prev,
-                                            loisTargets: { ...prev.loisTargets, [key]: { ...(prev.loisTargets[key] || {}), [field]: parseFloat(e.target.value) || 0 } }
-                                        }))}
-                                        className="w-12 text-center px-1.5 py-1 bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-blue-400 transition-all text-2xs"
-                                    />
-                                    <span className="text-slate-400 font-bold text-3xs">{unit}</span>
-                                </div>
-                            );
-                            const grpHdr = (label: string, bg: string) => (
-                                <tr className={`${bg} border-t-2 border-slate-200`}>
-                                    <td colSpan={3} className="px-3 py-1.5 font-black text-xs uppercase tracking-widest">{label}</td>
-                                </tr>
-                            );
-                            const subRow = (key: string, label: string, desc: string) => (
-                                <tr key={key} className="border-t border-slate-100 hover:bg-slate-50/50">
-                                    <td className="py-2 pr-3 pl-5">
-                                        <div className="font-black text-slate-700 text-xs">{label}</div>
-                                        {desc && <div className="text-slate-400 text-2xs font-bold">{desc}</div>}
-                                    </td>
-                                    <td className="py-2 px-1 text-center bg-blue-50/20">{inp(key, 'targetMOS', 36, 0.5, 'M')}</td>
-                                    <td className="py-2 px-1 text-center bg-blue-50/20">{inp(key, 'targetExcessPct', 100, 1, '%')}</td>
-                                </tr>
-                            );
+                            const parentGroups = Array.from(new Set(draft.loisProfiles.map(p => p.parentGroup)));
+                            
                             return (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-xs border-separate border-spacing-0">
-                                        <thead>
-                                            <tr className="text-slate-400 uppercase tracking-widest font-black text-3xs text-center">
-                                                <th className="text-left pb-2 pr-3 text-2xs">Nhóm</th>
-                                                <th colSpan={2} className="pb-2 px-3 bg-blue-50/50 rounded-t-lg">Mục tiêu KPI</th>
-                                            </tr>
-                                            <tr className="text-slate-500 font-black text-3xs border-b border-slate-100">
-                                                <th className="pb-2 pr-3"></th>
-                                                <th className="pb-2 px-1">MOS</th>
-                                                <th className="pb-2 px-1">Excess</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {grpHdr('L – Regular (theo tốc độ bán)', 'bg-slate-50 text-slate-700')}
-                                            {subRow('L1', 'L1 — Trên 300', 'Fast')}
-                                            {subRow('L2', 'L2 — 101–300', '')}
-                                            {subRow('L3', 'L3 — 61–100', '')}
-                                            {subRow('L4', 'L4 — 25–60', 'Medium')}
-                                            {subRow('L5', 'L5 — 13–24', '')}
-                                            {subRow('L6', 'L6 — 7–12', 'Slow')}
-                                            {subRow('L7', 'L7 — Dưới 6', 'V.Slow')}
-                                            {grpHdr('O – Obsolete (lỗi thời)', 'bg-slate-50 text-slate-700')}
-                                            {subRow('O8', 'O8 — LOIS 8', 'Dừng nhập')}
-                                            {subRow('OE', 'OE — End of Life', '')}
-                                            {subRow('ON', 'ON — Normal Obs.', '')}
-                                            {subRow('OA', 'OA — Aged Obs.', '')}
-                                            {subRow('OV', 'OV — Vendor Disc.', '')}
-                                            {grpHdr('I – Inactive', 'bg-slate-50 text-slate-700')}
-                                            {subRow('I', 'I — No Movement', '>12 tháng')}
-                                            {grpHdr('S – Special (đặc thù)', 'bg-slate-50 text-slate-700')}
-                                            {subRow('SX', 'SX — Đặc thù X', '')}
-                                            {subRow('SY', 'SY — Đặc thù Y', '')}
-                                            {subRow('SZ', 'SZ — Đặc thù Z', '')}
-                                            {subRow('SC', 'SC — Đặc thù C', '')}
-                                            {subRow('SK', 'SK — Đặc thù K', '')}
-                                            {subRow('SD', 'SD — Đặc thù D', '')}
-                                        </tbody>
-                                    </table>
+                                <div className="space-y-8">
+                                    {parentGroups.map(parentGroup => {
+                                        const children = draft.loisProfiles.filter(p => p.parentGroup === parentGroup);
+                                        return (
+                                            <div key={parentGroup} className="space-y-2">
+                                                <div className="flex items-center gap-3 px-1">
+                                                    <input
+                                                        className="bg-transparent border-b-2 border-slate-200 text-sm font-black text-slate-800 outline-none focus:border-blue-400 transition-all uppercase px-1"
+                                                        value={parentGroup}
+                                                        onChange={(e) => {
+                                                            const newVal = e.target.value.toUpperCase();
+                                                            setDraft(prev => ({
+                                                                ...prev,
+                                                                loisProfiles: prev.loisProfiles.map(p => p.parentGroup === parentGroup ? { ...p, parentGroup: newVal } : p)
+                                                            }));
+                                                        }}
+                                                    />
+                                                    <span className="text-3xs font-black text-slate-400 uppercase tracking-widest">NHÓM MẸ</span>
+                                                    <div className="flex-1 border-b border-dashed border-slate-100 h-1"></div>
+                                                </div>
+
+                                                <div className="overflow-x-auto">
+                                                    <table className="w-full text-xs">
+                                                        <thead>
+                                                            <tr className="text-slate-400 uppercase tracking-widest font-black text-3xs text-center border-b border-slate-100">
+                                                                <th className="text-left py-2">Mã Con</th>
+                                                                <th className="text-left py-2">Tên định nghĩa</th>
+                                                                <th className="py-2">Chặn đặt</th>
+                                                                <th className="py-2">Cảnh báo</th>
+                                                                <th className="py-2">Target MOS</th>
+                                                                <th className="py-2">Excess %</th>
+                                                                <th className="py-2"></th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {children.map((profile, idx) => (
+                                                                <tr key={profile.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                                                                    <td className="py-2 pr-2">
+                                                                        <input
+                                                                            className="w-12 px-1.5 py-1 bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-blue-400 text-center"
+                                                                            value={profile.id}
+                                                                            onChange={e => {
+                                                                                const v = e.target.value.toUpperCase();
+                                                                                setDraft(prev => ({ ...prev, loisProfiles: prev.loisProfiles.map(p => p.id === profile.id ? { ...p, id: v } : p) }));
+                                                                            }}
+                                                                        />
+                                                                    </td>
+                                                                    <td className="py-2 pr-2">
+                                                                        <input
+                                                                            className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg font-bold text-slate-700 outline-none focus:border-blue-400"
+                                                                            value={profile.name}
+                                                                            onChange={e => {
+                                                                                const v = e.target.value;
+                                                                                setDraft(prev => ({ ...prev, loisProfiles: prev.loisProfiles.map(p => p.id === profile.id ? { ...p, name: v } : p) }));
+                                                                            }}
+                                                                        />
+                                                                    </td>
+                                                                    <td className="py-2 text-center">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={profile.noPlan}
+                                                                            onChange={e => {
+                                                                                const v = e.target.checked;
+                                                                                setDraft(prev => ({ ...prev, loisProfiles: prev.loisProfiles.map(p => p.id === profile.id ? { ...p, noPlan: v } : p) }));
+                                                                            }}
+                                                                            className="w-4 h-4 accent-rose-500 rounded cursor-pointer"
+                                                                        />
+                                                                    </td>
+                                                                    <td className="py-2 px-1">
+                                                                        <select
+                                                                            className={`w-full px-1.5 py-1 rounded-lg text-3xs font-black uppercase tracking-tighter border ${
+                                                                                profile.alertType === 'critical' ? 'bg-rose-50 border-rose-200 text-rose-700' :
+                                                                                profile.alertType === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-700' :
+                                                                                profile.alertType === 'info' ? 'bg-blue-50 border-blue-200 text-blue-700' :
+                                                                                'bg-slate-50 border-slate-200 text-slate-500'
+                                                                            }`}
+                                                                            value={profile.alertType}
+                                                                            onChange={e => {
+                                                                                const v = e.target.value as any;
+                                                                                setDraft(prev => ({ ...prev, loisProfiles: prev.loisProfiles.map(p => p.id === profile.id ? { ...p, alertType: v } : p) }));
+                                                                            }}
+                                                                        >
+                                                                            <option value="none">None</option>
+                                                                            <option value="info">Info</option>
+                                                                            <option value="warning">Warning</option>
+                                                                            <option value="critical">Critical</option>
+                                                                        </select>
+                                                                    </td>
+                                                                    <td className="py-2 px-1">
+                                                                        <input
+                                                                            type="number" step={0.5}
+                                                                            className="w-10 text-center px-1 py-1 bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-blue-400"
+                                                                            value={profile.targetMOS}
+                                                                            onChange={e => {
+                                                                                const v = parseFloat(e.target.value) || 0;
+                                                                                setDraft(prev => ({ ...prev, loisProfiles: prev.loisProfiles.map(p => p.id === profile.id ? { ...p, targetMOS: v } : p) }));
+                                                                            }}
+                                                                        />
+                                                                    </td>
+                                                                    <td className="py-2 px-1">
+                                                                        <input
+                                                                            type="number" step={1}
+                                                                            className="w-10 text-center px-1 py-1 bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-blue-400"
+                                                                            value={profile.targetExcessPct}
+                                                                            onChange={e => {
+                                                                                const v = parseFloat(e.target.value) || 0;
+                                                                                setDraft(prev => ({ ...prev, loisProfiles: prev.loisProfiles.map(p => p.id === profile.id ? { ...p, targetExcessPct: v } : p) }));
+                                                                            }}
+                                                                        />
+                                                                    </td>
+                                                                    <td className="py-2 text-right">
+                                                                        <button
+                                                                            onClick={() => setDraft(prev => ({ ...prev, loisProfiles: prev.loisProfiles.filter(p => p.id !== profile.id) }))}
+                                                                            className="text-slate-300 hover:text-rose-500 transition-colors p-1"
+                                                                            title="Xóa nhóm con"
+                                                                        >
+                                                                            <i className="fas fa-trash-alt" />
+                                                                        </button>
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                <button
+                                                    className="mt-2 text-3xs font-black text-blue-600 hover:text-blue-700 flex items-center gap-1.5 px-2 py-1 bg-blue-50 border border-blue-100 rounded-lg transition-all"
+                                                    onClick={() => {
+                                                        const nextId = `${parentGroup}${children.length + 1}`;
+                                                        setDraft(prev => ({
+                                                            ...prev,
+                                                            loisProfiles: [...prev.loisProfiles, {
+                                                                id: nextId, parentGroup: parentGroup, name: 'Nhóm mới', noPlan: false, alertType: 'none', targetMOS: 3, targetExcessPct: 10
+                                                            }]
+                                                        }));
+                                                    }}
+                                                >
+                                                    <i className="fas fa-plus" /> THÊM NHÓM CON CHO {parentGroup}
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+
+                                    <button
+                                        className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-xs font-black hover:bg-slate-50 hover:border-blue-300 hover:text-blue-500 transition-all flex flex-col items-center gap-2 group"
+                                        onClick={() => {
+                                            const newParent = 'NEW';
+                                            setDraft(prev => ({
+                                                ...prev,
+                                                loisProfiles: [...prev.loisProfiles, {
+                                                    id: (prev.loisProfiles.length + 1).toString(), parentGroup: newParent, name: 'Nhóm mới', noPlan: false, alertType: 'none', targetMOS: 3, targetExcessPct: 10
+                                                }]
+                                            }));
+                                        }}
+                                    >
+                                        <i className="fas fa-plus-circle text-xl group-hover:scale-110 transition-transform" />
+                                        THÊM NHÓM MẸ MỚI
+                                    </button>
                                 </div>
                             );
                         })()}
@@ -2059,23 +2143,34 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
             <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-2xl px-6 py-4 print:hidden">
                 <div className="max-w-[1800px] mx-auto flex items-center justify-between gap-4">
                     <div className="text-xs font-bold text-slate-500 flex items-center gap-2">
-                        <i className="fas fa-circle-info text-blue-500" />
-                        Cấu hình sẽ được lưu vào localStorage và áp dụng ngay khi nhấn Lưu
+                        <i className="fas fa-server text-blue-500" />
+                        Cấu hình được lưu và đồng bộ lên Cloud (Supabase)
                     </div>
                     <div className="flex items-center gap-3">
                         <button onClick={() => setDraft(settings)} className="px-5 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-xs font-black uppercase hover:bg-slate-200 transition-all border border-slate-200">
-                            <i className="fas fa-xmark mr-1.5" /> Hủy thay đổi
+                            <i className="fas fa-xmark mr-1.5" /> Khôi phục
                         </button>
-                        <button
-                            onClick={handleSave}
-                            className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 shadow-md ${saved
-                                ? 'bg-emerald-600 text-white shadow-emerald-200'
-                                : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-blue-300 hover:-translate-y-0.5'
-                                }`}
-                        >
-                            <i className={`fas ${saved ? 'fa-check' : 'fa-floppy-disk'}`} />
-                            {saved ? 'Đã lưu!' : 'Lưu cấu hình'}
-                        </button>
+                        <div className="flex items-center bg-white border border-slate-200 rounded-xl p-1 shadow-sm overflow-hidden">
+                            <i className="fas fa-key text-slate-400 ml-2" />
+                            <input 
+                                type="password" 
+                                placeholder="Mã PIN Admin"
+                                value={adminPinInput}
+                                onChange={e => setAdminPinInput(e.target.value)}
+                                className="w-28 px-3 py-1.5 text-xs font-bold text-slate-800 bg-transparent outline-none placeholder:font-normal"
+                            />
+                            <button
+                                onClick={handleSaveToCloud}
+                                disabled={isSavingCloud || !adminPinInput}
+                                className={`px-5 py-1.5 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-2 ${saved
+                                    ? 'bg-emerald-600 text-white shadow-emerald-200'
+                                    : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-300'
+                                    } ${(isSavingCloud || !adminPinInput) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                                {isSavingCloud ? <i className="fas fa-spinner fa-spin" /> : <i className={`fas ${saved ? 'fa-check' : 'fa-cloud-arrow-up'}`} />}
+                                {isSavingCloud ? 'Đang lưu...' : (saved ? 'Đã lưu!' : 'Đồng bộ')}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

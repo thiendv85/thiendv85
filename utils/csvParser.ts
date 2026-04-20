@@ -484,8 +484,9 @@ export const parseCSV = (text: string, monthlyData?: Record<string, MonthlyData>
         const itemCode = rawItemCode?.toUpperCase() || "";
         const monthly = monthlyData ? monthlyData[itemCode] : undefined;
 
-        // LOISGroup & TrendFlag: File B wins if available
-        const loisGroup = monthly?.LOISGroup || row[idxMap.LOISGroup]?.trim() || '';
+        // LOISGroup: Daily (File A) wins if present and not empty, fallback to Monthly (File B)
+        const dailyLois = row[idxMap.LOISGroup]?.trim();
+        const loisGroup = dailyLois ? dailyLois : (monthly?.LOISGroup || '');
         const rawTrend = (monthly?.TrendFlag || row[idxMap.TrendFlag]?.trim() || 'Stable').toUpperCase();
         
         let trendFlag = 'Stable';

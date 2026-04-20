@@ -107,18 +107,20 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
         demandSource: '3M',
         params: initialParams || { lt: 90, sp: 30, ssp: 15 },
         sourceProfiles: appSettings?.sourceProfiles,
+        loisProfiles: appSettings?.loisProfiles || [],
         seasonalityTuning: appSettings?.seasonalityTuning || { useSPD: true, tetWeight: 1.2, weatherWeight: 1.0 }
     });
 
     useEffect(() => {
-        if (appSettings?.sourceProfiles || appSettings?.seasonalityTuning) {
+        if (appSettings?.sourceProfiles || appSettings?.seasonalityTuning || appSettings?.loisProfiles) {
             setSettings(prev => ({ 
                 ...prev, 
                 sourceProfiles: appSettings?.sourceProfiles || prev.sourceProfiles,
+                loisProfiles: appSettings?.loisProfiles || prev.loisProfiles,
                 seasonalityTuning: appSettings?.seasonalityTuning || prev.seasonalityTuning
             }));
         }
-    }, [appSettings?.sourceProfiles, appSettings?.seasonalityTuning]);
+    }, [appSettings?.sourceProfiles, appSettings?.seasonalityTuning, appSettings?.loisProfiles]);
     const [filters, setFilters] = useState<InventoryFilters>(initialState?.filters || DEFAULT_FILTERS);
     const [orderQuantities, setOrderQuantities] = useState<Record<string, { air: number, sea: number }>>(sharedDraft?.quantities || initialState?.quantities || {});
     const [orderNotes, setOrderNotes] = useState<Record<string, string>>(sharedDraft?.notes || initialState?.notes || {});
@@ -574,6 +576,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                 onSettingsChange={setSettings}
                 filters={filters}
                 onFiltersChange={handleMainFilterChange}
+                loisProfiles={appSettings?.loisProfiles}
                 sourceName={(() => {
                     const brands = Array.from(new Set(data.map(i => i.BrandName).filter(Boolean)));
                     const sources = Array.from(new Set(data.map(i => i.SourceId).filter(Boolean)));

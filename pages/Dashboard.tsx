@@ -18,45 +18,10 @@ import { useDevice } from '../hooks/useDevice';
 const formatPct = (val: number) => `${(val || 0).toFixed(1)}%`;
 
 const getLoisSubgroup = (item: InventoryItem): string => {
-    const lois = (item.LOISGroup || '').trim().toUpperCase();
-    const sales12M = item.SalesHistory.reduce((a, b) => a + b, 0);
-    if (['1', '2', '3', '4', '5', '6', '7'].includes(lois)) {
-        if (sales12M > 300) return 'L1';
-        if (sales12M > 100) return 'L2';
-        if (sales12M > 60) return 'L3';
-        if (sales12M > 24) return 'L4';
-        if (sales12M > 12) return 'L5';
-        if (sales12M > 6) return 'L6';
-        return 'L7';
-    }
-    if (lois === '8') return 'O8';
-    if (lois === 'E') return 'OE';
-    if (lois === 'N') return 'ON';
-    if (lois === 'A') return 'OA';
-    if (lois === 'V') return 'OV';
-    if (lois === 'I') return 'I';
-    if (['X', 'Y', 'Z', 'C', 'K', 'D'].includes(lois)) return `S${lois}`;
-    return 'U_OTHER';
+    return (item.LOISGroup || '').trim().toUpperCase();
 };
 
-const LOIS_HIERARCHY = [
-    { label: 'L (REGULAR)', sub: ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7'], color: 'bg-atp-secondary' },
-    { label: 'O (OBSOLETE)', sub: ['O8', 'OE', 'ON', 'OA', 'OV'], color: 'bg-atp-accent' },
-    { label: 'I (INACTIVE)', sub: ['I'], color: 'bg-slate-400' },
-    { label: 'S (SPECIAL)', sub: ['SX', 'SY', 'SZ', 'SC', 'SK', 'SD'], color: 'bg-atp-primary' },
-    { label: 'U (OTHERS)', sub: ['U_OTHER'], color: 'bg-slate-300' }
-];
-
-const SUBGROUP_DESC: Record<string, string> = {
-    'L1': '> 300 đvt/năm', 'L2': '101–300 đvt/năm', 'L3': '61–100 đvt/năm',
-    'L4': '25–60 đvt/năm', 'L5': '13–24 đvt/năm', 'L6': '7–12 đvt/năm', 'L7': '< 6 đvt/năm',
-    'O8': 'Nhóm LOIS 8', 'OE': 'Ngừng sản xuất', 'ON': 'Lỗi thời',
-    'OA': 'Lỗi thời lâu năm', 'OV': 'NCC ngừng cung',
-    'I': 'Không giao dịch',
-    'SX': 'Đặc thù X', 'SY': 'Đặc thù Y', 'SZ': 'Đặc thù Z',
-    'SC': 'Đặc thù C', 'SK': 'Đặc thù K', 'SD': 'Đặc thù D',
-    'U_OTHER': 'Chưa phân loại',
-};
+// Derived from appSettings in the component
 
 export type DashboardSubTab = 'overview' | 'intelligence' | 'supersession';
 
@@ -68,7 +33,7 @@ interface LoisRowProps {
     groupColor?: string;
     matrixData: Record<string, any>;
     grandStats: any;
-    loisTargets: Record<string, any>;
+    loisProfiles: import('../types/inventory').LoisProfile[];
     selectedSubgroup: string | null;
     onToggleSubgroup: (subgroup: string) => void;
     formatNum: (val: number) => string;
@@ -76,7 +41,7 @@ interface LoisRowProps {
 
 const LoisRow = React.memo(({
     label, subKeys, isHeader = false, groupColor,
-    matrixData, grandStats, loisTargets, selectedSubgroup,
+    matrixData, grandStats, loisProfiles, selectedSubgroup,
     onToggleSubgroup, formatNum
 }: LoisRowProps) => {
     const { isMobile } = useDevice();
@@ -107,9 +72,10 @@ const LoisRow = React.memo(({
     const excessPct = row.stockVal > 0 ? (row.excessVal / row.stockVal) * 100 : 0;
     const actualMOS = row.turnover > 0 ? (row.stockVal * 12 / row.turnover) : 0;
 
-    const targetConfig = (!isHeader && subKeys.length === 1) ? (loisTargets[subKeys[0]] || null) : null;
-    const targetMOS = targetConfig ? targetConfig.targetMOS : null;
-    const targetExcess = targetConfig ? targetConfig.targetExcessPct : null;
+    const profile = (!isHeader && subKeys.length === 1) ? (loisProfiles.find(p => p.id === subKeys[0]) || null) : null;
+    const targetMOS = profile ? profile.targetMOS : null;
+    const targetExcess = profile ? profile.targetExcessPct : null;
+    const subDesc = profile ? profile.name : '';
 
     const mosOk = (targetMOS && actualMOS > 0) ? (actualMOS >= targetMOS * 0.5 && actualMOS <= targetMOS * 1.5) : null;
     const excessOk = targetExcess ? excessPct <= targetExcess : null;
@@ -141,8 +107,8 @@ const LoisRow = React.memo(({
                             {label}
                         </div>
                     )}
-                    {!isHeader && SUBGROUP_DESC[label] && (
-                        <span className="text-slate-400 font-bold ml-1.5 text-[9px] tracking-tight truncate opacity-70">— {SUBGROUP_DESC[label]}</span>
+                    {!isHeader && subDesc && (
+                        <span className="text-slate-400 font-bold ml-1.5 text-[9px] tracking-tight truncate opacity-70">— {subDesc}</span>
                     )}
                 </div>
             </td>
@@ -249,6 +215,32 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
 }) => {
     const { t } = useLanguage();
     const { isMobile } = useDevice();
+
+    const loisProfiles = appSettings?.loisProfiles || DEFAULT_LOIS_PROFILES;
+
+    const LOIS_HIERARCHY = useMemo(() => {
+        const groups: Record<string, string[]> = {};
+        loisProfiles.forEach(p => {
+            const pg = p.parentGroup || 'U';
+            if (!groups[pg]) groups[pg] = [];
+            groups[pg].push(p.id);
+        });
+
+        const colorMap: Record<string, string> = {
+            'L': 'bg-atp-secondary',
+            'O': 'bg-atp-accent',
+            'I': 'bg-slate-400',
+            'S': 'bg-atp-primary',
+            'U': 'bg-slate-300'
+        };
+
+        return Object.entries(groups).map(([label, sub]) => ({
+            label: label,
+            sub: sub,
+            color: colorMap[label] || 'bg-slate-500'
+        }));
+    }, [loisProfiles]);
+
     const [subTab, setSubTab] = useState<DashboardSubTab>(initialState?.subTab || 'overview');
     const [settings, setSettings] = useState<DashboardSettings>(initialState?.settings || {
         snapshotDate: new Date().toISOString().split('T')[0],
@@ -258,18 +250,20 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
         applySeasonality: false, // Default to OFF for manual control as requested
         params: initialParams || { lt: 90, sp: 30, ssp: 15 },
         sourceProfiles: appSettings?.sourceProfiles,
+        loisProfiles: appSettings?.loisProfiles || [],
         seasonalityTuning: appSettings?.seasonalityTuning || { useSPD: true, tetWeight: 1.2, weatherWeight: 1.0 }
     });
 
     useEffect(() => {
-        if (appSettings?.sourceProfiles || appSettings?.seasonalityTuning) {
+        if (appSettings?.sourceProfiles || appSettings?.seasonalityTuning || appSettings?.loisProfiles) {
             setSettings(prev => ({ 
                 ...prev, 
                 sourceProfiles: appSettings?.sourceProfiles || prev.sourceProfiles,
+                loisProfiles: appSettings?.loisProfiles || prev.loisProfiles,
                 seasonalityTuning: appSettings?.seasonalityTuning || prev.seasonalityTuning
             }));
         }
-    }, [appSettings?.sourceProfiles, appSettings?.seasonalityTuning]);
+    }, [appSettings?.sourceProfiles, appSettings?.seasonalityTuning, appSettings?.loisProfiles]);
     const [filters, setFilters] = useState<InventoryFilters>(initialState?.filters || DEFAULT_FILTERS);
     const [selectedSubgroup, setSelectedSubgroup] = useState<string | null>(null);
     const [searchResult, setSearchResult] = useState<SearchResult>({ type: 'EMPTY', tokens: [], displayTokens: [], raw: '' });
@@ -432,7 +426,6 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
         });
     }, [enrichedData, selectedSubgroup, searchResult, filters, graph]);
 
-    const loisTargets = appSettings?.loisTargets || {};
 
     // Functional update for subgroup toggle to keep callback stable
     const handleToggleSubgroup = React.useCallback((subKey: string) => {
@@ -465,7 +458,6 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
                 const hExPct = hRow.stockVal > 0 ? (hRow.excessVal / hRow.stockVal * 100) : 0;
                 const hTurnPct = gs.grandTurnover > 0 ? (hRow.turnover / gs.grandTurnover * 100) : 0;
                 const hMOS = hRow.turnover > 0 ? (hRow.stockVal * 12 / hRow.turnover) : 0;
-                const hDesc = SUBGROUP_DESC[group.label] || '';
 
                 rows += `<tr class="group-hdr">
                     <td>${group.label}</td>
@@ -491,12 +483,11 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
                     const exPct = d.stockVal > 0 ? (d.excessVal / d.stockVal * 100) : 0;
                     const turnPct = gs.grandTurnover > 0 ? (d.turnover / gs.grandTurnover * 100) : 0;
                     const dMOS = d.turnover > 0 ? (d.stockVal * 12 / d.turnover) : 0;
-                    const dDesc = SUBGROUP_DESC[k] || '';
-
                     // Target Lookup
-                    const tgtCfg = loisTargets[k] || null;
+                    const tgtCfg = loisProfiles.find(p => p.id === k) || null;
                     const tgtMOS = tgtCfg ? tgtCfg.targetMOS : null;
                     const tgtEx = tgtCfg ? tgtCfg.targetExcessPct : null;
+                    const dDesc = tgtCfg ? tgtCfg.name : '';
 
                     const mosOk = (tgtMOS && dMOS > 0) ? (dMOS >= tgtMOS * 0.5 && dMOS <= tgtMOS * 1.5) : null;
                     const exOk = tgtEx ? exPct <= tgtEx : null;
@@ -944,19 +935,19 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
                                             groupColor={group.color}
                                             matrixData={matrixData}
                                             grandStats={grandStats}
-                                            loisTargets={loisTargets}
+                                            loisProfiles={loisProfiles}
                                             selectedSubgroup={selectedSubgroup}
                                             onToggleSubgroup={handleToggleSubgroup}
                                             formatNum={formatNum}
                                         />
-                                        {group.sub.length > 1 && group.sub.map(subKey => (
+                                        {group.sub.length > 0 && group.sub.map(subKey => (
                                             <LoisRow 
                                                 key={subKey}
                                                 label={subKey} 
                                                 subKeys={[subKey]}
                                                 matrixData={matrixData}
                                                 grandStats={grandStats}
-                                                loisTargets={loisTargets}
+                                                loisProfiles={loisProfiles}
                                                 selectedSubgroup={selectedSubgroup}
                                                 onToggleSubgroup={handleToggleSubgroup}
                                                 formatNum={formatNum}

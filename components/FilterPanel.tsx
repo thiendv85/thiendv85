@@ -12,6 +12,7 @@ interface FilterPanelProps {
   filters: InventoryFilters;
   onFiltersChange: (filters: InventoryFilters) => void;
   sourceName?: string;  // e.g. "NB – Nhật Bản"
+  loisProfiles?: import('../types/inventory').LoisProfile[];
 }
 
 const SpecialFilterButton = ({ label, icon, isActive, onClick }: { label: string, icon: string, isActive: boolean, onClick: () => void }) => (
@@ -21,7 +22,7 @@ const SpecialFilterButton = ({ label, icon, isActive, onClick }: { label: string
   </button>
 );
 
-export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filters, onFiltersChange, sourceName }: FilterPanelProps) => {
+export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filters, onFiltersChange, sourceName, loisProfiles }: FilterPanelProps) => {
   const { t } = useLanguage();
   const loisGroups = useMemo(() => Array.from(new Set(data.map(item => item.LOISGroup).filter(Boolean))).sort(), [data]);
   const trendFlags = useMemo(() => Array.from(new Set(data.map(item => item.TrendFlag).filter(Boolean))).sort(), [data]);
@@ -121,7 +122,7 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
                     <button
                       key={g}
                       onClick={() => toggleLois(g)}
-                      title={LOIS_DESCRIPTIONS[g]}
+                      title={loisProfiles?.find(p => p.id === g)?.name || ''}
                       className={`px-2.5 py-1 rounded-lg text-[10px] font-black border transition-all uppercase tracking-tighter h-8
                         ${isActive
                           ? 'bg-blue-600 text-white border-blue-700 shadow-md'

@@ -228,6 +228,7 @@ export interface ComputeParams {
         normalizationMethod?: 'Dynamic' | 'Fixed';
         workingDayFallback?: number;
     };
+    loisProfiles?: import('../types/inventory').LoisProfile[];
 }
 
 export interface SimulatedFields {
@@ -343,8 +344,20 @@ function resolveAvailable(item: InventoryItem, scope: 'All' | 'NB' | 'BB'): { oh
     };
 }
 
-function checkIsStop(item: InventoryItem): boolean {
-    return (item.Note || '').toLowerCase().includes('không đặt') || item.Status === 'Dead Stock';
+function checkIsStop(item: InventoryItem, loisProfiles?: import('../types/inventory').LoisProfile[]): { isStop: boolean; alertType?: string } {
+    // 1. Manual check from note or status
+    const manualStop = (item.Note || '').toLowerCase().includes('không đặt') || item.Status === 'Dead Stock';
+    if (manualStop) return { isStop: true, alertType: 'critical' };
+
+    // 2. LOIS Group configuration check
+    if (loisProfiles && item.LOISGroup) {
+        const profile = loisProfiles.find(p => p.id === item.LOISGroup);
+        if (profile) {
+            return { isStop: profile.noPlan, alertType: profile.alertType };
+        }
+    }
+
+    return { isStop: false };
 }
 
 function resolvePriority(available: number, onOrder: number, bo: number, rop: number, demandMonthly: number, isStop: boolean): 'P1' | 'P2' | 'P3' {
@@ -415,7 +428,7 @@ export function computeInventory(
     const reserve = available + onOrder;
     const unitCost = (params.costBasis === 'PP' ? item.UnitCost_PP : item.UnitCost_FOB) || 0;
     const snp = Math.max(1, item.SNP || 1);
-    const isStop = checkIsStop(item);
+    const { isStop, alertType } = checkIsStop(item, params.loisProfiles);
 
     // Synchronize Lead Time (Calendar) with Sales Schedule (Working Days)
     const workingDaysInLT = getWorkingDaysByLeadTime(effectiveLT, now);
@@ -433,6 +446,21 @@ export function computeInventory(
     const warnings: any[] = [];
     if (bo > 0 && onOrder === 0) warnings.push({ type: 'Critical', code: 'BO_NO_SUPPLY', message: 'Nợ hàng – Không có PO sắp về' });
     if (itemProfileResult?.isFallback) warnings.push({ type: 'Warning', code: 'SOURCE_FALLBACK', message: itemProfileResult.fallbackReason });
+    
+    // LOIS-based alert
+    if (alertType && alertType !== 'none') {
+        const typeMap: Record<string, 'Critical' | 'Warning' | 'Info'> = {
+            'critical': 'Critical',
+            'warning': 'Warning',
+            'info': 'Info'
+        };
+        const desc = params.loisProfiles?.find(p => p.id === item.LOISGroup)?.name;
+        warnings.push({ 
+            type: typeMap[alertType] || 'Info', 
+            code: 'LOIS_ALERT', 
+            message: `Cảnh báo theo nhóm LOIS (${item.LOISGroup})${desc ? ' - ' + desc : ''}` 
+        });
+    }
     
     // Seasonality Tuning Logic
     if (history.length >= 12) {
@@ -582,7 +610,9 @@ export function makeComputeParams(settings: any): ComputeParams {
         demandSource: settings.demandSource, warehouseScope: settings.warehouseScope,
         costBasis: settings.costBasis, snapshotYYMM: settings.snapshotDate.replace(/-/g, '').substring(2, 6),
         applySeasonality: settings.applySeasonality || false,
-        sourceProfiles: settings.sourceProfiles,        seasonalityTuning: {
+        sourceProfiles: settings.sourceProfiles,
+        loisProfiles: settings.loisProfiles,
+        seasonalityTuning: {
             useSPD: settings.seasonalityTuning?.useSPD ?? true,
             tetWeight: settings.seasonalityTuning?.tetWeight ?? 1.2,
             weatherWeight: settings.seasonalityTuning?.weatherWeight ?? 1.1,
