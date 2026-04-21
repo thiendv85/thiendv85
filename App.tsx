@@ -39,6 +39,24 @@ const SupersessionEditModal = React.lazy(() => import('./components/Supersession
 class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: any}> {
     constructor(props: any) { super(props); this.state = { hasError: false, error: null }; }
     static getDerivedStateFromError(error: any) { return { hasError: true, error }; }
+    
+    componentDidCatch(error: any) {
+        // Detect chunk loading errors (stale hash in browser)
+        const isChunkError = error?.message?.includes('Failed to fetch dynamically imported module') ||
+                            error?.message?.includes('Loading chunk');
+        
+        if (isChunkError) {
+            console.warn("Detected chunk loading error. Auto-reloading to fetch latest assets...");
+            // Only reload if we haven't reloaded in the last 10 seconds to avoid loops
+            const lastReload = sessionStorage.getItem('last_chunk_reload');
+            const now = Date.now();
+            if (!lastReload || (now - parseInt(lastReload)) > 10000) {
+                sessionStorage.setItem('last_chunk_reload', now.toString());
+                window.location.reload();
+            }
+        }
+    }
+
     render() {
         if (this.state.hasError) {
             return (
@@ -50,6 +68,7 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
                         {this.state.error?.stack}
                     </pre>
                     <button onClick={() => window.location.reload()} className="px-6 py-2 bg-blue-600 rounded-lg font-bold">RELOAD APP</button>
+                    <p className="text-xs text-slate-500 mt-4">If the error persists, please try clearing your browser cache (Ctrl+F5).</p>
                 </div>
             );
         }
