@@ -1638,7 +1638,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                                                 <tr key={profile.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
                                                                     <td className="py-2 pr-2">
                                                                         <input
-                                                                            className="w-12 px-1.5 py-1 bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-blue-400 text-center"
+                                                                            className="w-16 px-1.5 py-1 bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-blue-400 text-center"
                                                                             value={profile.id}
                                                                             onChange={e => {
                                                                                 const v = e.target.value.toUpperCase();
@@ -1690,7 +1690,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                                                     <td className="py-2 px-1">
                                                                         <input
                                                                             type="number" step={0.5}
-                                                                            className="w-16 text-center px-1 py-1 bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-blue-400"
+                                                                            className="w-20 text-center px-1 py-1 bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-blue-400"
                                                                             value={profile.targetMOS}
                                                                             onChange={e => {
                                                                                 const v = parseFloat(e.target.value) || 0;
@@ -1701,7 +1701,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                                                     <td className="py-2 px-1">
                                                                         <input
                                                                             type="number" step={1}
-                                                                            className="w-16 text-center px-1 py-1 bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-blue-400"
+                                                                            className="w-20 text-center px-1 py-1 bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-blue-400"
                                                                             value={profile.targetExcessPct}
                                                                             onChange={e => {
                                                                                 const v = parseFloat(e.target.value) || 0;

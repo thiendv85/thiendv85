@@ -565,6 +565,27 @@ export function computeInventory(
         transferNBtoBB: 0, transferBBtoNB: 0, suggestedOrderNB: 0, suggestedOrderBB: 0
     };
 
+    const simTotalStock = available + onOrder + draftQty;
+    const simStockoutRiskFlag = !isStop && simTotalStock < rop;
+    const simExcessQty = isStop ? 0 : Math.max(0, simTotalStock - stockMax);
+    const simBOQty = Math.max(0, bo - simTotalStock);
+    const simBOValue = simBOQty * unitCost;
+
+    const simulated: SimulatedFields = {
+        totalStock: simTotalStock,
+        stockAtDelivery: available + onOrder,
+        stockoutRiskFlag: simStockoutRiskFlag,
+        excessQty: simExcessQty,
+        excessValue: simExcessQty * unitCost,
+        stockValue: simTotalStock * unitCost,
+        stockoutGapQty: simStockoutRiskFlag ? Math.max(0, rop - simTotalStock) : 0,
+        draftQty,
+        pipelineQty: onOrder,
+        boQty: simBOQty,
+        boValue: simBOValue,
+        totalIncomingValue: (onOrder + draftQty) * unitCost
+    };
+
     return {
         effectiveLT, effectiveSP, effectiveSSP, demandRateDaily, demandMonthly,
         available, netAvailable, dcQuantity: dc, unitCost, safetyStock, rop, stockMax,
@@ -574,7 +595,8 @@ export function computeInventory(
         mos, cst, incomingCurrentMonth, incomingNextMonth: 0,
         priorityBucket, priorityScore: 0, stockTurnRatio: 0, fillRate: 0, capitalEfficiency: 0,
         gapOrExcess, suggestedBO, isBOCritical: bo > reserve, snp, ssi,
-        transfer: transferProps, cv, slope, forecastLinReg: forecast, warnings
+        transfer: transferProps, cv, slope, forecastLinReg: forecast, warnings,
+        simulated
     };
 }
 

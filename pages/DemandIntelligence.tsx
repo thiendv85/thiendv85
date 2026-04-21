@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { InventoryItem } from '../types/inventory';
 import { MetricCard } from '../components/MetricCard';
 import { useLanguage } from '../utils/i18n';
