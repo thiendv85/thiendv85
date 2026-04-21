@@ -770,7 +770,7 @@ const UserManagementTab = () => {
                                                     />
                                                     <span className="text-xs text-slate-500 font-bold">Yêu cầu tất cả duyệt</span>
                                                 </label>
-                                                {newWfLevels.length > 1 && (
+                                                {newWfLevels.length > 1 && isAdmin && (
                                                     <button type="button" onClick={() => setNewWfLevels(prev => prev.filter((_, i) => i !== idx).map((l, i) => ({ ...l, level: i + 1 })))}
                                                         className="text-rose-400 hover:text-rose-600 text-xs">
                                                         <i className="fas fa-trash" />
@@ -1100,6 +1100,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
     const [adminPinInput, setAdminPinInput] = useState('');
     const [activeTab, setActiveTab] = useState<'inventory' | 'display' | 'export' | 'system' | 'users' | 'storage'>('inventory');
     const { profile: currentUserProfile } = useAuth();
+    const isAdmin = currentUserProfile?.role === 'admin';
     const [isSavingCloud, setIsSavingCloud] = useState(false);
     const [isLoadingCloud, setIsLoadingCloud] = useState(false);
 
@@ -1509,13 +1510,15 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                                     </div>
                                                     {/* Delete */}
                                                     <div className="col-span-1 flex justify-center">
-                                                        <button
-                                                            className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-all border border-transparent hover:border-rose-100"
-                                                            onClick={() => setDraft(prev => ({ ...prev, sourceProfiles: prev.sourceProfiles.filter(p => !(p.id === profile.id && p.brand === profile.brand)), activeSourceId: prev.activeSourceId === profile.id ? (prev.sourceProfiles.find(x => x.id !== profile.id)?.id ?? '') : prev.activeSourceId }))}
-                                                            title="Xóa nguồn"
-                                                        >
-                                                            <i className="fas fa-trash text-xs" />
-                                                        </button>
+                                                        {isAdmin && (
+                                                            <button
+                                                                className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-all border border-transparent hover:border-rose-100"
+                                                                onClick={() => setDraft(prev => ({ ...prev, sourceProfiles: prev.sourceProfiles.filter(p => !(p.id === profile.id && p.brand === profile.brand)), activeSourceId: prev.activeSourceId === profile.id ? (prev.sourceProfiles.find(x => x.id !== profile.id)?.id ?? '') : prev.activeSourceId }))}
+                                                                title="Xóa nguồn"
+                                                            >
+                                                                <i className="fas fa-trash text-xs" />
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </div>
                                             ))}
@@ -1564,7 +1567,9 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                                 </select>
                                             </div>
                                             <div className="col-span-6 flex justify-end">
-                                                <button onClick={() => setDraft(prev => ({ ...prev, sourceProfiles: prev.sourceProfiles.filter(p => p.id !== profile.id) }))} className="text-rose-500 p-2"><i className="fas fa-trash" /></button>
+                                                {isAdmin && (
+                                                    <button onClick={() => setDraft(prev => ({ ...prev, sourceProfiles: prev.sourceProfiles.filter(p => p.id !== profile.id) }))} className="text-rose-500 p-2"><i className="fas fa-trash" /></button>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
@@ -1710,13 +1715,15 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                                                         />
                                                                     </td>
                                                                     <td className="py-2 text-right">
-                                                                        <button
-                                                                            onClick={() => setDraft(prev => ({ ...prev, loisProfiles: prev.loisProfiles.filter(p => p.id !== profile.id) }))}
-                                                                            className="text-slate-300 hover:text-rose-500 transition-colors p-1"
-                                                                            title="Xóa nhóm con"
-                                                                        >
-                                                                            <i className="fas fa-trash-alt" />
-                                                                        </button>
+                                                                        {isAdmin && (
+                                                                            <button
+                                                                                onClick={() => setDraft(prev => ({ ...prev, loisProfiles: prev.loisProfiles.filter(p => p.id !== profile.id) }))}
+                                                                                className="text-slate-300 hover:text-rose-500 transition-colors p-1"
+                                                                                title="Xóa nhóm con"
+                                                                            >
+                                                                                <i className="fas fa-trash-alt" />
+                                                                            </button>
+                                                                        )}
                                                                     </td>
                                                                 </tr>
                                                             ))}
@@ -1995,7 +2002,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                             <div className="p-4 bg-rose-50 rounded-xl border border-rose-200">
                                 <div className="font-black text-rose-800 text-sm uppercase mb-1">Đặt lại mặc định</div>
                                 <div className="text-xs text-rose-600 mb-3">Xóa toàn bộ cài đặt đã chỉnh, khôi phục về giá trị gốc</div>
-                                <button onClick={handleReset} className="flex items-center gap-2 bg-rose-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-rose-700 transition-all shadow-sm">
+                                <button onClick={handleReset} disabled={!isAdmin} className="flex items-center gap-2 bg-rose-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-rose-700 transition-all shadow-sm disabled:opacity-40">
                                     <i className="fas fa-rotate-left" /> Reset tất cả
                                 </button>
                             </div>

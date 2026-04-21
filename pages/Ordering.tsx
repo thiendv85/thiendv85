@@ -532,6 +532,18 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
         reader.readAsText(file);
     };
 
+    const handleClearDraft = () => {
+        const hasDraft = Object.values(orderQuantities).some((v: any) => v.air + v.sea > 0);
+        if (!hasDraft) return alert("Dự thảo hiện đang trống.");
+        
+        if (confirm(t('ord_confirm_clear'))) {
+            setOrderQuantities({});
+            setOrderNotes({});
+            setConfirmedSkus(new Set());
+            setSupersessionWarnings({});
+        }
+    };
+
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
     return (
@@ -674,6 +686,9 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                                 <button onClick={() => fileInputRef.current?.click()} className="bg-white text-slate-700 hover:bg-slate-100 rounded-xl transition-all border border-slate-200 flex items-center justify-center px-4 py-2.5 text-[10px] font-black uppercase tracking-widest">
                                     <i className="fas fa-file-import mr-2"></i> Import
                                 </button>
+                                <button onClick={handleClearDraft} className="bg-white text-rose-600 hover:bg-rose-50 rounded-xl transition-all border border-rose-100 flex items-center justify-center px-4 py-2.5 text-[10px] font-black uppercase tracking-widest">
+                                    <i className="fas fa-trash-can mr-2"></i> Xóa Draft
+                                </button>
                             </div>
                             <button onClick={handleExport} className="bg-atp-secondary text-white hover:bg-slate-700 px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-md flex items-center gap-2 border border-slate-800">
                                 <i className="fas fa-file-export"></i> {t('ord_export_btn')}
@@ -711,6 +726,9 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                         <div className="md:hidden flex items-center gap-1.5 shrink-0">
                             <button onClick={() => setIsCloudModalOpen(true)} className="w-9 h-9 flex items-center justify-center text-blue-600 bg-blue-50/50 rounded-xl border border-blue-100 active:bg-blue-100">
                                 <i className="fas fa-cloud text-xs"></i>
+                            </button>
+                            <button onClick={handleClearDraft} className="w-9 h-9 flex items-center justify-center text-rose-600 bg-rose-50/50 rounded-xl border border-rose-100 active:bg-rose-100">
+                                <i className="fas fa-trash-can text-xs"></i>
                             </button>
                             {profile?.role && ['admin', 'planner'].includes(profile.role) && !isReturned && (
                                 <button onClick={handleOpenSubmitModal} disabled={Object.values(orderQuantities).every((v: any) => !v.air && !v.sea)} className="w-9 h-9 flex items-center justify-center text-emerald-600 bg-emerald-50/50 rounded-xl border border-emerald-100 active:bg-emerald-100 disabled:opacity-40">
