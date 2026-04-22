@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useDeferredValue } from 'react';
 import { createPortal } from 'react-dom';
 import { InventoryItem, DashboardSettings, InventoryFilters, DEFAULT_FILTERS, OrderingDraft, getDebtStatus, COST_RANGES, FOB_COST_RANGES } from '../types/inventory';
 import { FilterPanel } from '../components/FilterPanel';
@@ -129,6 +129,11 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
     const [searchResult, setSearchResult] = useState<SearchResult>(() => initialState?.filters?.search ? parseInventorySearch(initialState.filters.search) : { type: 'EMPTY', tokens: [], displayTokens: [], raw: '' });
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(initialState?.itemsPerPage || 20);
+
+    const deferredFilters = useDeferredValue(filters);
+    const deferredViewFilter = useDeferredValue(viewFilter);
+    const deferredSearchResult = useDeferredValue(searchResult);
+    const deferredSortKey = useDeferredValue(sortKey);
 
     const [supersessionWarnings, setSupersessionWarnings] = useState<Record<string, number>>({});
     const [confirmationQueue, setConfirmationQueue] = useState<{ code: string, type: 'air' | 'sea', val: number }[]>([]);
@@ -303,58 +308,58 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
 
     const filteredData = useMemo(() => {
         let list = enrichedList.filter(i => {
-            if (!matchSearch(i, searchResult)) return false;
+            if (!matchSearch(i, deferredSearchResult)) return false;
             const d = orderQuantities[i.ItemCode] as { air: number, sea: number } | undefined;
             const hasDraft = d && (d.air + d.sea > 0);
             // O8 Fix: 'Suggested' tab phải hiển thị cả items có AIR suggest (suggestedBO) lẫn SEA suggest (gapOrExcess)
             const hasSuggestion = (i.computed?.gapOrExcess || 0) > 0 || (i.computed?.suggestedBO || 0) > 0;
-            if (viewFilter === 'draft' && !hasDraft) return false;
-            if (viewFilter === 'suggested' && !hasSuggestion) return false;
-            if (viewFilter === 'seasonal' && !i.computed?.warnings?.some((w: any) => w.code === 'SEASONAL_UPCOMING')) return false;
-            if (filters.priority !== 'All' && i.computed?.priorityBucket !== filters.priority) return false;
-            if (filters.status !== 'All' && i.Status !== filters.status) return false;
-            if (filters.lois.length > 0 && !filters.lois.includes(i.LOISGroup)) return false;
-            if (filters.source !== 'All') {
-                const [brand, sid] = filters.source.split('|');
+            if (deferredViewFilter === 'draft' && !hasDraft) return false;
+            if (deferredViewFilter === 'suggested' && !hasSuggestion) return false;
+            if (deferredViewFilter === 'seasonal' && !i.computed?.warnings?.some((w: any) => w.code === 'SEASONAL_UPCOMING')) return false;
+            if (deferredFilters.priority !== 'All' && i.computed?.priorityBucket !== deferredFilters.priority) return false;
+            if (deferredFilters.status !== 'All' && i.Status !== deferredFilters.status) return false;
+            if (deferredFilters.lois.length > 0 && !deferredFilters.lois.includes(i.LOISGroup)) return false;
+            if (deferredFilters.source !== 'All') {
+                const [brand, sid] = deferredFilters.source.split('|');
                 if (i.BrandName !== brand || (i.SourceId || '') !== sid) return false;
             }
-            if (filters.trend !== 'All' && i.TrendFlag !== filters.trend) return false;
-            if (filters.showBackorders && i.Backorder <= 0) return false;
-            if (filters.specialFilter === 'stockout' && !i.computed?.stockoutRiskFlag) return false;
-            if (filters.specialFilter === 'excess' && (i.computed?.excessQty || 0) <= 0) return false;
-            if (filters.specialFilter === 'has_po' && (i.TotalPO || 0) <= 0) return false;
-            if (filters.specialFilter === 'has_supersession') {
+            if (deferredFilters.trend !== 'All' && i.TrendFlag !== deferredFilters.trend) return false;
+            if (deferredFilters.showBackorders && i.Backorder <= 0) return false;
+            if (deferredFilters.specialFilter === 'stockout' && !i.computed?.stockoutRiskFlag) return false;
+            if (deferredFilters.specialFilter === 'excess' && (i.computed?.excessQty || 0) <= 0) return false;
+            if (deferredFilters.specialFilter === 'has_po' && (i.TotalPO || 0) <= 0) return false;
+            if (deferredFilters.specialFilter === 'has_supersession') {
                 if (!graph) return false;
                 const chain = graph.getChain(i.ItemCode);
                 if (!chain || chain.allParts.length <= 1) return false;
             }
-            if (filters.specialFilter === 'has_warning') {
+            if (deferredFilters.specialFilter === 'has_warning') {
                 if (!i.computed?.warnings || i.computed.warnings.length === 0) return false;
             }
-            if (filters.specialFilter === 'low_stock') {
+            if (deferredFilters.specialFilter === 'low_stock') {
                 const avail = i.computed?.available || 0;
                 const ss = i.computed?.safetyStock || 0;
                 const mos = i.computed?.mos || 0;
                 // Low stock: tồn vật lý < safety stock HOẶC MOS < ngưỡng thấp (nhưng chưa hẳn stockout)
                 if (avail >= ss && mos >= MOS_LOW_STOCK_THRESHOLD) return false;
             }
-            if (filters.costRange > 0) {
-                const range = COST_RANGES[filters.costRange];
+            if (deferredFilters.costRange > 0) {
+                const range = COST_RANGES[deferredFilters.costRange];
                 if (i.UnitCost_PP < range.min || i.UnitCost_PP >= range.max) return false;
             }
-            if (filters.fobCostRange > 0) {
-                const range = FOB_COST_RANGES[filters.fobCostRange];
+            if (deferredFilters.fobCostRange > 0) {
+                const range = FOB_COST_RANGES[deferredFilters.fobCostRange];
                 if (i.UnitCost_FOB < range.min || i.UnitCost_FOB >= range.max) return false;
             }
-            if (filters.debtStatus && filters.debtStatus.length > 0) {
+            if (deferredFilters.debtStatus && deferredFilters.debtStatus.length > 0) {
                 const status = getDebtStatus(i);
-                if (!filters.debtStatus.includes(status)) return false;
+                if (!deferredFilters.debtStatus.includes(status)) return false;
             }
             return true;
         });
 
         return list.sort((a, b) => {
-            switch (sortKey) {
+            switch (deferredSortKey) {
                 case 'priority': {
                     const pa = PRIORITY_ORDER[a.computed?.priorityBucket || 'P3'];
                     const pb = PRIORITY_ORDER[b.computed?.priorityBucket || 'P3'];
@@ -372,7 +377,7 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
                 default: return 0;
             }
         });
-    }, [enrichedList, searchResult, orderQuantities, viewFilter, filters, sortKey, graph]);
+    }, [enrichedList, deferredSearchResult, deferredViewFilter, deferredFilters, deferredSortKey, orderQuantities, graph]);
 
     const paginatedData = useMemo(() => {
         const startIndex = (currentPage - 1) * itemsPerPage;

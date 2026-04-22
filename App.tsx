@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useTransition } from 'react';
 import { createPortal } from 'react-dom';
 import { InventoryItem, KittingDefinition, MonthlyData } from './types/inventory';
 import { SupersessionMapping, SupersessionGraph } from './utils/supersessionGraph';
@@ -117,6 +117,7 @@ const AppContent = () => {
 
     // Keep all hooks before conditional returns (Rules of Hooks)
     const [view, setView] = useState<'upload' | 'dashboard' | 'ordering' | 'backorder' | 'transfer' | 'log' | 'kitting' | 'settings' | 'approval-queue'>('upload');
+    const [isPending, startTransition] = useTransition();
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
     const [initialParams, setInitialParams] = useState<{ lt: number; sp: number; ssp: number } | undefined>(undefined);
     const [appSettings, setAppSettings] = useState<AppSettings>(loadAppSettings);
@@ -422,12 +423,13 @@ const AppContent = () => {
                             return (
                                 <button
                                     key={nav.id}
-                                    onClick={() => setView(nav.id as any)}
+                                    onClick={() => startTransition(() => setView(nav.id as any))}
                                     className={`
                                         px-2.5 md:px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 shrink-0
                                         ${isActive
                                             ? 'bg-white text-blue-700 shadow-[0_4px_12px_rgba(59,130,246,0.15)] ring-1 ring-blue-50/50 font-bold scale-[1.02]'
                                             : 'text-white/70 hover:bg-white/10 hover:text-white'}
+                                        ${isPending && nav.id !== view ? 'opacity-50 cursor-wait' : ''}
                                     `}
                                 >
                                     <i className={`fas ${nav.icon} text-xs ${isActive ? 'text-blue-600' : ''}`}></i>
@@ -492,10 +494,11 @@ const AppContent = () => {
                         return (
                             <button
                                 key={nav.id}
-                                onClick={() => setView(nav.id as any)}
-                                className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors min-h-[44px] ${
-                                    isActive ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'
-                                }`}
+                                onClick={() => startTransition(() => setView(nav.id as any))}
+                                className={`flex flex-col items-center justify-center w-16 h-full transition-colors relative
+                                    ${isActive ? 'text-blue-600 font-bold' : 'text-slate-400 hover:text-slate-600'}
+                                    ${isPending && nav.id !== view ? 'opacity-50' : ''}
+                                `}
                             >
                                 <i className={`fas ${nav.icon} text-base ${isActive ? 'text-blue-600' : ''}`} />
                                 <span className={`text-[9px] font-black uppercase tracking-tight leading-none ${

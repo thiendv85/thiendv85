@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useDeferredValue } from 'react';
 import { InventoryItem, DashboardSettings, InventoryFilters, DEFAULT_FILTERS, COST_RANGES, FOB_COST_RANGES, getDebtStatus, OrderingDraft } from '../types/inventory';
 import { FilterPanel } from '../components/FilterPanel';
 import { MetricCard } from '../components/MetricCard';
@@ -269,6 +269,10 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
     const [searchResult, setSearchResult] = useState<SearchResult>({ type: 'EMPTY', tokens: [], displayTokens: [], raw: '' });
     const [showSimulation, setShowSimulation] = useState(false);
 
+    const deferredFilters = useDeferredValue(filters);
+    const deferredSearchResult = useDeferredValue(searchResult);
+    const deferredSelectedSubgroup = useDeferredValue(selectedSubgroup);
+
     useEffect(() => { if (onSaveState) onSaveState({ settings, filters, subTab }); }, [settings, filters, subTab, onSaveState]);
 
     const handleFiltersChange = (newFilters: InventoryFilters) => {
@@ -385,46 +389,46 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
 
     const filteredList = useMemo(() => {
         let result = indexedData;
-        if (selectedSubgroup) {
-            result = result.filter(item => getLoisSubgroup(item) === selectedSubgroup);
+        if (deferredSelectedSubgroup) {
+            result = result.filter(item => getLoisSubgroup(item) === deferredSelectedSubgroup);
         }
         return result.filter(i => {
-            if (!matchSearch(i, searchResult)) return false;
-            if (filters.priority !== 'All' && i.computed?.priorityBucket !== filters.priority) return false;
-            if (filters.status !== 'All' && i.Status !== filters.status) return false;
-            if (filters.lois.length > 0 && !filters.lois.includes(i.LOISGroup)) return false;
-            if (filters.trend !== 'All' && i.TrendFlag !== filters.trend) return false;
+            if (!matchSearch(i, deferredSearchResult)) return false;
+            if (deferredFilters.priority !== 'All' && i.computed?.priorityBucket !== deferredFilters.priority) return false;
+            if (deferredFilters.status !== 'All' && i.Status !== deferredFilters.status) return false;
+            if (deferredFilters.lois.length > 0 && !deferredFilters.lois.includes(i.LOISGroup)) return false;
+            if (deferredFilters.trend !== 'All' && i.TrendFlag !== deferredFilters.trend) return false;
 
-            if (filters.costRange > 0) {
-                const range = COST_RANGES[filters.costRange];
+            if (deferredFilters.costRange > 0) {
+                const range = COST_RANGES[deferredFilters.costRange];
                 if (i.UnitCost_PP < range.min || i.UnitCost_PP >= range.max) return false;
             }
-            if (filters.fobCostRange > 0) {
-                const range = FOB_COST_RANGES[filters.fobCostRange];
+            if (deferredFilters.fobCostRange > 0) {
+                const range = FOB_COST_RANGES[deferredFilters.fobCostRange];
                 if (i.UnitCost_FOB < range.min || i.UnitCost_FOB >= range.max) return false;
             }
-            if (filters.specialFilter === 'stockout' && !i.computed?.stockoutRiskFlag) return false;
-            if (filters.specialFilter === 'critical_stockout') {
+            if (deferredFilters.specialFilter === 'stockout' && !i.computed?.stockoutRiskFlag) return false;
+            if (deferredFilters.specialFilter === 'critical_stockout') {
                 const comp = i.computed;
                 const isCriticalMatch = comp && ['1', '2', '3'].includes(i.LOISGroup) && (comp.available <= 0 || comp.stockoutRiskFlag) && i.BaseForecast > 0.02;
                 if (!isCriticalMatch) return false;
             }
-            if (filters.specialFilter === 'excess' && (i.computed?.excessQty || 0) <= 0) return false;
-            if (filters.specialFilter === 'has_seasonality' && (i.computed?.ssi || 1) <= 1.0) return false;
-            if (filters.specialFilter === 'has_po' && (i.TotalPO || 0) <= 0) return false;
-            if (filters.specialFilter === 'has_supersession') {
+            if (deferredFilters.specialFilter === 'excess' && (i.computed?.excessQty || 0) <= 0) return false;
+            if (deferredFilters.specialFilter === 'has_seasonality' && (i.computed?.ssi || 1) <= 1.0) return false;
+            if (deferredFilters.specialFilter === 'has_po' && (i.TotalPO || 0) <= 0) return false;
+            if (deferredFilters.specialFilter === 'has_supersession') {
                 if (!graph) return false;
                 const chain = graph.getChain(i.ItemCode);
                 if (!chain || chain.allParts.length <= 1) return false;
             }
-            if (filters.showBackorders && i.Backorder <= 0) return false;
-            if (filters.debtStatus && filters.debtStatus.length > 0) {
+            if (deferredFilters.showBackorders && i.Backorder <= 0) return false;
+            if (deferredFilters.debtStatus && deferredFilters.debtStatus.length > 0) {
                 const status = getDebtStatus(i);
-                if (!filters.debtStatus.includes(status)) return false;
+                if (!deferredFilters.debtStatus.includes(status)) return false;
             }
             return true;
         });
-    }, [enrichedData, selectedSubgroup, searchResult, filters, graph]);
+    }, [indexedData, deferredSelectedSubgroup, deferredSearchResult, deferredFilters, graph]);
 
 
     // Functional update for subgroup toggle to keep callback stable
