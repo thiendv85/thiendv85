@@ -14,7 +14,8 @@ export const calculatePickingPriority = (item: InventoryItem, draftQty: number =
     const isOut = reserve <= 0;
     const isBelowSS = reserve < (comp.safetyStock || 0);
     const isBelowROP = reserve < (comp.rop || 0);
-    const isFastMover = ['1', '2', '3'].includes(item.LOISGroup);
+    const lois = (item.LOISGroup || '').trim().toUpperCase().substring(0, 2);
+    const isFastMover = ['1', '2', '3', 'L1', 'L2', 'L3'].includes(lois);
 
     // Mức 1: Có nợ khách hoặc hết sạch hàng (kể cả PO)
     if (isBackorder || isOut) return 1;

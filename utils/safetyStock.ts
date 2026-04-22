@@ -19,32 +19,38 @@ import { avg, stdDev } from './demandPattern';
  * | Default     | 95%          | 1.65  |
  */
 export function getZScore(loisGroup: string): number {
-    const lois = (loisGroup || '').trim().toUpperCase();
-    if (['1', '2', '3'].includes(lois)) return 2.05;   // 98%
-    if (['4', '5'].includes(lois)) return 1.65;          // 95%
-    if (['6', '7'].includes(lois)) return 1.28;          // 90%
-    if (['8', 'E', 'N', 'A', 'V'].includes(lois)) return 0.84; // 80%
-    if (lois === 'I') return 0;                           // 0% — inactive
-    if (['X', 'Y', 'Z', 'C', 'K', 'D'].includes(lois)) return 1.65; // 95% — special
+    const lois = (loisGroup || '').trim().toUpperCase().substring(0, 2);
+    // 98% Service Level
+    if (['1', '2', '3', 'L1', 'L2', 'L3'].includes(lois)) return 2.05;
+    // 95% Service Level
+    if (['4', '5', 'L4', 'L5'].includes(lois)) return 1.65;
+    // 90% Service Level
+    if (['6', '7', 'L6', 'L7'].includes(lois)) return 1.28;
+    // 80% Service Level
+    if (['8', 'E', 'N', 'A', 'V', 'L8', 'C1', 'C2', 'C3', 'O8', 'OE', 'ON', 'OA', 'OV'].includes(lois)) return 0.84;
+    // 0% - Inactive
+    if (lois === 'I') return 0;
+    // Special / Custom
+    if (['X', 'Y', 'Z', 'C', 'K', 'D', 'SX', 'SY', 'SZ', 'SC', 'SK', 'SD'].includes(lois)) return 1.65;
     return 1.65; // default 95%
 }
 
 export function getServiceLevelLabel(loisGroup: string): string {
-    const lois = (loisGroup || '').trim().toUpperCase();
-    if (['1', '2', '3'].includes(lois)) return '98%';
-    if (['4', '5'].includes(lois)) return '95%';
-    if (['6', '7'].includes(lois)) return '90%';
-    if (['8', 'E', 'N', 'A', 'V'].includes(lois)) return '80%';
+    const lois = (loisGroup || '').trim().toUpperCase().substring(0, 2);
+    if (['1', '2', '3', 'L1', 'L2', 'L3'].includes(lois)) return '98%';
+    if (['4', '5', 'L4', 'L5'].includes(lois)) return '95%';
+    if (['6', '7', 'L6', 'L7'].includes(lois)) return '90%';
+    if (['8', 'E', 'N', 'A', 'V', 'L8', 'C1', 'C2', 'C3', 'O8', 'OE', 'ON', 'OA', 'OV'].includes(lois)) return '80%';
     if (lois === 'I') return '0%';
     return '95%';
 }
 
 export function getServiceLevelNumber(loisGroup: string): number {
-    const lois = (loisGroup || '').trim().toUpperCase();
-    if (['1', '2', '3'].includes(lois)) return 0.98;
-    if (['4', '5'].includes(lois)) return 0.95;
-    if (['6', '7'].includes(lois)) return 0.90;
-    if (['8', 'E', 'N', 'A', 'V'].includes(lois)) return 0.80;
+    const lois = (loisGroup || '').trim().toUpperCase().substring(0, 2);
+    if (['1', '2', '3', 'L1', 'L2', 'L3'].includes(lois)) return 0.98;
+    if (['4', '5', 'L4', 'L5'].includes(lois)) return 0.95;
+    if (['6', '7', 'L6', 'L7'].includes(lois)) return 0.90;
+    if (['8', 'E', 'N', 'A', 'V', 'L8', 'C1', 'C2', 'C3', 'O8', 'OE', 'ON', 'OA', 'OV'].includes(lois)) return 0.80;
     if (lois === 'I') return 0;
     return 0.95;
 }

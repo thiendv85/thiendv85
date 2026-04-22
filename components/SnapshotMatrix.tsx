@@ -56,6 +56,13 @@ const SUBGROUP_DESC: Record<string, string> = {
 
 const getLoisSubgroup = (loisGroup: string, salesHistory: number[], avgQty12M: number): string => {
     const lois = (loisGroup || '').trim().toUpperCase();
+    const code2 = lois.substring(0, 2);
+
+    // If already matches a 2-char subgroup (L1, OE, etc.), return it directly
+    if (SUBGROUP_DESC[code2]) return code2;
+    if (lois === 'I') return 'I';
+
+    // Fallback for legacy 1-char codes or re-calculation if needed
     const sales12M = salesHistory && salesHistory.length > 0
         ? salesHistory.reduce((a, b) => a + b, 0)
         : avgQty12M * 12;
@@ -74,7 +81,6 @@ const getLoisSubgroup = (loisGroup: string, salesHistory: number[], avgQty12M: n
     if (lois === 'N') return 'ON';
     if (lois === 'A') return 'OA';
     if (lois === 'V') return 'OV';
-    if (lois === 'I') return 'I';
     if (['X', 'Y', 'Z', 'C', 'K', 'D'].includes(lois)) return `S${lois}`;
     return 'U_OTHER';
 };

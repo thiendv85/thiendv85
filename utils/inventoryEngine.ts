@@ -351,7 +351,8 @@ function checkIsStop(item: InventoryItem, loisProfiles?: import('../types/invent
 
     // 2. LOIS Group configuration check
     if (loisProfiles && item.LOISGroup) {
-        const profile = loisProfiles.find(p => p.id === item.LOISGroup);
+        const id = item.LOISGroup.trim().toUpperCase().substring(0, 2);
+        const profile = loisProfiles.find(p => p.id.toUpperCase() === id || p.id === item.LOISGroup);
         if (profile) {
             return { isStop: profile.noPlan, alertType: profile.alertType };
         }
@@ -454,7 +455,8 @@ export function computeInventory(
             'warning': 'Warning',
             'info': 'Info'
         };
-        const desc = params.loisProfiles?.find(p => p.id === item.LOISGroup)?.name;
+        const id = (item.LOISGroup || '').trim().toUpperCase().substring(0, 2);
+        const desc = params.loisProfiles?.find(p => p.id.toUpperCase() === id || p.id === item.LOISGroup)?.name;
         warnings.push({ 
             type: typeMap[alertType] || 'Info', 
             code: 'LOIS_ALERT', 
