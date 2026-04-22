@@ -538,9 +538,15 @@ export function computeInventory(
 
     let gapOrExcess = 0;
     let suggestedBO = 0;
-    if (!isStop) {
+    if (!isStop && !isZeroDemand) {
         const target = Math.max(stockMax, bo);
         if (reserve < target) gapOrExcess = Math.ceil((target - reserve) / snp) * snp;
+        // Max Order Cap — đồng bộ với SQL @MaxMonthsCap = 4
+        const MAX_ORDER_MONTHS = 4;
+        const maxOrderCap = demandMonthly * MAX_ORDER_MONTHS;
+        if (gapOrExcess > maxOrderCap && maxOrderCap > 0) {
+            gapOrExcess = Math.ceil(maxOrderCap / snp) * snp;
+        }
         const boGap = bo - reserve;
         if (boGap > 0) suggestedBO = Math.ceil((boGap - (gapOrExcess > 0 ? Math.min(gapOrExcess, boGap) : 0)) / snp) * snp;
     }
@@ -549,9 +555,9 @@ export function computeInventory(
     let transferProps;
     const fcNB = item.Forecast_NB || 0;
     const fcBB = item.Forecast_BB || 0;
-    const totalFC = fcNB + fcBB || 0.001;
-    const ratioNB = fcNB / totalFC;
-    const ratioBB = fcBB / totalFC;
+    const totalFC = fcNB + fcBB;
+    const ratioNB = totalFC > 0 ? fcNB / totalFC : 0.5;
+    const ratioBB = totalFC > 0 ? fcBB / totalFC : 0.5;
     const physicalNB = (item.QuantityInventory_NB || 0) + (item.QuantityDC_NB || 0) - (item.Backorder_NB || 0);
     const physicalBB = (item.QuantityInventory_BB || 0) + (item.QuantityDC_BB || 0) - (item.Backorder_BB || 0);
     const incomingNB_Month = item.Pipeline_NB ? Object.entries(item.Pipeline_NB).reduce((sum, [k, v]) => isMatch(k) ? sum + v : sum, 0) : 0;
