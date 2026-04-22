@@ -101,8 +101,8 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
     <div className="bg-white p-2.5 sm:p-3.5 rounded-3xl shadow-soft hover:shadow-medium border border-slate-200/60 transition-all space-y-3">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
-        {/* LEFT COLUMN: FILTERS (8/12) */}
-        <div className="lg:col-span-8 space-y-3">
+        {/* LEFT COLUMN: FILTERS (9/12) */}
+        <div className="lg:col-span-9 space-y-3">
           <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
             <div>
               <label className="block text-[10px] font-black text-blue-700/80 uppercase tracking-[0.15em] mb-1.5">{t('filter_scope')}</label>
@@ -112,7 +112,7 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
                 ))}
               </div>
             </div>
-            <div className="md:col-span-2">
+            <div className="md:col-span-2 xl:col-span-3">
               <label className="block text-[10px] font-black text-blue-700/80 uppercase tracking-[0.15em] mb-1.5">{t('filter_lois')}</label>
               <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 flex-nowrap">
                 <button
@@ -228,8 +228,8 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
           </div>
         </div>
 
-        {/* RIGHT COLUMN: PLANNING PARAMS (4/12) */}
-        <div className="lg:col-span-4 flex flex-col gap-2.5 bg-slate-50/50 p-3 rounded-3xl border border-slate-200 shadow-inner overflow-hidden">
+        {/* RIGHT COLUMN: PLANNING PARAMS (3/12) */}
+        <div className="lg:col-span-3 flex flex-col gap-2.5 bg-slate-50/50 p-3 rounded-3xl border border-slate-200 shadow-inner overflow-hidden">
           <div className="flex items-center justify-between">
             <div className="text-[10px] font-black text-blue-800 uppercase tracking-[0.15em] flex items-center gap-1.5">
               <i className="fas fa-sliders-h text-blue-600/80"></i> {t('Planning Params')}
