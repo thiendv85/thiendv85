@@ -16,9 +16,9 @@ interface FilterPanelProps {
 }
 
 const SpecialFilterButton = ({ label, icon, isActive, onClick }: { label: string, icon: string, isActive: boolean, onClick: () => void }) => (
-  <button onClick={onClick} className={`flex items-center gap-2 px-2.5 py-1 rounded-lg text-[10px] font-black transition-all shadow-sm border h-8 uppercase tracking-wide ${isActive ? 'bg-blue-600 text-white border-blue-700 shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600'}`}>
+  <button onClick={onClick} title={label} className={`flex items-center justify-center px-2 rounded-lg text-[10px] font-black transition-all shadow-sm border h-8 w-8 xl:w-auto xl:px-2.5 xl:gap-1.5 uppercase tracking-wide ${isActive ? 'bg-blue-600 text-white border-blue-700 shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600'}`}>
     <i className={`fas ${icon} ${isActive ? 'text-white' : 'text-slate-400'}`}></i>
-    <span className="hidden sm:inline">{label}</span>
+    <span className="hidden xl:inline text-[9px]">{label}</span>
   </button>
 );
 
@@ -104,84 +104,84 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
         {/* LEFT COLUMN: ALL FILTERS (9/12) */}
         <div className="lg:col-span-9 space-y-2">
           {/* ── ROW 1: Priority + LOIS + Source + Currency ── */}
-          <div className="flex items-end gap-2 flex-wrap xl:flex-nowrap">
+          <div className="flex items-end gap-2.5 flex-wrap xl:flex-nowrap">
             {/* Priority */}
-            <div className="shrink-0 w-[140px]">
-              <label className="block text-[9px] font-black text-blue-700/70 uppercase tracking-[0.15em] mb-1">{t('filter_scope')}</label>
-              <div className="flex bg-slate-100/60 p-0.5 rounded-lg h-7 items-center border border-slate-200/50">
+            <div className="shrink-0 w-[150px]">
+              <label className="block text-[10px] font-black text-blue-700/70 uppercase tracking-[0.15em] mb-1">{t('filter_scope')}</label>
+              <div className="flex bg-slate-100/60 p-0.5 rounded-xl h-8 items-center border border-slate-200/50">
                 {['All', 'P1', 'P2', 'P3'].map(p => (
-                  <button key={p} onClick={() => onFiltersChange({ ...filters, priority: p as any })} className={`w-full text-[10px] font-black rounded-md transition-all h-6 uppercase ${filters.priority === p ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-400 hover:text-blue-600'}`}>{p}</button>
+                  <button key={p} onClick={() => onFiltersChange({ ...filters, priority: p as any })} className={`w-full text-[11px] font-black rounded-lg transition-all h-7 uppercase ${filters.priority === p ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-400 hover:text-blue-600'}`}>{p}</button>
                 ))}
               </div>
             </div>
             {/* LOIS */}
             <div className="flex-1 min-w-0">
-              <label className="block text-[9px] font-black text-blue-700/70 uppercase tracking-[0.15em] mb-1">{t('filter_lois')}</label>
+              <label className="block text-[10px] font-black text-blue-700/70 uppercase tracking-[0.15em] mb-1">{t('filter_lois')}</label>
               <div className="flex items-center gap-1 overflow-x-auto no-scrollbar flex-nowrap">
-                <button onClick={toggleAllLois} className={`px-2 py-0.5 rounded-md text-[9px] font-black border transition-all h-7 shrink-0 ${(filters.lois || []).length === 0 ? 'bg-blue-600 text-white border-blue-700 shadow-sm' : 'bg-white text-slate-400 border-slate-200 hover:text-blue-600'}`}>ALL</button>
+                <button onClick={toggleAllLois} className={`px-2.5 py-0.5 rounded-lg text-[10px] font-black border transition-all h-8 shrink-0 ${(filters.lois || []).length === 0 ? 'bg-blue-600 text-white border-blue-700 shadow-sm' : 'bg-white text-slate-400 border-slate-200 hover:text-blue-600'}`}>ALL</button>
                 {loisGroups.map(g => {
                   const isActive = (filters.lois || []).includes(g);
                   return (
                     <button key={g} onClick={() => toggleLois(g)} title={loisProfiles?.find(p => p.id === g)?.name || ''}
-                      className={`px-1.5 py-0.5 rounded-md text-[9px] font-black border transition-all h-7 shrink-0 ${isActive ? 'bg-blue-600 text-white border-blue-700 shadow-sm' : 'bg-white text-slate-500 border-slate-200 hover:text-blue-600'}`}>{g}</button>
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-black border transition-all h-8 shrink-0 ${isActive ? 'bg-blue-600 text-white border-blue-700 shadow-sm' : 'bg-white text-slate-500 border-slate-200 hover:text-blue-600'}`}>{g}</button>
                   );
                 })}
               </div>
             </div>
             {/* Source */}
             <div className="relative shrink-0 w-[160px]">
-              <label className="block text-[9px] font-black text-blue-700/70 uppercase tracking-[0.15em] mb-1">Source</label>
-              <select value={filters.source} onChange={e => onFiltersChange({ ...filters, source: e.target.value })} className={`w-full cursor-pointer px-2 py-0 bg-white border rounded-lg text-[10px] font-black h-7 shadow-sm transition-all uppercase tracking-tighter appearance-none ${filters.source !== 'All' ? 'border-blue-600 text-blue-800 bg-blue-50/50' : 'border-slate-200 text-slate-600 hover:border-blue-300'}`}>
+              <label className="block text-[10px] font-black text-blue-700/70 uppercase tracking-[0.15em] mb-1"><i className="fas fa-boxes-stacked mr-1 text-[8px]"></i>Source</label>
+              <select value={filters.source} onChange={e => onFiltersChange({ ...filters, source: e.target.value })} size={1} className={`w-full cursor-pointer px-2 py-0 bg-white border rounded-xl text-[10px] font-black h-8 shadow-sm transition-all uppercase tracking-tighter appearance-none ${filters.source !== 'All' ? 'border-blue-600 text-blue-800 bg-blue-50/50' : 'border-slate-200 text-slate-600 hover:border-blue-300'}`}>
                 <option value="All">Tất cả</option>
                 {uniqueSources.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
               </select>
-              <i className="fas fa-chevron-down absolute right-2 bottom-2 text-[8px] text-blue-300 pointer-events-none"></i>
+              <i className="fas fa-chevron-down absolute right-2.5 bottom-2.5 text-[8px] text-blue-300 pointer-events-none"></i>
             </div>
             {/* Currency */}
-            <div className="shrink-0 w-[100px]">
-              <label className="block text-[9px] font-black text-blue-700/70 uppercase tracking-[0.15em] mb-1">{t('filter_currency')}</label>
-              <div className="flex bg-slate-100/60 p-0.5 rounded-lg h-7 items-center border border-slate-200/50">
-                <button onClick={() => onSettingsChange({ ...settings, costBasis: 'PP' })} className={`w-full text-[10px] font-black rounded-md transition-all h-6 uppercase ${settings.costBasis === 'PP' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-400 hover:text-blue-600'}`}>VND</button>
-                <button onClick={() => onSettingsChange({ ...settings, costBasis: 'FOB' })} className={`w-full text-[10px] font-black rounded-md transition-all h-6 uppercase ${settings.costBasis === 'FOB' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-400 hover:text-blue-600'}`}>EUR</button>
+            <div className="shrink-0 w-[105px]">
+              <label className="block text-[10px] font-black text-blue-700/70 uppercase tracking-[0.15em] mb-1"><i className="fas fa-coins mr-1 text-[8px]"></i>{t('filter_currency')}</label>
+              <div className="flex bg-slate-100/60 p-0.5 rounded-xl h-8 items-center border border-slate-200/50">
+                <button onClick={() => onSettingsChange({ ...settings, costBasis: 'PP' })} className={`w-full text-[11px] font-black rounded-lg transition-all h-7 uppercase ${settings.costBasis === 'PP' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-400 hover:text-blue-600'}`}>VND</button>
+                <button onClick={() => onSettingsChange({ ...settings, costBasis: 'FOB' })} className={`w-full text-[11px] font-black rounded-lg transition-all h-7 uppercase ${settings.costBasis === 'FOB' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-400 hover:text-blue-600'}`}>EUR</button>
               </div>
             </div>
           </div>
 
           {/* ── ROW 2: Dropdowns + Smart Filters ── */}
-          <div className="flex items-end gap-2 flex-wrap xl:flex-nowrap pt-1.5 border-t border-slate-100/80">
+          <div className="flex items-end gap-2.5 flex-wrap xl:flex-nowrap pt-2 border-t border-slate-100/80">
             {/* Status */}
-            <div className="relative shrink-0 w-[110px]">
-              <label className="block text-[9px] font-black text-blue-700/70 uppercase tracking-[0.15em] mb-1">{t('filter_lifecycle')}</label>
-              <select value={filters.status} onChange={e => onFiltersChange({ ...filters, status: e.target.value as any })} className={`w-full cursor-pointer px-2 bg-white border rounded-lg text-[10px] font-black h-7 shadow-sm transition-all uppercase tracking-tighter appearance-none ${filters.status !== 'All' ? 'border-blue-600 text-blue-800 bg-blue-50/50' : 'border-slate-200 text-slate-600 hover:border-blue-300'}`}>
+            <div className="relative shrink-0 w-[115px]">
+              <label className="block text-[10px] font-black text-blue-700/70 uppercase tracking-[0.15em] mb-1"><i className="fas fa-heartbeat mr-1 text-[8px]"></i>{t('filter_lifecycle')}</label>
+              <select value={filters.status} onChange={e => onFiltersChange({ ...filters, status: e.target.value as any })} className={`w-full cursor-pointer px-2 bg-white border rounded-xl text-[10px] font-black h-8 shadow-sm transition-all uppercase tracking-tighter appearance-none ${filters.status !== 'All' ? 'border-blue-600 text-blue-800 bg-blue-50/50' : 'border-slate-200 text-slate-600 hover:border-blue-300'}`}>
                 <option value="All">All</option>
                 <option value="Active">Active</option>
                 <option value="Sleeping">Sleep</option>
                 <option value="Dead Stock">Dead</option>
               </select>
-              <i className="fas fa-chevron-down absolute right-2 bottom-2 text-[8px] text-blue-300 pointer-events-none"></i>
+              <i className="fas fa-chevron-down absolute right-2.5 bottom-2.5 text-[8px] text-blue-300 pointer-events-none"></i>
             </div>
             {/* Cost */}
-            <div className="relative shrink-0 w-[110px]">
-              <label className="block text-[9px] font-black text-blue-700/70 uppercase tracking-[0.15em] mb-1">{t('filter_cost')}</label>
-              <select value={filters.costRange} onChange={e => onFiltersChange({ ...filters, costRange: Number(e.target.value) })} className={`w-full cursor-pointer px-2 bg-white border rounded-lg text-[10px] font-black h-7 shadow-sm transition-all uppercase tracking-tighter appearance-none ${filters.costRange > 0 ? 'border-blue-600 text-blue-800 bg-blue-50/50' : 'border-slate-200 text-slate-600 hover:border-blue-300'}`}>
+            <div className="relative shrink-0 w-[115px]">
+              <label className="block text-[10px] font-black text-blue-700/70 uppercase tracking-[0.15em] mb-1"><i className="fas fa-tag mr-1 text-[8px]"></i>{t('filter_cost')}</label>
+              <select value={filters.costRange} onChange={e => onFiltersChange({ ...filters, costRange: Number(e.target.value) })} className={`w-full cursor-pointer px-2 bg-white border rounded-xl text-[10px] font-black h-8 shadow-sm transition-all uppercase tracking-tighter appearance-none ${filters.costRange > 0 ? 'border-blue-600 text-blue-800 bg-blue-50/50' : 'border-slate-200 text-slate-600 hover:border-blue-300'}`}>
                 {COST_RANGES.map((r, i) => <option key={i} value={i}>{r.label}</option>)}
               </select>
-              <i className="fas fa-chevron-down absolute right-2 bottom-2 text-[8px] text-blue-300 pointer-events-none"></i>
+              <i className="fas fa-chevron-down absolute right-2.5 bottom-2.5 text-[8px] text-blue-300 pointer-events-none"></i>
             </div>
             {/* Trend */}
-            <div className="relative shrink-0 w-[110px]">
-              <label className="block text-[9px] font-black text-blue-700/70 uppercase tracking-[0.15em] mb-1">{t('filter_trend')}</label>
-              <select value={filters.trend} onChange={e => onFiltersChange({ ...filters, trend: e.target.value })} className={`w-full cursor-pointer px-2 bg-white border rounded-lg text-[10px] font-black h-7 shadow-sm transition-all uppercase tracking-tighter appearance-none ${filters.trend !== 'All' ? 'border-blue-600 text-blue-800 bg-blue-50/50' : 'border-slate-200 text-slate-600 hover:border-blue-300'}`}>
+            <div className="relative shrink-0 w-[115px]">
+              <label className="block text-[10px] font-black text-blue-700/70 uppercase tracking-[0.15em] mb-1"><i className="fas fa-chart-line mr-1 text-[8px]"></i>{t('filter_trend')}</label>
+              <select value={filters.trend} onChange={e => onFiltersChange({ ...filters, trend: e.target.value })} className={`w-full cursor-pointer px-2 bg-white border rounded-xl text-[10px] font-black h-8 shadow-sm transition-all uppercase tracking-tighter appearance-none ${filters.trend !== 'All' ? 'border-blue-600 text-blue-800 bg-blue-50/50' : 'border-slate-200 text-slate-600 hover:border-blue-300'}`}>
                 <option value="All">All Trends</option>
                 {trendFlags.map(f => <option key={f} value={f}>{f}</option>)}
               </select>
-              <i className="fas fa-chevron-down absolute right-2 bottom-2 text-[8px] text-blue-300 pointer-events-none"></i>
+              <i className="fas fa-chevron-down absolute right-2.5 bottom-2.5 text-[8px] text-blue-300 pointer-events-none"></i>
             </div>
             {/* Divider */}
-            <div className="hidden xl:block w-px h-7 bg-slate-200 shrink-0"></div>
-            {/* Smart Filters - icon-heavy compact */}
+            <div className="hidden xl:block w-px h-8 bg-slate-200/60 shrink-0"></div>
+            {/* Smart Filters - icon buttons, text on xl */}
             <div className="flex items-center gap-1.5 flex-wrap xl:flex-nowrap flex-1">
-              <span className="text-[9px] font-black text-blue-700/60 uppercase tracking-wide shrink-0"><i className="fas fa-microchip mr-1"></i>Smart:</span>
+              <span className="text-[9px] font-black text-blue-700/50 uppercase tracking-wide shrink-0"><i className="fas fa-microchip mr-1"></i></span>
               <SpecialFilterButton label={t('term_backorder')} icon="fa-radiation" isActive={filters.showBackorders} onClick={() => onFiltersChange({ ...filters, showBackorders: !filters.showBackorders })} />
               <SpecialFilterButton label="Stockout" icon="fa-radiation" isActive={filters.specialFilter === 'critical_stockout'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'critical_stockout' ? 'none' : 'critical_stockout' })} />
               <SpecialFilterButton label={t('term_stockout')} icon="fa-battery-quarter" isActive={filters.specialFilter === 'stockout'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'stockout' ? 'none' : 'stockout' })} />
@@ -194,13 +194,13 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
           </div>
 
           {/* ── ROW 3: Debt/Coverage Status ── */}
-          <div className="flex items-center gap-2 pt-1.5 border-t border-slate-100/80 flex-wrap">
-            <span className="text-[9px] font-black text-blue-700/60 uppercase tracking-wide shrink-0"><i className="fas fa-truck-loading mr-1"></i>{t('filter_coverage')}:</span>
+          <div className="flex items-center gap-1.5 pt-2 border-t border-slate-100/80 flex-wrap">
+            <span className="text-[9px] font-black text-blue-700/50 uppercase tracking-wide shrink-0 mr-1"><i className="fas fa-truck-loading mr-1"></i>{t('filter_coverage')}:</span>
             {DEBT_STATUS_OPTIONS.map(opt => {
               const isActive = (filters.debtStatus || []).includes(opt.id);
               return (
                 <button key={opt.id} onClick={() => toggleDebtStatus(opt.id)}
-                  className={`px-2 py-0.5 rounded-md text-[9px] font-black border transition-all h-6 uppercase tracking-wide ${isActive ? 'bg-blue-600 text-white border-blue-700 shadow-sm' : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600'}`}>{opt.label}</button>
+                  className={`px-2.5 py-0.5 rounded-lg text-[10px] font-black border transition-all h-7 uppercase tracking-wide ${isActive ? 'bg-blue-600 text-white border-blue-700 shadow-sm' : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600'}`}>{opt.label}</button>
               );
             })}
           </div>
@@ -246,7 +246,7 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-1 customer-scrollbar">
+          <div className="flex flex-col gap-2 max-h-[180px] overflow-y-auto pr-1 customer-scrollbar">
             {(() => {
               const uniqueSources = Array.from(new Set(data.map(i => `${i.BrandName || ''}|${i.SourceId || ''}`)))
                 .filter(key => key !== '|')
