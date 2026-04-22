@@ -324,8 +324,8 @@ function resolveDemand(item: InventoryItem, source: '3M' | '6M' | '12M', applySe
         if (avg > 0) baseDemand = avg;
         else if (item.SalesHistory && item.SalesHistory.length > 0) {
             const total = item.SalesHistory.reduce((a, b) => a + b, 0);
-            baseDemand = total / item.SalesHistory.length || 0.01;
-        } else baseDemand = 0.01;
+            baseDemand = total / item.SalesHistory.length || 0;
+        } else baseDemand = 0;
     }
 
     if (applySeasonality) {
@@ -410,6 +410,7 @@ export function computeInventory(
     const effectiveSSP = profile?.ssp ?? params.ssp;
 
     const demandMonthly = resolveDemand(item, params.demandSource, params.applySeasonality);
+    const isZeroDemand = demandMonthly <= 0;
     
     /**
      * UNIFIED SAA FORMULA (Phase 5)
@@ -436,9 +437,9 @@ export function computeInventory(
     const workingDaysInSSP = getWorkingDaysByLeadTime(effectiveSSP, now);
     const workingDaysInSP = getWorkingDaysByLeadTime(effectiveSP, now);
 
-    const safetyStock = isStop ? 0 : demandRateDaily * workingDaysInSSP;
-    const rop = isStop ? 0 : demandRateDaily * (workingDaysInLT + workingDaysInSSP);
-    const stockMax = isStop ? 0 : rop + (demandRateDaily * workingDaysInSP);
+    const safetyStock = (isStop || isZeroDemand) ? 0 : demandRateDaily * workingDaysInSSP;
+    const rop = (isStop || isZeroDemand) ? 0 : demandRateDaily * (workingDaysInLT + workingDaysInSSP);
+    const stockMax = (isStop || isZeroDemand) ? 0 : rop + (demandRateDaily * workingDaysInSP);
 
     const history = item.SalesHistory || [];
     const cv = calculateCV(history);
