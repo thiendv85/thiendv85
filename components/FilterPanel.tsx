@@ -109,10 +109,7 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
               <div className="flex bg-slate-100/60 p-1 rounded-xl h-9 items-center border border-slate-200/50 shadow-inner">
                 {['All', 'P1', 'P2', 'P3'].map(p => (
                   <button key={p} onClick={() => onFiltersChange({ ...filters, priority: p as any })} className={`w-full text-xs font-black rounded-lg transition-all h-7 uppercase ${filters.priority === p ? 'bg-white text-blue-700 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-blue-700'}`}>{p}</button>
-                ))}
-              </div>
-            </div>
-            <div className="md:col-span-2 xl:col-span-3">
+            <div className="md:col-span-2">
               <label className="block text-[10px] font-black text-blue-700/80 uppercase tracking-[0.15em] mb-1.5">{t('filter_lois')}</label>
               <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 flex-nowrap">
                 <button
