@@ -16,9 +16,8 @@ interface FilterPanelProps {
 }
 
 const SpecialFilterButton = ({ label, icon, isActive, onClick }: { label: string, icon: string, isActive: boolean, onClick: () => void }) => (
-  <button onClick={onClick} title={label} className={`flex items-center justify-center px-2 rounded-lg text-[10px] font-black transition-all shadow-sm border h-8 w-8 xl:w-auto xl:px-2.5 xl:gap-1.5 uppercase tracking-wide ${isActive ? 'bg-blue-600 text-white border-blue-700 shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600'}`}>
-    <i className={`fas ${icon} ${isActive ? 'text-white' : 'text-slate-400'}`}></i>
-    <span className="hidden xl:inline text-[9px]">{label}</span>
+  <button onClick={onClick} title={label} className={`flex items-center justify-center rounded text-[10px] transition-all shadow-sm border h-6 w-7 outline-none ${isActive ? 'bg-slate-700 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50 hover:border-slate-400'}`}>
+    <i className={`fas ${icon}`}></i>
   </button>
 );
 
@@ -102,108 +101,101 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
 
         {/* LEFT COLUMN: ALL FILTERS (9/12) */}
-        <div className="lg:col-span-9 space-y-2">
-          {/* ── ROW 1: Priority + LOIS + Source + Currency ── */}
-          <div className="flex items-end gap-2.5 flex-wrap xl:flex-nowrap">
-            {/* Priority */}
-            <div className="shrink-0 w-[150px]">
-              <label className="block text-[10px] font-black text-blue-700/70 uppercase tracking-[0.15em] mb-1">{t('filter_scope')}</label>
-              <div className="flex bg-slate-100/60 p-0.5 rounded-xl h-8 items-center border border-slate-200/50">
-                {['All', 'P1', 'P2', 'P3'].map(p => (
-                  <button key={p} onClick={() => onFiltersChange({ ...filters, priority: p as any })} className={`w-full text-[11px] font-black rounded-lg transition-all h-7 uppercase ${filters.priority === p ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-400 hover:text-blue-600'}`}>{p}</button>
-                ))}
-              </div>
+        <div className="lg:col-span-9 bg-white/60 p-2 sm:p-3 rounded-2xl border border-slate-200/60 shadow-sm">
+          
+          {/* ── LINE 1: Priority & Source ── */}
+          <div className="flex items-center justify-between pb-2.5 border-b border-slate-200/80">
+            <div className="flex items-center rounded border border-slate-300 overflow-hidden shadow-sm">
+              {['All', 'P1', 'P2', 'P3'].map(p => (
+                <button key={p} onClick={() => onFiltersChange({ ...filters, priority: p as any })} className={`px-3 h-6 text-[10px] font-bold uppercase transition-colors border-r border-slate-300 last:border-r-0 outline-none ${filters.priority === p ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}>{p}</button>
+              ))}
             </div>
-            {/* LOIS */}
-            <div className="flex-1 min-w-0">
-              <label className="block text-[10px] font-black text-blue-700/70 uppercase tracking-[0.15em] mb-1">{t('filter_lois')}</label>
-              <div className="flex items-center gap-1 overflow-x-auto no-scrollbar flex-nowrap">
-                <button onClick={toggleAllLois} className={`px-2.5 py-0.5 rounded-lg text-[10px] font-black border transition-all h-8 shrink-0 ${(filters.lois || []).length === 0 ? 'bg-blue-600 text-white border-blue-700 shadow-sm' : 'bg-white text-slate-400 border-slate-200 hover:text-blue-600'}`}>ALL</button>
-                {loisGroups.map(g => {
-                  const isActive = (filters.lois || []).includes(g);
-                  return (
-                    <button key={g} onClick={() => toggleLois(g)} title={loisProfiles?.find(p => p.id === g)?.name || ''}
-                      className={`px-2 py-0.5 rounded-lg text-[10px] font-black border transition-all h-8 shrink-0 ${isActive ? 'bg-blue-600 text-white border-blue-700 shadow-sm' : 'bg-white text-slate-500 border-slate-200 hover:text-blue-600'}`}>{g}</button>
-                  );
-                })}
-              </div>
-            </div>
-            {/* Source */}
-            <div className="relative shrink-0 w-[160px]">
-              <label className="block text-[10px] font-black text-blue-700/70 uppercase tracking-[0.15em] mb-1"><i className="fas fa-boxes-stacked mr-1 text-[8px]"></i>Source</label>
-              <select value={filters.source} onChange={e => onFiltersChange({ ...filters, source: e.target.value })} size={1} className={`w-full cursor-pointer px-2 py-0 bg-white border rounded-xl text-[10px] font-black h-8 shadow-sm transition-all uppercase tracking-tighter appearance-none ${filters.source !== 'All' ? 'border-blue-600 text-blue-800 bg-blue-50/50' : 'border-slate-200 text-slate-600 hover:border-blue-300'}`}>
-                <option value="All">Tất cả</option>
+            <div className="relative shrink-0 w-[120px]">
+              <select value={filters.source} onChange={e => onFiltersChange({ ...filters, source: e.target.value })} className={`w-full cursor-pointer pl-2 pr-6 py-0 bg-white border rounded text-[10px] font-bold h-6 shadow-sm transition-all uppercase tracking-tighter appearance-none outline-none ${filters.source !== 'All' ? 'border-blue-600 text-blue-800 bg-blue-50/50' : 'border-slate-300 text-slate-700 hover:border-slate-400'}`}>
+                <option value="All">Source</option>
                 {uniqueSources.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
               </select>
-              <i className="fas fa-chevron-down absolute right-2.5 bottom-2.5 text-[8px] text-blue-300 pointer-events-none"></i>
-            </div>
-            {/* Currency */}
-            <div className="shrink-0 w-[105px]">
-              <label className="block text-[10px] font-black text-blue-700/70 uppercase tracking-[0.15em] mb-1"><i className="fas fa-coins mr-1 text-[8px]"></i>{t('filter_currency')}</label>
-              <div className="flex bg-slate-100/60 p-0.5 rounded-xl h-8 items-center border border-slate-200/50">
-                <button onClick={() => onSettingsChange({ ...settings, costBasis: 'PP' })} className={`w-full text-[11px] font-black rounded-lg transition-all h-7 uppercase ${settings.costBasis === 'PP' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-400 hover:text-blue-600'}`}>VND</button>
-                <button onClick={() => onSettingsChange({ ...settings, costBasis: 'FOB' })} className={`w-full text-[11px] font-black rounded-lg transition-all h-7 uppercase ${settings.costBasis === 'FOB' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-400 hover:text-blue-600'}`}>EUR</button>
-              </div>
+              <i className="fas fa-chevron-down absolute right-2 bottom-[6px] text-[8px] text-slate-500 pointer-events-none"></i>
             </div>
           </div>
 
-          {/* ── ROW 2: Dropdowns + Smart Filters ── */}
-          <div className="flex items-end gap-2.5 flex-wrap xl:flex-nowrap pt-2 border-t border-slate-100/80">
-            {/* Status */}
-            <div className="relative shrink-0 w-[115px]">
-              <label className="block text-[10px] font-black text-blue-700/70 uppercase tracking-[0.15em] mb-1"><i className="fas fa-heartbeat mr-1 text-[8px]"></i>{t('filter_lifecycle')}</label>
-              <select value={filters.status} onChange={e => onFiltersChange({ ...filters, status: e.target.value as any })} className={`w-full cursor-pointer px-2 bg-white border rounded-xl text-[10px] font-black h-8 shadow-sm transition-all uppercase tracking-tighter appearance-none ${filters.status !== 'All' ? 'border-blue-600 text-blue-800 bg-blue-50/50' : 'border-slate-200 text-slate-600 hover:border-blue-300'}`}>
-                <option value="All">All</option>
-                <option value="Active">Active</option>
-                <option value="Sleeping">Sleep</option>
-                <option value="Dead Stock">Dead</option>
-              </select>
-              <i className="fas fa-chevron-down absolute right-2.5 bottom-2.5 text-[8px] text-blue-300 pointer-events-none"></i>
+          {/* ── LINE 2: LOIS & Currency ── */}
+          <div className="flex items-center justify-between py-2.5 border-b border-slate-200/80">
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-nowrap pr-2">
+              <button onClick={toggleAllLois} className={`px-2.5 h-6 rounded-full text-[10px] font-bold border outline-none transition-all shrink-0 ${(filters.lois || []).length === 0 ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white text-slate-600 border-slate-300 hover:text-blue-600 hover:border-slate-400'}`}>ALL</button>
+              {loisGroups.map(g => {
+                const isActive = (filters.lois || []).includes(g);
+                return (
+                  <button key={g} onClick={() => toggleLois(g)} title={loisProfiles?.find(p => p.id === g)?.name || ''}
+                    className={`min-w-[24px] px-1 h-6 rounded-full text-[10px] font-bold border outline-none transition-all shrink-0 flex items-center justify-center ${isActive ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white text-slate-600 border-slate-300 hover:text-blue-600 hover:border-slate-400'}`}>{g}</button>
+                );
+              })}
             </div>
-            {/* Cost */}
-            <div className="relative shrink-0 w-[115px]">
-              <label className="block text-[10px] font-black text-blue-700/70 uppercase tracking-[0.15em] mb-1"><i className="fas fa-tag mr-1 text-[8px]"></i>{t('filter_cost')}</label>
-              <select value={filters.costRange} onChange={e => onFiltersChange({ ...filters, costRange: Number(e.target.value) })} className={`w-full cursor-pointer px-2 bg-white border rounded-xl text-[10px] font-black h-8 shadow-sm transition-all uppercase tracking-tighter appearance-none ${filters.costRange > 0 ? 'border-blue-600 text-blue-800 bg-blue-50/50' : 'border-slate-200 text-slate-600 hover:border-blue-300'}`}>
-                {COST_RANGES.map((r, i) => <option key={i} value={i}>{r.label}</option>)}
-              </select>
-              <i className="fas fa-chevron-down absolute right-2.5 bottom-2.5 text-[8px] text-blue-300 pointer-events-none"></i>
+            <div className="flex items-center rounded border border-slate-300 overflow-hidden shadow-sm shrink-0">
+              <button onClick={() => onSettingsChange({ ...settings, costBasis: 'PP' })} className={`px-2 h-6 text-[9px] font-bold uppercase transition-colors outline-none border-r border-slate-300 ${settings.costBasis === 'PP' ? 'bg-blue-100/50 text-blue-800' : 'bg-white text-slate-600 hover:bg-slate-50'}`}>VND</button>
+              <button onClick={() => onSettingsChange({ ...settings, costBasis: 'FOB' })} className={`px-2 h-6 text-[9px] font-bold uppercase transition-colors outline-none ${settings.costBasis === 'FOB' ? 'bg-blue-100/50 text-blue-800' : 'bg-white text-slate-600 hover:bg-slate-50'}`}>EUR</button>
             </div>
-            {/* Trend */}
-            <div className="relative shrink-0 w-[115px]">
-              <label className="block text-[10px] font-black text-blue-700/70 uppercase tracking-[0.15em] mb-1"><i className="fas fa-chart-line mr-1 text-[8px]"></i>{t('filter_trend')}</label>
-              <select value={filters.trend} onChange={e => onFiltersChange({ ...filters, trend: e.target.value })} className={`w-full cursor-pointer px-2 bg-white border rounded-xl text-[10px] font-black h-8 shadow-sm transition-all uppercase tracking-tighter appearance-none ${filters.trend !== 'All' ? 'border-blue-600 text-blue-800 bg-blue-50/50' : 'border-slate-200 text-slate-600 hover:border-blue-300'}`}>
-                <option value="All">All Trends</option>
-                {trendFlags.map(f => <option key={f} value={f}>{f}</option>)}
-              </select>
-              <i className="fas fa-chevron-down absolute right-2.5 bottom-2.5 text-[8px] text-blue-300 pointer-events-none"></i>
+          </div>
+
+          {/* ── LINE 3: Dropdowns & Icons ── */}
+          <div className="flex items-center justify-between py-2.5 border-b border-slate-200/80 flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              {/* Status */}
+              <div className="relative shrink-0 w-[90px]">
+                <select value={filters.status} onChange={e => onFiltersChange({ ...filters, status: e.target.value as any })} className={`w-full cursor-pointer pl-2 pr-6 bg-white border rounded text-[10px] font-bold h-6 shadow-sm transition-all uppercase appearance-none outline-none ${filters.status !== 'All' ? 'border-slate-600 text-slate-800 bg-slate-100' : 'border-slate-300 text-slate-700 hover:border-slate-400'}`}>
+                  <option value="All">Status</option>
+                  <option value="Active">Active</option>
+                  <option value="Sleeping">Sleep</option>
+                  <option value="Dead Stock">Dead</option>
+                </select>
+                <i className="fas fa-chevron-down absolute right-2 bottom-[6px] text-[8px] text-slate-500 pointer-events-none"></i>
+              </div>
+              {/* Cost */}
+              <div className="relative shrink-0 w-[105px]">
+                <select value={filters.costRange} onChange={e => onFiltersChange({ ...filters, costRange: Number(e.target.value) })} className={`w-full cursor-pointer pl-2 pr-6 bg-white border rounded text-[10px] font-bold h-6 shadow-sm transition-all uppercase appearance-none outline-none ${filters.costRange > 0 ? 'border-slate-600 text-slate-800 bg-slate-100' : 'border-slate-300 text-slate-700 hover:border-slate-400'}`}>
+                  {COST_RANGES.map((r, i) => <option key={i} value={i}>{r.label === 'TẤT CẢ (PP)' ? 'Cost Range' : r.label}</option>)}
+                </select>
+                <i className="fas fa-chevron-down absolute right-2 bottom-[6px] text-[8px] text-slate-500 pointer-events-none"></i>
+              </div>
+              {/* Trend */}
+              <div className="relative shrink-0 w-[90px]">
+                <select value={filters.trend} onChange={e => onFiltersChange({ ...filters, trend: e.target.value })} className={`w-full cursor-pointer pl-2 pr-6 bg-white border rounded text-[10px] font-bold h-6 shadow-sm transition-all uppercase appearance-none outline-none ${filters.trend !== 'All' ? 'border-slate-600 text-slate-800 bg-slate-100' : 'border-slate-300 text-slate-700 hover:border-slate-400'}`}>
+                  <option value="All">Trend</option>
+                  {trendFlags.map(f => <option key={f} value={f}>{f}</option>)}
+                </select>
+                <i className="fas fa-chevron-down absolute right-2 bottom-[6px] text-[8px] text-slate-500 pointer-events-none"></i>
+              </div>
             </div>
-            {/* Divider */}
-            <div className="hidden xl:block w-px h-8 bg-slate-200/60 shrink-0"></div>
-            {/* Smart Filters - icon buttons, text on xl */}
-            <div className="flex items-center gap-1.5 flex-wrap xl:flex-nowrap flex-1">
-              <span className="text-[9px] font-black text-blue-700/50 uppercase tracking-wide shrink-0"><i className="fas fa-microchip mr-1"></i></span>
+            
+            <div className="flex items-center gap-1.5 flex-wrap">
               <SpecialFilterButton label={t('term_backorder')} icon="fa-radiation" isActive={filters.showBackorders} onClick={() => onFiltersChange({ ...filters, showBackorders: !filters.showBackorders })} />
-              <SpecialFilterButton label="Stockout" icon="fa-radiation" isActive={filters.specialFilter === 'critical_stockout'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'critical_stockout' ? 'none' : 'critical_stockout' })} />
+              <SpecialFilterButton label="Stockout" icon="fa-battery-empty" isActive={filters.specialFilter === 'critical_stockout'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'critical_stockout' ? 'none' : 'critical_stockout' })} />
               <SpecialFilterButton label={t('term_stockout')} icon="fa-battery-quarter" isActive={filters.specialFilter === 'stockout'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'stockout' ? 'none' : 'stockout' })} />
               <SpecialFilterButton label={t('term_excess')} icon="fa-arrow-down-wide-short" isActive={filters.specialFilter === 'excess'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'excess' ? 'none' : 'excess' })} />
               <SpecialFilterButton label={t('term_has_po')} icon="fa-ship" isActive={filters.specialFilter === 'has_po'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'has_po' ? 'none' : 'has_po' })} />
               <SpecialFilterButton label={t('term_supersession')} icon="fa-exchange-alt" isActive={filters.specialFilter === 'has_supersession'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'has_supersession' ? 'none' : 'has_supersession' })} />
-              <SpecialFilterButton label="Mùa vụ" icon="fa-calendar-star" isActive={filters.specialFilter === 'has_seasonality'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'has_seasonality' ? 'none' : 'has_seasonality' })} />
-              <SpecialFilterButton label="Cảnh báo" icon="fa-triangle-exclamation" isActive={filters.specialFilter === 'has_warning'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'has_warning' ? 'none' : 'has_warning' })} />
+              <SpecialFilterButton label="Mùa vụ" icon="fa-calendar-alt" isActive={filters.specialFilter === 'has_seasonality'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'has_seasonality' ? 'none' : 'has_seasonality' })} />
+              <SpecialFilterButton label="Cảnh báo" icon="fa-exclamation-triangle" isActive={filters.specialFilter === 'has_warning'} onClick={() => onFiltersChange({ ...filters, specialFilter: filters.specialFilter === 'has_warning' ? 'none' : 'has_warning' })} />
             </div>
           </div>
 
-          {/* ── ROW 3: Debt/Coverage Status ── */}
-          <div className="flex items-center gap-1.5 pt-2 border-t border-slate-100/80 flex-wrap">
-            <span className="text-[9px] font-black text-blue-700/50 uppercase tracking-wide shrink-0 mr-1"><i className="fas fa-truck-loading mr-1"></i>{t('filter_coverage')}:</span>
-            {DEBT_STATUS_OPTIONS.map(opt => {
-              const isActive = (filters.debtStatus || []).includes(opt.id);
-              return (
-                <button key={opt.id} onClick={() => toggleDebtStatus(opt.id)}
-                  className={`px-2.5 py-0.5 rounded-lg text-[10px] font-black border transition-all h-7 uppercase tracking-wide ${isActive ? 'bg-blue-600 text-white border-blue-700 shadow-sm' : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600'}`}>{opt.label}</button>
-              );
-            })}
+          {/* ── LINE 4: Coverage ── */}
+          <div className="flex items-center gap-2.5 pt-2.5 flex-wrap">
+            <span className="text-[10px] font-bold text-slate-700 shrink-0">Coverage:</span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {DEBT_STATUS_OPTIONS.map(opt => {
+                const isActive = (filters.debtStatus || []).includes(opt.id);
+                return (
+                  <button key={opt.id} onClick={() => toggleDebtStatus(opt.id)}
+                    className={`px-3 h-5 rounded-full text-[9px] font-bold border outline-none transition-all shrink-0 flex items-center justify-center tracking-wide ${isActive ? 'border-slate-400 shadow-sm text-slate-800 box-shadow-inner' : 'bg-white text-slate-500 border-slate-300 hover:border-slate-400 hover:text-slate-700'}`}>
+                    {isActive ? <i className="fas fa-check mr-1 text-[8px] text-slate-500"></i> : null}
+                    {opt.label.replace('Trạng thái Cung ứng (Debt): ','').replace('BÌNH THƯỜNG','Normal').replace('TỒN ĐỦ TRẢ','Sufficient').replace('TRẢ TRONG THÁNG','Repay').replace('PO ĐỦ TRẢ','PO Cover').replace('THIẾU (CÓ PO)','Short+PO').replace('THIẾU (NO PO)','Short-NoPO')}
+                  </button>
+                );
+              })}
+            </div>
           </div>
+
         </div>
 
         {/* RIGHT COLUMN: PLANNING PARAMS (3/12) */}
