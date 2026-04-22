@@ -24,7 +24,16 @@ const SpecialFilterButton = ({ label, icon, isActive, onClick }: { label: string
 
 export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filters, onFiltersChange, sourceName, loisProfiles }: FilterPanelProps) => {
   const { t } = useLanguage();
-  const loisGroups = useMemo(() => Array.from(new Set(data.map(item => item.LOISGroup).filter(Boolean))).sort(), [data]);
+  const loisGroups = useMemo(() => {
+    const raw = Array.from(new Set(data.map(item => item.LOISGroup).filter(Boolean)));
+    const priority: Record<string, number> = { 'L': 1, 'N': 2, 'C': 3 };
+    return raw.sort((a, b) => {
+      const pA = priority[a[0].toUpperCase()] || 99;
+      const pB = priority[b[0].toUpperCase()] || 99;
+      if (pA !== pB) return pA - pB;
+      return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }, [data]);
   const trendFlags = useMemo(() => Array.from(new Set(data.map(item => item.TrendFlag).filter(Boolean))).sort(), [data]);
   const uniqueSources = useMemo(() => {
     return Array.from(new Set(data.map(i => `${i.BrandName || ''}|${i.SourceId || ''}`)))
@@ -105,10 +114,10 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
             </div>
             <div className="md:col-span-2">
               <label className="block text-[10px] font-black text-blue-700/80 uppercase tracking-[0.15em] mb-1.5">{t('filter_lois')}</label>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 flex-nowrap">
                 <button
                   onClick={toggleAllLois}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-black border transition-all uppercase tracking-tighter h-8
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-black border transition-all uppercase tracking-tighter h-8 shrink-0
                     ${(filters.lois || []).length === 0
                       ? 'bg-blue-600 text-white border-blue-700 shadow-md'
                       : 'bg-white text-slate-400 border-slate-200 hover:border-blue-300 hover:text-blue-700'
@@ -123,7 +132,7 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
                       key={g}
                       onClick={() => toggleLois(g)}
                       title={loisProfiles?.find(p => p.id === g)?.name || ''}
-                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black border transition-all uppercase tracking-tighter h-8
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black border transition-all uppercase tracking-tighter h-8 shrink-0
                         ${isActive
                           ? 'bg-blue-600 text-white border-blue-700 shadow-md'
                           : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:text-blue-700'
