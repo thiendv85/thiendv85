@@ -12,6 +12,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { InventoryItem } from '../types/inventory';
 import { computeInventoryBatch, makeComputeParams } from '../utils/inventoryEngine';
+import InventoryWorker from '../utils/inventoryWorker?worker';
 
 interface WorkerInput {
     items: InventoryItem[];
@@ -33,10 +34,7 @@ export function useInventoryWorker(
     // Initialize worker once
     useEffect(() => {
         try {
-            workerRef.current = new Worker(
-                new URL('../utils/inventoryWorker.ts', import.meta.url),
-                { type: 'module' }
-            );
+            workerRef.current = new InventoryWorker();
 
             workerRef.current.onmessage = (e: MessageEvent) => {
                 const { type, payload } = e.data;
