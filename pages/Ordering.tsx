@@ -305,7 +305,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
             return finalizedItem;
         });
         return { enrichedList: list, enrichedMap: itemMap };
-    }, [baseEnrichedList, computeParams, orderQuantities]);
+    }, [activeEnrichedData, computeParams, orderQuantities]);
 
     const filteredData = useMemo(() => {
         let list = enrichedList.filter(i => {
