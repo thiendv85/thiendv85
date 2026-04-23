@@ -299,79 +299,113 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
         return computeInventoryBatch(data, params, draftData?.quantities);
     }, [data, settings, draftData]);
 
-    const { matrixData, grandStats, deltaStats, criticalStockouts } = useMemo(() => {
+    const { matrixData, grandStats, deltaStats, criticalStockouts, printData } = useMemo(() => {
+        // SINGLE-PASS: Compute current matrix, simulation matrix, AND active-view matrix simultaneously.
+        // Previously this was 1 loop here + 2 more loops in handlePrint = 3x 50K iterations.
+        // Now: 1 loop total, handlePrint reuses printData.
         const matrix: Record<string, any> = {};
+        const curMatrix: Record<string, any> = {};
+        const simMatrix: Record<string, any> = {};
+        const emptyBucket = () => ({ items: 0, turnover: 0, noStock: 0, short: 0, stockVal: 0, poVal: 0, excessItems: 0, excessVal: 0, boItems: 0, boValue: 0, bmwCount: 0, trendSum: 0, trendCount: 0 });
+
         let grandTurnover = 0, grandStock = 0, grandPOVal = 0, grandExcess = 0;
         let grandNoStock = 0, grandShort = 0, grandExcessItems = 0;
         let grandBOItems = 0, grandBOValue = 0;
         let deltaStockoutResolved = 0, deltaExcessAdded = 0, deltaStockValAdded = 0;
         let criticalStockoutsCount = 0;
 
+        // Simulation grand stats
+        let sGT = 0, sGS = 0, sGPO = 0, sGEx = 0, sGNS = 0, sGSh = 0, sGEI = 0, sGBI = 0, sGBV = 0;
+        // Current grand stats
+        let cGT = 0, cGS = 0, cGPO = 0, cGEx = 0, cGNS = 0, cGSh = 0, cGEI = 0, cGBI = 0, cGBV = 0;
+        let dSOR = 0, dEA = 0, dSA = 0;
+
         enrichedData.forEach(item => {
             const comp = item.computed!;
             const sim = comp.simulated!;
+            const sub = getLoisSubgroup(item);
+            const isBmw = (item.TypeCar || '').toUpperCase().includes('BMW');
+
+            // Shared computed values
+            const sales12M = item.SalesHistory.reduce((a, b) => a + b, 0);
+            const last6 = item.SalesHistory.slice(-6).reduce((a, b) => a + b, 0);
+            const first6 = item.SalesHistory.slice(0, 6).reduce((a, b) => a + b, 0);
+            const itemTrend = first6 > 0 ? ((last6 - first6) / first6) * 100 : 0;
+            const turnVal = sales12M * comp.unitCost;
+
+            // ── Active-view matrix (used by on-screen table) ──
             const activeStockVal = (showSimulation ? sim.stockValue : comp.stockValue) || 0;
             const activeExcessVal = (showSimulation ? sim.excessValue : comp.excessValue) || 0;
             const activeIsShort = showSimulation ? sim.stockoutRiskFlag : comp.stockoutRiskFlag;
             const activeIsNoStock = (showSimulation ? (sim.totalStock <= 0) : (comp.available <= 0)) && item.BaseForecast > 0.02;
             const activeExcessQty = (showSimulation ? sim.excessQty : comp.excessQty) || 0;
-
-            const sales12M = item.SalesHistory.reduce((a, b) => a + b, 0);
-
-            // Calculate Item Level Trend
-            const last6 = item.SalesHistory.slice(-6).reduce((a, b) => a + b, 0);
-            const first6 = item.SalesHistory.slice(0, 6).reduce((a, b) => a + b, 0);
-            const itemTrend = first6 > 0 ? ((last6 - first6) / first6) * 100 : 0;
-
-            const turnVal = sales12M * comp.unitCost;
             const poVal = showSimulation ? (sim.totalIncomingValue || 0) : ((item.TotalPO || 0) * comp.unitCost);
-            const sub = getLoisSubgroup(item);
-
-            // O3 Refinement: Matrix thống kê nợ thực tế hiện tại (Physical Debt). 
-            // Dùng (Backorder > available) để phản ánh đúng thực tế hiện trường, không trừ PO đang về.
-            // Khi Simulation active, dùng boQty từ sim (đã trừ Draft + PO)
             const isBO = showSimulation ? (sim.boQty > 0) : ((item.Backorder || 0) > (comp.available || 0));
             const boVal = showSimulation ? (sim.boValue || 0) : (isBO ? Math.max(0, (item.Backorder || 0) - (comp.available || 0)) * comp.unitCost : 0);
-            const isBmw = (item.TypeCar || '').toUpperCase().includes('BMW');
 
             grandTurnover += turnVal || 0;
             grandStock += activeStockVal || 0;
             grandPOVal += poVal || 0;
             grandExcess += activeExcessVal || 0;
-
             if (isBO) { grandBOItems++; grandBOValue += boVal; }
 
-            // Banner Logic: L1-L3 SKUs with stockout risk and active forecast
             if (['1', '2', '3'].includes(item.LOISGroup) && (comp.available <= 0 || comp.stockoutRiskFlag) && item.BaseForecast > 0.02) {
                 criticalStockoutsCount++;
             }
-
             if (showSimulation) {
                 if (comp.stockoutRiskFlag && !sim.stockoutRiskFlag) deltaStockoutResolved++;
                 if (sim.excessValue > comp.excessValue) deltaExcessAdded += ((sim.excessValue - comp.excessValue) || 0);
                 deltaStockValAdded += ((sim.stockValue - comp.stockValue) || 0);
             }
 
-            if (!matrix[sub]) matrix[sub] = { items: 0, turnover: 0, noStock: 0, short: 0, stockVal: 0, poVal: 0, excessItems: 0, excessVal: 0, boItems: 0, boValue: 0, bmwCount: 0, trendSum: 0, trendCount: 0 };
+            if (!matrix[sub]) matrix[sub] = emptyBucket();
             matrix[sub].items++;
             matrix[sub].turnover += turnVal || 0;
-
             if (activeIsNoStock) { matrix[sub].noStock++; grandNoStock++; }
             if (activeIsShort) { matrix[sub].short++; grandShort++; }
-
             matrix[sub].stockVal += activeStockVal || 0;
             matrix[sub].poVal += poVal || 0;
-
             if (activeExcessQty > 0) { matrix[sub].excessItems++; grandExcessItems++; }
-
             matrix[sub].excessVal += activeExcessVal || 0;
-
             if (isBO) { matrix[sub].boItems++; matrix[sub].boValue += boVal; }
             if (isBmw) matrix[sub].bmwCount++;
-
             matrix[sub].trendSum += itemTrend;
             matrix[sub].trendCount++;
+
+            // ── CURRENT matrix (for print page 1) ──
+            const curPO = (item.TotalPO || 0) * comp.unitCost;
+            const curIsBO = (item.Backorder || 0) > (comp.available || 0);
+            const curBoVal = curIsBO ? Math.max(0, (item.Backorder || 0) - (comp.available || 0)) * comp.unitCost : 0;
+
+            if (!curMatrix[sub]) curMatrix[sub] = emptyBucket();
+            curMatrix[sub].items++; curMatrix[sub].turnover += turnVal; curMatrix[sub].stockVal += comp.stockValue || 0;
+            curMatrix[sub].poVal += curPO; curMatrix[sub].excessVal += comp.excessValue || 0; curMatrix[sub].trendSum += itemTrend; curMatrix[sub].trendCount++;
+            if (comp.available <= 0 && item.BaseForecast > 0.02) { curMatrix[sub].noStock++; cGNS++; }
+            if (comp.stockoutRiskFlag) { curMatrix[sub].short++; cGSh++; }
+            if ((comp.excessQty || 0) > 0) { curMatrix[sub].excessItems++; cGEI++; }
+            if (curIsBO) { curMatrix[sub].boItems++; curMatrix[sub].boValue += curBoVal; cGBI++; cGBV += curBoVal; }
+            if (isBmw) curMatrix[sub].bmwCount++;
+            cGT += turnVal; cGS += comp.stockValue || 0; cGPO += curPO; cGEx += comp.excessValue || 0;
+
+            // ── SIMULATION matrix (for print page 2) ──
+            const simPO = sim.totalIncomingValue || 0;
+            const simIsBO = sim.boQty > 0;
+            const simBoVal = sim.boValue || 0;
+
+            if (!simMatrix[sub]) simMatrix[sub] = emptyBucket();
+            simMatrix[sub].items++; simMatrix[sub].turnover += turnVal; simMatrix[sub].stockVal += sim.stockValue || 0;
+            simMatrix[sub].poVal += simPO; simMatrix[sub].excessVal += sim.excessValue || 0; simMatrix[sub].trendSum += itemTrend; simMatrix[sub].trendCount++;
+            if (sim.totalStock <= 0 && item.BaseForecast > 0.02) { simMatrix[sub].noStock++; sGNS++; }
+            if (sim.stockoutRiskFlag) { simMatrix[sub].short++; sGSh++; }
+            if ((sim.excessQty || 0) > 0) { simMatrix[sub].excessItems++; sGEI++; }
+            if (simIsBO) { simMatrix[sub].boItems++; simMatrix[sub].boValue += simBoVal; sGBI++; sGBV += simBoVal; }
+            if (isBmw) simMatrix[sub].bmwCount++;
+            if (comp.stockoutRiskFlag && !sim.stockoutRiskFlag) dSOR++;
+            if ((sim.excessValue || 0) > (comp.excessValue || 0)) dEA += ((sim.excessValue || 0) - (comp.excessValue || 0));
+            dSA += ((sim.stockValue || 0) - (comp.stockValue || 0));
+            sGT += turnVal; sGS += sim.stockValue || 0; sGPO += simPO; sGEx += sim.excessValue || 0;
         });
+
         return {
             matrixData: matrix,
             grandStats: {
@@ -379,7 +413,15 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
                 grandNoStock, grandShort, grandExcessItems, grandBOItems, grandBOValue
             },
             deltaStats: { deltaStockoutResolved, deltaExcessAdded, deltaStockValAdded },
-            criticalStockouts: criticalStockoutsCount
+            criticalStockouts: criticalStockoutsCount,
+            // Pre-computed print data — eliminates 2 extra 50K loops in handlePrint
+            printData: {
+                curMatrix,
+                curGS: { grandTurnover: cGT, grandStock: cGS, grandPOVal: cGPO, grandExcess: cGEx, totalSKUs: data.length, grandNoStock: cGNS, grandShort: cGSh, grandExcessItems: cGEI, grandBOItems: cGBI, grandBOValue: cGBV },
+                simMatrix,
+                simGS: { grandTurnover: sGT, grandStock: sGS, grandPOVal: sGPO, grandExcess: sGEx, totalSKUs: data.length, grandNoStock: sGNS, grandShort: sGSh, grandExcessItems: sGEI, grandBOItems: sGBI, grandBOValue: sGBV },
+                deltaStockoutResolved: dSOR, deltaExcessAdded: dEA, deltaStockValAdded: dSA
+            }
         };
     }, [enrichedData, showSimulation]);
 
@@ -544,60 +586,8 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
             </tr>`;
         };
 
-        // ---- Compute CURRENT matrix (real stock) ----
-        const curMatrix: Record<string, any> = {};
-        let cGT = 0, cGS = 0, cGPO = 0, cGEx = 0, cGNS = 0, cGSh = 0, cGEI = 0, cGBI = 0, cGBV = 0;
-        enrichedData.forEach(item => {
-            const comp = item.computed!; const sub = getLoisSubgroup(item);
-            const turn = item.SalesHistory.reduce((a: number, b: number) => a + b, 0) * comp.unitCost;
-            const po = (item.TotalPO || 0) * comp.unitCost;
-            const l6 = item.SalesHistory.slice(-6).reduce((a: number, b: number) => a + b, 0);
-            const f6 = item.SalesHistory.slice(0, 6).reduce((a: number, b: number) => a + b, 0);
-            const tr = f6 > 0 ? ((l6 - f6) / f6) * 100 : 0;
-            const isBO = (item.Backorder || 0) > (comp.available || 0);
-            const boVal = isBO ? Math.max(0, (item.Backorder || 0) - (comp.available || 0)) * comp.unitCost : 0;
-            const isBmw = (item.TypeCar || '').toUpperCase().includes('BMW');
-
-            if (!curMatrix[sub]) curMatrix[sub] = { items: 0, turnover: 0, noStock: 0, short: 0, stockVal: 0, poVal: 0, excessItems: 0, excessVal: 0, boItems: 0, boValue: 0, bmwCount: 0, trendSum: 0, trendCount: 0 };
-            curMatrix[sub].items++; curMatrix[sub].turnover += turn; curMatrix[sub].stockVal += comp.stockValue || 0;
-            curMatrix[sub].poVal += po; curMatrix[sub].excessVal += comp.excessValue || 0; curMatrix[sub].trendSum += tr; curMatrix[sub].trendCount++;
-            if (comp.available <= 0 && item.BaseForecast > 0.02) { curMatrix[sub].noStock++; cGNS++; }
-            if (comp.stockoutRiskFlag) { curMatrix[sub].short++; cGSh++; }
-            if ((comp.excessQty || 0) > 0) { curMatrix[sub].excessItems++; cGEI++; }
-            if (isBO) { curMatrix[sub].boItems++; curMatrix[sub].boValue += boVal; cGBI++; cGBV += boVal; }
-            if (isBmw) curMatrix[sub].bmwCount++;
-            cGT += turn; cGS += comp.stockValue || 0; cGPO += po; cGEx += comp.excessValue || 0;
-        });
-        const curGS2 = { grandTurnover: cGT, grandStock: cGS, grandPOVal: cGPO, grandExcess: cGEx, totalSKUs: data.length, grandNoStock: cGNS, grandShort: cGSh, grandExcessItems: cGEI, grandBOItems: cGBI, grandBOValue: cGBV };
-
-        // ---- Compute SIMULATION matrix (simulated stock = current + PO + drafts) ----
-        const simMatrix: Record<string, any> = {};
-        let sGT = 0, sGS = 0, sGPO = 0, sGEx = 0, sGNS = 0, sGSh = 0, sGEI = 0, sGBI = 0, sGBV = 0, dSOR = 0, dEA = 0, dSA = 0;
-        enrichedData.forEach(item => {
-            const comp = item.computed!; const sim = comp.simulated!; const sub = getLoisSubgroup(item);
-            const turn = item.SalesHistory.reduce((a: number, b: number) => a + b, 0) * comp.unitCost;
-            const po = sim.totalIncomingValue || 0;
-            const l6 = item.SalesHistory.slice(-6).reduce((a: number, b: number) => a + b, 0);
-            const f6 = item.SalesHistory.slice(0, 6).reduce((a: number, b: number) => a + b, 0);
-            const tr = f6 > 0 ? ((l6 - f6) / f6) * 100 : 0;
-            const isBO = sim.boQty > 0;
-            const boVal = sim.boValue || 0;
-            const isBmw = (item.TypeCar || '').toUpperCase().includes('BMW');
-
-            if (!simMatrix[sub]) simMatrix[sub] = { items: 0, turnover: 0, noStock: 0, short: 0, stockVal: 0, poVal: 0, excessItems: 0, excessVal: 0, boItems: 0, boValue: 0, bmwCount: 0, trendSum: 0, trendCount: 0 };
-            simMatrix[sub].items++; simMatrix[sub].turnover += turn; simMatrix[sub].stockVal += sim.stockValue || 0;
-            simMatrix[sub].poVal += po; simMatrix[sub].excessVal += sim.excessValue || 0; simMatrix[sub].trendSum += tr; simMatrix[sub].trendCount++;
-            if (sim.totalStock <= 0 && item.BaseForecast > 0.02) { simMatrix[sub].noStock++; sGNS++; }
-            if (sim.stockoutRiskFlag) { simMatrix[sub].short++; sGSh++; }
-            if ((sim.excessQty || 0) > 0) { simMatrix[sub].excessItems++; sGEI++; }
-            if (isBO) { simMatrix[sub].boItems++; simMatrix[sub].boValue += boVal; sGBI++; sGBV += boVal; }
-            if (isBmw) simMatrix[sub].bmwCount++;
-            if (comp.stockoutRiskFlag && !sim.stockoutRiskFlag) dSOR++;
-            if ((sim.excessValue || 0) > (comp.excessValue || 0)) dEA += ((sim.excessValue || 0) - (comp.excessValue || 0));
-            dSA += ((sim.stockValue || 0) - (comp.stockValue || 0));
-            sGT += turn; sGS += sim.stockValue || 0; sGPO += po; sGEx += sim.excessValue || 0;
-        });
-        const simGS2 = { grandTurnover: sGT, grandStock: sGS, grandPOVal: sGPO, grandExcess: sGEx, totalSKUs: data.length, grandNoStock: sGNS, grandShort: sGSh, grandExcessItems: sGEI, grandBOItems: sGBI, grandBOValue: sGBV };
+        // ── Use pre-computed matrices from useMemo (eliminates 2 × 50K forEach loops) ──
+        const { curMatrix, curGS: curGS2, simMatrix, simGS: simGS2 } = printData;
 
         const tableHTML = (isSimulation: boolean) => {
             const mx = isSimulation ? simMatrix : curMatrix;

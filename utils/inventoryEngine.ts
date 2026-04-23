@@ -394,6 +394,50 @@ function calculateLinReg(history: number[]): { slope: number; forecast: number }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// WORKING DAYS CACHE — eliminates millions of Date object allocations
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Pre-computes working days for calendar day lengths 0..maxDays from a given start date.
+ * Called ONCE per batch, then provides O(1) lookups instead of O(calendarDays) per SKU.
+ * With 50K SKUs × 3 lookups (LT, SSP, SP) × ~90 Date objects each, this eliminates
+ * ~13.5 million Date allocations per render cycle.
+ */
+export function buildWorkingDaysCache(startDate: Date, maxDays = 180): Map<number, number> {
+    const cache = new Map<number, number>();
+    cache.set(0, 0);
+    let runningWorkingDays = 0;
+
+    for (let i = 0; i < maxDays; i++) {
+        const d = new Date(startDate.getTime() + (i * MS_PER_DAY));
+        const month = d.getMonth();
+        const year = d.getFullYear();
+        const mDay = d.getDate();
+        const dayOfWeek = d.getDay();
+
+        let isWorking = true;
+        // 1. Exclude Sundays
+        if (dayOfWeek === 0) isWorking = false;
+        // 2. Exclude public holidays
+        else if (PUBLIC_HOLIDAYS.some(h => h.m === month && h.d === mDay)) isWorking = false;
+        // 3. Exclude Tet
+        else {
+            const tet = TET_DATES[year];
+            if (tet) {
+                const dateTs = d.getTime();
+                const tetStartTs = new Date(year, tet.month, tet.day).getTime();
+                const tetEndTs = tetStartTs + (tet.length * MS_PER_DAY);
+                if (dateTs >= tetStartTs && dateTs < tetEndTs) isWorking = false;
+            }
+        }
+
+        if (isWorking) runningWorkingDays++;
+        cache.set(i + 1, runningWorkingDays);
+    }
+    return cache;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ENGINE
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -401,7 +445,8 @@ export function computeInventory(
     item: InventoryItem,
     params: ComputeParams,
     draftData: { air: number; sea: number } = { air: 0, sea: 0 },
-    itemProfileResult?: { profile?: SourceProfile; isFallback?: boolean; fallbackReason?: string }
+    itemProfileResult?: { profile?: SourceProfile; isFallback?: boolean; fallbackReason?: string },
+    wdCache?: Map<number, number>
 ): ComputedFields {
     const draftQty = draftData.air + draftData.sea;
     const profile = itemProfileResult?.profile;
@@ -433,9 +478,10 @@ export function computeInventory(
     const { isStop, alertType } = checkIsStop(item, params.loisProfiles);
 
     // Synchronize Lead Time (Calendar) with Sales Schedule (Working Days)
-    const workingDaysInLT = getWorkingDaysByLeadTime(effectiveLT, now);
-    const workingDaysInSSP = getWorkingDaysByLeadTime(effectiveSSP, now);
-    const workingDaysInSP = getWorkingDaysByLeadTime(effectiveSP, now);
+    // Use pre-built cache for O(1) lookup when available (batch path), fall back to per-call computation
+    const workingDaysInLT = wdCache ? (wdCache.get(effectiveLT) ?? getWorkingDaysByLeadTime(effectiveLT, now)) : getWorkingDaysByLeadTime(effectiveLT, now);
+    const workingDaysInSSP = wdCache ? (wdCache.get(effectiveSSP) ?? getWorkingDaysByLeadTime(effectiveSSP, now)) : getWorkingDaysByLeadTime(effectiveSSP, now);
+    const workingDaysInSP = wdCache ? (wdCache.get(effectiveSP) ?? getWorkingDaysByLeadTime(effectiveSP, now)) : getWorkingDaysByLeadTime(effectiveSP, now);
 
     const safetyStock = (isStop || isZeroDemand) ? 0 : demandRateDaily * workingDaysInSSP;
     const rop = (isStop || isZeroDemand) ? 0 : demandRateDaily * (workingDaysInLT + workingDaysInSSP);
@@ -632,7 +678,9 @@ export function resolveItemProfile(item: InventoryItem, sourceProfiles?: SourceP
 }
 
 export function computeInventoryBatch(items: InventoryItem[], params: ComputeParams, draftData?: any): InventoryItem[] {
-    return items.map(item => ({ ...item, computed: computeInventory(item, params, draftData?.[item.ItemCode], resolveItemProfile(item, params.sourceProfiles)) }));
+    // Build working days cache ONCE for entire batch — eliminates ~13.5M Date allocations
+    const wdCache = buildWorkingDaysCache(new Date());
+    return items.map(item => ({ ...item, computed: computeInventory(item, params, draftData?.[item.ItemCode], resolveItemProfile(item, params.sourceProfiles), wdCache) }));
 }
 
 export function makeComputeParams(settings: any): ComputeParams {
