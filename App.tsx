@@ -149,6 +149,11 @@ const AppContent = () => {
         seasonalityTuning: appSettings.seasonalityTuning
     }), [appSettings]);
 
+    const [sharedDraft, setSharedDraft] = useState<{
+        quantities: Record<string, { air: number, sea: number }>;
+        notes: Record<string, string>;
+    }>({ quantities: {}, notes: {} });
+
     const { enrichedData, isProcessing: isEngineProcessing } = useInventoryWorker(data, workerSettings, sharedDraft.quantities);
 
     // Rule: async-parallel — Parallelize independent cloud fetches
@@ -201,11 +206,6 @@ const AppContent = () => {
     const [editingSsMapping, setEditingSsMapping] = useState<SupersessionMapping | null>(null);
 
     const { t, language, setLanguage } = useLanguage();
-
-    const [sharedDraft, setSharedDraft] = useState<{
-        quantities: Record<string, { air: number, sea: number }>;
-        notes: Record<string, string>;
-    }>({ quantities: {}, notes: {} });
 
     const hasRepairedRef = useRef(false);
     useEffect(() => {
