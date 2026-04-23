@@ -196,8 +196,10 @@ const LoisRow = React.memo(({
     );
 });
 
-export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onSaveState, draftData, graph, appSettings, supersessionProps }: {
+export const Dashboard = ({ data, enrichedData, isEngineProcessing, onItemSelect, initialParams, initialState, onSaveState, draftData, graph, appSettings, supersessionProps }: {
     data: InventoryItem[],
+    enrichedData?: InventoryItem[],
+    isEngineProcessing?: boolean,
     onItemSelect: (item: InventoryItem) => void,
     initialParams?: any,
     initialState?: any,
@@ -215,6 +217,8 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
 }) => {
     const { t } = useLanguage();
     const { isMobile } = useDevice();
+    const fallbackData = data; // Unused if enrichedData is passed correctly
+    const activeEnrichedData = enrichedData || fallbackData;
 
     const loisProfiles = appSettings?.loisProfiles || DEFAULT_LOIS_PROFILES;
 
@@ -291,13 +295,8 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
     // Same as formatCurrency but without the unit suffix — used in table cells that have units in headers
     const formatNum = (val: number) => formatCurrency(val).replace(/ tr$/, '');
 
-
-    const enrichedData = useMemo(() => {
-        // ✅ Dùng engine tập trung — fix Bug 1 (excessQty ko trừ BO),
-        // Bug 2 (demandSource bị bỏ qua), Bug 3 (priority không nhất quán)
-        const params = makeComputeParams(settings);
-        return computeInventoryBatch(data, params, draftData?.quantities);
-    }, [data, settings, draftData]);
+    // ═══ O10/O12 FIX: EnrichedData now computed centrally in App.tsx ═══
+    // Dashboard just uses the activeEnrichedData directly.
 
     const { matrixData, grandStats, deltaStats, criticalStockouts, printData } = useMemo(() => {
         // SINGLE-PASS: Compute current matrix, simulation matrix, AND active-view matrix simultaneously.
@@ -320,7 +319,7 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
         let cGT = 0, cGS = 0, cGPO = 0, cGEx = 0, cGNS = 0, cGSh = 0, cGEI = 0, cGBI = 0, cGBV = 0;
         let dSOR = 0, dEA = 0, dSA = 0;
 
-        enrichedData.forEach(item => {
+        activeEnrichedData.forEach(item => {
             const comp = item.computed!;
             const sim = comp.simulated!;
             const sub = getLoisSubgroup(item);
@@ -423,11 +422,11 @@ export const Dashboard = ({ data, onItemSelect, initialParams, initialState, onS
                 deltaStockoutResolved: dSOR, deltaExcessAdded: dEA, deltaStockValAdded: dSA
             }
         };
-    }, [enrichedData, showSimulation]);
+    }, [activeEnrichedData, showSimulation]);
 
     const indexedData = useMemo(() => {
-        return prepareSearchCache(enrichedData);
-    }, [enrichedData]);
+        return prepareSearchCache(activeEnrichedData);
+    }, [activeEnrichedData]);
 
     const filteredList = useMemo(() => {
         let result = indexedData;

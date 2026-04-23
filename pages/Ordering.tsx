@@ -84,8 +84,10 @@ const DraftAnalysisCharts = ({ itemMap, orderQuantities, costBasis }: { itemMap:
     );
 };
 
-interface OrderingProps {
+export interface OrderingProps {
     data: InventoryItem[];
+    enrichedData?: InventoryItem[];
+    isEngineProcessing?: boolean;
     onItemSelect: (item: InventoryItem) => void;
     initialParams?: { lt: number; sp: number; ssp: number };
     initialState?: any;
@@ -97,7 +99,7 @@ interface OrderingProps {
     onUpdateSettings?: (s: AppSettings) => void;
 }
 
-export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSaveState, sharedDraft, onUpdateDraft, graph, appSettings }: OrderingProps) => {
+export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect, initialParams, initialState, onSaveState, sharedDraft, onUpdateDraft, graph, appSettings }: OrderingProps) => {
     const { t } = useLanguage();
     const { isMobile } = useDevice();
     const [settings, setSettings] = useState<DashboardSettings>(initialState?.settings || {
@@ -271,15 +273,14 @@ export const Ordering = ({ data, onItemSelect, initialParams, initialState, onSa
     };
 
     const computeParams = useMemo(() => makeComputeParams(settings), [settings]);
+    const fallbackData = data;
+    const activeEnrichedData = enrichedData || fallbackData;
 
-    // O10 PERFORMANCE: Base metrics (no drafts) cached to prevent lag on edits
-    const baseEnrichedList = useMemo(() => {
-        return computeInventoryBatch(data, computeParams, {});
-    }, [data, computeParams]);
+    // O10 PERFORMANCE: Base metrics (no drafts) are now computed centrally in App.tsx!
 
     const { enrichedList, enrichedMap } = useMemo(() => {
         const itemMap = new Map<string, InventoryItem>();
-        const list = baseEnrichedList.map(item => {
+        const list = activeEnrichedData.map(item => {
             const draft = orderQuantities[item.ItemCode];
             const hasDraft = draft && (draft.air + draft.sea > 0);
 

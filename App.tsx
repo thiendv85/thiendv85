@@ -23,6 +23,7 @@ import { resolveItemProfile } from './utils/inventoryEngine';
 import { mergeMonthlyIntoItems } from './utils/csvParser';
 import { loadFromCloudStorage, loadLatestMonthlyData } from './utils/supabase';
 import { useDevice } from './hooks/useDevice';
+import { useInventoryWorker } from './hooks/useInventoryWorker';
 import { 
     cacheMonthlyData, 
     getCachedMonthlyData, 
@@ -132,6 +133,23 @@ const AppContent = () => {
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
     const [initialParams, setInitialParams] = useState<{ lt: number; sp: number; ssp: number } | undefined>(undefined);
     const [appSettings, setAppSettings] = useState<AppSettings>(loadAppSettings);
+
+    // ═══ CENTRALIZED ENGINE: Compute ONCE, share to all pages ═══
+    // Previously each page (Dashboard, Ordering, Transfer) called computeInventoryBatch independently,
+    // causing 3x redundant 50K-item computations. Now computed once via Web Worker.
+    const workerSettings = useMemo(() => ({
+        snapshotDate: appSettings.snapshotDate || new Date().toISOString().split('T')[0],
+        warehouseScope: appSettings.warehouseScope || 'All',
+        costBasis: appSettings.costBasis || 'PP',
+        demandSource: appSettings.demandSource || '3M',
+        params: appSettings.params || { lt: 90, sp: 30, ssp: 15 },
+        sourceProfiles: appSettings.sourceProfiles || [],
+        loisProfiles: appSettings.loisProfiles || [],
+        applySeasonality: appSettings.applySeasonality || false,
+        seasonalityTuning: appSettings.seasonalityTuning
+    }), [appSettings]);
+
+    const { enrichedData, isProcessing: isEngineProcessing } = useInventoryWorker(data, workerSettings, sharedDraft.quantities);
 
     // Rule: async-parallel — Parallelize independent cloud fetches
     useEffect(() => {
@@ -254,7 +272,9 @@ const AppContent = () => {
     }, []);
 
     const handleDataUpload = (uploadedData: InventoryItem[], filename: string, sourceId?: string) => {
-        setData(uploadedData);
+        // Immediately apply existing monthly data if it's already loaded in memory
+        const finalData = monthlyData ? mergeMonthlyIntoItems(uploadedData, monthlyData) : uploadedData;
+        setData(finalData);
 
         let resolvedProfile = appSettings.sourceProfiles.find(p => p.id === sourceId);
 
@@ -476,14 +496,14 @@ const AppContent = () => {
 
             <main className={`flex-1 max-w-[1920px] w-full mx-auto p-3 md:p-5 page-content-hd mt-[56px] md:mt-[64px] ${isMobile ? 'has-bottom-nav' : ''}`}>
                 <React.Suspense fallback={<PageSkeleton />}>
-                {view === 'dashboard' && <Dashboard data={data} onItemSelect={handleSelectItem} initialParams={initialParams} initialState={pageStates.current.dashboard} onSaveState={(s) => pageStates.current.dashboard = s} draftData={sharedDraft} graph={supersessionGraph} appSettings={appSettings} onUpdateSettings={(s) => { setAppSettings(s); saveAppSettings(s); }} supersessionProps={{
+                {view === 'dashboard' && <Dashboard data={data} enrichedData={enrichedData} isEngineProcessing={isEngineProcessing} onItemSelect={handleSelectItem} initialParams={initialParams} initialState={pageStates.current.dashboard} onSaveState={(s) => pageStates.current.dashboard = s} draftData={sharedDraft} graph={supersessionGraph} appSettings={appSettings} onUpdateSettings={(s) => { setAppSettings(s); saveAppSettings(s); }} supersessionProps={{
                     mappings: supersessionMappings,
                     onUpdateMappings: setSupersessionMappings,
                     onAddMapping: () => { setEditingSsMapping(null); setIsSsModalOpen(true); },
                     onEditMapping: (m) => { setEditingSsMapping(m); setIsSsModalOpen(true); },
                 }} />}
-                {view === 'ordering' && <Ordering data={data} onItemSelect={handleSelectItem} initialParams={initialParams} initialState={pageStates.current.ordering} onSaveState={(s) => pageStates.current.ordering = s} sharedDraft={sharedDraft} onUpdateDraft={setSharedDraft} graph={supersessionGraph} appSettings={appSettings} onUpdateSettings={(s) => { setAppSettings(s); saveAppSettings(s); }} />}
-                { view === 'transfer' && <InventoryDistribution data={data} onItemSelect={handleSelectItem} appSettings={appSettings} />}
+                {view === 'ordering' && <Ordering data={data} enrichedData={enrichedData} isEngineProcessing={isEngineProcessing} onItemSelect={handleSelectItem} initialParams={initialParams} initialState={pageStates.current.ordering} onSaveState={(s) => pageStates.current.ordering = s} sharedDraft={sharedDraft} onUpdateDraft={setSharedDraft} graph={supersessionGraph} appSettings={appSettings} onUpdateSettings={(s) => { setAppSettings(s); saveAppSettings(s); }} />}
+                { view === 'transfer' && <InventoryDistribution data={data} enrichedData={enrichedData} isEngineProcessing={isEngineProcessing} onItemSelect={handleSelectItem} appSettings={appSettings} />}
                 { view === 'log' && <UpdateLog />}
                 {view === 'kitting' && <RepairPackageOptimizer data={data} onItemSelect={handleSelectItem} initialState={pageStates.current.kitting} onSaveState={(s) => pageStates.current.kitting = s} draftData={sharedDraft} onUpdateDraft={setSharedDraft} kittingDefs={kittingDefs} onKittingDefsChange={setKittingDefs} />}
                 {view === 'settings' && <SettingsPage settings={appSettings} onSave={(s) => { setAppSettings(s); saveAppSettings(s); }} />}

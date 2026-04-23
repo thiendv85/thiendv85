@@ -8,13 +8,15 @@ import { useDevice } from '../hooks/useDevice';
 
 interface InventoryDistributionProps {
     data: InventoryItem[];
+    enrichedData?: InventoryItem[];
+    isEngineProcessing?: boolean;
     onItemSelect: (item: InventoryItem) => void;
     appSettings: {
         sourceProfiles: SourceProfile[];
     };
 }
 
-export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ data, onItemSelect, appSettings }) => {
+export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ data, enrichedData, isEngineProcessing, onItemSelect, appSettings }) => {
     const { t } = useLanguage();
     const { isMobile } = useDevice();
     const [searchTerm, setSearchTerm] = useState('');
@@ -27,15 +29,8 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
 
     // Enrich data with base engine + cost-aware transfer
     const { enrichedList, transferMap } = useMemo(() => {
-        const computeParams = makeComputeParams({
-            snapshotDate: new Date().toISOString().split('T')[0],
-            warehouseScope: 'All',
-            costBasis: 'PP',
-            demandSource: '3M',
-            params: { lt: 90, sp: 30, ssp: 15 },
-            sourceProfiles: appSettings.sourceProfiles
-        });
-        const baseList = computeInventoryBatch(data, computeParams, {});
+        const fallbackData = data;
+        const baseList = enrichedData || fallbackData;
 
         // Run cost-aware transfer engine on each item
         const tMap = new Map<string, TransferEnrichment>();
