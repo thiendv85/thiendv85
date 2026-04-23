@@ -975,7 +975,7 @@ export const mergeMonthlyIntoItems = (items: InventoryItem[], monthlyData: Recor
 
         return {
             ...item,
-            LOISGroup: monthly.LOISGroup || item.LOISGroup,
+            LOISGroup: item.LOISGroup ? item.LOISGroup : (monthly.LOISGroup || ''),
             TrendFlag: trendFlag,
             AvgQty3M:  monthly.AvgQty3M  ?? item.AvgQty3M,
             AvgQty6M:  monthly.AvgQty6M  ?? item.AvgQty6M,
