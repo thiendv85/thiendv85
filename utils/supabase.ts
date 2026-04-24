@@ -497,7 +497,10 @@ export async function submitApprovalRequest(payload: SubmitRequestPayload): Prom
       current_level: 1,
       status: 'pending',
       submitted_by: payload.submitted_by,
-      snapshot_data: payload.snapshot_data,
+      snapshot_data: {
+        ...payload.snapshot_data,
+        original_quantities: payload.snapshot_data.quantities
+      },
       version: 1,
       deadline: deadline.toISOString(),
     })
@@ -662,10 +665,14 @@ export async function processApprovalAction(
     if (reason) returnUpdate.returned_reason = reason;
     if (modifiedQuantities) {
       const snapData = providedSnapshotData || request.snapshot_data;
-      returnUpdate.snapshot_data = {
-        ...(snapData || {}),
-        quantities: modifiedQuantities,
-      };
+      const updatedSnap = { ...(snapData || {}), quantities: modifiedQuantities };
+      
+      // Preserve first version of quantities for auditing/filtering
+      if (!updatedSnap.original_quantities && snapData?.quantities) {
+        updatedSnap.original_quantities = snapData.quantities;
+      }
+      
+      returnUpdate.snapshot_data = updatedSnap;
     }
     const { error: updErr } = await supabase.from('approval_requests').update(returnUpdate).eq('id', request.id);
     if (updErr) return { success: false, newStatus: request.status, error: 'Lỗi khi trả lại đơn hàng: ' + updErr.message };
@@ -712,7 +719,13 @@ export async function processApprovalAction(
     };
     if (modifiedQuantities) {
       const snapData = providedSnapshotData || request.snapshot_data;
-      advanceUpdate.snapshot_data = { ...(snapData || {}), quantities: modifiedQuantities };
+      const updatedSnap = { ...(snapData || {}), quantities: modifiedQuantities };
+      
+      if (!updatedSnap.original_quantities && snapData?.quantities) {
+        updatedSnap.original_quantities = snapData.quantities;
+      }
+      
+      advanceUpdate.snapshot_data = updatedSnap;
     }
     const { error: updErr } = await supabase.from('approval_requests').update(advanceUpdate).eq('id', request.id);
     if (updErr) return { success: false, newStatus: request.status, error: 'Lỗi khi chuyển cấp bậc phê duyệt' };
@@ -724,7 +737,13 @@ export async function processApprovalAction(
     };
     if (modifiedQuantities) {
       const snapData = providedSnapshotData || request.snapshot_data;
-      approveUpdate.snapshot_data = { ...(snapData || {}), quantities: modifiedQuantities };
+      const updatedSnap = { ...(snapData || {}), quantities: modifiedQuantities };
+      
+      if (!updatedSnap.original_quantities && snapData?.quantities) {
+        updatedSnap.original_quantities = snapData.quantities;
+      }
+      
+      approveUpdate.snapshot_data = updatedSnap;
     }
     const { error: updErr } = await supabase.from('approval_requests').update(approveUpdate).eq('id', request.id);
     if (updErr) return { success: false, newStatus: request.status, error: 'Lỗi khi phê duyệt đơn hàng: ' + updErr.message };

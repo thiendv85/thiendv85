@@ -412,7 +412,8 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
             }
             if (deferredFilters.onlyAdjusted) {
                 const current = (orderQuantities[i.ItemCode]?.air || 0) + (orderQuantities[i.ItemCode]?.sea || 0);
-                const original = (approvalRequest?.snapshot_data?.quantities?.[i.ItemCode]?.air || 0) + (approvalRequest?.snapshot_data?.quantities?.[i.ItemCode]?.sea || 0);
+                const originalBase = approvalRequest?.snapshot_data?.original_quantities || approvalRequest?.snapshot_data?.quantities;
+                const original = (originalBase?.[i.ItemCode]?.air || 0) + (originalBase?.[i.ItemCode]?.sea || 0);
                 if (current === original) return false;
             }
             return true;
@@ -1151,12 +1152,21 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                                         {isApproverMode && (
                                             <td className="px-4 py-3 border-l border-slate-100 bg-slate-50/30 text-center border-b border-slate-50">
                                                 <div className="flex flex-col items-center">
-                                                    <span className="text-xs font-black text-slate-400">
-                                                        {(approvalRequest?.snapshot_data?.quantities?.[item.ItemCode]?.air || 0) + (approvalRequest?.snapshot_data?.quantities?.[item.ItemCode]?.sea || 0)}
-                                                    </span>
-                                                    <div className="flex gap-1 text-[9px] text-slate-300 font-bold">
-                                                        <span>A:{approvalRequest?.snapshot_data?.quantities?.[item.ItemCode]?.air || 0}</span>
-                                                        <span>S:{approvalRequest?.snapshot_data?.quantities?.[item.ItemCode]?.sea || 0}</span>
+                                                    <div className="text-[10px] font-black text-slate-800 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200">
+                                                        {(() => {
+                                                            const originalBase = approvalRequest?.snapshot_data?.original_quantities || approvalRequest?.snapshot_data?.quantities;
+                                                            return (originalBase?.[item.ItemCode]?.air || 0) + (originalBase?.[item.ItemCode]?.sea || 0);
+                                                        })()}
+                                                    </div>
+                                                    <div className="flex gap-1 text-[9px] text-slate-300 font-bold mt-1">
+                                                        <span>A:{(() => {
+                                                            const originalBase = approvalRequest?.snapshot_data?.original_quantities || approvalRequest?.snapshot_data?.quantities;
+                                                            return originalBase?.[item.ItemCode]?.air || 0;
+                                                        })()}</span>
+                                                        <span>S:{(() => {
+                                                            const originalBase = approvalRequest?.snapshot_data?.original_quantities || approvalRequest?.snapshot_data?.quantities;
+                                                            return originalBase?.[item.ItemCode]?.sea || 0;
+                                                        })()}</span>
                                                     </div>
                                                 </div>
                                             </td>
