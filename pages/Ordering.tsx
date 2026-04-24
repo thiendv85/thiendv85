@@ -21,7 +21,7 @@ import { Typography } from '../components/Typography';
 import { CloudDraftModal } from '../components/CloudDraftModal';
 import { useAuth } from '../utils/authContext';
 import { ApprovalStatusBadge } from '../components/ApprovalStatusBadge';
-import { listWorkflows, submitApprovalRequest, fetchRequestByDraftName, resubmitApprovalRequest, fetchRequestActions, normalizeBrand } from '../utils/supabase';
+import { listWorkflows, submitApprovalRequest, fetchRequestByDraftName, resubmitApprovalRequest, fetchRequestActions, normalizeBrand, processApprovalAction } from '../utils/supabase';
 import { ApprovalRequest, ApprovalWorkflow, ApprovalAction } from '../types/inventory';
 import { useDevice } from '../hooks/useDevice';
 
@@ -144,6 +144,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
     const [approvalRequest, setApprovalRequest] = useState<ApprovalRequest | null>(null);
     const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
     const [workflows, setWorkflows] = useState<ApprovalWorkflow[]>([]);
+    const [currentDraftName, setCurrentDraftName] = useState<string>('');
     const [submitDraftName, setSubmitDraftName] = useState('');
     const [selectedWorkflowId, setSelectedWorkflowId] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -152,6 +153,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
     const { user, profile } = useAuth();
     const isLocked = approvalRequest?.status === 'approved';
     const isReturned = approvalRequest?.status === 'returned';
+    const isApproverMode = profile?.role && ['admin', 'approver'].includes(profile.role) && approvalRequest && ['pending', 'in_progress'].includes(approvalRequest.status);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const tableScrollRef = useRef<HTMLDivElement>(null);
@@ -170,12 +172,64 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
         }
     }, [approvalRequest?.id, approvalRequest?.status]);
 
-    const handleOpenSubmitModal = async () => {
+    const handleOpenSubmitModal = async (draftNameOpt?: string | React.MouseEvent) => {
+        const passedName = typeof draftNameOpt === 'string' ? draftNameOpt : '';
         const [wfs] = await Promise.all([listWorkflows()]);
         setWorkflows(wfs);
-        setSubmitDraftName('');
+        setSubmitDraftName(passedName || currentDraftName || '');
         setSelectedWorkflowId(wfs[0]?.id || '');
         setIsSubmitModalOpen(true);
+    };
+
+    const handleApprove = async () => {
+        if (!approvalRequest) return;
+        if (!confirm('Bạn chắc chắn Phê duyệt đơn hàng này? Các điều chỉnh của bạn (nếu có) sẽ được tự động lưu lại hệ thống.')) return;
+        
+        setIsSubmitting(true);
+        const { success, error } = await processApprovalAction(
+            approvalRequest.id,
+            user!.id,
+            'approved',
+            undefined, // comment
+            orderQuantities, // pass modified quantities
+            undefined, // reason
+            undefined, // expectedVersion
+            undefined, // decisionSummary
+            approvalRequest.snapshot_data // passed snapshot to skip redownload
+        );
+        setIsSubmitting(false);
+        if (success) {
+            alert('Phê duyệt thành công!');
+            setApprovalRequest({ ...approvalRequest, status: 'approved' });
+        } else {
+            alert('Lỗi: ' + error);
+        }
+    };
+
+    const handleReturn = async () => {
+        if (!approvalRequest) return;
+        const reason = prompt('Nhập lý do trả lại đơn hàng cho Planner:');
+        if (!reason) return;
+        
+        setIsSubmitting(true);
+        const { success, error } = await processApprovalAction(
+            approvalRequest.id,
+            user!.id,
+            'returned',
+            undefined, // comment
+            orderQuantities,
+            reason,
+            undefined, // expectedVersion
+            undefined, // decisionSummary
+            approvalRequest.snapshot_data // passed snapshot to skip redownload
+        );
+        setIsSubmitting(false);
+        if (success) {
+            alert('Đã trả lại đơn hàng.');
+            setApprovalRequest({ ...approvalRequest, status: 'returned' });
+        } else {
+            alert('Lỗi: ' + error);
+        }
     };
 
     const buildSnapshot = () => ({
@@ -547,6 +601,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
             setOrderNotes({});
             setConfirmedSkus(new Set());
             setSupersessionWarnings({});
+            setCurrentDraftName('');
         }
     };
 
@@ -688,21 +743,34 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                                 <button onClick={() => setIsCloudModalOpen(true)} className="bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all border border-blue-700 flex items-center justify-center shadow-glow px-4 py-2.5 text-[10px] font-black uppercase tracking-widest">
                                     <i className="fas fa-cloud mr-2"></i> Cloud
                                 </button>
-                                <input type="file" ref={fileInputRef} className="hidden" accept=".csv" onChange={handleImport} />
-                                <button onClick={() => fileInputRef.current?.click()} className="bg-white text-slate-700 hover:bg-slate-100 rounded-xl transition-all border border-slate-200 flex items-center justify-center px-4 py-2.5 text-[10px] font-black uppercase tracking-widest">
-                                    <i className="fas fa-file-import mr-2"></i> Import
-                                </button>
-                                <button onClick={handleClearDraft} className="bg-white text-rose-600 hover:bg-rose-50 rounded-xl transition-all border border-rose-100 flex items-center justify-center px-4 py-2.5 text-[10px] font-black uppercase tracking-widest">
-                                    <i className="fas fa-trash-can mr-2"></i> Xóa Draft
-                                </button>
+                                {!isApproverMode && (
+                                    <>
+                                        <input type="file" ref={fileInputRef} className="hidden" accept=".csv" onChange={handleImport} />
+                                        <button onClick={() => fileInputRef.current?.click()} className="bg-white text-slate-700 hover:bg-slate-100 rounded-xl transition-all border border-slate-200 flex items-center justify-center px-4 py-2.5 text-[10px] font-black uppercase tracking-widest">
+                                            <i className="fas fa-file-import mr-2"></i> Import
+                                        </button>
+                                        <button onClick={handleClearDraft} className="bg-white text-rose-600 hover:bg-rose-50 rounded-xl transition-all border border-rose-100 flex items-center justify-center px-4 py-2.5 text-[10px] font-black uppercase tracking-widest">
+                                            <i className="fas fa-trash-can mr-2"></i> Xóa Draft
+                                        </button>
+                                    </>
+                                )}
                             </div>
                             <button onClick={handleExport} className="bg-atp-secondary text-white hover:bg-slate-700 px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-md flex items-center gap-2 border border-slate-800">
                                 <i className="fas fa-file-export"></i> {t('ord_export_btn')}
                             </button>
-                            {profile?.role && ['admin', 'planner'].includes(profile.role) && !isReturned && (
-                                <button onClick={handleOpenSubmitModal} disabled={Object.values(orderQuantities).every((v: any) => !v.air && !v.sea)} className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-glow flex items-center gap-2 border border-emerald-700">
-                                    <i className="fas fa-paper-plane"></i> Phê duyệt
-                                </button>
+                            {isApproverMode ? (
+                                <>
+                                    <button onClick={handleReturn} disabled={isSubmitting} className="bg-rose-600 hover:bg-rose-500 disabled:opacity-40 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-glow flex items-center gap-2 border border-rose-700">
+                                        <i className="fas fa-times"></i> Trả lại
+                                    </button>
+                                    <button onClick={handleApprove} disabled={isSubmitting} className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-glow flex items-center gap-2 border border-emerald-700">
+                                        <i className="fas fa-check"></i> Phê duyệt
+                                    </button>
+                                </>
+                            ) : (
+                                profile?.role && ['admin', 'planner'].includes(profile.role) && !isReturned && (
+                                    <div className="w-8" />
+                                )
                             )}
                             {approvalRequest && <ApprovalStatusBadge status={approvalRequest.status} size="sm" />}
                         </div>
@@ -733,13 +801,24 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                             <button onClick={() => setIsCloudModalOpen(true)} className="w-9 h-9 flex items-center justify-center text-blue-600 bg-blue-50/50 rounded-xl border border-blue-100 active:bg-blue-100">
                                 <i className="fas fa-cloud text-xs"></i>
                             </button>
-                            <button onClick={handleClearDraft} className="w-9 h-9 flex items-center justify-center text-rose-600 bg-rose-50/50 rounded-xl border border-rose-100 active:bg-rose-100">
-                                <i className="fas fa-trash-can text-xs"></i>
-                            </button>
-                            {profile?.role && ['admin', 'planner'].includes(profile.role) && !isReturned && (
-                                <button onClick={handleOpenSubmitModal} disabled={Object.values(orderQuantities).every((v: any) => !v.air && !v.sea)} className="w-9 h-9 flex items-center justify-center text-emerald-600 bg-emerald-50/50 rounded-xl border border-emerald-100 active:bg-emerald-100 disabled:opacity-40">
-                                    <i className="fas fa-paper-plane text-xs"></i>
+                            {!isApproverMode && (
+                                <button onClick={handleClearDraft} className="w-9 h-9 flex items-center justify-center text-rose-600 bg-rose-50/50 rounded-xl border border-rose-100 active:bg-rose-100">
+                                    <i className="fas fa-trash-can text-xs"></i>
                                 </button>
+                            )}
+                            {isApproverMode ? (
+                                <>
+                                    <button onClick={handleReturn} disabled={isSubmitting} className="w-9 h-9 flex items-center justify-center text-rose-600 bg-rose-50/50 rounded-xl border border-rose-100 active:bg-rose-100 disabled:opacity-40">
+                                        <i className="fas fa-times text-xs"></i>
+                                    </button>
+                                    <button onClick={handleApprove} disabled={isSubmitting} className="w-9 h-9 flex items-center justify-center text-emerald-600 bg-emerald-50/50 rounded-xl border border-emerald-100 active:bg-emerald-100 disabled:opacity-40">
+                                        <i className="fas fa-check text-xs"></i>
+                                    </button>
+                                </>
+                            ) : (
+                                profile?.role && ['admin', 'planner'].includes(profile.role) && !isReturned && (
+                                    <div className="w-4" />
+                                )
                             )}
                         </div>
                     </div>
@@ -1256,6 +1335,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                 onLoadDraft={(draft, draftName) => {
                     setOrderQuantities(prev => ({ ...prev, ...draft.quantities }));
                     setOrderNotes(prev => ({ ...prev, ...draft.notes }));
+                    if (draftName) setCurrentDraftName(draftName);
                     // Tự động load approval request tương ứng với cloud draft
                     if (draftName) {
                         fetchRequestByDraftName(draftName).then(req => {
@@ -1265,6 +1345,8 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                                 if (req.status === 'returned' && req.snapshot_data?.quantities) {
                                     setOrderQuantities(req.snapshot_data.quantities);
                                 }
+                            } else {
+                                setApprovalRequest(null);
                             }
                         });
                     }
@@ -1274,51 +1356,70 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                     const snap = req.snapshot_data;
                     setOrderQuantities(snap.quantities || {});
                     setOrderNotes(snap.notes || {});
+                    setCurrentDraftName(req.draft_name);
                     setApprovalRequest(req);
+                }}
+                onWaitAndSubmit={(draftName) => {
+                    // Mở luôn modal submit với tên draft tương ứng sau một chút delay
+                    setTimeout(() => {
+                        handleOpenSubmitModal(draftName);
+                    }, 200);
                 }}
             />
 
             {/* ─── Submit for Approval Modal ─── */}
             {isSubmitModalOpen && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-fadeIn">
                     <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsSubmitModalOpen(false)} />
-                    <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 space-y-5 border border-slate-200">
-                        <div className="flex items-center justify-between">
-                            <Typography variant="h3" className="text-slate-800">Gửi Phê duyệt</Typography>
-                            <button onClick={() => setIsSubmitModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1"><i className="fas fa-xmark" /></button>
-                        </div>
-                        <div className="space-y-3">
-                            <div>
-                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5">Tên Draft</label>
-                                <input
-                                    value={submitDraftName}
-                                    onChange={e => setSubmitDraftName(e.target.value)}
-                                    placeholder="VD: KIA_NB_Tháng4_2026"
-                                    className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-blue-400 text-slate-800"
-                                />
+                    <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-[scaleIn_0.2s_ease-out]">
+                        {/* Premium Header */}
+                        <div className="bg-gradient-professional px-6 py-5 border-b border-white/10 flex justify-between items-center z-10">
+                            <div className="flex items-center gap-3 text-white">
+                                <i className="fas fa-paper-plane text-xl text-emerald-300"></i>
+                                <Typography variant="h2" className="text-white !text-xl m-0">Gửi Phê duyệt</Typography>
                             </div>
-                            <div>
-                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5">Workflow Phê duyệt</label>
-                                {workflows.length === 0 ? (
-                                    <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5">Chưa có workflow nào. Vui lòng tạo trong Settings.</p>
-                                ) : (
-                                    <select
-                                        value={selectedWorkflowId}
-                                        onChange={e => setSelectedWorkflowId(e.target.value)}
-                                        className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-blue-400 text-slate-800 bg-white"
-                                    >
-                                        {workflows.map(wf => <option key={wf.id} value={wf.id}>{wf.name}</option>)}
-                                    </select>
-                                )}
+                            <button onClick={() => setIsSubmitModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/10 text-white hover:bg-rose-500 transition-colors">
+                                <i className="fas fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <div className="p-6 space-y-5 bg-slate-50/50">
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Tên Draft</label>
+                                    <input
+                                        value={submitDraftName}
+                                        onChange={e => setSubmitDraftName(e.target.value)}
+                                        placeholder="VD: KIA_NB_Tháng4_2026"
+                                        className="w-full border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 text-slate-800 transition-all bg-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Workflow Phê duyệt</label>
+                                    {workflows.length === 0 ? (
+                                        <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 font-bold">Chưa có workflow nào. Vui lòng tạo trong Settings.</p>
+                                    ) : (
+                                        <select
+                                            value={selectedWorkflowId}
+                                            onChange={e => setSelectedWorkflowId(e.target.value)}
+                                            className="w-full border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 text-slate-800 bg-white transition-all appearance-none cursor-pointer"
+                                        >
+                                            {workflows.map(wf => <option key={wf.id} value={wf.id}>{wf.name}</option>)}
+                                        </select>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            <div className="pt-2">
+                                <button
+                                    onClick={handleSubmitApproval}
+                                    disabled={isSubmitting || !submitDraftName.trim() || !selectedWorkflowId}
+                                    className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black py-3.5 rounded-2xl text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.98]"
+                                >
+                                    {isSubmitting ? <><i className="fas fa-circle-notch fa-spin" /> Đang gửi...</> : <><i className="fas fa-paper-plane" /> Xác nhận gửi</>}
+                                </button>
                             </div>
                         </div>
-                        <button
-                            onClick={handleSubmitApproval}
-                            disabled={isSubmitting || !submitDraftName.trim() || !selectedWorkflowId}
-                            className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black py-3 rounded-2xl text-sm uppercase tracking-widest flex items-center justify-center gap-2"
-                        >
-                            {isSubmitting ? <><i className="fas fa-circle-notch fa-spin" /> Đang gửi...</> : <><i className="fas fa-paper-plane" /> Xác nhận gửi</>}
-                        </button>
                     </div>
                 </div>
             )}

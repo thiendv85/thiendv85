@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Typography } from './Typography';
-import { listOrderDrafts, saveOrderDraft, loadFromCloudStorage, fetchAllRequests, fetchMyRequests } from '../utils/supabase';
+import { listOrderDrafts, saveOrderDraft, loadFromCloudStorage, fetchAllRequests, fetchMyRequests, fetchPendingForApprover } from '../utils/supabase';
 import { ApprovalStatusBadge } from './ApprovalStatusBadge';
 import { ApprovalRequest, ApprovalStatus } from '../types/inventory';
 import { useAuth } from '../utils/authContext';
@@ -14,21 +14,22 @@ interface CloudDraftModalProps {
     onLoadDraft: (draft: { quantities: Record<string, { air: number, sea: number }>, notes: Record<string, string> }, draftName?: string) => void;
     // Load trực tiếp từ snapshot của approval request (trường hợp không lưu cloud)
     onLoadReturnedRequest: (request: ApprovalRequest) => void;
+    onWaitAndSubmit?: (draftName: string) => void;
 }
 
-type Tab = 'LOAD' | 'RETURNED' | 'SAVE';
+type Tab = 'LOAD' | 'RETURNED' | 'SAVE' | 'INBOX';
 
-export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, onLoadReturnedRequest }: CloudDraftModalProps) => {
+export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, onLoadReturnedRequest, onWaitAndSubmit }: CloudDraftModalProps) => {
     const BRANDS = ['Kia', 'Mazda', 'Peugeot', 'BMW'] as const;
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const [activeTab, setActiveTab] = useState<Tab>('LOAD');
     const [drafts, setDrafts] = useState<{ id: string, updated_at: string }[]>([]);
     const [returnedRequests, setReturnedRequests] = useState<ApprovalRequest[]>([]);
+    const [pendingRequests, setPendingRequests] = useState<ApprovalRequest[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [approvalStatusMap, setApprovalStatusMap] = useState<Record<string, ApprovalStatus>>({});
 
     // Form states (Save)
-    const [draftName, setDraftName] = useState('');
     const [draftBrand, setDraftBrand] = useState<string>('Kia');
 
     // Filter states (Load)
@@ -38,8 +39,9 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
 
     useEffect(() => {
         if (!isOpen) return;
-        if (activeTab === 'LOAD') fetchDrafts();
-        else if (activeTab === 'RETURNED') fetchReturned();
+        if (activeTab === 'LOAD' || activeTab === 'SAVE') fetchDrafts();
+        if (activeTab === 'RETURNED') fetchReturned();
+        if (activeTab === 'INBOX') fetchInbox();
     }, [isOpen, activeTab]);
 
     const fetchDrafts = async () => {
@@ -60,20 +62,67 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
         setIsLoading(false);
     };
 
-    const handleSave = async () => {
-        if (!draftName.trim()) return alert("Vui lòng nhập Tên dự thảo");
+    const fetchInbox = async () => {
+        setIsLoading(true);
+        const pendings = await fetchPendingForApprover();
+        setPendingRequests(pendings);
+        setIsLoading(false);
+    };
+
+    const generatedDraftName = React.useMemo(() => {
+        const today = new Date();
+        const yy = String(today.getFullYear()).slice(-2);
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        const datePrefix = `${yy}${mm}${dd}`;
+
+        let namePart = 'User';
+        if (profile?.full_name) {
+            const noTone = profile.full_name
+                .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                .replace(/đ/g, "d").replace(/Đ/g, "D")
+                .replace(/[^a-zA-Z0-9 ]/g, "");
+            namePart = noTone.split(' ').filter(Boolean).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join('');
+        }
+
+        const prefix = `${datePrefix}-${namePart}`;
+
+        let maxSeq = 0;
+        drafts.forEach(d => {
+            const parts = d.id.split('_');
+            if (parts.length >= 4) {
+                const draftCode = parts.slice(3).join('_');
+                if (draftCode.startsWith(prefix + '-')) {
+                    const seqStr = draftCode.split('-').pop();
+                    if (seqStr && !isNaN(Number(seqStr))) {
+                        const seq = parseInt(seqStr, 10);
+                        if (seq > maxSeq) maxSeq = seq;
+                    }
+                }
+            }
+        });
+
+        const nextSeq = String(maxSeq + 1).padStart(2, '0');
+        return `${prefix}-${nextSeq}`;
+    }, [drafts, profile]);
+
+    const handleSave = async (autoSubmit: boolean = false) => {
         const totalItems = Object.values(currentDraft.quantities).filter(v => v.air + v.sea > 0).length;
         if (totalItems === 0) return alert("Dự thảo hiện tại đang trống. Vui lòng tạo dự thảo trước khi lưu.");
 
         setIsLoading(true);
-        const id = `order_draft_${draftBrand}_${draftName.trim()}`;
+        const id = `order_draft_${draftBrand}_${generatedDraftName}`;
         const success = await saveOrderDraft(id, { brand: draftBrand, draftData: currentDraft });
         setIsLoading(false);
 
         if (success) {
-            alert(`Đã lưu bản nháp "${draftName}" (${draftBrand}) thành công!`);
-            setDraftName('');
-            onClose();
+            if (autoSubmit) {
+                if (onWaitAndSubmit) onWaitAndSubmit(generatedDraftName);
+                onClose();
+            } else {
+                alert(`Đã lưu bản nháp "${generatedDraftName}" (${draftBrand}) thành công!`);
+                onClose();
+            }
         } else {
             alert("Lỗi khi lưu lên Cloud.");
         }
@@ -87,6 +136,18 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
         // Truyền draftName để Ordering tự fetch approvalRequest tương ứng
         onLoadDraft(data.draftData, name);
         alert("✅ Tải dự thảo thành công!");
+        onClose();
+    };
+
+    const handleLoadAndSubmit = async (id: string, name: string) => {
+        setIsLoading(true);
+        const data = await loadFromCloudStorage(id);
+        setIsLoading(false);
+        if (!data) return alert("Không thể tải dữ liệu.");
+        onLoadDraft(data.draftData, name);
+        if (onWaitAndSubmit) {
+            onWaitAndSubmit(name);
+        }
         onClose();
     };
 
@@ -118,6 +179,9 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
         { id: 'RETURNED', label: 'Trả lại', icon: 'fa-rotate-left' },
         { id: 'SAVE', label: 'Lưu Mới', icon: 'fa-cloud-upload-alt' },
     ];
+    if (profile?.role === 'admin' || profile?.role === 'approver') {
+        TABS.splice(1, 0, { id: 'INBOX', label: 'Duyệt Đơn', icon: 'fa-inbox' });
+    }
 
     return createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fadeIn">
@@ -135,7 +199,7 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
                 </div>
 
                 {/* Tabs */}
-                <div className="grid grid-cols-3 bg-slate-50 border-b border-slate-200">
+                <div className={`grid ${TABS.length === 4 ? 'grid-cols-4' : 'grid-cols-3'} bg-slate-50 border-b border-slate-200`}>
                     {TABS.map(t => (
                         <button key={t.id} onClick={() => setActiveTab(t.id)}
                             className={`py-3 text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 ${activeTab === t.id ? 'bg-white border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'} ${t.id === 'RETURNED' && returnedRequests.length > 0 ? 'text-indigo-500' : ''}`}>
@@ -143,6 +207,9 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
                             {t.label}
                             {t.id === 'RETURNED' && returnedRequests.length > 0 && (
                                 <span className="bg-indigo-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">{returnedRequests.length}</span>
+                            )}
+                            {t.id === 'INBOX' && pendingRequests.length > 0 && (
+                                <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-sm">{pendingRequests.length}</span>
                             )}
                         </button>
                     ))}
@@ -212,10 +279,77 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
                                                     </div>
                                                     <Typography variant="label" className="text-slate-400 block text-[10px]"><i className="far fa-clock"></i> {new Date(d.updated_at).toLocaleString('vi-VN')}</Typography>
                                                 </div>
-                                                <button onClick={() => handleLoadCloud(d.id, n)}
-                                                    className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm shrink-0">
-                                                    <i className="fas fa-download"></i>
-                                                </button>
+                                                <div className="flex items-center gap-2">
+                                                    {(!approvalStatusMap[n] && onWaitAndSubmit) && (
+                                                        <button onClick={() => handleLoadAndSubmit(d.id, n)}
+                                                            className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all shadow-sm shrink-0"
+                                                            title="Gửi Phê Duyệt">
+                                                            <i className="fas fa-paper-plane"></i>
+                                                        </button>
+                                                    )}
+                                                    <button onClick={() => handleLoadCloud(d.id, n)}
+                                                        className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm shrink-0"
+                                                        title="Tải Xuống">
+                                                        <i className="fas fa-download"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* ── Tab: Hộp thư Duyệt (INBOX) ── */}
+                    {activeTab === 'INBOX' && (
+                        <div className="flex flex-col h-full min-h-0">
+                            <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 leading-relaxed">
+                                <i className="fas fa-clipboard-check mr-1.5"></i>
+                                Các đơn đang chờ phê duyệt. Nhấn "Mở Đơn" để kiểm tra và tiến hành duyệt hoặc trả lại.
+                            </div>
+                            <div className="flex justify-between items-center mb-3">
+                                <Typography variant="label" className="text-slate-500 uppercase tracking-widest text-[10px] font-black">
+                                    Đơn cần duyệt ({pendingRequests.length})
+                                </Typography>
+                                <button onClick={fetchInbox} disabled={isLoading} className="text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1">
+                                    <i className={`fas fa-sync-alt ${isLoading ? 'fa-spin' : ''}`}></i> Làm mới
+                                </button>
+                            </div>
+                            {isLoading ? (
+                                <div className="flex flex-col items-center justify-center py-12 text-blue-500">
+                                    <i className="fas fa-spinner fa-spin text-3xl mb-2"></i>
+                                    <span className="text-xs font-bold uppercase tracking-widest">Đang tải...</span>
+                                </div>
+                            ) : pendingRequests.length === 0 ? (
+                                <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-2xl border border-slate-100">
+                                    <i className="fas fa-check-double text-3xl mb-3 text-emerald-300"></i>
+                                    <Typography variant="body" className="block text-xs">Bạn đã duyệt hết đơn trong hàng chờ!</Typography>
+                                </div>
+                            ) : (
+                                <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1 custom-scrollbar">
+                                    {pendingRequests.map(req => {
+                                        const snap = req.snapshot_data;
+                                        const itemCount = Object.values(snap.quantities || {}).filter((q: any) => q.air + q.sea > 0).length;
+                                        return (
+                                            <div key={req.id} className="p-3 border border-rose-200 bg-rose-50/30 rounded-xl hover:border-rose-400 hover:bg-rose-50 transition-all">
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <ApprovalStatusBadge status={req.status} size="sm" />
+                                                            <Typography variant="body" className="font-black text-slate-800 truncate text-sm">{req.draft_name}</Typography>
+                                                        </div>
+                                                        <div className="flex items-center gap-3 text-[10px] text-slate-500">
+                                                            <span><i className="fas fa-box mr-1"></i>{itemCount} mã hàng</span>
+                                                            <span><i className="far fa-clock mr-1"></i>{new Date(req.submitted_at).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                                            {req.brand && <span className="font-bold uppercase tracking-wider">{req.brand}</span>}
+                                                        </div>
+                                                    </div>
+                                                    <button onClick={() => handleLoadReturned(req)}
+                                                        className="shrink-0 bg-rose-500 hover:bg-rose-600 text-white px-3 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-md shadow-rose-200">
+                                                        <i className="fas fa-external-link-alt"></i> Mở Đơn
+                                                    </button>
+                                                </div>
                                             </div>
                                         );
                                     })}
@@ -295,21 +429,30 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
                                     ))}
                                 </div>
                             </div>
-                            <div>
-                                <Typography variant="label" className="text-slate-500 font-bold block mb-2 uppercase tracking-wider text-xs">Tên dự thảo</Typography>
-                                <input type="text" value={draftName} onChange={e => setDraftName(e.target.value)}
-                                    onKeyDown={e => e.key === 'Enter' && handleSave()}
-                                    placeholder="Ví dụ: Du_Thao_Thang_4"
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" />
-                                <Typography variant="label" className="text-slate-400 block mt-2 leading-tight text-[11px]">
-                                    Dự thảo chỉ hiển thị với tài khoản của bạn.
-                                </Typography>
+                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex items-center justify-between">
+                                <div>
+                                    <Typography variant="label" className="text-slate-500 font-bold block mb-1 uppercase tracking-wider text-xs">Mã dự thảo (Tự động)</Typography>
+                                    <div className="text-lg font-black text-blue-700 tracking-tight font-mono">{generatedDraftName}</div>
+                                </div>
+                                <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+                                    <i className="fas fa-magic"></i>
+                                </div>
                             </div>
-                            <button onClick={handleSave} disabled={isLoading}
-                                className="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-xl uppercase tracking-widest transition-all shadow-lg shadow-emerald-600/20 active:scale-[0.98] flex items-center justify-center gap-2">
-                                {isLoading ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-cloud-upload-alt"></i>}
-                                Lưu Lên Cloud
-                            </button>
+                            <Typography variant="label" className="text-slate-400 block mt-1 leading-tight text-[11px] px-1">
+                                <i className="fas fa-info-circle mr-1"></i> Mã dự thảo được sinh tự động dựa trên tên và ngày lập.
+                            </Typography>
+                            <div className="grid grid-cols-2 gap-3 mt-2">
+                                <button onClick={() => handleSave(false)} disabled={isLoading}
+                                    className="bg-slate-100 hover:bg-slate-200 text-slate-600 font-black py-4 rounded-2xl uppercase tracking-widest transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-[10px]">
+                                    {isLoading ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-file-pen"></i>}
+                                    Lưu Nháp
+                                </button>
+                                <button onClick={() => handleSave(true)} disabled={isLoading}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-2xl uppercase tracking-widest transition-all shadow-lg shadow-emerald-600/20 active:scale-[0.98] flex items-center justify-center gap-2 text-[10px]">
+                                    {isLoading ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-paper-plane"></i>}
+                                    Lưu & Gửi Duyệt
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>

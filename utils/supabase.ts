@@ -588,12 +588,16 @@ export async function processApprovalAction(
   modifiedQuantities?: Record<string, { air: number; sea: number }>,
   reason?: string, // Phase 3: dedicated reason for reject/return
   expectedVersion?: number, // Phase 5: optimistic locking
-  decisionSummary?: any // New: Summary snapshot from Decision Support layer
+  decisionSummary?: any, // New: Summary snapshot from Decision Support layer
+  providedSnapshotData?: any // Pass from client to prevent huge network download
 ): Promise<{ success: boolean; newStatus: ApprovalStatus; error?: string }> {
 
-  // Look up request and workflow
-  const request = await fetchRequestById(requestId);
-  if (!request) return { success: false, newStatus: 'pending', error: 'Không tìm thấy yêu cầu' };
+  // Look up request and workflow. Dynamically select snapshot_data only if strictly needed AND not provided.
+  const selectQuery = 'id, workflow_id, current_level, status, version' + (modifiedQuantities && !providedSnapshotData ? ', snapshot_data' : '');
+  const { data: reqRaw, error: reqErr } = await supabase.from('approval_requests').select(selectQuery).eq('id', requestId).single();
+  const request = reqRaw as Partial<ApprovalRequest> | null;
+
+  if (reqErr || !request) return { success: false, newStatus: 'pending', error: 'Không tìm thấy yêu cầu' };
   const { data: wfData } = await supabase.from('approval_workflows').select('*').eq('id', request.workflow_id).single();
   const workflow: ApprovalWorkflow | null = wfData ?? null;
   if (!workflow) return { success: false, newStatus: request.status, error: 'Không tìm thấy quy trình phê duyệt' };
@@ -609,7 +613,7 @@ export async function processApprovalAction(
   const nextVersion = (request.version || 1) + 1;
 
   // Phase 4: Check approver is authorized for this level
-  const currentLevelConfig = workflow.levels.find(l => l.level === request.current_level);
+  const currentLevelConfig = workflow.levels.find(l => l.level === (request.current_level || 1));
   if (action !== 'commented' && currentLevelConfig) {
     if (!currentLevelConfig.approver_ids.includes(actorId)) {
       console.warn(`Actor ${actorId} not in approver_ids for level ${request.current_level}, allowing via role-based access`);
@@ -657,8 +661,9 @@ export async function processApprovalAction(
     };
     if (reason) returnUpdate.returned_reason = reason;
     if (modifiedQuantities) {
+      const snapData = providedSnapshotData || request.snapshot_data;
       returnUpdate.snapshot_data = {
-        ...request.snapshot_data,
+        ...(snapData || {}),
         quantities: modifiedQuantities,
       };
     }
@@ -706,7 +711,8 @@ export async function processApprovalAction(
       version: nextVersion,
     };
     if (modifiedQuantities) {
-      advanceUpdate.snapshot_data = { ...request.snapshot_data, quantities: modifiedQuantities };
+      const snapData = providedSnapshotData || request.snapshot_data;
+      advanceUpdate.snapshot_data = { ...(snapData || {}), quantities: modifiedQuantities };
     }
     const { error: updErr } = await supabase.from('approval_requests').update(advanceUpdate).eq('id', request.id);
     if (updErr) return { success: false, newStatus: request.status, error: 'Lỗi khi chuyển cấp bậc phê duyệt' };
@@ -717,7 +723,8 @@ export async function processApprovalAction(
       version: nextVersion,
     };
     if (modifiedQuantities) {
-      approveUpdate.snapshot_data = { ...request.snapshot_data, quantities: modifiedQuantities };
+      const snapData = providedSnapshotData || request.snapshot_data;
+      approveUpdate.snapshot_data = { ...(snapData || {}), quantities: modifiedQuantities };
     }
     const { error: updErr } = await supabase.from('approval_requests').update(approveUpdate).eq('id', request.id);
     if (updErr) return { success: false, newStatus: request.status, error: 'Lỗi khi phê duyệt đơn hàng: ' + updErr.message };
