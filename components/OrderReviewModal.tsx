@@ -44,11 +44,15 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
     const snap = request.snapshot_data;
     const proposerName = usersMap[request.submitted_by] || 'N/A';
 
-    const [localQtys, setLocalQtys] = useState<Record<string, { air: number; sea: number }>>(
-        () => Object.fromEntries(
-            Object.entries(snap.quantities).map(([k, v]) => [k, { air: v.air, sea: v.sea }])
-        )
-    );
+    const [localQtys, setLocalQtys] = useState<Record<string, { air: number; sea: number }>>(() => {
+        const qtys: Record<string, { air: number; sea: number }> = {};
+        // Initialize from original context to ensure all known items have a record
+        snap.inventory_context.forEach(ctx => {
+            const q = snap.quantities[ctx.itemCode] || { air: 0, sea: 0 };
+            qtys[ctx.itemCode] = { air: q.air, sea: q.sea };
+        });
+        return qtys;
+    });
     const [selectedItems, setSelectedItems] = useState<Set<string>>(() => {
         const initial = new Set<string>();
         snap.inventory_context.forEach(ctx => {
@@ -96,10 +100,11 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
 
 
     const rows = useMemo(() =>
-        snap.inventory_context.filter(ctx =>
-            (snap.quantities[ctx.itemCode]?.air || 0) > 0 ||
-            (snap.quantities[ctx.itemCode]?.sea || 0) > 0
-        ), [snap]);
+        snap.inventory_context.filter(ctx => {
+            const cur = snap.quantities[ctx.itemCode] || { air: 0, sea: 0 };
+            const orig = (snap as any).original_quantities?.[ctx.itemCode] || cur;
+            return (cur.air > 0 || cur.sea > 0 || orig.air > 0 || orig.sea > 0);
+        }), [snap]);
 
     const totals = useMemo(() => {
         let air = 0, sea = 0, value = 0, oos = 0, risk = 0, bo = 0;

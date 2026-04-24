@@ -8,6 +8,16 @@ export const UpdateLog = () => {
 
     const updates = [
         {
+            ver: 'v1.3.3',
+            date: '2026-04-24',
+            title: 'Approval Traceability & Zero-Qty Visibility',
+            items: [
+                'Duy trì hiển thị các mã hàng có số lượng bằng 0 trong bảng Phê duyệt nếu dự thảo ban đầu lớn hơn 0.',
+                'Tự động nhận diện và làm mờ (grayscale) các mã hàng đã bị xóa để tối ưu không gian kiểm soát.',
+                'Đảm bảo tính nhất quán của dữ liệu Snapshot khi luân chuyển qua nhiều cấp phê duyệt.'
+            ]
+        },
+        {
             ver: 'v1.3.2',
             date: '2026-03-14',
             title: 'Smarter Rebalance & UI Densification',
