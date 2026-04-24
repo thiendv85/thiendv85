@@ -1149,8 +1149,8 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                                                 </div>
                                             </div>
                                         </td>
-                                        {isApproverMode && (
-                                            <td className="px-4 py-3 border-l border-slate-100 bg-slate-50/30 text-center border-b border-slate-50">
+                                        {approvalRequest && (
+                                            <td className="px-4 py-3 border-l border-slate-100 bg-slate-50/30 text-center border-b border-slate-50 min-w-[100px]">
                                                 <div className="flex flex-col items-center">
                                                     <div className="text-[10px] font-black text-slate-800 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200">
                                                         {(() => {
@@ -1171,14 +1171,28 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                                                 </div>
                                             </td>
                                         )}
-                                        <td className="px-4 py-3 border-x border-slate-100 bg-rose-50/10 text-center border-b border-slate-50">
-                                            <input type="number" value={d.air || ''} onChange={e => !isLocked && handleQtyChange(item.ItemCode, 'air', parseInt(e.target.value) || 0)} readOnly={isLocked} className="w-full bg-rose-50 border-0 focus:ring-0 text-center text-base font-black text-rose-700 p-0 h-full" placeholder="0" />
+                                        <td className={`px-4 py-3 border-x border-slate-100 text-center border-b border-slate-50 transition-all ${d.air !== ((approvalRequest?.snapshot_data?.original_quantities || approvalRequest?.snapshot_data?.quantities)?.[item.ItemCode]?.air || 0) ? 'bg-amber-50 ring-1 ring-inset ring-amber-200' : 'bg-rose-50/10'}`}>
+                                            <div className="relative group">
+                                                <input type="number" value={d.air || ''} onChange={e => !isLocked && handleQtyChange(item.ItemCode, 'air', parseInt(e.target.value) || 0)} readOnly={isLocked} className={`w-full bg-transparent focus:ring-0 text-center text-base font-black p-0 h-full ${d.air !== ((approvalRequest?.snapshot_data?.original_quantities || approvalRequest?.snapshot_data?.quantities)?.[item.ItemCode]?.air || 0) ? 'text-amber-700' : 'text-rose-700'}`} placeholder="0" />
+                                                {d.air !== ((approvalRequest?.snapshot_data?.original_quantities || approvalRequest?.snapshot_data?.quantities)?.[item.ItemCode]?.air || 0) && (
+                                                    <div className={`absolute -top-6 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-[8px] font-black shadow-sm z-10 whitespace-nowrap ${d.air > ((approvalRequest?.snapshot_data?.original_quantities || approvalRequest?.snapshot_data?.quantities)?.[item.ItemCode]?.air || 0) ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
+                                                        {d.air > ((approvalRequest?.snapshot_data?.original_quantities || approvalRequest?.snapshot_data?.quantities)?.[item.ItemCode]?.air || 0) ? '+' : ''}{d.air - ((approvalRequest?.snapshot_data?.original_quantities || approvalRequest?.snapshot_data?.quantities)?.[item.ItemCode]?.air || 0)}
+                                                    </div>
+                                                )}
+                                            </div>
                                             {((item.computed?.suggestedBO || 0) > 0) && d.air === 0 && (
                                                 <button onClick={() => handleQtyChange(item.ItemCode, 'air', item.computed!.suggestedBO!)} className="block mx-auto mt-1.5 text-xs font-black text-rose-600 hover:text-rose-800 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100">BO: {item.computed.suggestedBO}</button>
                                             )}
                                         </td>
-                                        <td className="px-4 py-3 border-r border-slate-100 bg-blue-50/10 text-center border-b border-slate-50">
-                                            <input type="number" value={d.sea || ''} onChange={e => !isLocked && handleQtyChange(item.ItemCode, 'sea', parseInt(e.target.value) || 0)} readOnly={isLocked} className="w-full bg-blue-50 border-0 focus:ring-0 text-center text-base font-black text-blue-700 p-0 h-full" placeholder="0" />
+                                        <td className={`px-4 py-3 border-r border-slate-100 text-center border-b border-slate-50 transition-all ${d.sea !== ((approvalRequest?.snapshot_data?.original_quantities || approvalRequest?.snapshot_data?.quantities)?.[item.ItemCode]?.sea || 0) ? 'bg-amber-50 ring-1 ring-inset ring-amber-200' : 'bg-blue-50/10'}`}>
+                                            <div className="relative group">
+                                                <input type="number" value={d.sea || ''} onChange={e => !isLocked && handleQtyChange(item.ItemCode, 'sea', parseInt(e.target.value) || 0)} readOnly={isLocked} className={`w-full bg-transparent focus:ring-0 text-center text-base font-black p-0 h-full ${d.sea !== ((approvalRequest?.snapshot_data?.original_quantities || approvalRequest?.snapshot_data?.quantities)?.[item.ItemCode]?.sea || 0) ? 'text-amber-700' : 'text-blue-700'}`} placeholder="0" />
+                                                {d.sea !== ((approvalRequest?.snapshot_data?.original_quantities || approvalRequest?.snapshot_data?.quantities)?.[item.ItemCode]?.sea || 0) && (
+                                                    <div className={`absolute -top-6 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-[8px] font-black shadow-sm z-10 whitespace-nowrap ${d.sea > ((approvalRequest?.snapshot_data?.original_quantities || approvalRequest?.snapshot_data?.quantities)?.[item.ItemCode]?.sea || 0) ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
+                                                        {d.sea > ((approvalRequest?.snapshot_data?.original_quantities || approvalRequest?.snapshot_data?.quantities)?.[item.ItemCode]?.sea || 0) ? '+' : ''}{d.sea - ((approvalRequest?.snapshot_data?.original_quantities || approvalRequest?.snapshot_data?.quantities)?.[item.ItemCode]?.sea || 0)}
+                                                    </div>
+                                                )}
+                                            </div>
                                             {((item.computed?.gapOrExcess || 0) > 0) && d.sea === 0 && (
                                                 <button 
                                                     onClick={() => handleQtyChange(item.ItemCode, 'sea', item.computed!.gapOrExcess)} 
