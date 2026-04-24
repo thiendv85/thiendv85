@@ -410,6 +410,11 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                 const status = getDebtStatus(i);
                 if (!deferredFilters.debtStatus.includes(status)) return false;
             }
+            if (deferredFilters.onlyAdjusted) {
+                const current = (orderQuantities[i.ItemCode]?.air || 0) + (orderQuantities[i.ItemCode]?.sea || 0);
+                const original = (approvalRequest?.snapshot_data?.quantities?.[i.ItemCode]?.air || 0) + (approvalRequest?.snapshot_data?.quantities?.[i.ItemCode]?.sea || 0);
+                if (current === original) return false;
+            }
             return true;
         });
 
@@ -722,6 +727,18 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                                 <button onClick={() => { setViewFilter('seasonal'); setCurrentPage(1); }} className={`flex-1 md:flex-none px-2 md:px-4 py-1.5 text-[10px] md:text-xs font-black rounded-lg transition-all ${viewFilter === 'seasonal' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t('ord_tab_seasonal')}</button>
                                 <button onClick={() => { setViewFilter('draft'); setCurrentPage(1); }} className={`flex-1 md:flex-none px-2 md:px-4 py-1.5 text-[10px] md:text-xs font-black rounded-lg transition-all ${viewFilter === 'draft' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t('ord_tab_draft')}</button>
                             </div>
+
+                            {/* Adjusted Items Filter Toggle (Approver/Returned context only) */}
+                            {approvalRequest && (
+                                <button 
+                                    onClick={() => handleMainFilterChange({ ...filters, onlyAdjusted: !filters.onlyAdjusted })}
+                                    className={`px-3 py-1.5 text-[10px] md:text-xs font-black rounded-xl border transition-all flex items-center gap-1.5 ${filters.onlyAdjusted ? 'bg-indigo-600 text-white border-indigo-700 shadow-md' : 'bg-white text-indigo-600 border-indigo-200 hover:bg-indigo-50'}`}
+                                >
+                                    <i className={`fas ${filters.onlyAdjusted ? 'fa-check-circle' : 'fa-circle-dot'}`} />
+                                    Có điều chỉnh
+                                </button>
+                            )}
+
                             {/* Desktop Sort */}
                             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl shrink-0">
                                 <i className="fas fa-sort-amount-down text-slate-400 text-[10px]"></i>

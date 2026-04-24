@@ -56,6 +56,7 @@ export interface InventoryFilters {
     showBackorders: boolean;
     debtStatus: string[];
     source: string;
+    onlyAdjusted: boolean;
 }
 
 export const DEFAULT_FILTERS: InventoryFilters = {
@@ -70,6 +71,7 @@ export const DEFAULT_FILTERS: InventoryFilters = {
     showBackorders: false,
     debtStatus: [],
     source: 'All',
+    onlyAdjusted: false,
 };
 
 export const COST_RANGES = [
