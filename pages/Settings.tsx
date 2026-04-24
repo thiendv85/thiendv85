@@ -342,7 +342,8 @@ const ROLE_LABELS: Record<UserRole, string> = {
 };
 
 const UserManagementTab = () => {
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
+    const isAdmin = profile?.role === 'admin';
     const [users, setUsers] = useState<UserProfile[]>([]);
     const [workflows, setWorkflowList] = useState<ApprovalWorkflow[]>([]);
     const [isLoading, setIsLoading] = useState(true);
