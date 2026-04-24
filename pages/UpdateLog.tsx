@@ -8,6 +8,16 @@ export const UpdateLog = () => {
 
     const updates = [
         {
+            ver: 'v1.3.4',
+            date: '2026-04-24',
+            title: 'Ordering Workbench Sync & Snapshot Persistence',
+            items: [
+                'Đồng bộ logic hiển thị mã hàng 0 SL trên cả Modal Duyệt và Workbench chính.',
+                'Sửa lỗi mất context khi lưu snapshot: Đảm bảo các mã hàng đã bị xóa vẫn được lưu trữ để phục vụ hậu kiểm.',
+                'Tối ưu hóa hiệu suất lọc "Chỉ Dự Thảo" trong điều kiện có điều chỉnh số lượng.'
+            ]
+        },
+        {
             ver: 'v1.3.3',
             date: '2026-04-24',
             title: 'Approval Traceability & Zero-Qty Visibility',

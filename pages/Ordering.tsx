@@ -158,6 +158,10 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
     const fileInputRef = useRef<HTMLInputElement>(null);
     const tableScrollRef = useRef<HTMLDivElement>(null);
 
+    const originalDraft = useMemo(() => {
+        return approvalRequest?.snapshot_data?.original_quantities || approvalRequest?.snapshot_data?.quantities;
+    }, [approvalRequest]);
+
     useEffect(() => { if (onUpdateDraft) onUpdateDraft({ quantities: orderQuantities, notes: orderNotes }); }, [orderQuantities, orderNotes, onUpdateDraft]);
     useEffect(() => { if (onSaveState) onSaveState({ settings, filters, quantities: orderQuantities, notes: orderNotes, viewFilter, itemsPerPage }); }, [settings, filters, orderQuantities, orderNotes, viewFilter, itemsPerPage, onSaveState]);
 
@@ -235,8 +239,10 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
     const buildSnapshot = () => ({
         quantities: orderQuantities,
         notes: orderNotes,
-        inventory_context: Object.keys(orderQuantities)
-            .filter(code => (orderQuantities[code].air || 0) + (orderQuantities[code].sea || 0) > 0)
+        inventory_context: Array.from(new Set([
+            ...Object.keys(orderQuantities).filter(code => (orderQuantities[code].air || 0) + (orderQuantities[code].sea || 0) > 0),
+            ...(approvalRequest?.snapshot_data?.inventory_context?.map(ctx => ctx.itemCode) || [])
+        ]))
             .map(code => {
                 const item = enrichedMap?.get(code);
                 const c = item?.computed;
@@ -336,7 +342,8 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
         const itemMap = new Map<string, InventoryItem>();
         const list = activeEnrichedData.map(item => {
             const draft = orderQuantities[item.ItemCode];
-            const hasDraft = draft && (draft.air + draft.sea > 0);
+            const od = originalDraft?.[item.ItemCode];
+            const hasDraft = (draft && (draft.air + draft.sea > 0)) || (od && (od.air + od.sea > 0));
 
             // If item has draft, re-calculate its simulations. Otherwise, use base item.
             let finalizedItem = item;
@@ -365,7 +372,8 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
         let list = enrichedList.filter(i => {
             if (!matchSearch(i, deferredSearchResult)) return false;
             const d = orderQuantities[i.ItemCode] as { air: number, sea: number } | undefined;
-            const hasDraft = d && (d.air + d.sea > 0);
+            const od = originalDraft?.[i.ItemCode];
+            const hasDraft = (d && (d.air + d.sea > 0)) || (od && (od.air + od.sea > 0));
             // O8 Fix: 'Suggested' tab phải hiển thị cả items có AIR suggest (suggestedBO) lẫn SEA suggest (gapOrExcess)
             const hasSuggestion = (i.computed?.gapOrExcess || 0) > 0 || (i.computed?.suggestedBO || 0) > 0;
             if (deferredViewFilter === 'draft' && !hasDraft) return false;
