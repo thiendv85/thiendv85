@@ -919,6 +919,19 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                                             baseFc={item.BaseForecast}
                                         />
                                     </div>
+                                    
+                                    {isApproverMode && (
+                                        <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[10px] font-black text-slate-400 uppercase">Dự thảo Planner</span>
+                                                <div className="flex gap-2 text-[9px] font-bold text-slate-500">
+                                                    <span className="bg-rose-50 px-1 rounded text-rose-600">Air: {approvalRequest?.snapshot_data?.quantities?.[item.ItemCode]?.air || 0}</span>
+                                                    <span className="bg-blue-50 px-1 rounded text-blue-600">Sea: {approvalRequest?.snapshot_data?.quantities?.[item.ItemCode]?.sea || 0}</span>
+                                                </div>
+                                            </div>
+                                            <span className="font-black text-slate-600">{(approvalRequest?.snapshot_data?.quantities?.[item.ItemCode]?.air || 0) + (approvalRequest?.snapshot_data?.quantities?.[item.ItemCode]?.sea || 0)}</span>
+                                        </div>
+                                    )}
 
                                     {/* QTY Inputs */}
                                     <div className="grid grid-cols-2 gap-px bg-slate-100 border-t border-slate-100">
@@ -984,8 +997,13 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                                 <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[110px] hidden lg:table-cell"><Typography variant="label">PO PIPELINE</Typography></th>
                                 <th className="px-4 py-4 text-center border-b border-slate-200 min-w-[120px] hidden lg:table-cell"><Typography variant="label">{t('ord_th_momentum')}</Typography></th>
                                 <th className="px-4 py-4 text-center border-b border-slate-200 hidden md:table-cell"><Typography variant="label">{t('ord_th_dealer_cst')}</Typography></th>
-                                <th className="px-4 py-4 text-center border-x border-slate-200 bg-rose-50/20 border-b border-slate-200"><Typography variant="label" className="text-rose-600">Air</Typography></th>
-                                <th className="px-4 py-4 text-center border-r border-slate-200 bg-blue-50/20 border-b border-slate-200"><Typography variant="label" className="text-blue-600">Sea</Typography></th>
+                                {isApproverMode && (
+                                    <th className="px-4 py-4 text-center border-l border-slate-200 bg-slate-50 border-b border-slate-200 min-w-[100px]">
+                                        <Typography variant="label" className="text-slate-500">Dự thảo</Typography>
+                                    </th>
+                                )}
+                                <th className="px-4 py-4 text-center border-x border-slate-200 bg-rose-50/20 border-b border-slate-200"><Typography variant="label" className="text-rose-600">{isApproverMode ? 'Duyệt Air' : 'Air'}</Typography></th>
+                                <th className="px-4 py-4 text-center border-r border-slate-200 bg-blue-50/20 border-b border-slate-200"><Typography variant="label" className="text-blue-600">{isApproverMode ? 'Duyệt Sea' : 'Sea'}</Typography></th>
                                 <th className="px-4 py-4 min-w-[150px] border-b border-slate-200 hidden xl:table-cell">{t('ord_th_note')}</th>
                                 <th className="px-4 py-4 text-right sticky right-0 z-40 bg-white border-b border-slate-200 border-l border-slate-200 shadow-inner">{t('ord_th_amount')}</th>
                             </tr>
@@ -1113,6 +1131,19 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                                                 </div>
                                             </div>
                                         </td>
+                                        {isApproverMode && (
+                                            <td className="px-4 py-3 border-l border-slate-100 bg-slate-50/30 text-center border-b border-slate-50">
+                                                <div className="flex flex-col items-center">
+                                                    <span className="text-xs font-black text-slate-400">
+                                                        {(approvalRequest?.snapshot_data?.quantities?.[item.ItemCode]?.air || 0) + (approvalRequest?.snapshot_data?.quantities?.[item.ItemCode]?.sea || 0)}
+                                                    </span>
+                                                    <div className="flex gap-1 text-[9px] text-slate-300 font-bold">
+                                                        <span>A:{approvalRequest?.snapshot_data?.quantities?.[item.ItemCode]?.air || 0}</span>
+                                                        <span>S:{approvalRequest?.snapshot_data?.quantities?.[item.ItemCode]?.sea || 0}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        )}
                                         <td className="px-4 py-3 border-x border-slate-100 bg-rose-50/10 text-center border-b border-slate-50">
                                             <input type="number" value={d.air || ''} onChange={e => !isLocked && handleQtyChange(item.ItemCode, 'air', parseInt(e.target.value) || 0)} readOnly={isLocked} className="w-full bg-rose-50 border-0 focus:ring-0 text-center text-base font-black text-rose-700 p-0 h-full" placeholder="0" />
                                             {((item.computed?.suggestedBO || 0) > 0) && d.air === 0 && (
