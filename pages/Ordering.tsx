@@ -739,31 +739,31 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
 
                         {/* Desktop Action Buttons */}
                         <div className="hidden md:flex flex-wrap items-center gap-2 justify-end">
-                            <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 p-1 rounded-2xl">
-                                <button onClick={() => setIsCloudModalOpen(true)} className="bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all border border-blue-700 flex items-center justify-center shadow-glow px-4 py-2.5 text-[10px] font-black uppercase tracking-widest">
+                            <div className="flex items-center gap-2 bg-white/40 backdrop-blur-md border border-white/20 p-1.5 rounded-2xl shadow-sm">
+                                <button onClick={() => setIsCloudModalOpen(true)} className="bg-blue-600/90 hover:bg-blue-600 text-white rounded-xl transition-all border border-blue-400/30 flex items-center justify-center shadow-lg shadow-blue-500/20 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest backdrop-blur-sm active:scale-95">
                                     <i className="fas fa-cloud mr-2"></i> Cloud
                                 </button>
                                 {!isApproverMode && (
                                     <>
                                         <input type="file" ref={fileInputRef} className="hidden" accept=".csv" onChange={handleImport} />
-                                        <button onClick={() => fileInputRef.current?.click()} className="bg-white text-slate-700 hover:bg-slate-100 rounded-xl transition-all border border-slate-200 flex items-center justify-center px-4 py-2.5 text-[10px] font-black uppercase tracking-widest">
-                                            <i className="fas fa-file-import mr-2"></i> Import
+                                        <button onClick={() => fileInputRef.current?.click()} className="bg-white/60 text-slate-700 hover:bg-white/80 rounded-xl transition-all border border-slate-200/50 flex items-center justify-center px-4 py-2.5 text-[10px] font-black uppercase tracking-widest active:scale-95">
+                                            <i className="fas fa-file-import mr-2 text-blue-500"></i> Import
                                         </button>
-                                        <button onClick={handleClearDraft} className="bg-white text-rose-600 hover:bg-rose-50 rounded-xl transition-all border border-rose-100 flex items-center justify-center px-4 py-2.5 text-[10px] font-black uppercase tracking-widest">
+                                        <button onClick={handleClearDraft} className="bg-white/60 text-rose-600 hover:bg-rose-50/80 rounded-xl transition-all border border-rose-200/50 flex items-center justify-center px-4 py-2.5 text-[10px] font-black uppercase tracking-widest active:scale-95">
                                             <i className="fas fa-trash-can mr-2"></i> Xóa Draft
                                         </button>
                                     </>
                                 )}
                             </div>
-                            <button onClick={handleExport} className="bg-atp-secondary text-white hover:bg-slate-700 px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-md flex items-center gap-2 border border-slate-800">
-                                <i className="fas fa-file-export"></i> {t('ord_export_btn')}
+                            <button onClick={handleExport} className="bg-slate-800/90 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-slate-900/10 flex items-center gap-2 border border-slate-700/50 backdrop-blur-md active:scale-95">
+                                <i className="fas fa-file-export text-blue-300"></i> {t('ord_export_btn')}
                             </button>
                             {isApproverMode ? (
                                 <>
-                                    <button onClick={handleReturn} disabled={isSubmitting} className="bg-rose-600 hover:bg-rose-500 disabled:opacity-40 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-glow flex items-center gap-2 border border-rose-700">
+                                    <button onClick={handleReturn} disabled={isSubmitting} className="bg-rose-600/90 hover:bg-rose-600 disabled:opacity-40 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-rose-500/20 flex items-center gap-2 border border-rose-400/30 active:scale-95 backdrop-blur-sm">
                                         <i className="fas fa-times"></i> Trả lại
                                     </button>
-                                    <button onClick={handleApprove} disabled={isSubmitting} className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-glow flex items-center gap-2 border border-emerald-700">
+                                    <button onClick={handleApprove} disabled={isSubmitting} className="bg-emerald-600/90 hover:bg-emerald-600 disabled:opacity-40 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 flex items-center gap-2 border border-emerald-400/30 active:scale-95 backdrop-blur-sm">
                                         <i className="fas fa-check"></i> Phê duyệt
                                     </button>
                                 </>
@@ -808,10 +808,10 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                             )}
                             {isApproverMode ? (
                                 <>
-                                    <button onClick={handleReturn} disabled={isSubmitting} className="w-9 h-9 flex items-center justify-center text-rose-600 bg-rose-50/50 rounded-xl border border-rose-100 active:bg-rose-100 disabled:opacity-40">
+                                    <button onClick={handleReturn} disabled={isSubmitting} className="w-9 h-9 flex items-center justify-center text-rose-600 bg-rose-50/50 backdrop-blur-md rounded-xl border border-rose-200/50 active:bg-rose-100 disabled:opacity-40 active:scale-95 transition-all">
                                         <i className="fas fa-times text-xs"></i>
                                     </button>
-                                    <button onClick={handleApprove} disabled={isSubmitting} className="w-9 h-9 flex items-center justify-center text-emerald-600 bg-emerald-50/50 rounded-xl border border-emerald-100 active:bg-emerald-100 disabled:opacity-40">
+                                    <button onClick={handleApprove} disabled={isSubmitting} className="w-9 h-9 flex items-center justify-center text-emerald-600 bg-emerald-50/50 backdrop-blur-md rounded-xl border border-emerald-200/50 active:bg-emerald-100 disabled:opacity-40 active:scale-95 transition-all">
                                         <i className="fas fa-check text-xs"></i>
                                     </button>
                                 </>
@@ -841,7 +841,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                             <button
                                 onClick={handleResubmit}
                                 disabled={isSubmitting || Object.values(orderQuantities).every((v: any) => !v.air && !v.sea)}
-                                className="shrink-0 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2"
+                                className="shrink-0 bg-indigo-600/90 hover:bg-indigo-600 disabled:opacity-40 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95 backdrop-blur-sm border border-indigo-400/30"
                             >
                                 {isSubmitting ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-paper-plane" />}
                                 Gửi lại

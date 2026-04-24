@@ -443,12 +443,12 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
                             </Typography>
                             <div className="grid grid-cols-2 gap-3 mt-2">
                                 <button onClick={() => handleSave(false)} disabled={isLoading}
-                                    className="bg-slate-100 hover:bg-slate-200 text-slate-600 font-black py-4 rounded-2xl uppercase tracking-widest transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-[10px]">
+                                    className="bg-slate-100/80 backdrop-blur-md hover:bg-slate-200/80 text-slate-600 font-black py-4 rounded-2xl uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 text-[10px] border border-slate-200/50 shadow-sm">
                                     {isLoading ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-file-pen"></i>}
                                     Lưu Nháp
                                 </button>
                                 <button onClick={() => handleSave(true)} disabled={isLoading}
-                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-2xl uppercase tracking-widest transition-all shadow-lg shadow-emerald-600/20 active:scale-[0.98] flex items-center justify-center gap-2 text-[10px]">
+                                    className="bg-emerald-600/90 backdrop-blur-md hover:bg-emerald-600 text-white font-black py-4 rounded-2xl uppercase tracking-widest transition-all shadow-xl shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-2 text-[10px] border border-emerald-400/30">
                                     {isLoading ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-paper-plane"></i>}
                                     Lưu & Gửi Duyệt
                                 </button>
