@@ -880,12 +880,12 @@ const SnapshotManagerTab = ({ monthlyHistory, handleDeleteMonthly }: SnapshotMan
     const handleDelete = async (snap: SnapshotMetadataRow) => {
         if (!confirm(`Xóa snapshot "${snap.filename}"?\nDữ liệu sẽ bị xóa vĩnh viễn khỏi Cloud.`)) return;
         setDeletingId(snap.id);
-        const ok = await deleteSnapshot(snap.id, snap.storage_path);
-        if (ok) {
+        const result = await deleteSnapshot(snap.id, snap.storage_path);
+        if (result.success) {
             setSnapshots(prev => prev.filter(s => s.id !== snap.id));
             setStorageInfo(prev => ({ ...prev, count: prev.count - 1, usedBytes: prev.usedBytes - (snap.file_size_bytes || 0) }));
         } else {
-            alert('Lỗi khi xóa bản sao lưu. Vui lòng kiểm tra Console để biết chi tiết.');
+            alert(`❌ Lỗi khi xóa: ${result.error || 'Không xác định'}`);
         }
         setDeletingId(null);
     };
@@ -897,22 +897,24 @@ const SnapshotManagerTab = ({ monthlyHistory, handleDeleteMonthly }: SnapshotMan
         
         setIsLoading(true);
         let successCount = 0;
-        let failCount = 0;
+        let lastError = '';
 
         for (const id of selectedIds) {
             const snap = snapshots.find(s => s.id === id);
             if (snap) {
-                const ok = await deleteSnapshot(snap.id, snap.storage_path);
-                if (ok) successCount++;
-                else failCount++;
+                const result = await deleteSnapshot(snap.id, snap.storage_path);
+                if (result.success) successCount++;
+                else lastError = result.error || 'Lỗi không xác định';
             }
         }
         
         setSelectedIds(new Set());
         await fetchAll();
         
-        if (failCount > 0) {
-            alert(`Đã xóa ${successCount} file. Thất bại ${failCount} file. Kiểm tra Console để biết chi tiết.`);
+        if (successCount < count) {
+            alert(`Đã xóa ${successCount}/${count} file. Lỗi cuối: ${lastError}`);
+        } else {
+            alert(`✅ Đã xóa thành công ${successCount} file.`);
         }
         setIsLoading(false);
     };
@@ -1192,8 +1194,8 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
         if (pin === null) return;
         if (!verifyAdminPin(pin)) { alert('❌ Mã phê duyệt không đúng!'); return; }
 
-        const ok = await deleteMonthlyData(snapshotMonth);
-        if (ok) {
+        const result = await deleteMonthlyData(snapshotMonth);
+        if (result.success) {
             alert('✅ Đã xóa dữ liệu thành công.');
             const hist = await listMonthlyDataSnapshots();
             setMonthlyHistory(hist);
@@ -1201,7 +1203,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
             const currentSnapshotMonth = new Date().toISOString().slice(0, 7);
             if (snapshotMonth === currentSnapshotMonth) setMonthlyCurrentDate(null);
         } else {
-            alert('Lỗi khi xóa dữ liệu.');
+            alert(`❌ Lỗi khi xóa: ${result.error || 'Không xác định'}`);
         }
     };
     // ───────────────────────────────────────────────────────────────────────

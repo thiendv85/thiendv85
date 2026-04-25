@@ -116,14 +116,14 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
         setLoadingId(snap.id);
         setError(null);
         try {
-            const success = await deleteSnapshot(snap.id, snap.storage_path);
-            if (success) {
+            const result = await deleteSnapshot(snap.id, snap.storage_path);
+            if (result.success) {
                 setSnapshots(prev => prev.filter(s => s.id !== snap.id));
             } else {
-                setError('Xóa bản sao lưu thất bại. Vui lòng kiểm tra Console để biết chi tiết.');
+                setError(`Xóa bản sao lưu thất bại: ${result.error || 'Lỗi không xác định'}`);
             }
-        } catch (err) {
-            setError('Lỗi khi xóa dữ liệu. Kiểm tra Console để biết chi tiết.');
+        } catch (err: any) {
+            setError(`Lỗi khi xóa dữ liệu: ${err?.message || 'Lỗi hệ thống'}`);
             console.error('[UI] Cloud deletion error:', err);
         } finally {
             setLoadingId(null);

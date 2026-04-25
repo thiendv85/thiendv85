@@ -380,7 +380,7 @@ export async function loadSpecificMonthlyData(month: string): Promise<{ data: Re
  * Deletes all records for a specific snapshot_month.
  * Also removes the index record from cloud_storage.
  */
-export async function deleteMonthlyData(snapshotMonth: string): Promise<boolean> {
+export async function deleteMonthlyData(snapshotMonth: string): Promise<{ success: boolean; error?: string }> {
   try {
     console.log(`[Supabase] Deleting monthly data for: ${snapshotMonth}`);
     
@@ -392,7 +392,7 @@ export async function deleteMonthlyData(snapshotMonth: string): Promise<boolean>
     
     if (dErr) {
       console.error('[Supabase] Error deleting from monthly_sku_data:', dErr);
-      throw dErr;
+      return { success: false, error: dErr.message };
     }
 
     // 2. Delete index record from cloud_storage
@@ -403,14 +403,14 @@ export async function deleteMonthlyData(snapshotMonth: string): Promise<boolean>
 
     if (cErr) {
       console.error('[Supabase] Error deleting from cloud_storage:', cErr);
-      throw cErr;
+      return { success: false, error: cErr.message };
     }
 
     console.log(`[Supabase] Successfully deleted monthly data for: ${snapshotMonth}`);
-    return true;
-  } catch (error) {
+    return { success: true };
+  } catch (error: any) {
     console.error('Lỗi khi xóa Monthly Data:', error);
-    return false;
+    return { success: false, error: error?.message || 'Unknown error' };
   }
 }
 
@@ -1107,7 +1107,7 @@ export async function loadSnapshot(storagePath: string): Promise<InventoryItem[]
 /**
  * Delete a snapshot (storage file + metadata row).
  */
-export async function deleteSnapshot(id: string, storagePath: string): Promise<boolean> {
+export async function deleteSnapshot(id: string, storagePath: string): Promise<{ success: boolean; error?: string }> {
   try {
     console.log(`[Supabase] Attempting to delete snapshot: ${id} at ${storagePath}`);
     
@@ -1118,7 +1118,7 @@ export async function deleteSnapshot(id: string, storagePath: string): Promise<b
     
     if (storageErr) {
       console.warn('[Supabase] Storage removal warning (might already be deleted):', storageErr);
-      // We continue even if storage removal fails (file might link to multiple metadata or be missing)
+      // We continue even if storage removal fails
     }
 
     // 2. Delete metadata row
@@ -1129,14 +1129,14 @@ export async function deleteSnapshot(id: string, storagePath: string): Promise<b
     
     if (dbErr) {
       console.error('[Supabase] Error deleting snapshot metadata:', dbErr);
-      return false;
+      return { success: false, error: dbErr.message };
     }
 
     console.log(`[Supabase] Successfully deleted snapshot: ${id}`);
-    return true;
-  } catch (err) {
+    return { success: true };
+  } catch (err: any) {
     console.error('[Supabase] Unexpected error in deleteSnapshot:', err);
-    return false;
+    return { success: false, error: err?.message || 'Unexpected error' };
   }
 }
 
