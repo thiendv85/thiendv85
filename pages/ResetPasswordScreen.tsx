@@ -17,15 +17,18 @@ export const ResetPasswordScreen = () => {
         if (password !== confirm) { setError('Mật khẩu xác nhận không khớp.'); return; }
         setIsLoading(true);
         setError(null);
-        const { error: err } = await supabase.auth.updateUser({ password });
-        if (err) {
-            setError(err.message);
+        try {
+            const { error: err } = await supabase.auth.updateUser({ password });
+            if (err) {
+                setError(err.message);
+            } else {
+                setSuccess(true);
+                setTimeout(() => {
+                    clearPasswordReset();
+                }, 2000);
+            }
+        } finally {
             setIsLoading(false);
-        } else {
-            setSuccess(true);
-            setTimeout(() => {
-                clearPasswordReset();
-            }, 2000);
         }
     };
 

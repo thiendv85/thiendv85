@@ -14,16 +14,17 @@ export const LoginScreen = () => {
         if (!email.trim() || !password) return;
         setIsLoading(true);
         setError(null);
-        const { error: err } = await signIn(email.trim(), password);
-        if (err) {
-            console.error("LoginScreen: Sign in failed:", err);
-            setError('Email hoặc mật khẩu không đúng.');
+        try {
+            const { error: err } = await signIn(email.trim(), password);
+            if (err) {
+                console.error("LoginScreen: Sign in failed:", err);
+                setError('Email hoặc mật khẩu không đúng.');
+            } else {
+                console.log("LoginScreen: Sign in success, triggering animation and unmount...");
+                setLoginSuccess(true);
+            }
+        } finally {
             setIsLoading(false);
-        } else {
-            console.log("LoginScreen: Sign in success, triggering animation and unmount...");
-            // Kích hoạt hiệu ứng chuyển cảnh
-            // AuthProvider sẽ cập nhật session sau đó → App.tsx unmount component
-            setLoginSuccess(true);
         }
     };
 

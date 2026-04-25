@@ -3,7 +3,9 @@ import React, { useState, useRef, useEffect, useMemo, useTransition } from 'reac
 import { createPortal } from 'react-dom';
 import { InventoryItem, KittingDefinition, MonthlyData } from './types/inventory';
 import { SupersessionMapping, SupersessionGraph } from './utils/supersessionGraph';
-import { FileUpload } from './pages/FileUpload';
+import { AuthProvider, useAuth } from './utils/authContext';
+import { LanguageProvider, useLanguage } from './utils/i18n';
+const FileUpload = React.lazy(() => import('./pages/FileUpload').then(m => ({ default: m.FileUpload })));
 // Heavy pages — lazy loaded for code splitting (reduces initial bundle ~70%)
 const Dashboard = React.lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
 const SkuDetail = React.lazy(() => import('./pages/SkuDetail').then(m => ({ default: m.SkuDetail })));
@@ -11,16 +13,14 @@ const Ordering = React.lazy(() => import('./pages/Ordering').then(m => ({ defaul
 const RepairPackageOptimizer = React.lazy(() => import('./components/RepairPackageOptimizer').then(m => ({ default: m.RepairPackageOptimizer })));
 const InventoryDistribution = React.lazy(() => import('./pages/InventoryDistribution').then(m => ({ default: m.InventoryDistribution })));
 const ApprovalQueue = React.lazy(() => import('./pages/ApprovalQueue').then(m => ({ default: m.ApprovalQueue })));
-// Settings: static import needed for loadAppSettings/saveAppSettings used at top-level
-import { SettingsPage, loadAppSettings, saveAppSettings, AppSettings } from './pages/Settings';
-import { UpdateLog } from './pages/UpdateLog';
-import { LanguageProvider, useLanguage } from './utils/i18n';
-import { AuthProvider, useAuth } from './utils/authContext';
-import { LoginScreen } from './pages/LoginScreen';
-import { ResetPasswordScreen } from './pages/ResetPasswordScreen';
+// Settings logic — extracted for non-blocking persistence
+import { AppSettings, loadAppSettings, saveAppSettings } from './utils/appSettings';
+const SettingsPage = React.lazy(() => import('./pages/Settings').then(m => ({ default: m.SettingsPage })));
+const UpdateLog = React.lazy(() => import('./pages/UpdateLog').then(m => ({ default: m.UpdateLog })));
+const LoginScreen = React.lazy(() => import('./pages/LoginScreen').then(m => ({ default: m.LoginScreen })));
+const ResetPasswordScreen = React.lazy(() => import('./pages/ResetPasswordScreen').then(m => ({ default: m.ResetPasswordScreen })));
 import { Typography } from './components/Typography';
-import { resolveItemProfile } from './utils/inventoryEngine';
-import { mergeMonthlyIntoItems } from './utils/csvParser';
+import { resolveItemProfile, mergeMonthlyIntoItems } from './utils/inventoryUtils';
 import { loadFromCloudStorage, loadLatestMonthlyData } from './utils/supabase';
 import { useDevice } from './hooks/useDevice';
 import { useInventoryWorker } from './hooks/useInventoryWorker';
@@ -376,23 +376,31 @@ const AppContent = () => {
     console.log("App: Auth State - Session:", session ? "YES" : "NO", "Profile:", profile ? profile.role : "NONE");
 
     if (!session) {
-        console.log("App: Redirecting to LoginScreen");
-        return <LoginScreen />;
+        return (
+            <React.Suspense fallback={<div className="h-screen bg-slate-900 flex items-center justify-center"><i className="fas fa-circle-notch fa-spin text-blue-400 text-3xl"></i></div>}>
+                <LoginScreen onLoginSuccess={() => { }} />
+            </React.Suspense>
+        );
     }
     if (needsPasswordReset) {
-        console.log("App: Redirecting to ResetPasswordScreen");
-        return <ResetPasswordScreen />;
+        return (
+            <React.Suspense fallback={<div className="h-screen bg-slate-900 flex items-center justify-center"><i className="fas fa-circle-notch fa-spin text-blue-400 text-3xl"></i></div>}>
+                <ResetPasswordScreen onResetSuccess={() => { }} />
+            </React.Suspense>
+        );
     }
 
     if (view === 'upload') return (
-        <FileUpload
-            onData={handleDataUpload}
-            monthlyData={monthlyData}
-            isMonthlyLoading={isMonthlyLoading}
-            monthlyDataDate={monthlyDataDate}
-            sourceProfiles={appSettings.sourceProfiles}
-            activeSourceId={appSettings.activeSourceId}
-        />
+        <React.Suspense fallback={<PageSkeleton />}>
+            <FileUpload
+                onData={handleDataUpload}
+                monthlyData={monthlyData}
+                isMonthlyLoading={isMonthlyLoading}
+                monthlyDataDate={monthlyDataDate}
+                sourceProfiles={appSettings.sourceProfiles}
+                activeSourceId={appSettings.activeSourceId}
+            />
+        </React.Suspense>
     );
 
     return (

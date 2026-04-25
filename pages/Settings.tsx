@@ -11,258 +11,9 @@ import { UserProfile, UserRole } from '../utils/authContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export interface AppSettings {
-    // Source Profiles (replaces old bmw*/default* params)
-    sourceProfiles: SourceProfile[];
-    activeSourceId: string;           // currently selected source profile ID
-
-    // Display
-    defaultWarehouseScope: 'All' | 'NB' | 'BB';
-    defaultCostBasis: 'PP' | 'FOB';
-    defaultDemandSource: '3M' | '6M' | '12M';
-    currency: 'VND' | 'EUR';
-    language: 'vi' | 'en';
-
-    // Thresholds
-    excessThresholdPct: number;       // % vượt max → cảnh báo dư thừa (mặc định 0)
-    criticalMosThreshold: number;     // MOS < x → P0 (mặc định 0.5)
-    warningMosThreshold: number;      // MOS < x → P1 (mặc định 1.5)
-
-    // Export
-    exportIncludeComputed: boolean;
-    exportIncludePipeline: boolean;
-    exportIncludeSalesHistory: boolean;
-    exportDecimalPrecision: number;
-    exportDateFormat: 'DD/MM/YYYY' | 'YYYY-MM-DD' | 'MM/DD/YYYY';
-    exportSeparator: 'comma' | 'semicolon' | 'tab';
-    exportEncoding: 'utf8-bom' | 'utf8';
-
-    // Export - Column Selection (Inventory / Dashboard)
-    exportColumns: {
-        itemCode: boolean;
-        itemName: boolean;
-        typeCar: boolean;
-        loisGroup: boolean;
-        trendFlag: boolean;
-        status: boolean;
-        backorder: boolean;
-        backorderNB: boolean;
-        backorderBB: boolean;
-        stockNB: boolean;
-        stockBB: boolean;
-        totalInventory: boolean;
-        totalPO: boolean;
-        poThisMonth: boolean;
-        debtPriority: boolean;
-        debtStatus: boolean;
-        baseForecast: boolean;
-        avgQty3M: boolean;
-        avgQty6M: boolean;
-        avgQty12M: boolean;
-        mos: boolean;
-        rop: boolean;
-        stockMax: boolean;
-        safetyStock: boolean;
-        unitCostPP: boolean;
-        unitCostFOB: boolean;
-        stockValue: boolean;
-        excessQty: boolean;
-        excessValue: boolean;
-        dealerInventory: boolean;
-        note: boolean;
-        snp: boolean;
-    };
-
-    // Export - Column Selection (Order Draft / Ordering page)
-    orderDraftColumns: {
-        itemCode: boolean;        // Mã hàng
-        itemName: boolean;        // Tên hàng
-        status: boolean;          // Trạng thái
-        typeCar: boolean;         // Loại xe
-        airQty: boolean;          // SL Đặt AIR
-        seaQty: boolean;          // SL Đặt SEA
-        totalQty: boolean;        // Tổng SL Đặt
-        totalAmount: boolean;     // Thành tiền
-        currency: boolean;        // Tiền tệ
-        unitCostPP: boolean;      // Đơn giá PP (VND)
-        unitCostFOB: boolean;     // Đơn giá FOB (EUR)
-        unitCost: boolean;        // Đơn giá (theo costBasis)
-        noteOrder: boolean;       // Ghi chú đặt hàng
-        noteData: boolean;        // Ghi chú dữ liệu
-        snp: boolean;             // SNP
-        loisGroup: boolean;       // LOIS Group
-        trendFlag: boolean;       // Trend Flag
-        available: boolean;       // Tồn kho (Available)
-        netDemand: boolean;       // Tồn ròng (Net Demand = Available - BO)
-        dealerInventory: boolean; // Tồn đại lý
-        incomingMonth: boolean;   // Hàng về tháng này
-        totalPO: boolean;         // Tổng PO
-        backorder: boolean;       // Nợ đơn (BO)
-        debtPriority: boolean;     // Mức ưu tiên pick (P1-P5)
-        debtStatus: boolean;       // Trạng thái tình trạng nợ
-        suggestQty: boolean;      // SL Gợi ý đặt (hệ thống)
-        suggestBOQty: boolean;    // SL Gợi ý giải BO
-        safetyStock: boolean;     // Tồn an toàn (SSP)
-        avgQty3M: boolean;        // AVG 3M
-        avgQty6M: boolean;        // AVG 6M
-        avgQty12M: boolean;       // AVG 12M
-        avgQty24M: boolean;       // AVG 24M
-        baseForecast: boolean;    // Base Forecast
-        salesM1: boolean;         // Doanh số tháng gần nhất
-        mos: boolean;             // MOS (hiện tại)
-        currentCst: boolean;      // CST Hiện tại (trước đặt)
-        cstAfterOrder: boolean;   // CST Sau Đặt
-        rop: boolean;             // ROP
-        stockMax: boolean;        // Stock Max
-    };
-
-    // LOIS Configuration
-    loisProfiles: LoisProfile[];
-
-    // System
-    companyName: string;
-    reportTitle: string;
-    autoSaveState: boolean;
-    snapshotDate: string;
-
-    // Seasonality Tuning
-    seasonalityTuning: {
-        useSPD: boolean;
-        tetWeight: number;
-        weatherWeight: number;
-    };
-}
-
-export const DEFAULT_LOIS_PROFILES: LoisProfile[] = [
-    { id: '1', parentGroup: 'L', name: '> 300 cái/năm (Fast)', noPlan: false, alertType: 'none', targetMOS: 3.5, targetExcessPct: 5 },
-    { id: '2', parentGroup: 'L', name: '101 - 300 cái/năm', noPlan: false, alertType: 'none', targetMOS: 4.0, targetExcessPct: 7 },
-    { id: '3', parentGroup: 'L', name: '61 - 100 cái/năm', noPlan: false, alertType: 'none', targetMOS: 4.5, targetExcessPct: 10 },
-    { id: '4', parentGroup: 'L', name: '25 - 60 cái/năm', noPlan: false, alertType: 'none', targetMOS: 5.0, targetExcessPct: 12 },
-    { id: '5', parentGroup: 'L', name: '13 - 24 cái/năm', noPlan: false, alertType: 'none', targetMOS: 5.5, targetExcessPct: 15 },
-    { id: '6', parentGroup: 'L', name: '7 - 12 cái/năm', noPlan: false, alertType: 'none', targetMOS: 6.0, targetExcessPct: 18 },
-    { id: '7', parentGroup: 'L', name: '4 - 6 cái/năm', noPlan: false, alertType: 'none', targetMOS: 7.0, targetExcessPct: 25 },
-    { id: '8', parentGroup: 'L', name: '1 - 3 cái/năm (Low)', noPlan: false, alertType: 'none', targetMOS: 8.0, targetExcessPct: 30 },
-    { id: 'E', parentGroup: 'O', name: 'Hàng thay thế cũ (Superseded)', noPlan: true, alertType: 'warning', targetMOS: 1.5, targetExcessPct: 10 },
-    { id: 'N', parentGroup: 'O', name: 'Không bán > 6 tháng', noPlan: true, alertType: 'warning', targetMOS: 1.5, targetExcessPct: 10 },
-    { id: 'A', parentGroup: 'O', name: 'Không bán 12 - 24 tháng', noPlan: true, alertType: 'critical', targetMOS: 1.0, targetExcessPct: 10 },
-    { id: 'V', parentGroup: 'O', name: 'Không bán > 24 tháng (Dead)', noPlan: true, alertType: 'critical', targetMOS: 1.0, targetExcessPct: 10 },
-    { id: 'I', parentGroup: 'I', name: 'Inactive (Ngưng hoạt động)', noPlan: true, alertType: 'critical', targetMOS: 0.5, targetExcessPct: 30 },
-];
-
-export const DEFAULT_APP_SETTINGS: AppSettings = {
-    sourceProfiles: [...DEFAULT_SOURCE_PROFILES],
-    activeSourceId: 'NB',
-    defaultWarehouseScope: 'All',
-    defaultCostBasis: 'PP',
-    defaultDemandSource: '3M',
-    currency: 'VND',
-    language: 'vi',
-    excessThresholdPct: 0,
-    criticalMosThreshold: 0.5,
-    warningMosThreshold: 1.5,
-    exportIncludeComputed: true,
-    exportIncludePipeline: false,
-    exportIncludeSalesHistory: false,
-    exportDecimalPrecision: 2,
-    exportDateFormat: 'DD/MM/YYYY',
-    exportSeparator: 'comma',
-    exportEncoding: 'utf8-bom',
-    exportColumns: {
-        itemCode: true, itemName: true, typeCar: true, loisGroup: true, trendFlag: true,
-        status: true, backorder: true, backorderNB: false, backorderBB: false,
-        stockNB: true, stockBB: true, totalInventory: true, totalPO: true, poThisMonth: true,
-        debtPriority: true, debtStatus: true, baseForecast: true,
-        avgQty3M: true, avgQty6M: false, avgQty12M: false, mos: true,
-        rop: false, stockMax: false, safetyStock: false,
-        unitCostPP: true, unitCostFOB: false, stockValue: true,
-        excessQty: false, excessValue: false, dealerInventory: true,
-        note: false, snp: false,
-    },
-    orderDraftColumns: {
-        itemCode: true, itemName: true, status: false, typeCar: false,
-        airQty: true, seaQty: true, totalQty: true, totalAmount: true, currency: true,
-        unitCostPP: false, unitCostFOB: false, unitCost: true,
-        noteOrder: true, noteData: false,
-        snp: false, loisGroup: true, trendFlag: true,
-        available: true, netDemand: false, dealerInventory: true,
-        incomingMonth: true, totalPO: true, backorder: true,
-        debtPriority: true, debtStatus: true,
-        suggestQty: false, suggestBOQty: false, safetyStock: false,
-        avgQty3M: true, avgQty6M: false, avgQty12M: false, avgQty24M: false, baseForecast: false,
-        salesM1: false, mos: true, currentCst: false, cstAfterOrder: true,
-        rop: false, stockMax: false,
-    },
-    loisProfiles: [...DEFAULT_LOIS_PROFILES],
-    companyName: 'Auto Parts Governance',
-    reportTitle: 'Báo cáo Tồn Kho',
-    autoSaveState: true,
-    snapshotDate: new Date().toISOString().split('T')[0],
-    seasonalityTuning: {
-        useSPD: true,
-        tetWeight: 1.2,
-        weatherWeight: 1.0
-    }
-};
+import { AppSettings, DEFAULT_APP_SETTINGS, loadAppSettings, saveAppSettings, DEFAULT_LOIS_PROFILES } from '../utils/appSettings';
 
 const STORAGE_KEY = 'atp_app_settings';
-
-export const loadAppSettings = (): AppSettings => {
-    try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            // Migration: old format had bmwLeadTime but no sourceProfiles
-            if (parsed.bmwLeadTime !== undefined && !parsed.sourceProfiles) {
-                parsed.sourceProfiles = [...DEFAULT_SOURCE_PROFILES];
-                // Apply old BMW values to BMWASIA profile
-                const bmwProfile = parsed.sourceProfiles.find((p: SourceProfile) => p.id === 'BMWASIA');
-                if (bmwProfile) {
-                    bmwProfile.lt = parsed.bmwLeadTime;
-                    bmwProfile.sp = parsed.bmwSafetyPeriod ?? 15;
-                    bmwProfile.ssp = parsed.bmwSafetyStockPeriod ?? 7;
-                }
-                // Apply old default values to NB profile
-                const nbProfile = parsed.sourceProfiles.find((p: SourceProfile) => p.id === 'NB');
-                if (nbProfile) {
-                    nbProfile.lt = parsed.defaultLeadTime ?? 90;
-                    nbProfile.sp = parsed.defaultSafetyPeriod ?? 30;
-                    nbProfile.ssp = parsed.defaultSafetyStockPeriod ?? 15;
-                }
-                parsed.activeSourceId = 'NB';
-                delete parsed.bmwLeadTime;
-                delete parsed.bmwSafetyPeriod;
-                delete parsed.bmwSafetyStockPeriod;
-                delete parsed.defaultLeadTime;
-                delete parsed.defaultSafetyPeriod;
-                delete parsed.defaultSafetyStockPeriod;
-                // Migrate loisTargets: remove BMW columns
-                if (parsed.loisTargets) {
-                    for (const key of Object.keys(parsed.loisTargets)) {
-                        delete parsed.loisTargets[key].targetMOS_BMW;
-                        delete parsed.loisTargets[key].targetExcessPct_BMW;
-                    }
-                }
-            }
-
-            // Secondary Migration: ensure all profiles have a 'brand' field
-            if (parsed.sourceProfiles && Array.isArray(parsed.sourceProfiles)) {
-                parsed.sourceProfiles = parsed.sourceProfiles.map((p: any) => {
-                    if (!p.brand) {
-                        return { ...p, brand: p.id === 'BMWASIA' ? 'BMW' : 'Kia' };
-                    }
-                    return p;
-                });
-            }
-
-            return { ...DEFAULT_APP_SETTINGS, ...parsed };
-        }
-    } catch { }
-    return DEFAULT_APP_SETTINGS;
-};
-
-export const saveAppSettings = (s: AppSettings) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
-};
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 const SectionCard = ({ title, icon, badge, children }: { title: string; icon: string; badge?: string; children: React.ReactNode }) => (
@@ -378,10 +129,13 @@ const UserManagementTab = () => {
 
     const load = useCallback(async () => {
         setIsLoading(true);
-        const [u, w] = await Promise.all([listProfiles(), listWorkflows()]);
-        setUsers(u);
-        setWorkflowList(w);
-        setIsLoading(false);
+        try {
+            const [u, w] = await Promise.all([listProfiles(), listWorkflows()]);
+            setUsers(u);
+            setWorkflowList(w);
+        } finally {
+            setIsLoading(false);
+        }
     }, []);
 
     useEffect(() => { load(); }, [load]);
@@ -405,24 +159,30 @@ const UserManagementTab = () => {
         if (!newEmail.trim() || !newPassword.trim()) return;
         setIsCreating(true);
         setCreateError('');
-        const { error } = await createUserByAdmin(newEmail.trim(), newPassword, newFullName.trim(), newRole);
-        setIsCreating(false);
-        if (error) { setCreateError(error); return; }
-        setNewEmail(''); setNewPassword(''); setNewFullName(''); setNewRole('viewer');
-        setShowCreateUser(false);
-        load();
+        try {
+            const { error } = await createUserByAdmin(newEmail.trim(), newPassword, newFullName.trim(), newRole);
+            if (error) { setCreateError(error); return; }
+            setNewEmail(''); setNewPassword(''); setNewFullName(''); setNewRole('viewer');
+            setShowCreateUser(false);
+            load();
+        } finally {
+            setIsCreating(false);
+        }
     };
 
     const handleChangePassword = async () => {
         if (newPw.length < 6) { setPwMsg('Mật khẩu phải ít nhất 6 ký tự.'); return; }
         if (newPw !== confirmPw) { setPwMsg('Mật khẩu không khớp.'); return; }
         setIsChangingPw(true);
-        const { error } = await supabase.auth.updateUser({ password: newPw });
-        setIsChangingPw(false);
-        if (error) { setPwMsg(error.message); return; }
-        setPwMsg('✓ Đã đổi mật khẩu thành công!');
-        setNewPw(''); setConfirmPw('');
-        setTimeout(() => { setPwMsg(''); setShowChangePw(false); }, 2000);
+        try {
+            const { error } = await supabase.auth.updateUser({ password: newPw });
+            if (error) { setPwMsg(error.message); return; }
+            setPwMsg('✓ Đã đổi mật khẩu thành công!');
+            setNewPw(''); setConfirmPw('');
+            setTimeout(() => { setPwMsg(''); setShowChangePw(false); }, 2000);
+        } finally {
+            setIsChangingPw(false);
+        }
     };
 
     const handleOpenEditWf = (wf: ApprovalWorkflow) => {
@@ -462,11 +222,14 @@ const UserManagementTab = () => {
     const handleAdminResetPassword = async () => {
         if (!resetTarget || resetPw.length < 6) { setResetMsg('Mật khẩu phải ít nhất 6 ký tự.'); return; }
         setIsResetting(true); setResetMsg('');
-        const { error } = await adminResetPassword(resetTarget.id, resetPw);
-        setIsResetting(false);
-        if (error) { setResetMsg(error); return; }
-        setResetMsg('✓ Đã đổi mật khẩu!');
-        setTimeout(() => { setResetTarget(null); setResetPw(''); setResetMsg(''); }, 1500);
+        try {
+            const { error } = await adminResetPassword(resetTarget.id, resetPw);
+            if (error) { setResetMsg(error); return; }
+            setResetMsg('✓ Đã đổi mật khẩu!');
+            setTimeout(() => { setResetTarget(null); setResetPw(''); setResetMsg(''); }, 1500);
+        } finally {
+            setIsResetting(false);
+        }
     };
 
 
@@ -868,13 +631,16 @@ const SnapshotManagerTab = ({ monthlyHistory, handleDeleteMonthly }: SnapshotMan
 
     const fetchAll = async () => {
         setIsLoading(true);
-        const [data, usage] = await Promise.all([
-            listSnapshots(200, brandFilter || null),
-            getStorageUsage()
-        ]);
-        setSnapshots(data);
-        setStorageInfo(usage);
-        setIsLoading(false);
+        try {
+            const [data, usage] = await Promise.all([
+                listSnapshots(200, brandFilter || null),
+                getStorageUsage()
+            ]);
+            setSnapshots(data);
+            setStorageInfo(usage);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleDelete = async (snap: SnapshotMetadataRow) => {
@@ -896,27 +662,30 @@ const SnapshotManagerTab = ({ monthlyHistory, handleDeleteMonthly }: SnapshotMan
         if (!confirm(`Xóa ${count} snapshots đã chọn?\nDữ liệu sẽ bị xóa vĩnh viễn.`)) return;
         
         setIsLoading(true);
-        let successCount = 0;
-        let lastError = '';
+        try {
+            let successCount = 0;
+            let lastError = '';
 
-        for (const id of selectedIds) {
-            const snap = snapshots.find(s => s.id === id);
-            if (snap) {
-                const result = await deleteSnapshot(snap.id, snap.storage_path);
-                if (result.success) successCount++;
-                else lastError = result.error || 'Lỗi không xác định';
+            for (const id of selectedIds) {
+                const snap = snapshots.find(s => s.id === id);
+                if (snap) {
+                    const result = await deleteSnapshot(snap.id, snap.storage_path);
+                    if (result.success) successCount++;
+                    else lastError = result.error || 'Lỗi không xác định';
+                }
             }
+            
+            setSelectedIds(new Set());
+            await fetchAll();
+            
+            if (successCount < count) {
+                alert(`Đã xóa ${successCount}/${count} file. Lỗi cuối: ${lastError}`);
+            } else {
+                alert(`✅ Đã xóa thành công ${successCount} file.`);
+            }
+        } finally {
+            setIsLoading(false);
         }
-        
-        setSelectedIds(new Set());
-        await fetchAll();
-        
-        if (successCount < count) {
-            alert(`Đã xóa ${successCount}/${count} file. Lỗi cuối: ${lastError}`);
-        } else {
-            alert(`✅ Đã xóa thành công ${successCount} file.`);
-        }
-        setIsLoading(false);
     };
 
     const toggleSelect = (id: string) => {
@@ -1243,13 +1012,16 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
 
     const handleLoadFromCloud = async () => {
         setIsLoadingCloud(true);
-        const data = await loadFromCloudStorage('global_config');
-        setIsLoadingCloud(false);
-        if (data) {
-            setDraft({ ...DEFAULT_APP_SETTINGS, ...data });
-            alert('Đã tải cấu hình từ Cloud thành công!');
-        } else {
-            alert('Không tìm thấy bản lưu cấu hình trên Cloud hoặc có lỗi.');
+        try {
+            const data = await loadFromCloudStorage('global_config');
+            if (data) {
+                setDraft({ ...DEFAULT_APP_SETTINGS, ...data });
+                alert('Đã tải cấu hình từ Cloud thành công!');
+            } else {
+                alert('Không tìm thấy bản lưu cấu hình trên Cloud hoặc có lỗi.');
+            }
+        } finally {
+            setIsLoadingCloud(false);
         }
     };
 

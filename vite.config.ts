@@ -13,11 +13,15 @@ export default defineConfig(({ mode }) => {
     build: {
       rollupOptions: {
         output: {
-          manualChunks: {
-            'vendor-react': ['react', 'react-dom'],
-            'vendor-supabase': ['@supabase/supabase-js'],
-            'vendor-xlsx': ['xlsx'],
-            'vendor-genai': ['@google/genai'],
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('react')) return 'vendor-react';
+              if (id.includes('@supabase')) return 'vendor-supabase';
+              if (id.includes('@google/genai') || id.includes('@google/generative-ai')) return 'vendor-genai';
+              if (id.includes('lucide-react')) return 'vendor-lucide';
+              if (id.includes('xlsx')) return 'vendor-xlsx';
+              return 'vendor-others';
+            }
           }
         }
       }

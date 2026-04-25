@@ -948,44 +948,5 @@ export const exportSupersessionMappingCSV = (mappings: SupersessionMapping[], fi
     URL.revokeObjectURL(url);
 };
 
-/**
- * mergeMonthlyIntoItems — Re-applies File B (monthly coefficients) to an existing list of InventoryItems.
- * Useful when switching monthly data without re-parsing the main File A.
- */
-export const mergeMonthlyIntoItems = (items: InventoryItem[], monthlyData: Record<string, MonthlyData>): InventoryItem[] => {
-    return items.map(item => {
-        const monthly = monthlyData[item.ItemCode];
-        
-        // Remove warning if it existed
-        const cleanNote = (item.Note || '').replace(' [⚠ Chưa có dữ liệu tháng]', '').trim();
-
-        if (!monthly) {
-            return {
-                ...item,
-                Note: (cleanNote + ' [⚠ Chưa có dữ liệu tháng]').trim()
-            };
-        }
-
-        // Normalize TrendFlag
-        const rawTrend = (monthly.TrendFlag || item.TrendFlag || 'Stable').toUpperCase();
-        let trendFlag = 'Stable';
-        if (rawTrend.includes('UP') || rawTrend.includes('TANG')) trendFlag = 'Up';
-        else if (rawTrend.includes('DOWN') || rawTrend.includes('GIAM')) trendFlag = 'Down';
-        else if (rawTrend.includes('DINH') || rawTrend.includes('STABLE')) trendFlag = 'Stable';
-
-        return {
-            ...item,
-            LOISGroup: item.LOISGroup ? item.LOISGroup : (monthly.LOISGroup || ''),
-            TrendFlag: trendFlag,
-            AvgQty3M:  monthly.AvgQty3M  ?? item.AvgQty3M,
-            AvgQty6M:  monthly.AvgQty6M  ?? item.AvgQty6M,
-            AvgQty12M: monthly.AvgQty12M ?? item.AvgQty12M,
-            AvgQty24M: monthly.AvgQty24M ?? item.AvgQty24M,
-            BaseForecast: monthly.BaseForecast ?? item.BaseForecast,
-            Forecast_NB: monthly.Forecast_NB ?? item.Forecast_NB,
-            Forecast_BB: monthly.Forecast_BB ?? item.Forecast_BB,
-            SalesHistory: (monthly.SalesHistory && monthly.SalesHistory.length > 0) ? monthly.SalesHistory : item.SalesHistory,
-            Note: cleanNote
-        };
-    });
-};
+import { mergeMonthlyIntoItems } from './inventoryUtils';
+export { mergeMonthlyIntoItems };
