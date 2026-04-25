@@ -16,7 +16,8 @@ import { DebtStatusBadge } from '../components/DebtStatusBadge';
 import { ConsolidatedStockCell } from '../components/ConsolidatedStockCell';
 import { DealerStockPopup } from '../components/DealerStockPopup';
 import { AppSettings } from './Settings';
-import { computeInventory, computeInventoryBatch, makeComputeParams, resolveItemProfile, MOS_LOW_STOCK_THRESHOLD } from '../utils/inventoryEngine';
+import { computeInventory, computeInventoryBatch, makeComputeParams, MOS_LOW_STOCK_THRESHOLD } from '../utils/inventoryEngine';
+import { resolveItemProfile } from '../utils/inventoryUtils';
 import { Typography } from '../components/Typography';
 import { CloudDraftModal } from '../components/CloudDraftModal';
 import { useAuth } from '../utils/authContext';
@@ -200,23 +201,29 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
         if (!confirm('Bạn chắc chắn Phê duyệt đơn hàng này? Các điều chỉnh của bạn (nếu có) sẽ được tự động lưu lại hệ thống.')) return;
         
         setIsSubmitting(true);
-        const { success, error } = await processApprovalAction(
-            approvalRequest.id,
-            user!.id,
-            'approved',
-            undefined, // comment
-            orderQuantities, // pass modified quantities
-            undefined, // reason
-            undefined, // expectedVersion
-            undefined, // decisionSummary
-            approvalRequest.snapshot_data // passed snapshot to skip redownload
-        );
-        setIsSubmitting(false);
-        if (success) {
-            alert('Phê duyệt thành công!');
-            setApprovalRequest({ ...approvalRequest, status: 'approved' });
-        } else {
-            alert('Lỗi: ' + error);
+        try {
+            const { success, error } = await processApprovalAction(
+                approvalRequest.id,
+                user!.id,
+                'approved',
+                undefined, // comment
+                orderQuantities, // pass modified quantities
+                undefined, // reason
+                undefined, // expectedVersion
+                undefined, // decisionSummary
+                approvalRequest.snapshot_data // passed snapshot to skip redownload
+            );
+            if (success) {
+                alert('Phê duyệt thành công!');
+                setApprovalRequest({ ...approvalRequest, status: 'approved' });
+            } else {
+                alert('Lỗi: ' + error);
+            }
+        } catch (e) {
+            console.error('Error in handleApprove:', e);
+            alert('❌ Lỗi kết nối khi phê duyệt.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -226,23 +233,29 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
         if (!reason) return;
         
         setIsSubmitting(true);
-        const { success, error } = await processApprovalAction(
-            approvalRequest.id,
-            user!.id,
-            'returned',
-            undefined, // comment
-            orderQuantities,
-            reason,
-            undefined, // expectedVersion
-            undefined, // decisionSummary
-            approvalRequest.snapshot_data // passed snapshot to skip redownload
-        );
-        setIsSubmitting(false);
-        if (success) {
-            alert('Đã trả lại đơn hàng.');
-            setApprovalRequest({ ...approvalRequest, status: 'returned' });
-        } else {
-            alert('Lỗi: ' + error);
+        try {
+            const { success, error } = await processApprovalAction(
+                approvalRequest.id,
+                user!.id,
+                'returned',
+                undefined, // comment
+                orderQuantities,
+                reason,
+                undefined, // expectedVersion
+                undefined, // decisionSummary
+                approvalRequest.snapshot_data // passed snapshot to skip redownload
+            );
+            if (success) {
+                alert('Đã trả lại đơn hàng.');
+                setApprovalRequest({ ...approvalRequest, status: 'returned' });
+            } else {
+                alert('Lỗi: ' + error);
+            }
+        } catch (e) {
+            console.error('Error in handleReturn:', e);
+            alert('❌ Lỗi kết nối khi trả lại đơn hàng.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -307,24 +320,30 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
     const handleSubmitApproval = async () => {
         if (!user || !submitDraftName.trim() || !selectedWorkflowId) return;
         setIsSubmitting(true);
-        const id = await submitApprovalRequest({
-            draft_name: submitDraftName.trim(),
-            brand: normalizeBrand(profile?.department),
-            workflow_id: selectedWorkflowId,
-            submitted_by: user.id,
-            snapshot_data: buildSnapshot(),
-        });
-        setIsSubmitting(false);
-        setIsSubmitModalOpen(false);
-        if (id) {
-            // Clearing the workbench state as requested: "hoàn thành và không lưu ở đây nữa"
-            setOrderQuantities({});
-            setOrderNotes({});
-            setConfirmedSkus(new Set());
-            setSupersessionWarnings({});
-            setCurrentDraftName('');
-            setApprovalRequest(null);
-            alert(`✅ Đã gửi yêu cầu phê duyệt "${submitDraftName.trim()}" thành công!`);
+        try {
+            const id = await submitApprovalRequest({
+                draft_name: submitDraftName.trim(),
+                brand: normalizeBrand(profile?.department),
+                workflow_id: selectedWorkflowId,
+                submitted_by: user.id,
+                snapshot_data: buildSnapshot(),
+            });
+            if (id) {
+                setIsSubmitModalOpen(false);
+                // Clearing the workbench state as requested: "hoàn thành và không lưu ở đây nữa"
+                setOrderQuantities({});
+                setOrderNotes({});
+                setConfirmedSkus(new Set());
+                setSupersessionWarnings({});
+                setCurrentDraftName('');
+                setApprovalRequest(null);
+                alert(`✅ Đã gửi yêu cầu phê duyệt "${submitDraftName.trim()}" thành công!`);
+            }
+        } catch (e) {
+            console.error('Error submitting approval:', e);
+            alert('❌ Lỗi kết nối database. Vui lòng thử lại.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -332,19 +351,25 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
         if (!approvalRequest) return;
         if (!confirm(`Gửi lại yêu cầu phê duyệt "${approvalRequest.draft_name}" với dữ liệu đã chỉnh sửa?`)) return;
         setIsSubmitting(true);
-        const ok = await resubmitApprovalRequest(approvalRequest.id, buildSnapshot());
-        setIsSubmitting(false);
-        if (ok) {
-            // Clearing the workbench state as requested: "hoàn thành và không lưu ở đây nữa"
-            setOrderQuantities({});
-            setOrderNotes({});
-            setConfirmedSkus(new Set());
-            setSupersessionWarnings({});
-            setCurrentDraftName('');
-            setApprovalRequest(null);
-            alert(`✅ Đã gửi lại yêu cầu phê duyệt "${approvalRequest.draft_name}" thành công!`);
-        } else {
-            alert('Lỗi khi gửi lại yêu cầu.');
+        try {
+            const ok = await resubmitApprovalRequest(approvalRequest.id, buildSnapshot());
+            if (ok) {
+                // Clearing the workbench state as requested: "hoàn thành và không lưu ở đây nữa"
+                setOrderQuantities({});
+                setOrderNotes({});
+                setConfirmedSkus(new Set());
+                setSupersessionWarnings({});
+                setCurrentDraftName('');
+                setApprovalRequest(null);
+                alert(`✅ Đã gửi lại yêu cầu phê duyệt "${approvalRequest.draft_name}" thành công!`);
+            } else {
+                alert('Lỗi khi gửi lại yêu cầu.');
+            }
+        } catch (e) {
+            console.error('Error resubmitting:', e);
+            alert('❌ Lỗi kết nối database khi gửi lại. Vui lòng thử lại.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
