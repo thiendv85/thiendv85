@@ -9,7 +9,7 @@ import { BackorderPopup } from './BackorderPopup';
 import { DealerStockPopup } from './DealerStockPopup';
 import { useAuth } from '../utils/authContext';
 import { useApprovalAuth } from '../hooks/useApprovalAuth';
-import { processApprovalAction, unlockRequest } from '../utils/supabase';
+import { processApprovalAction, unlockRequest, fetchWorkflowById, updateRequestStatus } from '../utils/supabase';
 import { validateReason, getAvailableActions } from '../utils/approval-validation';
 import { validatePreApproval } from '../utils/approval-rules';
 import { useDecisionSupport } from '../hooks/useDecisionSupport';
@@ -17,6 +17,9 @@ import { DecisionSummaryPanel } from './DecisionSupport/DecisionSummaryPanel';
 import { AdjustmentImpactPanel } from './DecisionSupport/AdjustmentImpactPanel';
 import { DecisionConfirmDialog } from './DecisionSupport/DecisionConfirmDialog';
 import { OrderItemRow } from './DecisionSupport/OrderItemRow';
+import { WorkflowStepper } from './WorkflowStepper';
+import { useEffect } from 'react';
+import { ApprovalWorkflow } from '../types/inventory';
 
 
 
@@ -75,10 +78,16 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
 
     const [showValidationWarnings, setShowValidationWarnings] = useState(true); // Phase 7
     const [sidebarTab, setSidebarTab] = useState<'info' | 'history' | 'matrix'>('info');
-    const [pageSize, setPageSize] = useState(25);
-    const [currentPage, setCurrentPage] = useState(1);
     const [inspectingItem, setInspectingItem] = useState<any>(null);
     const [pendingAction, setPendingAction] = useState<'approved' | 'rejected' | 'returned' | null>(null);
+    const [workflow, setWorkflow] = useState<ApprovalWorkflow | null>(null);
+
+    // Fetch Workflow for Stepper
+    useEffect(() => {
+        if (request.workflow_id) {
+            fetchWorkflowById(request.workflow_id).then(setWorkflow);
+        }
+    }, [request.workflow_id]);
 
     // Decision Support Hook
     const preApprovalResult = useMemo(() => validatePreApproval(request), [request]);
@@ -423,8 +432,20 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                             </div>
                         )}
                         {request.brand && (
-
                             <span className="text-[9px] bg-white/10 px-1.5 py-0.5 rounded font-black text-slate-300 shrink-0 border border-white/5 uppercase tracking-wider">{request.brand}</span>
+                        )}
+                        {profile?.role === 'admin' && ['pending', 'in_progress', 'returned'].includes(request.status) && (
+                            <button 
+                                onClick={async () => {
+                                    if (window.confirm("Bạn có chắc muốn hủy đơn hàng này?")) {
+                                        const res = await updateRequestStatus(request.id, 'cancelled');
+                                        if (res.success) { onRefresh(); onClose(); }
+                                    }
+                                }}
+                                className="text-[9px] bg-amber-500/20 hover:bg-amber-500 text-amber-500 hover:text-white px-2 py-0.5 rounded font-black border border-amber-500/30 transition-colors uppercase tracking-wider"
+                            >
+                                <i className="fas fa-ban mr-1" /> Hủy đơn
+                            </button>
                         )}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5 opacity-80">
@@ -649,9 +670,20 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                             </div>
                         )}
 
-                        {(sidebarTab === 'history' || sidebarTab === 'matrix') && (
-                            <div className="max-h-[300px] overflow-y-auto custom-scrollbar p-6">
+                        {(sidebarTab === 'info' || sidebarTab === 'history' || sidebarTab === 'matrix') && (
+                            <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                                {sidebarTab === 'info' && (
+                                    <div className="p-2 border-b border-slate-100">
+                                        <WorkflowStepper 
+                                            request={request} 
+                                            workflow={workflow} 
+                                            actions={actions} 
+                                            usersMap={usersMap} 
+                                        />
+                                    </div>
+                                )}
                                 {sidebarTab === 'history' && (
+                                    <div className="p-6">
                                     <div className="space-y-4">
                                         <div className="flex items-center gap-2 mb-4">
                                             <div className="w-2 h-5 bg-slate-400 rounded-full" />
@@ -684,6 +716,7 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                                                 })}
                                             </div>
                                         )}
+                                    </div>
                                     </div>
                                 )}
                                 {sidebarTab === 'matrix' && (

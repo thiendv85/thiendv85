@@ -455,6 +455,35 @@ export async function listWorkflows(): Promise<ApprovalWorkflow[]> {
   return data as ApprovalWorkflow[];
 }
 
+export async function fetchWorkflowById(id: string): Promise<ApprovalWorkflow | null> {
+  const { data, error } = await supabase.from('approval_workflows').select('*').eq('id', id).single();
+  if (error || !data) return null;
+  return data as ApprovalWorkflow;
+}
+
+export async function updateRequestStatus(id: string, status: ApprovalStatus): Promise<{ success: boolean; error?: string }> {
+  // First fetch the current version to do optimistic/safe update
+  const { data, error: fetchError } = await supabase.from('approval_requests').select('version').eq('id', id).single();
+  if (fetchError) return { success: false, error: fetchError.message };
+  
+  const nextVersion = ((data as any).version || 0) + 1;
+  const { error } = await supabase.from('approval_requests')
+    .update({ 
+      status, 
+      version: nextVersion 
+    })
+    .eq('id', id);
+    
+  return { success: !error, error: error?.message };
+}
+
+export async function deleteApprovalRequests(ids: string[]): Promise<{ success: boolean; error?: string }> {
+  // First delete actions due to foreign key constraints
+  await supabase.from('approval_actions').delete().in('request_id', ids);
+  const { error } = await supabase.from('approval_requests').delete().in('id', ids);
+  return { success: !error, error: error?.message };
+}
+
 export async function createWorkflow(workflow: Omit<ApprovalWorkflow, 'id' | 'created_at'>): Promise<string | null> {
   const { data, error } = await supabase.from('approval_workflows').insert(workflow).select('id').single();
   if (error || !data) return null;

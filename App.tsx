@@ -507,7 +507,14 @@ const AppContent = () => {
                 { view === 'log' && <UpdateLog />}
                 {view === 'kitting' && <RepairPackageOptimizer data={data} onItemSelect={handleSelectItem} initialState={pageStates.current.kitting} onSaveState={(s) => pageStates.current.kitting = s} draftData={sharedDraft} onUpdateDraft={setSharedDraft} kittingDefs={kittingDefs} onKittingDefsChange={setKittingDefs} />}
                 {view === 'settings' && <SettingsPage settings={appSettings} onSave={(s) => { setAppSettings(s); saveAppSettings(s); }} />}
-                {view === 'approval-queue' && <ApprovalQueue />}
+                {view === 'approval-queue' && (
+                    <ApprovalQueue 
+                        onLoadRequest={(req) => {
+                            setSharedDraft(req.snapshot_data);
+                            startTransition(() => setView('ordering'));
+                        }}
+                    />
+                )}
                 </React.Suspense>
             </main>
 

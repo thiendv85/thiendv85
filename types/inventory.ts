@@ -390,7 +390,7 @@ export interface ApprovalWorkflow {
     created_at: string;
 }
 
-export type ApprovalStatus = 'pending' | 'in_progress' | 'approved' | 'rejected' | 'unlocked' | 'returned';
+export type ApprovalStatus = 'pending' | 'in_progress' | 'approved' | 'rejected' | 'unlocked' | 'returned' | 'cancelled' | 'archived';
 
 export interface SnapshotData {
     quantities: Record<string, { air: number; sea: number }>;

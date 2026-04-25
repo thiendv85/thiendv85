@@ -307,8 +307,14 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
         setIsSubmitting(false);
         setIsSubmitModalOpen(false);
         if (id) {
-            const req = await fetchRequestByDraftName(submitDraftName.trim());
-            setApprovalRequest(req);
+            // Clearing the workbench state as requested: "hoàn thành và không lưu ở đây nữa"
+            setOrderQuantities({});
+            setOrderNotes({});
+            setConfirmedSkus(new Set());
+            setSupersessionWarnings({});
+            setCurrentDraftName('');
+            setApprovalRequest(null);
+            alert(`✅ Đã gửi yêu cầu phê duyệt "${submitDraftName.trim()}" thành công!`);
         }
     };
 
@@ -319,8 +325,14 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
         const ok = await resubmitApprovalRequest(approvalRequest.id, buildSnapshot());
         setIsSubmitting(false);
         if (ok) {
-            const req = await fetchRequestByDraftName(approvalRequest.draft_name);
-            setApprovalRequest(req);
+            // Clearing the workbench state as requested: "hoàn thành và không lưu ở đây nữa"
+            setOrderQuantities({});
+            setOrderNotes({});
+            setConfirmedSkus(new Set());
+            setSupersessionWarnings({});
+            setCurrentDraftName('');
+            setApprovalRequest(null);
+            alert(`✅ Đã gửi lại yêu cầu phê duyệt "${approvalRequest.draft_name}" thành công!`);
         } else {
             alert('Lỗi khi gửi lại yêu cầu.');
         }
