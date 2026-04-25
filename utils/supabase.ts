@@ -382,20 +382,31 @@ export async function loadSpecificMonthlyData(month: string): Promise<{ data: Re
  */
 export async function deleteMonthlyData(snapshotMonth: string): Promise<boolean> {
   try {
+    console.log(`[Supabase] Deleting monthly data for: ${snapshotMonth}`);
+    
     // 1. Delete rows from monthly_sku_data
     const { error: dErr } = await supabase
       .from('monthly_sku_data')
       .delete()
       .eq('snapshot_month', snapshotMonth);
     
-    if (dErr) throw dErr;
+    if (dErr) {
+      console.error('[Supabase] Error deleting from monthly_sku_data:', dErr);
+      throw dErr;
+    }
 
     // 2. Delete index record from cloud_storage
-    await supabase
+    const { error: cErr } = await supabase
       .from('cloud_storage')
       .delete()
       .eq('id', `monthly_index_${snapshotMonth}`);
 
+    if (cErr) {
+      console.error('[Supabase] Error deleting from cloud_storage:', cErr);
+      throw cErr;
+    }
+
+    console.log(`[Supabase] Successfully deleted monthly data for: ${snapshotMonth}`);
     return true;
   } catch (error) {
     console.error('Lỗi khi xóa Monthly Data:', error);
@@ -903,18 +914,40 @@ function computeSnapshotHash(data: InventoryItem[]): string {
  */
 async function enforceRetentionLimit(maxSnapshots = 30): Promise<void> {
   try {
-    const { data } = await supabase
+    const { data, error: fetchErr } = await supabase
       .from('snapshot_metadata')
       .select('id, storage_path')
       .order('upload_date', { ascending: true });
+    
+    if (fetchErr) {
+      console.error('[Supabase] Retention limit fetch error:', fetchErr);
+      return;
+    }
+
     if (!data || data.length <= maxSnapshots) return;
+    
     const toDelete = data.slice(0, data.length - maxSnapshots);
+    console.log(`[Supabase] Retention: deleting ${toDelete.length} old snapshots.`);
+    
     for (const snap of toDelete) {
-      await supabase.storage.from('inventory_snapshots').remove([snap.storage_path]);
-      await supabase.from('snapshot_metadata').delete().eq('id', snap.id);
+      // Use the hardened deleteSnapshot function logic
+      const { error: storageErr } = await supabase.storage
+        .from('inventory_snapshots')
+        .remove([snap.storage_path]);
+      
+      if (storageErr) console.warn('[Supabase] Retention storage remove warning:', storageErr);
+
+      const { error: dbErr } = await supabase
+        .from('snapshot_metadata')
+        .delete()
+        .eq('id', snap.id);
+      
+      if (dbErr) {
+        console.error(`[Supabase] Retention DB delete error for ${snap.id}:`, dbErr);
+      }
     }
   } catch (err) {
-    console.warn('enforceRetentionLimit:', err);
+    console.error('[Supabase] Unexpected error in enforceRetentionLimit:', err);
   }
 }
 
@@ -1076,10 +1109,33 @@ export async function loadSnapshot(storagePath: string): Promise<InventoryItem[]
  */
 export async function deleteSnapshot(id: string, storagePath: string): Promise<boolean> {
   try {
-    await supabase.storage.from('inventory_snapshots').remove([storagePath]);
-    await supabase.from('snapshot_metadata').delete().eq('id', id);
+    console.log(`[Supabase] Attempting to delete snapshot: ${id} at ${storagePath}`);
+    
+    // 1. Remove file from storage
+    const { error: storageErr } = await supabase.storage
+      .from('inventory_snapshots')
+      .remove([storagePath]);
+    
+    if (storageErr) {
+      console.warn('[Supabase] Storage removal warning (might already be deleted):', storageErr);
+      // We continue even if storage removal fails (file might link to multiple metadata or be missing)
+    }
+
+    // 2. Delete metadata row
+    const { error: dbErr } = await supabase
+      .from('snapshot_metadata')
+      .delete()
+      .eq('id', id);
+    
+    if (dbErr) {
+      console.error('[Supabase] Error deleting snapshot metadata:', dbErr);
+      return false;
+    }
+
+    console.log(`[Supabase] Successfully deleted snapshot: ${id}`);
     return true;
-  } catch {
+  } catch (err) {
+    console.error('[Supabase] Unexpected error in deleteSnapshot:', err);
     return false;
   }
 }

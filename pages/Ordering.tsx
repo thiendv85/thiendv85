@@ -97,9 +97,10 @@ export interface OrderingProps {
     graph?: SupersessionGraph;
     appSettings?: AppSettings;
     onUpdateSettings?: (s: AppSettings) => void;
+    activeApprovalRequest?: ApprovalRequest | null;
 }
 
-export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect, initialParams, initialState, onSaveState, sharedDraft, onUpdateDraft, graph, appSettings }: OrderingProps) => {
+export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect, initialParams, initialState, onSaveState, sharedDraft, onUpdateDraft, graph, appSettings, activeApprovalRequest: externalRequest }: OrderingProps) => {
     const { t } = useLanguage();
     const { isMobile } = useDevice();
     const [settings, setSettings] = useState<DashboardSettings>(initialState?.settings || {
@@ -126,7 +127,16 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
     const [filters, setFilters] = useState<InventoryFilters>(initialState?.filters || DEFAULT_FILTERS);
     const [orderQuantities, setOrderQuantities] = useState<Record<string, { air: number, sea: number }>>(sharedDraft?.quantities || initialState?.quantities || {});
     const [orderNotes, setOrderNotes] = useState<Record<string, string>>(sharedDraft?.notes || initialState?.notes || {});
-    const [viewFilter, setViewFilter] = useState<'all' | 'draft' | 'suggested' | 'seasonal'>(initialState?.viewFilter || 'all');
+    const [viewFilter, setViewFilter] = useState<'all' | 'draft' | 'suggested' | 'seasonal'>(initialState?.viewFilter || (externalRequest ? 'draft' : 'all'));
+
+    useEffect(() => {
+        if (externalRequest) {
+            setApprovalRequest(externalRequest);
+            setOrderQuantities(externalRequest.snapshot_data?.quantities || {});
+            setOrderNotes(externalRequest.snapshot_data?.notes || {});
+            setViewFilter('draft');
+        }
+    }, [externalRequest]);
     const [sortKey, setSortKey] = useState<string>('priority');
     const [searchResult, setSearchResult] = useState<SearchResult>(() => initialState?.filters?.search ? parseInventorySearch(initialState.filters.search) : { type: 'EMPTY', tokens: [], displayTokens: [], raw: '' });
     const [currentPage, setCurrentPage] = useState(1);

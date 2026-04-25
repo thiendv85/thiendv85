@@ -881,22 +881,40 @@ const SnapshotManagerTab = ({ monthlyHistory, handleDeleteMonthly }: SnapshotMan
         if (!confirm(`Xóa snapshot "${snap.filename}"?\nDữ liệu sẽ bị xóa vĩnh viễn khỏi Cloud.`)) return;
         setDeletingId(snap.id);
         const ok = await deleteSnapshot(snap.id, snap.storage_path);
-        if (ok) setSnapshots(prev => prev.filter(s => s.id !== snap.id));
-        else alert('Lỗi khi xóa.');
+        if (ok) {
+            setSnapshots(prev => prev.filter(s => s.id !== snap.id));
+            setStorageInfo(prev => ({ ...prev, count: prev.count - 1, usedBytes: prev.usedBytes - (snap.file_size_bytes || 0) }));
+        } else {
+            alert('Lỗi khi xóa bản sao lưu. Vui lòng kiểm tra Console để biết chi tiết.');
+        }
         setDeletingId(null);
     };
 
     const handleDeleteSelected = async () => {
-        if (selectedIds.size === 0) return;
-        if (!confirm(`Xóa ${selectedIds.size} snapshots đã chọn?\nDữ liệu sẽ bị xóa vĩnh viễn.`)) return;
+        const count = selectedIds.size;
+        if (count === 0) return;
+        if (!confirm(`Xóa ${count} snapshots đã chọn?\nDữ liệu sẽ bị xóa vĩnh viễn.`)) return;
+        
+        setIsLoading(true);
+        let successCount = 0;
+        let failCount = 0;
+
         for (const id of selectedIds) {
             const snap = snapshots.find(s => s.id === id);
             if (snap) {
-                await deleteSnapshot(snap.id, snap.storage_path);
+                const ok = await deleteSnapshot(snap.id, snap.storage_path);
+                if (ok) successCount++;
+                else failCount++;
             }
         }
+        
         setSelectedIds(new Set());
         await fetchAll();
+        
+        if (failCount > 0) {
+            alert(`Đã xóa ${successCount} file. Thất bại ${failCount} file. Kiểm tra Console để biết chi tiết.`);
+        }
+        setIsLoading(false);
     };
 
     const toggleSelect = (id: string) => {

@@ -111,7 +111,7 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
     };
 
     const handleDeleteSnapshot = async (snap: SnapshotMetadataRow) => {
-        if (!window.confirm(`Bạn có chắc chắn muốn xóa bản sao lưu "${snap.filename}"? Hành động này không thể hoàn tác.`)) return;
+        if (!window.confirm(`Xóa bản sao lưu "${snap.filename}"?\nDữ liệu sẽ bị xóa vĩnh viễn khỏi Cloud.`)) return;
         
         setLoadingId(snap.id);
         setError(null);
@@ -120,10 +120,11 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
             if (success) {
                 setSnapshots(prev => prev.filter(s => s.id !== snap.id));
             } else {
-                setError('Xóa bản sao lưu thất bại.');
+                setError('Xóa bản sao lưu thất bại. Vui lòng kiểm tra Console để biết chi tiết.');
             }
         } catch (err) {
-            setError('Lỗi khi xóa dữ liệu.');
+            setError('Lỗi khi xóa dữ liệu. Kiểm tra Console để biết chi tiết.');
+            console.error('[UI] Cloud deletion error:', err);
         } finally {
             setLoadingId(null);
         }

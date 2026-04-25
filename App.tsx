@@ -365,6 +365,8 @@ const AppContent = () => {
         setSupersessionMappings(newMappings);
     };
 
+    const [activeApprovalRequest, setActiveApprovalRequest] = useState<ApprovalRequest | null>(null);
+
     // Auth guard — after all hooks
     if (authLoading) return (
         <div className="min-h-screen bg-slate-900 flex items-center justify-center">
@@ -397,7 +399,7 @@ const AppContent = () => {
         <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#f8fafc] to-[#e2e8f0] relative font-sans text-slate-800 overflow-x-clip">
             <header className="bg-gradient-professional border-b border-white/10 px-3 md:px-5 py-2 fixed top-0 left-0 right-0 z-50 shadow-glass print:hidden h-[56px] md:h-[64px] flex items-center">
                 <div className="max-w-[1920px] mx-auto flex justify-between items-center gap-2">
-                    <div className="flex items-center space-x-2 md:space-x-3 cursor-pointer group shrink-0" onClick={() => setView('dashboard')}>
+                    <div className="flex items-center space-x-2 md:space-x-3 cursor-pointer group shrink-0" onClick={() => { setActiveApprovalRequest(null); setView('dashboard'); }}>
                         <div className="bg-white/10 backdrop-blur-md text-white w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center border border-white/20 shadow-lg group-hover:scale-105 transition-transform">
                             <i className="fas fa-cubes text-sm md:text-lg text-blue-400"></i>
                         </div>
@@ -454,7 +456,10 @@ const AppContent = () => {
                             return (
                                 <button
                                     key={nav.id}
-                                    onClick={() => startTransition(() => setView(nav.id as any))}
+                                    onClick={() => startTransition(() => {
+                                        if (nav.id !== 'ordering') setActiveApprovalRequest(null);
+                                        setView(nav.id as any);
+                                    })}
                                     className={`
                                         px-2.5 md:px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 shrink-0
                                         ${isActive
@@ -502,7 +507,7 @@ const AppContent = () => {
                     onAddMapping: () => { setEditingSsMapping(null); setIsSsModalOpen(true); },
                     onEditMapping: (m) => { setEditingSsMapping(m); setIsSsModalOpen(true); },
                 }} />}
-                {view === 'ordering' && <Ordering data={data} enrichedData={enrichedData} isEngineProcessing={isEngineProcessing} onItemSelect={handleSelectItem} initialParams={initialParams} initialState={pageStates.current.ordering} onSaveState={(s) => pageStates.current.ordering = s} sharedDraft={sharedDraft} onUpdateDraft={setSharedDraft} graph={supersessionGraph} appSettings={appSettings} onUpdateSettings={(s) => { setAppSettings(s); saveAppSettings(s); }} />}
+                {view === 'ordering' && <Ordering data={data} enrichedData={enrichedData} isEngineProcessing={isEngineProcessing} onItemSelect={handleSelectItem} initialParams={initialParams} initialState={pageStates.current.ordering} onSaveState={(s) => pageStates.current.ordering = s} sharedDraft={sharedDraft} onUpdateDraft={setSharedDraft} graph={supersessionGraph} appSettings={appSettings} onUpdateSettings={(s) => { setAppSettings(s); saveAppSettings(s); }} activeApprovalRequest={activeApprovalRequest} />}
                 { view === 'transfer' && <InventoryDistribution data={data} enrichedData={enrichedData} isEngineProcessing={isEngineProcessing} onItemSelect={handleSelectItem} appSettings={appSettings} />}
                 { view === 'log' && <UpdateLog />}
                 {view === 'kitting' && <RepairPackageOptimizer data={data} onItemSelect={handleSelectItem} initialState={pageStates.current.kitting} onSaveState={(s) => pageStates.current.kitting = s} draftData={sharedDraft} onUpdateDraft={setSharedDraft} kittingDefs={kittingDefs} onKittingDefsChange={setKittingDefs} />}
@@ -511,6 +516,7 @@ const AppContent = () => {
                     <ApprovalQueue 
                         onLoadRequest={(req) => {
                             setSharedDraft(req.snapshot_data);
+                            setActiveApprovalRequest(req);
                             startTransition(() => setView('ordering'));
                         }}
                     />
