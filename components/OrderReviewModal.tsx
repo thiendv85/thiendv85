@@ -72,6 +72,8 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
     const [returnReason, setReturnReason] = useState('');       // Phase 3
     const [unlockReason, setUnlockReason] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
     const [submittingAction, setSubmittingAction] = useState<string | null>(null);
     const [showUnlock, setShowUnlock] = useState(false);
     const [showMatrix, setShowMatrix] = useState(false);
@@ -81,6 +83,7 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
     const [inspectingItem, setInspectingItem] = useState<any>(null);
     const [pendingAction, setPendingAction] = useState<'approved' | 'rejected' | 'returned' | null>(null);
     const [workflow, setWorkflow] = useState<ApprovalWorkflow | null>(null);
+    const [targetReturnLevel, setTargetReturnLevel] = useState<number>(1);
 
     // Fetch Workflow for Stepper
     useEffect(() => {
@@ -109,7 +112,7 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
 
 
     const rows = useMemo(() =>
-        snap.inventory_context.filter(ctx => {
+        (snap?.inventory_context || []).filter(ctx => {
             const cur = snap.quantities[ctx.itemCode] || { air: 0, sea: 0 };
             const orig = (snap as any).original_quantities?.[ctx.itemCode] || cur;
             return (cur.air > 0 || cur.sea > 0 || orig.air > 0 || orig.sea > 0);
@@ -191,10 +194,8 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
             
             const result = await processApprovalAction(
                 request.id, user.id, action, managerComment || comment || undefined, finalQtys,
-                reason, request.version, summary
+                reason, request.version, summary, undefined, targetReturnLevel
             );
-
-            
             if (!result.success && result.error) {
                 setCommentError(result.error);
                 setPendingAction(null);
@@ -235,7 +236,7 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
             const reason = action === 'rejected' ? rejectionReason : action === 'returned' ? returnReason : undefined;
             const result = await processApprovalAction(
                 request.id, user.id, action, comment || undefined, finalQtys,
-                reason, request.version
+                reason, request.version, undefined, undefined, targetReturnLevel
             );
             if (!result.success && result.error) {
                 setCommentError(result.error);
@@ -486,11 +487,10 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                             <span className="text-[10px] text-blue-400/70">Sea</span>
                         </div>
                     )}
-                    {/* Value */}
-                    <div className="flex items-center gap-1.5 bg-emerald-500/15 border border-emerald-400/25 rounded-lg px-3 py-1.5 shrink-0">
+                    <div className="flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-400/40 rounded-lg px-3 py-1.5 shrink-0 scale-105 shadow-lg shadow-emerald-500/10">
                         <i className="fas fa-circle-dollar-to-slot text-emerald-400 text-[10px]" />
-                        <span className="text-[11px] font-black text-emerald-300">{(totals.value / 1e6).toFixed(1)}M</span>
-                        <span className="text-[10px] text-emerald-400/70">VNĐ</span>
+                        <span className="text-[12px] font-black text-emerald-400">{(totals.value / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}M</span>
+                        <span className="text-[10px] text-emerald-400/70 font-bold uppercase">VNĐ</span>
                     </div>
                     {/* OOS warning */}
                     {totals.oos > 0 && (
@@ -589,14 +589,31 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                                             {submittingAction === 'approved' ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-check-double" />}
                                             Duyệt đơn
                                         </button>
-                                        <button
-                                            onClick={() => handleAction('returned')}
-                                            disabled={isSubmitting}
-                                            className="border-2 border-indigo-200 text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100/50 active:scale-[0.98] disabled:opacity-50 font-black px-5 py-2 rounded-xl text-xs uppercase tracking-widest flex items-center gap-2 transition-all"
-                                        >
-                                            {submittingAction === 'returned' ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-rotate-left" />}
-                                            Trả lại
-                                        </button>
+                                        <div className="flex flex-col gap-1">
+                                            <button
+                                                onClick={() => handleAction('returned')}
+                                                disabled={isSubmitting}
+                                                className="border-2 border-indigo-200 text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100/50 active:scale-[0.98] disabled:opacity-50 font-black px-5 py-2 rounded-xl text-xs uppercase tracking-widest flex items-center gap-2 transition-all"
+                                            >
+                                                {submittingAction === 'returned' ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-rotate-left" />}
+                                                Trả lại
+                                            </button>
+                                            {workflow && (workflow.levels || []).length > 1 && (
+                                                <select 
+                                                    value={targetReturnLevel}
+                                                    onChange={e => setTargetReturnLevel(parseInt(e.target.value))}
+                                                    className="bg-indigo-100/50 border-none text-[9px] font-black text-indigo-600 rounded-lg px-2 py-1 outline-none cursor-pointer"
+                                                >
+                                                    <option value={1}>Gốc (Level 1)</option>
+                                                    {(workflow.levels || [])
+                                                        .filter(l => l.level < request.current_level && l.level > 1)
+                                                        .map(l => (
+                                                            <option key={l.level} value={l.level}>Về Level {l.level}</option>
+                                                        ))
+                                                    }
+                                                </select>
+                                            )}
+                                        </div>
                                     </div>
 
                                 </div>
@@ -707,6 +724,9 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                                                                 <span className="text-[10px] font-black text-slate-400">Lv{a.level}</span>
                                                             </div>
                                                             <div className="text-xs font-bold text-slate-700 mb-1">{actorName}</div>
+                                                            {a.action === 'returned' && a.metadata?.target_level && (
+                                                                <div className="text-[10px] font-black text-indigo-500 uppercase mb-1">Trả về Level {a.metadata.target_level}</div>
+                                                            )}
                                                             {a.comment && <p className="text-xs text-slate-500 italic mb-2">"{a.comment}"</p>}
                                                             <div className="text-[10px] text-slate-400 font-bold border-t border-slate-50 pt-2">
                                                                 {new Date(a.acted_at).toLocaleString('vi-VN')}

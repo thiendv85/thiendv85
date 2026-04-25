@@ -47,7 +47,7 @@ export const WorkflowStepper = ({ request, workflow, actions, usersMap, classNam
 
             return {
                 label: `Level ${lvl.level}`,
-                actor: action ? (usersMap[action.actor_id] || 'N/A') : (lvl.approver_ids.length > 1 ? `${lvl.approver_ids.length} Approvers` : 'Pending'),
+                actor: action ? (usersMap[action.actor_id] || 'N/A') : ((lvl.approver_ids?.length || 0) > 1 ? `${lvl.approver_ids.length} Approvers` : 'Pending'),
                 date: action ? new Date(action.acted_at).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }) : '',
                 status,
                 icon: status === 'completed' ? 'fa-check' : (status === 'rejected' ? 'fa-xmark' : (status === 'returned' ? 'fa-rotate-left' : 'fa-user-pen'))

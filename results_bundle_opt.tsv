@@ -1,0 +1,5 @@
+experiment	commit	metric	status	description
+0	baseline	404.45	baseline	initial unmodified state
+1	lazy-static-screens	294.63	success	lazy load SettingsPage, Login, UpdateLog
+2	lazy-file-upload	247.69	success	lazy load FileUpload, decouple csvParser
+3	vendor-chunking	84.58	success	stable dynamic chunking + context restoration

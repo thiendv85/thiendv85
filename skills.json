@@ -5,6 +5,12 @@
       "skills": [
         "colorize"
       ]
+    },
+    {
+      "source": "vercel-labs/agent-skills",
+      "skills": [
+        "vercel-react-best-practices"
+      ]
     }
   ]
 }

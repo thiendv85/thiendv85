@@ -632,7 +632,8 @@ export async function processApprovalAction(
   reason?: string, // Phase 3: dedicated reason for reject/return
   expectedVersion?: number, // Phase 5: optimistic locking
   decisionSummary?: any, // New: Summary snapshot from Decision Support layer
-  providedSnapshotData?: any // Pass from client to prevent huge network download
+  providedSnapshotData?: any, // Pass from client to prevent huge network download
+  targetLevel?: number // New: Return to specific level
 ): Promise<{ success: boolean; newStatus: ApprovalStatus; error?: string }> {
 
   // Look up request and workflow. Dynamically select snapshot_data only if strictly needed AND not provided.
@@ -678,7 +679,7 @@ export async function processApprovalAction(
     action,
     actor_id: actorId,
     comment: comment || null,
-    metadata: { ...metadata, reason: reason || null, decisionSummary: decisionSummary || null },
+    metadata: { ...metadata, reason: reason || null, decisionSummary: decisionSummary || null, target_level: targetLevel || null },
   });
 
   if (actionError) return { success: false, newStatus: request.status, error: 'Không thể ghi nhận hành động phê duyệt' };
@@ -699,7 +700,7 @@ export async function processApprovalAction(
   if (action === 'returned') {
     const returnUpdate: Record<string, unknown> = {
       status: 'returned',
-      current_level: 1,
+      current_level: targetLevel || 1,
       version: nextVersion,
     };
     if (reason) returnUpdate.returned_reason = reason;

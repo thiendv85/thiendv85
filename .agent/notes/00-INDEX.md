@@ -32,6 +32,11 @@ Dưới đây là tổng hợp danh sách các file Markdown (Ghi chú, Kỹ nă
   - **Nội dung:** Chứa danh sách các mã class Tailwind (`bg-atp-primary`, `bg-atp-action`, `bg-atp-success`...) dùng thống nhất cho dự án Supply Chain.
   - **Tags:** `[color, ui, dashboard, atp]`
 
+- 📝 **[Case Study: Sửa lỗi Tê liệt nút bấm (Async Safety)](.agent/notes/case-20260426-db-responsiveness-fix.md)**
+  - **Đường dẫn:** `.agent/notes/case-20260426-db-responsiveness-fix.md`
+  - **Nội dung:** Giải pháp refactor 18+ async handlers với `try...finally` để chống deadlock UI. Kèm script audit tự động.
+  - **Tags:** `[technical, bugfix, async, state-management, audit]`
+
 *(Từ giờ anh chỉ cần bảo AI lưu quy trình mới, nó sẽ tự lấp đầy danh sách ở thư mục này)*
 
 ---
