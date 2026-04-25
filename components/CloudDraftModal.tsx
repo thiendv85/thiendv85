@@ -46,27 +46,36 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
 
     const fetchDrafts = async () => {
         setIsLoading(true);
-        const [list, approvalReqs] = await Promise.all([listOrderDrafts(), fetchAllRequests().catch(() => [])]);
-        setDrafts(list);
-        const map: Record<string, ApprovalStatus> = {};
-        for (const r of approvalReqs) map[r.draft_name] = r.status;
-        setApprovalStatusMap(map);
-        setIsLoading(false);
+        try {
+            const [list, approvalReqs] = await Promise.all([listOrderDrafts(), fetchAllRequests().catch(() => [])]);
+            setDrafts(list);
+            const map: Record<string, ApprovalStatus> = {};
+            for (const r of approvalReqs) map[r.draft_name] = r.status;
+            setApprovalStatusMap(map);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const fetchReturned = async () => {
         if (!user) return;
         setIsLoading(true);
-        const all = await fetchMyRequests(user.id);
-        setReturnedRequests(all.filter(r => r.status === 'returned'));
-        setIsLoading(false);
+        try {
+            const all = await fetchMyRequests(user.id);
+            setReturnedRequests(all.filter(r => r.status === 'returned'));
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const fetchInbox = async () => {
         setIsLoading(true);
-        const pendings = await fetchPendingForApprover();
-        setPendingRequests(pendings);
-        setIsLoading(false);
+        try {
+            const pendings = await fetchPendingForApprover();
+            setPendingRequests(pendings);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const generatedDraftName = React.useMemo(() => {
@@ -111,44 +120,62 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
         if (totalItems === 0) return alert("Dự thảo hiện tại đang trống. Vui lòng tạo dự thảo trước khi lưu.");
 
         setIsLoading(true);
-        const id = `order_draft_${draftBrand}_${generatedDraftName}`;
-        const success = await saveOrderDraft(id, { brand: draftBrand, draftData: currentDraft });
-        setIsLoading(false);
+        try {
+            const id = `order_draft_${draftBrand}_${generatedDraftName}`;
+            const success = await saveOrderDraft(id, { brand: draftBrand, draftData: currentDraft });
 
-        if (success) {
-            if (autoSubmit) {
-                if (onWaitAndSubmit) onWaitAndSubmit(generatedDraftName);
-                onClose();
+            if (success) {
+                if (autoSubmit) {
+                    if (onWaitAndSubmit) onWaitAndSubmit(generatedDraftName);
+                    onClose();
+                } else {
+                    alert(`Đã lưu bản nháp "${generatedDraftName}" (${draftBrand}) thành công!`);
+                    onClose();
+                }
             } else {
-                alert(`Đã lưu bản nháp "${generatedDraftName}" (${draftBrand}) thành công!`);
-                onClose();
+                alert("Lỗi khi lưu lên Cloud.");
             }
-        } else {
-            alert("Lỗi khi lưu lên Cloud.");
+        } catch (e) {
+            console.error('Error saving draft:', e);
+            alert("Lỗi kết nối khi lưu nháp.");
+        } finally {
+            setIsLoading(false);
         }
     };
 
     const handleLoadCloud = async (id: string, name: string) => {
         setIsLoading(true);
-        const data = await loadFromCloudStorage(id);
-        setIsLoading(false);
-        if (!data) return alert("Không thể tải dữ liệu.");
-        // Truyền draftName để Ordering tự fetch approvalRequest tương ứng
-        onLoadDraft(data.draftData, name);
-        alert("✅ Tải dự thảo thành công!");
-        onClose();
+        try {
+            const data = await loadFromCloudStorage(id);
+            if (!data) return alert("Không thể tải dữ liệu.");
+            // Truyền draftName để Ordering tự fetch approvalRequest tương ứng
+            onLoadDraft(data.draftData, name);
+            alert("✅ Tải dự thảo thành công!");
+            onClose();
+        } catch (e) {
+            console.error('Error loading draft:', e);
+            alert("Lỗi kết nối khi tải dự thảo.");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleLoadAndSubmit = async (id: string, name: string) => {
         setIsLoading(true);
-        const data = await loadFromCloudStorage(id);
-        setIsLoading(false);
-        if (!data) return alert("Không thể tải dữ liệu.");
-        onLoadDraft(data.draftData, name);
-        if (onWaitAndSubmit) {
-            onWaitAndSubmit(name);
+        try {
+            const data = await loadFromCloudStorage(id);
+            if (!data) return alert("Không thể tải dữ liệu.");
+            onLoadDraft(data.draftData, name);
+            if (onWaitAndSubmit) {
+                onWaitAndSubmit(name);
+            }
+            onClose();
+        } catch (e) {
+            console.error('Error loading for submit:', e);
+            alert("Lỗi kết nối khi tải đơn.");
+        } finally {
+            setIsLoading(false);
         }
-        onClose();
     };
 
     const handleLoadReturned = (req: ApprovalRequest) => {
