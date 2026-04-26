@@ -49,17 +49,16 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
 
     const [localQtys, setLocalQtys] = useState<Record<string, { air: number; sea: number }>>(() => {
         const qtys: Record<string, { air: number; sea: number }> = {};
-        // Initialize from original context to ensure all known items have a record
-        snap.inventory_context.forEach(ctx => {
-            const q = snap.quantities[ctx.itemCode] || { air: 0, sea: 0 };
+        (snap?.inventory_context || []).forEach(ctx => {
+            const q = snap?.quantities?.[ctx.itemCode] || { air: 0, sea: 0 };
             qtys[ctx.itemCode] = { air: q.air, sea: q.sea };
         });
         return qtys;
     });
     const [selectedItems, setSelectedItems] = useState<Set<string>>(() => {
         const initial = new Set<string>();
-        snap.inventory_context.forEach(ctx => {
-            const q = snap.quantities[ctx.itemCode];
+        (snap?.inventory_context || []).forEach(ctx => {
+            const q = snap?.quantities?.[ctx.itemCode];
             if ((q?.air || 0) > 0 || (q?.sea || 0) > 0) {
                 initial.add(ctx.itemCode);
             }
@@ -113,14 +112,15 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
 
     const rows = useMemo(() =>
         (snap?.inventory_context || []).filter(ctx => {
-            const cur = snap.quantities[ctx.itemCode] || { air: 0, sea: 0 };
-            const orig = (snap as any).original_quantities?.[ctx.itemCode] || cur;
-            return (cur.air > 0 || cur.sea > 0 || orig.air > 0 || orig.sea > 0);
+            const cur = snap?.quantities?.[ctx.itemCode] || { air: 0, sea: 0 };
+            const orig = (snap as any)?.original_quantities?.[ctx.itemCode] || cur;
+            return (cur?.air > 0 || cur?.sea > 0 || orig?.air > 0 || orig?.sea > 0);
         }), [snap]);
 
     const totals = useMemo(() => {
         let air = 0, sea = 0, value = 0, oos = 0, risk = 0, bo = 0;
-        rows.forEach(ctx => {
+        const currentRows = rows || [];
+        currentRows.forEach(ctx => {
             const isSelected = selectedItems.has(ctx.itemCode);
             if (isSelected) {
                 const q = localQtys[ctx.itemCode] || { air: 0, sea: 0 };
@@ -131,22 +131,22 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
             if ((ctx.available || 0) < (ctx.safetyStock || 0) && ctx.baseForecast > 0.02) risk++;
             if ((ctx.backorder || 0) > (ctx.available || 0)) bo++;
         });
-        const avgMos = rows.length > 0
-            ? rows.reduce((s, c) => s + (c.mos || 0), 0) / rows.length : 0;
+        const avgMos = currentRows.length > 0
+            ? currentRows.reduce((s, c) => s + (c.mos || 0), 0) / currentRows.length : 0;
         return { air, sea, value, oos, risk, bo, avgMos };
     }, [rows, localQtys, selectedItems]);
 
     const hasChanges = useMemo(() =>
-        rows.some(ctx => {
-            const orig = snap.quantities[ctx.itemCode] || { air: 0, sea: 0 };
+        (rows || []).some(ctx => {
+            const orig = snap?.quantities?.[ctx.itemCode] || { air: 0, sea: 0 };
             const cur = localQtys[ctx.itemCode] || { air: 0, sea: 0 };
             const isSelected = selectedItems.has(ctx.itemCode);
             if (!isSelected && (orig.air > 0 || orig.sea > 0)) return true;
             if (isSelected && (orig.air !== cur.air || orig.sea !== cur.sea)) return true;
             return false;
-        }), [rows, localQtys, selectedItems, snap.quantities]);
+        }), [rows, localQtys, selectedItems, snap?.quantities]);
 
-    const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+    const totalPages = Math.max(1, Math.ceil((rows?.length || 0) / pageSize));
     const safePage = Math.min(currentPage, totalPages);
     const pagedRows = rows.slice((safePage - 1) * pageSize, safePage * pageSize);
 
@@ -160,10 +160,11 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
     };
 
     const handleToggleAll = () => {
-        if (selectedItems.size === rows.length) {
+        const currentRows = rows || [];
+        if (selectedItems.size === currentRows.length) {
             setSelectedItems(new Set());
         } else {
-            setSelectedItems(new Set(rows.map(r => r.itemCode)));
+            setSelectedItems(new Set(currentRows.map(r => r.itemCode)));
         }
     };
     
@@ -468,7 +469,7 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                     {/* SKU */}
                     <div className="flex items-center gap-1.5 bg-white/8 border border-white/10 rounded-lg px-3 py-1.5 shrink-0">
                         <i className="fas fa-boxes-stacked text-slate-400 text-[10px]" />
-                        <span className="text-[11px] font-black text-white">{rows.length}</span>
+                        <span className="text-[11px] font-black text-white">{(rows || []).length}</span>
                         <span className="text-[10px] text-slate-400">SKU</span>
                     </div>
                     {/* Air */}
@@ -530,7 +531,7 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                 {/* ── Decision Summary (Sticky) ── */}
                 <DecisionSummaryPanel 
                     summary={summary} 
-                    onReset={() => setLocalQtys(Object.fromEntries(Object.entries(snap.quantities).map(([k, v]) => [k, { air: v.air, sea: v.sea }])))} 
+                    onReset={() => setLocalQtys(Object.fromEntries(Object.entries(snap?.quantities || {}).map(([k, v]) => [k, { air: v.air, sea: v.sea }])))} 
                 />
 
                 {/* ── Adjustment Impact (Conditional) ── */}
@@ -675,10 +676,10 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                                 <div className="ml-auto flex items-center gap-6">
                                     <div className="flex items-center gap-2 text-xs font-bold text-slate-400 italic">
                                         <i className="fas fa-circle-check text-blue-500" />
-                                        Đã chọn {selectedItems.size}/{rows.length} SKU
+                                        Đã chọn {selectedItems.size}/{(rows || []).length} SKU
                                     </div>
                                     {hasChanges && (
-                                        <button onClick={() => setLocalQtys(Object.fromEntries(Object.entries(snap.quantities).map(([k, v]) => [k, { air: v.air, sea: v.sea }])))}
+                                        <button onClick={() => setLocalQtys(Object.fromEntries(Object.entries(snap?.quantities || {}).map(([k, v]) => [k, { air: v.air, sea: v.sea }])))}
                                             className="text-[10px] text-amber-600 hover:text-amber-700 font-black bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200/50 flex items-center gap-1.5 transition-colors">
                                             <i className="fas fa-arrow-rotate-left" /> Hoàn tác thay đổi
                                         </button>
@@ -706,11 +707,11 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                                             <div className="w-2 h-5 bg-slate-400 rounded-full" />
                                             <span className="text-xs font-black text-slate-600 uppercase tracking-widest">Lịch sử phê duyệt</span>
                                         </div>
-                                        {actions.length === 0 ? (
+                                        {(actions || []).length === 0 ? (
                                             <p className="text-center py-10 text-slate-400 text-sm font-bold">Chưa có hành động nào.</p>
                                         ) : (
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                {actions.map(a => {
+                                                {(actions || []).map(a => {
                                                     const s = ACTION_STYLE[a.action] || ACTION_STYLE.commented;
                                                     const actorName = usersMap[a.actor_id] || 'N/A';
                                                     const actionLabels: Record<string, string> = { approved: 'Đã duyệt', returned: 'Trả lại', rejected: 'Từ chối', commented: 'Bình luận' };
@@ -763,7 +764,7 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                     <div className="px-4 py-2.5 bg-slate-50/40 backdrop-blur-sm border-b border-slate-200 flex items-center justify-between shrink-0 gap-3">
                         <div className="flex items-center gap-2.5 shrink-0">
                             <span className="text-sm font-black text-slate-500 uppercase tracking-widest">Chi tiết đặt hàng</span>
-                            <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">{rows.length} mã</span>
+                            <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">{(rows || []).length} mã</span>
                         </div>
                         <div className="flex items-center gap-3">
                             {/* Lines-per-page — matches Ordering.tsx select style */}
@@ -792,7 +793,7 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                                 <tr className="text-xs uppercase font-black tracking-wider text-slate-400">
                                     <th className="px-3 py-3 w-10 text-center border-b border-slate-200 sticky left-0 z-40 bg-slate-50/95">
                                         <div className="flex flex-col items-center gap-1">
-                                            <input type="checkbox" checked={selectedItems.size === rows.length && rows.length > 0} onChange={handleToggleAll} className="w-4 h-4 cursor-pointer accent-blue-600 rounded" />
+                                            <input type="checkbox" checked={selectedItems.size === (rows || []).length && (rows || []).length > 0} onChange={handleToggleAll} className="w-4 h-4 cursor-pointer accent-blue-600 rounded" />
                                             <span className="text-[8px] uppercase font-bold tracking-tighter leading-none">All</span>
                                         </div>
                                     </th>
@@ -819,7 +820,7 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
                                             safePage={safePage}
                                             isSelected={selectedItems.size === 0 ? false : selectedItems.has(ctx.itemCode)}
                                             localQty={localQtys[ctx.itemCode] || { air: 0, sea: 0 }}
-                                            origQty={snap.quantities[ctx.itemCode] || { air: 0, sea: 0 }}
+                                            origQty={snap?.quantities?.[ctx.itemCode] || { air: 0, sea: 0 }}
                                             onToggle={toggleItem}
                                             onSetQty={setQty}
                                             onInspect={setInspectingItem}

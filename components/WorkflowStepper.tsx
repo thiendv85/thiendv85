@@ -17,7 +17,7 @@ export const WorkflowStepper = ({ request, workflow, actions, usersMap, classNam
     const submissionDate = new Date(request.submitted_at).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
 
     // Group actions by level for easy lookup
-    const levelActions = actions.reduce((acc, action) => {
+    const levelActions = (actions || []).reduce((acc, action) => {
         if (!acc[action.level] || new Date(action.acted_at) > new Date(acc[action.level].acted_at)) {
             acc[action.level] = action;
         }

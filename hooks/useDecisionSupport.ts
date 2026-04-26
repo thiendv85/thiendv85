@@ -39,14 +39,14 @@ export interface DecisionSummary {
 }
 
 export const useDecisionSupport = (
-    snap: SnapshotData,
+    snap: SnapshotData | null,
     localQtys: Record<string, { air: number; sea: number }>,
     selectedItems: Set<string>,
     preApprovalResult: any | null = null
 ): DecisionSummary => {
     return useMemo(() => {
-        const rows = snap.inventory_context;
-        const origQtys = snap.quantities;
+        const rows = snap?.inventory_context || [];
+        const origQtys = snap?.quantities || {};
 
         // 1. Calculate Baseline (Before)
         let bVal = 0, bAir = 0, bSea = 0, bOos = 0, bRisk = 0, bBo = 0, bSumMos = 0;
@@ -145,7 +145,7 @@ export const useDecisionSupport = (
         }
 
         const valueDelta = aVal - bVal;
-        if (aVal > THRESHOLDS.HIGH_VALUE_THRESHOLD) {
+        if (aVal > (THRESHOLDS?.HIGH_VALUE_THRESHOLD || 1e9)) {
             reasons.push({
                 id: 'high_value_order',
                 severity: 'major',
@@ -159,15 +159,16 @@ export const useDecisionSupport = (
         let confidence: 'high' | 'medium' | 'low' = 'high';
 
         // Decision Engine based on Thresholds
-        const oosRatio = aOos / (rows.length || 1);
-        const riskRatio = aRisk / (rows.length || 1);
+        const rowLen = rows.length || 1;
+        const oosRatio = aOos / rowLen;
+        const riskRatio = aRisk / rowLen;
         const blockerCount = reasons.filter(r => r.severity === 'critical').length;
 
-        if (blockerCount > 0 || oosRatio > THRESHOLDS.MAX_OOS_RATIO_FOR_APPROVE * 2) {
+        if (blockerCount > 0 || oosRatio > (THRESHOLDS?.MAX_OOS_RATIO_FOR_APPROVE || 0.1) * 2) {
             status = 'not_recommended';
             recommendation = 'reject';
             confidence = 'low';
-        } else if (riskRatio > THRESHOLDS.MAX_RISK_RATIO_FOR_APPROVE || criticalWarnings > 10) {
+        } else if (riskRatio > (THRESHOLDS?.MAX_RISK_RATIO_FOR_APPROVE || 0.3) || criticalWarnings > 10) {
             status = 'attention';
             recommendation = 'approve';
             confidence = 'medium';
@@ -177,7 +178,7 @@ export const useDecisionSupport = (
             confidence = 'medium';
         }
 
-        if (blockerCount > 0 && THRESHOLDS.CONFIDENCE_LOW_ON_BLOCKER) {
+        if (blockerCount > 0 && THRESHOLDS?.CONFIDENCE_LOW_ON_BLOCKER) {
             confidence = 'low';
         }
 
