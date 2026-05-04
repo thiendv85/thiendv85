@@ -609,15 +609,88 @@ export function computeInventory(
     const incomingNB_Month = item.Pipeline_NB ? Object.entries(item.Pipeline_NB).reduce((sum, [k, v]) => isMatch(k) ? sum + v : sum, 0) : 0;
     const incomingBB_Month = item.Pipeline_BB ? Object.entries(item.Pipeline_BB).reduce((sum, [k, v]) => isMatch(k) ? sum + v : sum, 0) : 0;
 
+    // ── DRP Multi-Echelon Allocation Algorithm ──────────────────────────
+    // Step 1: Target stock per warehouse (demand-weighted)
+    const maxNB = Math.round(stockMax * ratioNB);
+    const maxBB = Math.round(stockMax * ratioBB);
+
+    // Step 2: Reserve position per warehouse = physical + pipeline - backorders
+    const poNB = item.TotalPO_NB || 0;
+    const poBB = item.TotalPO_BB || 0;
+    const boNB = item.Backorder_NB || 0;
+    const boBB = item.Backorder_BB || 0;
+    const reserveNB = physicalNB + poNB;  // physicalNB already subtracted boNB
+    const reserveBB = physicalBB + poBB;  // physicalBB already subtracted boBB
+
+    // Step 3: Gap per warehouse (how much each needs to reach target)
+    const rawGapNB = Math.max(0, maxNB - reserveNB);
+    const rawGapBB = Math.max(0, maxBB - reserveBB);
+    const excessNB = Math.max(0, reserveNB - maxNB);
+    const excessBB = Math.max(0, reserveBB - maxBB);
+
+    // Step 4: Inter-warehouse transfer (move excess from one to deficit of other)
+    let transferNBtoBB = 0;
+    let transferBBtoNB = 0;
+    if (excessNB > 0 && rawGapBB > 0) {
+        transferNBtoBB = Math.min(excessNB, rawGapBB);
+        transferNBtoBB = Math.ceil(transferNBtoBB / snp) * snp;
+    } else if (excessBB > 0 && rawGapNB > 0) {
+        transferBBtoNB = Math.min(excessBB, rawGapNB);
+        transferBBtoNB = Math.ceil(transferBBtoNB / snp) * snp;
+    }
+
+    // Step 5: Remaining gap after transfer = need to order from supplier
+    const gapAfterTransferNB = Math.max(0, rawGapNB - transferBBtoNB);
+    const gapAfterTransferBB = Math.max(0, rawGapBB - transferNBtoBB);
+
+    // Step 6: Allocate total gapOrExcess (SEA suggestion) proportionally
+    // Use gap-weighted allocation to prioritize the warehouse that needs more
+    let sugOrderNB = 0;
+    let sugOrderBB = 0;
+    if (!isStop && !isZeroDemand && gapOrExcess > 0) {
+        const totalGapAfterTransfer = gapAfterTransferNB + gapAfterTransferBB;
+        if (totalGapAfterTransfer > 0) {
+            // Proportional to each warehouse's remaining need
+            const allocRatioNB = gapAfterTransferNB / totalGapAfterTransfer;
+            const allocRatioBB = gapAfterTransferBB / totalGapAfterTransfer;
+            sugOrderNB = Math.ceil((gapOrExcess * allocRatioNB) / snp) * snp;
+            sugOrderBB = Math.ceil((gapOrExcess * allocRatioBB) / snp) * snp;
+            // Ensure total doesn't exceed gapOrExcess due to rounding
+            const totalAllocated = sugOrderNB + sugOrderBB;
+            if (totalAllocated > gapOrExcess + snp) {
+                // Reduce the larger allocation
+                if (sugOrderNB >= sugOrderBB) {
+                    sugOrderNB = Math.max(0, gapOrExcess - sugOrderBB);
+                } else {
+                    sugOrderBB = Math.max(0, gapOrExcess - sugOrderNB);
+                }
+            }
+        } else {
+            // Both warehouses at/above target — fallback to forecast ratio
+            sugOrderNB = Math.ceil((gapOrExcess * ratioNB) / snp) * snp;
+            sugOrderBB = Math.ceil((gapOrExcess * ratioBB) / snp) * snp;
+            const totalAllocated = sugOrderNB + sugOrderBB;
+            if (totalAllocated > gapOrExcess + snp) {
+                if (sugOrderNB >= sugOrderBB) {
+                    sugOrderNB = Math.max(0, gapOrExcess - sugOrderBB);
+                } else {
+                    sugOrderBB = Math.max(0, gapOrExcess - sugOrderNB);
+                }
+            }
+        }
+    }
+
+    const mosNB = (demandRateDaily * ratioNB) > 0 ? physicalNB / (demandRateDaily * ratioNB * 30) : 99;
+    const mosBB = (demandRateDaily * ratioBB) > 0 ? physicalBB / (demandRateDaily * ratioBB * 30) : 99;
+
     transferProps = {
-        maxNB: Math.round(stockMax * ratioNB),
-        maxBB: Math.round(stockMax * ratioBB),
+        maxNB, maxBB,
         physicalNB, physicalBB,
-        incomingNB: item.TotalPO_NB || 0, incomingBB: item.TotalPO_BB || 0,
-        mosNB: (demandRateDaily * ratioNB) > 0 ? physicalNB / (demandRateDaily * ratioNB * 30) : 99,
-        mosBB: (demandRateDaily * ratioBB) > 0 ? physicalBB / (demandRateDaily * ratioBB * 30) : 99,
+        incomingNB: poNB, incomingBB: poBB,
+        mosNB, mosBB,
         incomingNB_Month, incomingBB_Month,
-        transferNBtoBB: 0, transferBBtoNB: 0, suggestedOrderNB: 0, suggestedOrderBB: 0
+        transferNBtoBB, transferBBtoNB,
+        suggestedOrderNB: sugOrderNB, suggestedOrderBB: sugOrderBB
     };
 
     const simTotalStock = available + onOrder + draftQty;
