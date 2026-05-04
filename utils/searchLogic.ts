@@ -331,7 +331,7 @@ export const matchSearch = (item: SearchableItem, result: SearchResult, useFuzzy
     .join(' ');
 
   const fullTextSearch = item._searchCache?.fullText || removeAccents(
-    `${item.ItemCode || ''} ${item.ItemName || ''} ${item.CarModel || ''} ${orderDocs}`
+    `${item.ItemCode || ''} ${item.ItemName || ''} ${item.TypeCar || ''} ${orderDocs}`
   );
 
   switch (result.type) {

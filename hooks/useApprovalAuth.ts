@@ -52,7 +52,7 @@ export function useApprovalAuth(): ApprovalAuthInfo {
             canApproveLevel: (level: number) => isAdmin || allowedLevels.includes(level),
             canSubmit: isAdmin || profile.role === 'planner',
             canUnlock: isAdmin,
-            canViewAll: isAdmin,
+            canViewAll: isAdmin || profile.role === 'planner',
             department: (profile as any).department || null,
             isLoading,
         };

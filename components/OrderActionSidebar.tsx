@@ -30,6 +30,12 @@ interface Props {
     };
 }
 
+const ACTION_STYLE: Record<string, { icon: string; cls: string }> = {
+    approved: { icon: 'fa-circle-check', cls: 'text-emerald-600' },
+    rejected: { icon: 'fa-circle-xmark', cls: 'text-rose-500' },
+    returned: { icon: 'fa-rotate-left', cls: 'text-indigo-500' },
+    commented: { icon: 'fa-comment', cls: 'text-slate-400' },
+};
 export const OrderActionSidebar: React.FC<Props> = ({
     sidebarTab, setSidebarTab, actions, usersMap, rows, localQtys, canAct,
     comment, setComment, commentError, setCommentError, hasChanges,

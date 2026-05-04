@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState, useEffect, useDeferredValue } from 'react';
-import { InventoryItem, DashboardSettings, InventoryFilters, DEFAULT_FILTERS, COST_RANGES, FOB_COST_RANGES, getDebtStatus, OrderingDraft } from '../types/inventory';
+import { InventoryItem, DashboardSettings, InventoryFilters, DEFAULT_FILTERS, COST_RANGES, FOB_COST_RANGES, getDebtStatus, OrderingDraft, LoisProfile } from '../types/inventory';
 import { FilterPanel } from '../components/FilterPanel';
 import { MetricCard } from '../components/MetricCard';
 import { ExecutiveDashboard } from '../components/ExecutiveDashboard';
@@ -15,6 +15,7 @@ import { DemandIntelligence } from './DemandIntelligence';
 import { SupersessionManagement } from './SupersessionManagement';
 import { useDevice } from '../hooks/useDevice';
 
+const DEFAULT_LOIS_PROFILES: LoisProfile[] = [];
 const formatPct = (val: number) => `${(val || 0).toFixed(1)}%`;
 
 const getLoisSubgroup = (item: InventoryItem): string => {
@@ -196,7 +197,7 @@ const LoisRow = React.memo(({
     );
 });
 
-export const Dashboard = ({ data, enrichedData, isEngineProcessing, onItemSelect, initialParams, initialState, onSaveState, draftData, graph, appSettings, supersessionProps }: {
+export const Dashboard = ({ data, enrichedData, isEngineProcessing, onItemSelect, initialParams, initialState, onSaveState, draftData, graph, appSettings, onUpdateSettings, supersessionProps }: {
     data: InventoryItem[],
     enrichedData?: InventoryItem[],
     isEngineProcessing?: boolean,
@@ -622,7 +623,7 @@ export const Dashboard = ({ data, enrichedData, isEngineProcessing, onItemSelect
                     <div class="kpi-sub">${exPctGrand.toFixed(1)}% t\u1ed3n kho \u2014 ${gs.grandExcessItems} SKU</div>
                 </div>
             </div>
-            ${isSimulation ? `<div class="delta-bar"><div class="delta-card"><div class="delta-label">Stockout Resolved</div><div class="delta-val">-${dSOR}</div></div><div class="delta-card"><div class="delta-label">Capital Added</div><div class="delta-val">${formatCurrency(dSA)}</div></div><div class="delta-card"><div class="delta-label">Excess Added</div><div class="delta-val">${formatCurrency(dEA)}</div></div></div>` : ''}
+            ${isSimulation ? `<div class="delta-bar"><div class="delta-card"><div class="delta-label">Stockout Resolved</div><div class="delta-val">-${printData.deltaStockoutResolved}</div></div><div class="delta-card"><div class="delta-label">Capital Added</div><div class="delta-val">${formatCurrency(printData.deltaStockValAdded)}</div></div><div class="delta-card"><div class="delta-label">Excess Added</div><div class="delta-val">${formatCurrency(printData.deltaExcessAdded)}</div></div></div>` : ''}
             <table>
                 <colgroup>
                     <col style="width:105px"><col style="width:75px"><col style="width:45px">

@@ -8,12 +8,14 @@ import { UserRole } from '../utils/authContext';
 // ── Valid State Transitions ──────────────────────────────────────────────────
 
 export const VALID_TRANSITIONS: Record<ApprovalStatus, ApprovalStatus[]> = {
-    pending:     ['in_progress', 'rejected', 'returned'],
-    in_progress: ['in_progress', 'approved', 'rejected', 'returned'],
-    approved:    ['unlocked'],
+    pending:     ['in_progress', 'rejected', 'returned', 'cancelled'],
+    in_progress: ['in_progress', 'approved', 'rejected', 'returned', 'cancelled'],
+    approved:    ['unlocked', 'archived'],
     rejected:    [],           // terminal — submitter must create new request
     unlocked:    ['pending'],  // resubmit flow
-    returned:    ['pending'],  // submitter fixes and resubmits
+    returned:    ['pending', 'cancelled'],  // submitter fixes and resubmits
+    cancelled:   [],           // terminal
+    archived:    [],           // terminal
 };
 
 // ── Status Display Info ──────────────────────────────────────────────────────
@@ -73,6 +75,22 @@ export const STATUS_INFO: Record<ApprovalStatus, {
         color: 'purple',
         bgColor: 'bg-purple-100',
         textColor: 'text-purple-900',
+    },
+    cancelled: {
+        label: 'Đã hủy',
+        description: 'Đơn đã bị hủy',
+        icon: 'fa-ban',
+        color: 'slate',
+        bgColor: 'bg-slate-100',
+        textColor: 'text-slate-900',
+    },
+    archived: {
+        label: 'Đã lưu trữ',
+        description: 'Đơn đã được lưu trữ',
+        icon: 'fa-box-archive',
+        color: 'slate',
+        bgColor: 'bg-slate-50',
+        textColor: 'text-slate-700',
     },
 };
 

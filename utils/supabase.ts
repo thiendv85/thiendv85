@@ -975,7 +975,7 @@ export async function uploadSnapshot(
       }
     }
 
-    const rawBrand = data[0]?.BrandName || data[0]?.ThuongHieu || null;
+    const rawBrand = data[0]?.BrandName || (data[0] as any)?.ThuongHieu || null;
     const dataBrand = normalizeBrand(rawBrand);
     
     // Final brand is either from the data itself or the user's current department/brand

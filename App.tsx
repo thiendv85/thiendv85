@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect, useMemo, useTransition } from 'react';
 import { createPortal } from 'react-dom';
-import { InventoryItem, KittingDefinition, MonthlyData } from './types/inventory';
+import { InventoryItem, KittingDefinition, MonthlyData , ApprovalRequest } from './types/inventory';
 import { SupersessionMapping, SupersessionGraph } from './utils/supersessionGraph';
 import { FileUpload } from './pages/FileUpload';
 // Heavy pages — lazy loaded for code splitting (reduces initial bundle ~70%)
@@ -49,7 +49,8 @@ const PageSkeleton = () => (
 
 // simple error boundary for debugging
 class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: any}> {
-    constructor(props: any) { super(props); this.state = { hasError: false, error: null }; }
+    state = { hasError: false, error: null as any };
+    constructor(props: any) { super(props); }
     static getDerivedStateFromError(error: any) { return { hasError: true, error }; }
     
     componentDidCatch(error: any) {
@@ -84,7 +85,7 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
                 </div>
             );
         }
-        return this.props.children;
+        return (this as any).props.children;
     }
 }
 
@@ -448,7 +449,7 @@ const AppContent = () => {
                             { id: 'ordering', label: t('nav_ordering'), icon: 'fa-cart-shopping' },
                             { id: 'transfer', label: t('nav_transfer'), icon: 'fa-right-left' },
                             { id: 'kitting', label: t('nav_kitting'), icon: 'fa-boxes-stacked' },
-                            ...(profile?.role && ['admin', 'approver'].includes(profile.role)
+                            ...(profile?.role && ['admin', 'approver', 'planner'].includes(profile.role)
                                 ? [{ id: 'approval-queue', label: 'Phê duyệt', icon: 'fa-clipboard-check' }]
                                 : []),
                         ].map((nav) => {
@@ -532,7 +533,7 @@ const AppContent = () => {
                         { id: 'ordering', label: 'Đặt hàng', icon: 'fa-cart-shopping' },
                         { id: 'transfer', label: 'Phân bổ', icon: 'fa-right-left' },
                         { id: 'kitting', label: 'Kitting', icon: 'fa-boxes-stacked' },
-                        ...(profile?.role && ['admin', 'approver'].includes(profile.role)
+                        ...(profile?.role && ['admin', 'approver', 'planner'].includes(profile.role)
                             ? [{ id: 'approval-queue', label: 'Duyệt', icon: 'fa-clipboard-check' }]
                             : []),
                     ].map((nav) => {

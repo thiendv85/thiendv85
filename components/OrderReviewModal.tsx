@@ -133,6 +133,8 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
         return { air, sea, value, oos, risk, bo, avgMos };
     }, [rows, localQtys, selectedItems]);
 
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(50);
     const hasChanges = useMemo(() =>
         rows.some(ctx => {
             const orig = snap.quantities[ctx.itemCode] || { air: 0, sea: 0 };

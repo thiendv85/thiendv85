@@ -85,7 +85,7 @@ export const ApprovalQueue = ({ onLoadRequest }: { onLoadRequest?: (req: Approva
         try {
             const { processApprovalAction } = await import('../utils/supabase');
             let success = 0;
-            for (const id of ids) { if ((await processApprovalAction(id, user.id, action as 'approved' | 'rejected')).success) success++; }
+            for (const id of ids) { if ((await processApprovalAction(id as string, user.id, action as 'approved' | 'rejected')).success) success++; }
             showToast(`Hoàn tất: ${success}/${ids.length}`, "success");
             setSelectedIds(new Set()); await loadRequests();
         } catch (e) { showToast("Lỗi xử lý", "error"); }
@@ -289,7 +289,7 @@ export const ApprovalQueue = ({ onLoadRequest }: { onLoadRequest?: (req: Approva
             )}
 
             {/* Modals */}
-            {selected && <OrderReviewModal request={selected.req} usersMap={usersMap} onClose={() => setSelected(null)} onRefresh={loadRequests} />}
+            {selected && <OrderReviewModal request={selected.req} actions={selected.actions} usersMap={usersMap} onClose={() => setSelected(null)} onRefresh={loadRequests} />}
             <style>{`
                 @keyframes scaleIn {
                     from { opacity: 0; transform: scale(0.95); }

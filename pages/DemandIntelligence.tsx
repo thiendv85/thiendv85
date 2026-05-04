@@ -5,12 +5,13 @@ import { MetricCard } from '../components/MetricCard';
 import { useLanguage } from '../utils/i18n';
 import { parseInventorySearch, SearchResult, matchSearch } from '../utils/searchLogic';
 import { getVietnameseWorkingDays } from '../utils/inventoryEngine';
-import { AppSettings } from '../types/inventory';
+import { AppSettings } from './Settings';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
 // ─────────────────────────────────────────────────────────────────────────────
 
+interface IntelResult { group: string; [key: string]: any; }
 interface DemandIntelligenceProps {
     data: (InventoryItem & { analyzed?: IntelResult })[];
     onItemSelect: (item: InventoryItem) => void;

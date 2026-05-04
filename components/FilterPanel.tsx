@@ -348,7 +348,7 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
           </button>
           {activeFilterCount > 0 && (
             <button
-              onClick={() => onFiltersChange({ priority: 'All', lois: [], status: 'All', source: 'All', trend: 'All', costRange: 0, fobCostRange: 0, showBackorders: false, specialFilter: null, debtStatus: [], search: filters.search })}
+              onClick={() => onFiltersChange({ priority: 'All', lois: [], status: 'All', source: 'All', trend: 'All', costRange: 0, fobCostRange: 0, showBackorders: false, specialFilter: null, debtStatus: [], search: filters.search, onlyAdjusted: false })}
               className="text-[10px] font-black text-rose-500 bg-rose-50 border border-rose-100 px-2.5 py-1 rounded-lg"
             >
               Xóa bộ lọc

@@ -660,6 +660,7 @@ export const exportToCSV = (data: InventoryItem[], filename: string, options?: C
 };
 
 export const exportOrderDraftToCSV = (list: any[], filename: string, costBasis: string, options?: CsvExportOptions) => {
+    if (list.length === 0) return;
     const sep = getSep(options);
     const bom = getBOM(options);
     const prec = getPrec(options);
@@ -674,6 +675,22 @@ export const exportOrderDraftToCSV = (list: any[], filename: string, costBasis: 
         { key: 'typeCar', header: 'TypeCar', value: (_, i) => safeCSV(i.TypeCar || '') },
         { key: 'airQty', header: 'SL Đặt (AIR)', value: (e) => safeCSV(e.airQty) },
         { key: 'seaQty', header: 'SL Đặt (SEA)', value: (e) => safeCSV(e.seaQty) },
+        { key: 'orderNB', header: 'Đề Xuất Đặt (Kho NB)', value: (e, i) => {
+            const total = e.airQty + e.seaQty;
+            const sugNB = i.computed?.transfer?.suggestedOrderNB || 0;
+            const sugBB = i.computed?.transfer?.suggestedOrderBB || 0;
+            const totalSug = sugNB + sugBB;
+            if (totalSug <= 0) return safeCSV(total);
+            return safeCSV(Math.round(total * (sugNB / totalSug)));
+        }},
+        { key: 'orderBB', header: 'Đề Xuất Đặt (Kho BB)', value: (e, i) => {
+            const total = e.airQty + e.seaQty;
+            const sugNB = i.computed?.transfer?.suggestedOrderNB || 0;
+            const sugBB = i.computed?.transfer?.suggestedOrderBB || 0;
+            const totalSug = sugNB + sugBB;
+            if (totalSug <= 0) return safeCSV(0);
+            return safeCSV(Math.round(total * (sugBB / totalSug)));
+        }},
         { key: 'totalQty', header: 'Tổng SL Đặt', value: (_, __, d) => safeCSV(d.totalQty) },
         { key: 'totalAmount', header: 'Thành Tiền', value: (_, __, d) => safeCSV(d.totalAmount.toFixed(prec)) },
         { key: 'currency', header: 'Tiền Tệ', value: (_, __, d) => safeCSV(d.currency) },
@@ -758,8 +775,10 @@ export const exportOrderDraftToCSV = (list: any[], filename: string, costBasis: 
     link.setAttribute('download', filename);
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }, 150);
 };
 
 export const parseOrderingDraftCSV = (text: string) => {
