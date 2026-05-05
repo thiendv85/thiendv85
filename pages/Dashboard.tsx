@@ -468,6 +468,10 @@ export const Dashboard = ({ data, enrichedData, isEngineProcessing, onItemSelect
                 const status = getDebtStatus(i);
                 if (!deferredFilters.debtStatus.includes(status)) return false;
             }
+            if (deferredFilters.source && deferredFilters.source.length > 0) {
+                const sourceKey = `${i.BrandName || ''}|${i.SourceId || ''}`;
+                if (!deferredFilters.source.includes(sourceKey)) return false;
+            }
             return true;
         });
     }, [indexedData, deferredSelectedSubgroup, deferredSearchResult, deferredFilters, graph]);

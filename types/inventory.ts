@@ -55,7 +55,7 @@ export interface InventoryFilters {
     specialFilter: 'none' | 'stockout' | 'critical_stockout' | 'excess' | 'low_stock' | 'has_po' | 'has_supersession' | 'has_warning' | 'has_seasonality';
     showBackorders: boolean;
     debtStatus: string[];
-    source: string;
+    source: string[];
     onlyAdjusted: boolean;
 }
 
@@ -70,7 +70,7 @@ export const DEFAULT_FILTERS: InventoryFilters = {
     specialFilter: 'none',
     showBackorders: false,
     debtStatus: [],
-    source: 'All',
+    source: [],
     onlyAdjusted: false,
 };
 

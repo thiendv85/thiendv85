@@ -80,12 +80,13 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
 
   const { isMobile } = useDevice();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isSourceDropdownOpen, setIsSourceDropdownOpen] = useState(false);
 
   // Count active filters for badge
   const activeFilterCount = [
     filters.priority !== 'All',
     (filters.lois || []).length > 0,
-    filters.source !== 'All',
+    (filters.source || []).length > 0,
     filters.status !== 'All',
     filters.trend !== 'All',
     filters.costRange > 0,
@@ -111,11 +112,36 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
               ))}
             </div>
             <div className="relative shrink-0 w-[140px]">
-              <select value={filters.source} onChange={e => onFiltersChange({ ...filters, source: e.target.value })} className={`w-full cursor-pointer pl-3 pr-7 py-0 bg-white/60 backdrop-blur-md border rounded-xl text-xs font-bold h-8 shadow-sm transition-all uppercase tracking-tighter appearance-none outline-none ${filters.source !== 'All' ? 'border-blue-500/50 text-blue-800 bg-blue-50/80' : 'border-white/60 text-slate-700 hover:border-slate-300'}`}>
-                <option value="All">Source</option>
-                {uniqueSources.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-              </select>
-              <i className="fas fa-chevron-down absolute right-3 bottom-[10px] text-[10px] text-slate-500 pointer-events-none"></i>
+              <button 
+                  onClick={() => setIsSourceDropdownOpen(!isSourceDropdownOpen)}
+                  className={`flex items-center justify-between w-full px-3 py-0 bg-white/60 backdrop-blur-md border rounded-xl text-[11px] font-bold h-8 shadow-sm transition-all uppercase tracking-tighter outline-none ${(filters.source || []).length > 0 ? 'border-blue-500/50 text-blue-800 bg-blue-50/80' : 'border-white/60 text-slate-700 hover:border-slate-300'}`}>
+                <span className="truncate pr-2">{(filters.source || []).length > 0 ? `SOURCE (${filters.source.length})` : 'SOURCE'}</span>
+                <i className={`fas fa-chevron-${isSourceDropdownOpen ? 'up' : 'down'} text-[10px] text-slate-500`}></i>
+              </button>
+              {isSourceDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsSourceDropdownOpen(false)}></div>
+                  <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-lg z-50 py-2 max-h-60 overflow-y-auto custom-scrollbar">
+                    {uniqueSources.map(s => {
+                       const isSelected = (filters.source || []).includes(s.id);
+                       return (
+                         <div key={s.id} 
+                           className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-50 cursor-pointer"
+                           onClick={() => {
+                              const newSource = isSelected ? (filters.source || []).filter(id => id !== s.id) : [...(filters.source || []), s.id];
+                              onFiltersChange({ ...filters, source: newSource });
+                           }}
+                         >
+                           <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300'}`}>
+                             {isSelected && <i className="fas fa-check text-[9px]"></i>}
+                           </div>
+                           <span className="text-xs font-semibold text-slate-700 truncate uppercase">{s.label}</span>
+                         </div>
+                       );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -348,7 +374,7 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
           </button>
           {activeFilterCount > 0 && (
             <button
-              onClick={() => onFiltersChange({ priority: 'All', lois: [], status: 'All', source: 'All', trend: 'All', costRange: 0, fobCostRange: 0, showBackorders: false, specialFilter: null, debtStatus: [], search: filters.search, onlyAdjusted: false })}
+              onClick={() => onFiltersChange({ priority: 'All', lois: [], status: 'All', source: [], trend: 'All', costRange: 0, fobCostRange: 0, showBackorders: false, specialFilter: 'none', debtStatus: [], search: filters.search, onlyAdjusted: false })}
               className="text-[10px] font-black text-rose-500 bg-rose-50 border border-rose-100 px-2.5 py-1 rounded-lg"
             >
               Xóa bộ lọc
