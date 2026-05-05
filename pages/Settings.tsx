@@ -490,6 +490,7 @@ const UserManagementTab = () => {
                         <thead>
                             <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-widest border-b border-slate-200">
                                 <th className="px-4 py-3 text-left font-black">Họ tên</th>
+                                <th className="px-4 py-3 text-left font-black">Email</th>
                                 <th className="px-4 py-3 text-left font-black">Role</th>
                                 <th className="px-4 py-3 text-left font-black">Brand</th>
                                 <th className="px-4 py-3 text-center font-black">Trạng thái</th>
@@ -500,6 +501,7 @@ const UserManagementTab = () => {
                             {users.map(u => (
                                 <tr key={u.id} className="border-t border-slate-100 hover:bg-slate-50">
                                     <td className="px-4 py-3 font-bold text-slate-800">{u.full_name || <span className="text-slate-400 italic">Chưa đặt tên</span>}</td>
+                                    <td className="px-4 py-3 text-xs text-slate-500">{u.email || <span className="text-slate-400 italic">Không có</span>}</td>
                                     <td className="px-4 py-3">
                                         <select
                                             value={u.role}

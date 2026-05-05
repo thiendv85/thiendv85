@@ -11,6 +11,7 @@ export type UserRole = 'admin' | 'planner' | 'approver' | 'viewer';
 export interface UserProfile {
     id: string;
     full_name: string | null;
+    email?: string;
     role: UserRole;
     is_active: boolean;
     created_at: string;
