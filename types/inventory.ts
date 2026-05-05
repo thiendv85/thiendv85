@@ -393,9 +393,9 @@ export interface ApprovalWorkflow {
 export type ApprovalStatus = 'pending' | 'in_progress' | 'approved' | 'rejected' | 'unlocked' | 'returned' | 'cancelled' | 'archived';
 
 export interface SnapshotData {
-    quantities: Record<string, { air: number; sea: number }>;
-    notes: Record<string, string>;
-    inventory_context: Array<{
+    quantities?: Record<string, { air: number; sea: number }>;
+    notes?: Record<string, string>;
+    inventory_context?: Array<{
         itemCode: string;
         itemName: string;
         typecar: string;
@@ -436,6 +436,9 @@ export interface SnapshotData {
     }>;
     submitted_at: string;
     app_version: string;
+    original_quantities?: Record<string, { air: number; sea: number }>;
+    storage_path?: string;
+    is_compressed?: boolean;
 }
 
 export interface ApprovalRequest {

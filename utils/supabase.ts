@@ -518,42 +518,159 @@ export interface SubmitRequestPayload {
   snapshot_data: SnapshotData;
 }
 
-export async function submitApprovalRequest(payload: SubmitRequestPayload): Promise<string | null> {
-  // Phase 8: Auto-calculate deadline (3 business days from now)
-  const deadline = new Date();
-  let daysAdded = 0;
-  while (daysAdded < 3) {
-    deadline.setDate(deadline.getDate() + 1);
-    const day = deadline.getDay();
-    if (day !== 0 && day !== 6) daysAdded++; // skip weekends
-  }
+export async function submitApprovalRequest(payload: SubmitRequestPayload): Promise<{ id: string | null; error: string | null }> {
+  try {
+    // Phase 8: Auto-calculate deadline (3 business days from now)
+    const deadline = new Date();
+    let daysAdded = 0;
+    while (daysAdded < 3) {
+      deadline.setDate(deadline.getDate() + 1);
+      const day = deadline.getDay();
+      if (day !== 0 && day !== 6) daysAdded++; // skip weekends
+    }
 
-  const { data, error } = await supabase
-    .from('approval_requests')
-    .insert({
-      draft_name: payload.draft_name,
-      brand: normalizeBrand(payload.brand), // Normalize brand on submission
-      workflow_id: payload.workflow_id,
-      current_level: 1,
-      status: 'pending',
-      submitted_by: payload.submitted_by,
-      snapshot_data: {
-        ...payload.snapshot_data,
-        original_quantities: payload.snapshot_data.quantities
-      },
-      version: 1,
-      deadline: deadline.toISOString(),
-    })
-    .select('id')
-    .single();
-  if (error || !data) { console.error('submitApprovalRequest:', error); return null; }
-  return data.id;
+    const fullSnapshot = {
+      ...payload.snapshot_data,
+      original_quantities: payload.snapshot_data.quantities
+    };
+
+    // Check payload size
+    const rawSize = new Blob([JSON.stringify(fullSnapshot)]).size;
+    let finalSnapshotData: any = fullSnapshot;
+
+    if (rawSize > 50000) { // If > 50KB, compress and store
+      const compressed = await compressData(fullSnapshot);
+      const now = new Date();
+      const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${Date.now()}`;
+      const brandPrefix = payload.brand ? `${normalizeBrand(payload.brand)}/` : 'unbranded/';
+      const path = `approvals/${brandPrefix}${ts}.json.gz`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from('inventory_snapshots')
+        .upload(path, compressed, { contentType: 'application/gzip' });
+
+      if (uploadErr) {
+        console.error('Failed to upload compressed snapshot:', uploadErr);
+        return { id: null, error: 'Lỗi tải dữ liệu lên Cloud Storage: ' + uploadErr.message };
+      }
+
+      finalSnapshotData = {
+        submitted_at: fullSnapshot.submitted_at,
+        app_version: fullSnapshot.app_version,
+        storage_path: path,
+        is_compressed: true
+      };
+    }
+
+    const { data, error } = await supabase
+      .from('approval_requests')
+      .insert({
+        draft_name: payload.draft_name,
+        brand: normalizeBrand(payload.brand),
+        workflow_id: payload.workflow_id,
+        current_level: 1,
+        status: 'pending',
+        submitted_by: payload.submitted_by,
+        snapshot_data: finalSnapshotData,
+        version: 1,
+        deadline: deadline.toISOString(),
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('submitApprovalRequest failed:', error);
+      return { id: null, error: error.message };
+    }
+    
+    if (!data) {
+      return { id: null, error: 'Không nhận được phản hồi từ máy chủ' };
+    }
+
+    return { id: data.id, error: null };
+  } catch (err: any) {
+    console.error('submitApprovalRequest exception:', err);
+    return { id: null, error: err.message || 'Lỗi không xác định' };
+  }
+}
+
+/**
+ * Variant of submitApprovalRequest that accepts a pre-compressed Blob.
+ * Use this when compression has already been done client-side (with progress tracking).
+ * Skips redundant JSON.stringify + compress, goes straight to Storage upload + DB insert.
+ */
+export async function submitApprovalRequestPrecompressed(payload: {
+  draft_name: string;
+  brand: string | null;
+  workflow_id: string;
+  submitted_by: string;
+  compressedBlob: Blob;
+  meta: { submitted_at: string; app_version: string };
+}): Promise<{ id: string | null; error: string | null }> {
+  try {
+    // Deadline: 3 business days
+    const deadline = new Date();
+    let daysAdded = 0;
+    while (daysAdded < 3) {
+      deadline.setDate(deadline.getDate() + 1);
+      const day = deadline.getDay();
+      if (day !== 0 && day !== 6) daysAdded++;
+    }
+
+    // Upload pre-compressed blob straight to Storage
+    const now = new Date();
+    const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${Date.now()}`;
+    const brandPrefix = payload.brand ? `${normalizeBrand(payload.brand)}/` : 'unbranded/';
+    const path = `approvals/${brandPrefix}${ts}.json.gz`;
+
+    const { error: uploadErr } = await supabase.storage
+      .from('inventory_snapshots')
+      .upload(path, payload.compressedBlob, { contentType: 'application/gzip' });
+
+    if (uploadErr) {
+      console.error('Failed to upload pre-compressed snapshot:', uploadErr);
+      return { id: null, error: 'Lỗi tải dữ liệu lên Cloud Storage: ' + uploadErr.message };
+    }
+
+    const finalSnapshotData = {
+      submitted_at: payload.meta.submitted_at,
+      app_version: payload.meta.app_version,
+      storage_path: path,
+      is_compressed: true,
+    };
+
+    const { data, error } = await supabase
+      .from('approval_requests')
+      .insert({
+        draft_name: payload.draft_name,
+        brand: normalizeBrand(payload.brand),
+        workflow_id: payload.workflow_id,
+        current_level: 1,
+        status: 'pending',
+        submitted_by: payload.submitted_by,
+        snapshot_data: finalSnapshotData,
+        version: 1,
+        deadline: deadline.toISOString(),
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('submitApprovalRequestPrecompressed failed:', error);
+      return { id: null, error: error.message };
+    }
+    if (!data) return { id: null, error: 'Không nhận được phản hồi từ máy chủ' };
+    return { id: data.id, error: null };
+  } catch (err: any) {
+    console.error('submitApprovalRequestPrecompressed exception:', err);
+    return { id: null, error: err.message || 'Lỗi không xác định' };
+  }
 }
 
 export async function fetchMyRequests(userId: string): Promise<ApprovalRequest[]> {
   const { data, error } = await supabase
     .from('approval_requests')
-    .select('*')
+    .select('id, draft_name, brand, workflow_id, current_level, status, submitted_by, submitted_at, version, deadline')
     .eq('submitted_by', userId)
     .order('submitted_at', { ascending: false });
   if (error || !data) return [];
@@ -566,12 +683,11 @@ export async function fetchPendingForApprover(
 ): Promise<ApprovalRequest[]> {
   const { data, error } = await supabase
     .from('approval_requests')
-    .select('*')
+    .select('id, draft_name, brand, workflow_id, current_level, status, submitted_by, submitted_at, version, deadline')
     .in('status', ['pending', 'in_progress'])
     .order('submitted_at', { ascending: true });
   if (error || !data) return [];
   const requests = data as ApprovalRequest[];
-  // Phase 1: Filter by user's allowed approval levels (client-side, volume is small)
   if (approvalLevels && approvalLevels.length > 0) {
     return requests.filter(r => approvalLevels.includes(r.current_level));
   }
@@ -581,7 +697,7 @@ export async function fetchPendingForApprover(
 export async function fetchAllRequests(): Promise<ApprovalRequest[]> {
   const { data, error } = await supabase
     .from('approval_requests')
-    .select('*')
+    .select('id, draft_name, brand, workflow_id, current_level, status, submitted_by, submitted_at, version, deadline')
     .order('submitted_at', { ascending: false });
   if (error || !data) return [];
   return data as ApprovalRequest[];
@@ -590,8 +706,29 @@ export async function fetchAllRequests(): Promise<ApprovalRequest[]> {
 export async function fetchRequestById(id: string): Promise<ApprovalRequest | null> {
   const { data, error } = await supabase.from('approval_requests').select('*').eq('id', id).single();
   if (error || !data) return null;
-  return data as ApprovalRequest;
+  const request = data as ApprovalRequest;
+
+  if (request.snapshot_data?.is_compressed && request.snapshot_data?.storage_path) {
+    try {
+      const { data: blob, error: dlErr } = await supabase.storage
+        .from('inventory_snapshots')
+        .download(request.snapshot_data.storage_path);
+      
+      if (dlErr || !blob) {
+        console.error('Failed to download compressed snapshot:', dlErr);
+        return request;
+      }
+      
+      const decompressed = await decompressData(blob);
+      request.snapshot_data = decompressed;
+    } catch (e) {
+      console.error('Decompression failed:', e);
+    }
+  }
+  
+  return request;
 }
+
 
 export async function fetchRequestByDraftName(draftName: string): Promise<ApprovalRequest | null> {
   const { data, error } = await supabase
@@ -671,6 +808,44 @@ export async function processApprovalAction(
     version_after: nextVersion,
   };
 
+  // Pre-process and compress snapshot data if needed to prevent DB bloat/UI freeze
+  let finalSnapshotData: any = undefined;
+  if (modifiedQuantities) {
+    const snapData = providedSnapshotData || request.snapshot_data;
+    const updatedSnap = { ...(snapData || {}), quantities: modifiedQuantities };
+    
+    if (!updatedSnap.original_quantities && snapData?.quantities) {
+      updatedSnap.original_quantities = snapData.quantities;
+    }
+    
+    finalSnapshotData = updatedSnap;
+    try {
+        const rawSize = new Blob([JSON.stringify(updatedSnap)]).size;
+        if (rawSize > 50000) {
+            const compressed = await compressData(updatedSnap);
+            const now = new Date();
+            const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${Date.now()}`;
+            const brandPrefix = request.brand ? `${normalizeBrand(request.brand)}/` : 'unbranded/';
+            const path = `approvals/${brandPrefix}action_${ts}.json.gz`;
+
+            const { error: uploadErr } = await supabase.storage
+              .from('inventory_snapshots')
+              .upload(path, compressed, { contentType: 'application/gzip' });
+
+            if (!uploadErr) {
+              finalSnapshotData = {
+                submitted_at: updatedSnap.submitted_at || new Date().toISOString(),
+                app_version: updatedSnap.app_version || 'unknown',
+                storage_path: path,
+                is_compressed: true
+              };
+            }
+        }
+    } catch (err) {
+        console.warn("Failed to compress/upload updated snapshot during action", err);
+    }
+  }
+
   // 1. Ghi action vào audit trail
   const { error: actionError } = await supabase.from('approval_actions').insert({
     request_id: request.id,
@@ -703,17 +878,8 @@ export async function processApprovalAction(
       version: nextVersion,
     };
     if (reason) returnUpdate.returned_reason = reason;
-    if (modifiedQuantities) {
-      const snapData = providedSnapshotData || request.snapshot_data;
-      const updatedSnap = { ...(snapData || {}), quantities: modifiedQuantities };
-      
-      // Preserve first version of quantities for auditing/filtering
-      if (!updatedSnap.original_quantities && snapData?.quantities) {
-        updatedSnap.original_quantities = snapData.quantities;
-      }
-      
-      returnUpdate.snapshot_data = updatedSnap;
-    }
+    if (finalSnapshotData) returnUpdate.snapshot_data = finalSnapshotData;
+    
     const { error: updErr } = await supabase.from('approval_requests').update(returnUpdate).eq('id', request.id);
     if (updErr) return { success: false, newStatus: request.status, error: 'Lỗi khi trả lại đơn hàng: ' + updErr.message };
     return { success: true, newStatus: 'returned' };
@@ -757,16 +923,8 @@ export async function processApprovalAction(
       status: 'in_progress',
       version: nextVersion,
     };
-    if (modifiedQuantities) {
-      const snapData = providedSnapshotData || request.snapshot_data;
-      const updatedSnap = { ...(snapData || {}), quantities: modifiedQuantities };
-      
-      if (!updatedSnap.original_quantities && snapData?.quantities) {
-        updatedSnap.original_quantities = snapData.quantities;
-      }
-      
-      advanceUpdate.snapshot_data = updatedSnap;
-    }
+    if (finalSnapshotData) advanceUpdate.snapshot_data = finalSnapshotData;
+    
     const { error: updErr } = await supabase.from('approval_requests').update(advanceUpdate).eq('id', request.id);
     if (updErr) return { success: false, newStatus: request.status, error: 'Lỗi khi chuyển cấp bậc phê duyệt' };
     return { success: true, newStatus: 'in_progress' };
@@ -775,16 +933,8 @@ export async function processApprovalAction(
       status: 'approved',
       version: nextVersion,
     };
-    if (modifiedQuantities) {
-      const snapData = providedSnapshotData || request.snapshot_data;
-      const updatedSnap = { ...(snapData || {}), quantities: modifiedQuantities };
-      
-      if (!updatedSnap.original_quantities && snapData?.quantities) {
-        updatedSnap.original_quantities = snapData.quantities;
-      }
-      
-      approveUpdate.snapshot_data = updatedSnap;
-    }
+    if (finalSnapshotData) approveUpdate.snapshot_data = finalSnapshotData;
+    
     const { error: updErr } = await supabase.from('approval_requests').update(approveUpdate).eq('id', request.id);
     if (updErr) return { success: false, newStatus: request.status, error: 'Lỗi khi phê duyệt đơn hàng: ' + updErr.message };
     return { success: true, newStatus: 'approved' };
@@ -809,6 +959,53 @@ export async function resubmitApprovalRequest(
   if (expectedVersion !== undefined) update.version = expectedVersion + 1;
   const { error } = await supabase.from('approval_requests').update(update).eq('id', requestId);
   return !error;
+}
+
+/**
+ * Gửi lại với pre-compressed blob — upload blob lên Storage, lưu storage_path vào DB.
+ * Dùng khi resubmit từ UI có progress tracking.
+ */
+export async function resubmitApprovalRequestPrecompressed(
+  requestId: string,
+  compressedBlob: Blob,
+  meta: { submitted_at: string; app_version: string; brand?: string | null },
+  expectedVersion?: number
+): Promise<boolean> {
+  try {
+    const now = new Date();
+    const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${Date.now()}`;
+    const brandPrefix = meta.brand ? `${normalizeBrand(meta.brand)}/` : 'unbranded/';
+    const path = `approvals/${brandPrefix}resubmit_${ts}.json.gz`;
+
+    const { error: uploadErr } = await supabase.storage
+      .from('inventory_snapshots')
+      .upload(path, compressedBlob, { contentType: 'application/gzip' });
+
+    if (uploadErr) {
+      console.error('resubmitApprovalRequestPrecompressed upload failed:', uploadErr);
+      return false;
+    }
+
+    const update: Record<string, unknown> = {
+      status: 'pending',
+      current_level: 1,
+      snapshot_data: {
+        submitted_at: meta.submitted_at,
+        app_version: meta.app_version,
+        storage_path: path,
+        is_compressed: true,
+      },
+      submitted_at: new Date().toISOString(),
+      rejection_reason: null,
+      returned_reason: null,
+    };
+    if (expectedVersion !== undefined) update.version = expectedVersion + 1;
+    const { error } = await supabase.from('approval_requests').update(update).eq('id', requestId);
+    return !error;
+  } catch (err) {
+    console.error('resubmitApprovalRequestPrecompressed exception:', err);
+    return false;
+  }
 }
 
 export async function unlockRequest(
@@ -876,11 +1073,57 @@ export interface SnapshotMetadataRow {
   content_hash: string | null;
 }
 
-async function compressData(data: any): Promise<Blob> {
-  const json = JSON.stringify(data);
-  const blob = new Blob([new TextEncoder().encode(json)]);
-  const compressed = blob.stream().pipeThrough(new CompressionStream('gzip'));
-  return new Response(compressed).blob();
+import InventoryWorker from './inventoryWorker?worker';
+
+// Singleton worker for utility functions off-main-thread
+let sharedWorker: Worker | null = null;
+let compressionCallbacks = new Map<string, { resolve: (b: Blob) => void; reject: (e: Error) => void }>();
+
+function getSharedWorker() {
+  if (!sharedWorker) {
+    try {
+      sharedWorker = new InventoryWorker();
+      sharedWorker.onmessage = (e) => {
+        const { type, payload } = e.data;
+        if (type === 'COMPRESS_RESULT' || type === 'COMPRESS_ERROR') {
+          const cb = compressionCallbacks.get(payload.id);
+          if (cb) {
+            if (type === 'COMPRESS_RESULT') cb.resolve(payload.blob);
+            else cb.reject(new Error(payload.error));
+            compressionCallbacks.delete(payload.id);
+          }
+        }
+      };
+    } catch (err) {
+      console.warn("Could not instantiate shared inventory worker:", err);
+    }
+  }
+  return sharedWorker;
+}
+
+/** Export for use in UI layer to allow pre-compression with progress tracking */
+export async function compressData(data: any): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    try {
+      const worker = getSharedWorker();
+      if (!worker) throw new Error("Worker not available");
+
+      const id = Math.random().toString(36).substring(2, 15);
+      compressionCallbacks.set(id, { resolve, reject });
+      worker.postMessage({ type: 'COMPRESS_DATA', payload: { data, id } });
+    } catch (fallbackErr) {
+      // Fallback to synchronous if Web Workers are not supported
+      console.warn('Web Worker failed, falling back to sync compression', fallbackErr);
+      try {
+        const json = JSON.stringify(data);
+        const blob = new Blob([new TextEncoder().encode(json)]);
+        const compressed = blob.stream().pipeThrough(new CompressionStream('gzip'));
+        new Response(compressed).blob().then(resolve).catch(reject);
+      } catch (err) {
+        reject(err);
+      }
+    }
+  });
 }
 
 async function decompressData(blob: Blob): Promise<any> {

@@ -21,7 +21,7 @@ import { Typography } from '../components/Typography';
 import { CloudDraftModal } from '../components/CloudDraftModal';
 import { useAuth } from '../utils/authContext';
 import { ApprovalStatusBadge } from '../components/ApprovalStatusBadge';
-import { listWorkflows, submitApprovalRequest, fetchRequestByDraftName, resubmitApprovalRequest, fetchRequestActions, normalizeBrand, processApprovalAction } from '../utils/supabase';
+import { listWorkflows, submitApprovalRequest, submitApprovalRequestPrecompressed, compressData, fetchRequestByDraftName, resubmitApprovalRequest, resubmitApprovalRequestPrecompressed, fetchRequestActions, normalizeBrand, processApprovalAction } from '../utils/supabase';
 import { ApprovalRequest, ApprovalWorkflow, ApprovalAction } from '../types/inventory';
 import { useDevice } from '../hooks/useDevice';
 
@@ -158,6 +158,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
     const [submitDraftName, setSubmitDraftName] = useState('');
     const [selectedWorkflowId, setSelectedWorkflowId] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitProgress, setSubmitProgress] = useState<{ step: string; pct: number } | null>(null);
     const [returnReason, setReturnReason] = useState<string>('');
 
     const { user, profile } = useAuth();
@@ -246,18 +247,24 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
         }
     };
 
-    const buildSnapshot = () => ({
-        quantities: orderQuantities,
-        notes: orderNotes,
-        inventory_context: Array.from(new Set([
+    // Async snapshot builder — processes SKUs in chunks of 100 to avoid blocking UI thread
+    const buildSnapshot = async (onProgress?: (step: string, pct: number) => void): Promise<any> => {
+        const allCodes = Array.from(new Set([
             ...Object.keys(orderQuantities).filter(code => (orderQuantities[code].air || 0) + (orderQuantities[code].sea || 0) > 0),
-            ...(approvalRequest?.snapshot_data?.inventory_context?.map(ctx => ctx.itemCode) || [])
-        ]))
-            .map(code => {
+            ...(approvalRequest?.snapshot_data?.inventory_context?.map((ctx: any) => ctx.itemCode) || [])
+        ]));
+
+        const CHUNK = 100;
+        const inventory_context: any[] = [];
+        const total = allCodes.length;
+
+        for (let i = 0; i < total; i += CHUNK) {
+            const batch = allCodes.slice(i, i + CHUNK);
+            for (const code of batch) {
                 const item = enrichedMap?.get(code);
                 const c = item?.computed;
                 const profile = item ? resolveItemProfile(item, settings.sourceProfiles) : undefined;
-                return {
+                inventory_context.push({
                     itemCode: code,
                     itemName: item?.ItemName || code,
                     typecar: item?.TypeCar || '',
@@ -276,7 +283,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                     baseForecast: item?.BaseForecast || 0,
                     priorityBucket: c?.priorityBucket || 'P3',
                     unitCost: c?.unitCost || 0,
-                    warnings: (c?.warnings || []).map(w => w.message),
+                    warnings: (c?.warnings || []).map((w: any) => w.message),
                     m1Actual: (item?.SalesHistory?.slice(-1)[0]) || 0,
                     avgQty3M: item?.AvgQty3M || 0,
                     avgQty6M: item?.AvgQty6M || 0,
@@ -285,7 +292,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                     incomingCurrentMonth: c?.incomingCurrentMonth || 0,
                     incomingNextMonth: c?.incomingNextMonth || 0,
                     cst: c?.cst || 0,
-                    salesHistory: item?.SalesHistory || [],
+                    // salesHistory omitted — saves ~60% payload; avgQty fields cover demand intel
                     // Regional breakdown + leadtime for print form
                     available_NB: item?.QuantityInventory_NB || 0,
                     available_BB: item?.QuantityInventory_BB || 0,
@@ -295,36 +302,81 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                     backorder_BB: item?.Backorder_BB || 0,
                     backorderBreakdown: item?.BackorderBreakdown || [],
                     dealerBreakdown: item?.DealerBreakdown || [],
-                    effectiveLT: profile.profile?.lt ?? settings.params.lt ?? 90,
+                    effectiveLT: profile?.profile?.lt ?? settings.params.lt ?? 90,
                     qtyNB: c?.transfer?.suggestedOrderNB || 0,
                     qtyBB: c?.transfer?.suggestedOrderBB || 0,
-                };
-            }),
-        submitted_at: new Date().toISOString(),
-        app_version: '13',
-    });
+                });
+            }
+            // Yield to browser after each chunk so UI stays responsive
+            if (i + CHUNK < total) {
+                const pct = Math.round(((i + CHUNK) / total) * 70); // 0–70% for building
+                onProgress?.('Đang đóng gói dữ liệu...', pct);
+                await new Promise(r => setTimeout(r, 0));
+            }
+        }
+
+        onProgress?.('Đang nén và gửi lên...', 80);
+        return {
+            quantities: orderQuantities,
+            notes: orderNotes,
+            inventory_context,
+            submitted_at: new Date().toISOString(),
+            app_version: '13',
+        };
+    };
 
     const handleSubmitApproval = async () => {
         if (!user || !submitDraftName.trim() || !selectedWorkflowId) return;
         setIsSubmitting(true);
-        const id = await submitApprovalRequest({
-            draft_name: submitDraftName.trim(),
-            brand: normalizeBrand(profile?.department),
-            workflow_id: selectedWorkflowId,
-            submitted_by: user.id,
-            snapshot_data: buildSnapshot(),
-        });
-        setIsSubmitting(false);
-        setIsSubmitModalOpen(false);
-        if (id) {
-            // Clearing the workbench state as requested: "hoàn thành và không lưu ở đây nữa"
-            setOrderQuantities({});
-            setOrderNotes({});
-            setConfirmedSkus(new Set());
-            setSupersessionWarnings({});
-            setCurrentDraftName('');
-            setApprovalRequest(null);
-            alert(`✅ Đã gửi yêu cầu phê duyệt "${submitDraftName.trim()}" thành công!`);
+        setSubmitProgress({ step: 'Đang chuẩn bị...', pct: 5 });
+        try {
+            // Step 1: Build snapshot in chunks (0–70%)
+            const snapshot = await buildSnapshot((step, pct) => setSubmitProgress({ step, pct }));
+
+            // Yield before JSON.stringify so progress bar renders first
+            await new Promise(r => setTimeout(r, 0));
+            setSubmitProgress({ step: 'Đang nén dữ liệu...', pct: 73 });
+            await new Promise(r => setTimeout(r, 0));
+
+            // Step 2: Pre-compress on client (gzip) — avoids blocking inside submitApprovalRequest
+            const fullSnapshot = { ...snapshot, original_quantities: snapshot.quantities };
+            const compressedBlob = await compressData(fullSnapshot);
+
+            // Yield after compress so UI updates
+            await new Promise(r => setTimeout(r, 0));
+            setSubmitProgress({ step: 'Đang upload lên server...', pct: 85 });
+            await new Promise(r => setTimeout(r, 0));
+
+            // Step 3: Upload pre-compressed blob directly — no double stringify/compress
+            const { id, error } = await submitApprovalRequestPrecompressed({
+                draft_name: submitDraftName.trim(),
+                brand: normalizeBrand(profile?.department),
+                workflow_id: selectedWorkflowId,
+                submitted_by: user.id,
+                compressedBlob,
+                meta: { submitted_at: snapshot.submitted_at, app_version: snapshot.app_version },
+            });
+
+            setIsSubmitting(false);
+            setSubmitProgress(null);
+
+            if (id) {
+                setIsSubmitModalOpen(false);
+                // Clearing the workbench state as requested: "hoàn thành và không lưu ở đây nữa"
+                setOrderQuantities({});
+                setOrderNotes({});
+                setConfirmedSkus(new Set());
+                setSupersessionWarnings({});
+                setCurrentDraftName('');
+                setApprovalRequest(null);
+                alert(`✅ Đã gửi yêu cầu phê duyệt "${submitDraftName.trim()}" thành công!`);
+            } else {
+                alert(`❌ Lỗi khi gửi phê duyệt: ${error || 'Lỗi không xác định'}`);
+            }
+        } catch (err: any) {
+            setIsSubmitting(false);
+            setSubmitProgress(null);
+            alert(`❌ Lỗi hệ thống: ${err.message || 'Vui lòng thử lại sau'}`);
         }
     };
 
@@ -332,8 +384,25 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
         if (!approvalRequest) return;
         if (!confirm(`Gửi lại yêu cầu phê duyệt "${approvalRequest.draft_name}" với dữ liệu đã chỉnh sửa?`)) return;
         setIsSubmitting(true);
-        const ok = await resubmitApprovalRequest(approvalRequest.id, buildSnapshot());
+        setSubmitProgress({ step: 'Đang đóng gói dữ liệu...', pct: 10 });
+
+        // Build → yield → compress → yield → upload (same chunked pipeline as submit)
+        const snapshot = await buildSnapshot((step, pct) => setSubmitProgress({ step, pct }));
+        await new Promise(r => setTimeout(r, 0));
+        setSubmitProgress({ step: 'Đang nén dữ liệu...', pct: 73 });
+        await new Promise(r => setTimeout(r, 0));
+        const compressedBlob = await compressData(snapshot);
+        await new Promise(r => setTimeout(r, 0));
+        setSubmitProgress({ step: 'Đang gửi lại...', pct: 90 });
+        await new Promise(r => setTimeout(r, 0));
+
+        const ok = await resubmitApprovalRequestPrecompressed(
+            approvalRequest.id,
+            compressedBlob,
+            { submitted_at: snapshot.submitted_at, app_version: snapshot.app_version, brand: normalizeBrand(profile?.department) }
+        );
         setIsSubmitting(false);
+        setSubmitProgress(null);
         if (ok) {
             // Clearing the workbench state as requested: "hoàn thành và không lưu ở đây nữa"
             setOrderQuantities({});
@@ -388,7 +457,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
             return finalizedItem;
         });
         return { enrichedList: list, enrichedMap: itemMap };
-    }, [activeEnrichedData, computeParams, orderQuantities]);
+    }, [activeEnrichedData, computeParams, orderQuantities, originalDraft]);
 
     const filteredData = useMemo(() => {
         let list = enrichedList.filter(i => {
@@ -1512,13 +1581,28 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                                 </div>
                             </div>
                             
-                            <div className="pt-2">
+                            <div className="pt-2 space-y-3">
+                                {/* Progress bar — shown during submission */}
+                                {isSubmitting && submitProgress && (
+                                    <div className="space-y-1.5">
+                                        <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                                            <span>{submitProgress.step}</span>
+                                            <span>{submitProgress.pct}%</span>
+                                        </div>
+                                        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                                                style={{ width: `${submitProgress.pct}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                                 <button
                                     onClick={handleSubmitApproval}
                                     disabled={isSubmitting || !submitDraftName.trim() || !selectedWorkflowId}
                                     className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black py-3.5 rounded-2xl text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.98]"
                                 >
-                                    {isSubmitting ? <><i className="fas fa-circle-notch fa-spin" /> Đang gửi...</> : <><i className="fas fa-paper-plane" /> Xác nhận gửi</>}
+                                    {isSubmitting ? <><i className="fas fa-circle-notch fa-spin" /> {submitProgress?.step || 'Đang xử lý...'}</> : <><i className="fas fa-paper-plane" /> Xác nhận gửi</>}
                                 </button>
                             </div>
                         </div>
