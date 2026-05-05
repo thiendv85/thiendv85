@@ -41,7 +41,7 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
         const [brand, sid] = key.split('|');
         const profile = settings.sourceProfiles?.find(p =>
           p.brand.toLowerCase() === (brand || 'kia').toLowerCase() &&
-          (p.id.toUpperCase() === sid.toUpperCase() || p.name.toLowerCase().includes(sid.toLowerCase()))
+          (p.id.toUpperCase() === sid.toUpperCase() || p.name.toLowerCase() === sid.toLowerCase())
         );
         return {
           id: key,
