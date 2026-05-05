@@ -175,7 +175,21 @@ export const ApprovalQueue = ({ onLoadRequest }: { onLoadRequest?: (req: Approva
 
                                             <div className="flex items-center gap-3 relative z-10" onClick={e => e.stopPropagation()}>
                                                 <button 
-                                                    onClick={() => onLoadRequest?.(req)} 
+                                                    onClick={async () => {
+                                                        if (onLoadRequest) {
+                                                            showToast("Đang tải dữ liệu...", "loading");
+                                                            try {
+                                                                const fullReq = await fetchRequestById(req.id);
+                                                                if (fullReq) {
+                                                                    onLoadRequest(fullReq);
+                                                                } else {
+                                                                    showToast("Không thể tải chi tiết đơn hàng", "error");
+                                                                }
+                                                            } catch (e) {
+                                                                showToast("Lỗi khi tải đơn hàng", "error");
+                                                            }
+                                                        }
+                                                    }} 
                                                     className="h-10 px-5 bg-gradient-to-r from-rose-500 to-rose-600 text-white rounded-2xl text-[10px] font-black uppercase hover:shadow-lg hover:shadow-rose-500/30 active:scale-95 transition-all flex items-center gap-2 border border-rose-400/20"
                                                 >
                                                     <i className="fas fa-external-link-alt" /> Mở Đơn

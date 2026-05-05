@@ -516,7 +516,10 @@ const AppContent = () => {
                 {view === 'approval-queue' && (
                     <ApprovalQueue 
                         onLoadRequest={(req) => {
-                            setSharedDraft(req.snapshot_data);
+                            setSharedDraft({
+                                quantities: req.snapshot_data?.quantities || {},
+                                notes: req.snapshot_data?.notes || {}
+                            });
                             setActiveApprovalRequest(req);
                             startTransition(() => setView('ordering'));
                         }}
