@@ -91,12 +91,20 @@ export const GlossaryTab = () => {
             ]
         },
         {
-            name: 'Phạm vi kho (Warehouse Scope)',
+            name: 'Nhóm kho / Nhóm miền (Warehouse Scope)',
             desc: 'Giới hạn góc nhìn tồn kho và tính toán số liệu.',
             items: [
                 { term: 'All', desc: 'Góc nhìn toàn quốc: Tổng hợp dữ liệu tồn kho và doanh số ở mọi kho chi nhánh.' },
                 { term: 'NB', desc: 'Chỉ giới hạn đánh giá dữ liệu và tính toán tồn kho ở khu vực Miền Nam.' },
                 { term: 'BB', desc: 'Chỉ giới hạn đánh giá dữ liệu và tính toán tồn kho ở khu vực Miền Bắc.' }
+            ]
+        },
+        {
+            name: 'Nhóm Mẹ (Mother Group / Analytics Group)',
+            desc: 'Cách hệ thống gom nhóm các Nguồn hàng (Source ID) đơn lẻ thành các khu vực hoặc thương hiệu chính để phân tích vĩ mô.',
+            items: [
+                { term: 'Cơ chế hoạt động', desc: 'Hệ thống tìm kiếm trong bảng cấu hình Nguồn hàng (Settings) để lấy Nhóm mẹ do người dùng định nghĩa. Nếu không có, hệ thống sẽ tự động nhận diện dựa trên mã (ví dụ: HQN, HQS -> HÀN QUỐC).' },
+                { term: 'Ưu tiên', desc: 'Cấu hình thủ công trong Settings luôn có ưu tiên cao nhất, giúp người vận hành linh hoạt điều chỉnh báo cáo mà không cần can thiệp mã nguồn.' }
             ]
         }
     ];

@@ -21,7 +21,7 @@ interface WorkerInput {
 }
 
 export function useInventoryWorker(
-    items: InventoryItem[],
+    items: InventoryItem[] = [],
     settings: any,
     draftData?: any
 ): { enrichedData: InventoryItem[]; isProcessing: boolean } {

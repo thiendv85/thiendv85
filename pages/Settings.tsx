@@ -1121,6 +1121,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
     const { t } = useLanguage();
     const [draft, setDraft] = useState<AppSettings>(settings);
     const [saved, setSaved] = useState(false);
+    const [showToast, setShowToast] = useState(false);
     const [adminPinInput, setAdminPinInput] = useState('');
     const [activeTab, setActiveTab] = useState<'inventory' | 'display' | 'export' | 'system' | 'users' | 'storage' | 'glossary'>('inventory');
     const { profile: currentUserProfile } = useAuth();
@@ -1272,7 +1273,11 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
         onSave(draft);
         saveAppSettings(draft);
         setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
+        setShowToast(true);
+        setTimeout(() => {
+            setSaved(false);
+            setShowToast(false);
+        }, 3000);
     };
 
     const handleReset = () => {
@@ -1366,7 +1371,20 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
     ];
 
     return (
-        <div className="animate-fadeIn space-y-6 pb-32">
+        <div className="animate-fadeIn space-y-6 pb-32 relative">
+            {showToast && (
+                <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] animate-fadeInUp">
+                    <div className="bg-slate-900 text-white px-8 py-4 rounded-3xl shadow-2xl flex items-center gap-4 border border-white/10 backdrop-blur-xl">
+                        <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 flex items-center justify-center">
+                            <i className="fas fa-check-double text-emerald-400 text-lg" />
+                        </div>
+                        <div>
+                            <p className="font-black uppercase tracking-widest text-xs text-emerald-400">Thành công</p>
+                            <p className="text-sm font-bold text-slate-100">Cấu hình đã được lưu vào trình duyệt!</p>
+                        </div>
+                    </div>
+                </div>
+            )}
             {/* Header */}
             <div className="bg-gradient-to-r from-slate-700 via-slate-800 to-slate-900 rounded-3xl p-6 md:p-8 text-white relative overflow-hidden">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
@@ -1379,6 +1397,9 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                         <Typography variant="label" className="text-slate-400 mt-1 block">Tùy chỉnh thông số & xuất dữ liệu</Typography>
                     </div>
                     <div className="flex items-center gap-3 flex-wrap">
+                        <button onClick={handleSave} className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-xl text-xs font-black uppercase hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20">
+                            <i className={`fas ${saved ? 'fa-check' : 'fa-floppy-disk'}`} /> {saved ? 'Đã lưu!' : 'Lưu Máy này'}
+                        </button>
                         <button onClick={handleLoadFromCloud} disabled={isLoadingCloud} className="flex items-center gap-2 bg-blue-500/30 border border-blue-400/30 text-blue-100 px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-blue-500/50 transition-all shadow-lg shadow-blue-500/20">
                             <i className={`fas ${isLoadingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-down'}`} /> Tải Cloud
                         </button>
@@ -1387,9 +1408,6 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                         </button>
                         <button onClick={handleExportConfig} className="flex items-center gap-2 bg-white/10 border border-white/10 text-white px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-white/20 transition-all">
                             <i className="fas fa-file-export" /> Xuất file
-                        </button>
-                        <button onClick={handleReset} className="flex items-center gap-2 bg-rose-500/20 border border-rose-400/20 text-rose-300 px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-rose-500/30 transition-all">
-                            <i className="fas fa-rotate-left" /> Mặc định
                         </button>
                     </div>
                 </div>
@@ -1444,11 +1462,12 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                     ) : (
                                         <div className="space-y-4">
                                             {/* Header row */}
-                                            <div className="grid grid-cols-12 gap-2 items-center pb-2 border-b border-slate-200 text-2xs font-black text-slate-400 uppercase tracking-widest">
+                                            <div className="grid grid-cols-12 gap-2 items-center pb-2 border-b border-slate-200 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                                 <div className="col-span-1 text-center">Chuẩn</div>
-                                                <div className="col-span-2 text-center">Ký hiệu</div>
-                                                <div className="col-span-4">Tên nguồn</div>
-                                                <div className="col-span-2 text-center">LT (ngày)</div>
+                                                <div className="col-span-1 text-center">Ký hiệu</div>
+                                                <div className="col-span-3">Tên nguồn hàng</div>
+                                                <div className="col-span-3">Nhóm mẹ (Analytics)</div>
+                                                <div className="col-span-1 text-center">LT</div>
                                                 <div className="col-span-1 text-center">SP</div>
                                                 <div className="col-span-1 text-center">SSP</div>
                                                 <div className="col-span-1"></div>
@@ -1467,9 +1486,9 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                                         />
                                                     </div>
                                                     {/* Source ID Input */}
-                                                    <div className="col-span-2 flex justify-center">
+                                                    <div className="col-span-1 flex justify-center">
                                                         <input
-                                                            className="w-full text-center px-1 py-1.5 bg-blue-50 border border-blue-100 rounded-xl text-xs font-black text-blue-600 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all uppercase tracking-widest shadow-sm"
+                                                            className="w-full text-center px-1 py-1.5 bg-blue-50 border border-blue-100 rounded-xl text-[10px] font-black text-blue-600 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all uppercase tracking-tight shadow-sm"
                                                             value={profile.id}
                                                             onChange={e => {
                                                                 const newId = e.target.value.toUpperCase().replace(/\s/g, '');
@@ -1487,9 +1506,9 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                                         />
                                                     </div>
                                                     {/* Name */}
-                                                    <div className="col-span-4">
+                                                    <div className="col-span-3">
                                                         <input
-                                                            className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all"
+                                                            className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-[11px] font-bold text-slate-800 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all"
                                                             value={profile.name}
                                                             onChange={e => {
                                                                 const v = e.target.value;
@@ -1497,11 +1516,23 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                                             }}
                                                         />
                                                     </div>
+                                                    {/* Mother Group */}
+                                                    <div className="col-span-3">
+                                                        <input
+                                                            className="w-full px-3 py-1.5 bg-purple-50 border border-purple-100 rounded-xl text-[11px] font-black text-purple-700 outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-50 transition-all placeholder:text-purple-300"
+                                                            value={profile.motherGroup || ''}
+                                                            placeholder="VD: HÀN QUỐC"
+                                                            onChange={e => {
+                                                                const v = e.target.value;
+                                                                setDraft(prev => ({ ...prev, sourceProfiles: prev.sourceProfiles.map(p => (p.id === profile.id && p.brand === profile.brand) ? { ...p, motherGroup: v } : p) }));
+                                                            }}
+                                                        />
+                                                    </div>
                                                     {/* LT */}
-                                                    <div className="col-span-2 flex justify-center px-1">
+                                                    <div className="col-span-1 flex justify-center px-1">
                                                         <input
                                                             type="number" min={1} max={365}
-                                                            className="w-full text-center px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-black text-blue-700 outline-none focus:border-blue-400 focus:bg-white"
+                                                            className="w-full text-center px-1 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-black text-blue-700 outline-none focus:border-blue-400 focus:bg-white"
                                                             value={profile.lt}
                                                             onChange={e => {
                                                                 const v = parseInt(e.target.value) || 1;
@@ -2183,9 +2214,19 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                         Cấu hình được lưu và đồng bộ lên Cloud (Supabase)
                     </div>
                     <div className="flex items-center gap-3">
+                        <button onClick={handleSave} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 ${
+                            saved ? 'bg-emerald-600 text-white' : 'bg-slate-900 text-white hover:bg-slate-800'
+                        }`}>
+                            <i className={`fas ${saved ? 'fa-check' : 'fa-floppy-disk'}`} />
+                            {saved ? 'Đã lưu!' : 'Lưu Thay đổi'}
+                        </button>
+
                         <button onClick={() => setDraft(settings)} className="px-5 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-xs font-black uppercase hover:bg-slate-200 transition-all border border-slate-200">
                             <i className="fas fa-xmark mr-1.5" /> Khôi phục
                         </button>
+
+                        <div className="w-px h-8 bg-slate-200 mx-1" />
+
                         <div className="flex items-center bg-white border border-slate-200 rounded-xl p-1 shadow-sm overflow-hidden">
                             <i className="fas fa-key text-slate-400 ml-2" />
                             <input 
@@ -2198,13 +2239,12 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                             <button
                                 onClick={handleSaveToCloud}
                                 disabled={isSavingCloud || !adminPinInput}
-                                className={`px-5 py-1.5 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-2 ${saved
-                                    ? 'bg-emerald-600 text-white shadow-emerald-200'
-                                    : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-300'
+                                className={`px-5 py-1.5 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-2 ${
+                                    isSavingCloud ? 'bg-slate-400 text-white' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-300'
                                     } ${(isSavingCloud || !adminPinInput) ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
-                                {isSavingCloud ? <i className="fas fa-spinner fa-spin" /> : <i className={`fas ${saved ? 'fa-check' : 'fa-cloud-arrow-up'}`} />}
-                                {isSavingCloud ? 'Đang lưu...' : (saved ? 'Đã lưu!' : 'Đồng bộ')}
+                                {isSavingCloud ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-cloud-arrow-up" />}
+                                {isSavingCloud ? 'Đang lưu...' : 'Đồng bộ Cloud'}
                             </button>
                         </div>
                     </div>

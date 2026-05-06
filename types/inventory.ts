@@ -18,6 +18,7 @@ export interface SourceProfile {
     lt: number;          // Lead Time (days)
     sp: number;          // Safety Period (days)
     ssp: number;         // Safety Stock Period (days)
+    motherGroup?: string; // Parent group name for analytics (e.g. 'Hàn Quốc', 'Ấn Độ')
 }
 
 export const DEFAULT_SOURCE_PROFILES: SourceProfile[] = [
@@ -134,11 +135,25 @@ export interface BackorderDetail {
     DocNo: string;
     Qty: number;
     Warehouse: string;
+    BranchCode?: string;
+    BranchName?: string;
+    OrderType?: string;
+    TypeCar?: string;
+    RowId?: string;
+    KhoNo?: string;
     Note?: string;
     Showroom?: string;
-    OrderType?: string;
     ETA?: string;
     RawDate?: number;
+}
+
+export interface BackorderAging {
+    qty30: number;   // < 30 days
+    qty60: number;   // 30-60 days
+    qty90: number;   // 60-90 days
+    qtyOver90: number; // > 90 days
+    totalQty: number;
+    totalValue: number;
 }
 
 /**
@@ -319,6 +334,7 @@ export interface InventoryItem {
 
         suggestedBO?: number;
         isBOCritical?: boolean;
+        boAging?: BackorderAging;
         snp?: number;
     };
 }

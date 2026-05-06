@@ -204,6 +204,13 @@ function parsePipelineDate(key: string, snapshotYYMM: string): number | null {
         return new Date(2000 + y, m - 1, 1).getTime();
     }
 
+    if (clean.length === 6 && !clean.includes('/')) {
+        const y = parseInt(clean.slice(0, 2));
+        const m = parseInt(clean.slice(2, 4));
+        const d = parseInt(clean.slice(4, 6));
+        return new Date(2000 + y, m - 1, d).getTime();
+    }
+
     return null;
 }
 
@@ -219,6 +226,7 @@ export interface ComputeParams {
     warehouseScope: 'All' | 'NB' | 'BB';
     costBasis: 'PP' | 'FOB';
     snapshotYYMM: string;
+    snapshotDate: string;
     applySeasonality: boolean;
     sourceProfiles?: SourceProfile[];
     seasonalityTuning?: {
@@ -465,7 +473,7 @@ export function computeInventory(
     const anchorDays = 26; 
     const ssi = calculateSSI(item, params);
     const demandRateDaily = (demandMonthly / anchorDays) * (params.applySeasonality ? ssi : 1.0);
-    const now = new Date();
+    const now = params.snapshotDate ? new Date(params.snapshotDate) : new Date();
 
     const { oh, dc } = resolveAvailable(item, params.warehouseScope);
     const available = oh + dc;
@@ -577,9 +585,31 @@ export function computeInventory(
 
     const snapshotMM = params.snapshotYYMM.slice(2, 4);
     const snapshotYY = params.snapshotYYMM.slice(0, 2);
-    const isMatch = (k: string) => k.replace(/\D/g, '').startsWith(params.snapshotYYMM) || k.replace(/\D/g, '').startsWith(snapshotMM + snapshotYY);
     
-    const incomingCurrentMonth = item.Pipeline ? Object.entries(item.Pipeline).reduce((sum, [k, v]) => isMatch(k) ? sum + v : sum, 0) : 0;
+    const snapMM = parseInt(snapshotMM);
+    const snapYY = parseInt(snapshotYY);
+    
+    const dNext = new Date(now);
+    dNext.setMonth(dNext.getMonth() + 1);
+    const nextMM = dNext.getMonth() + 1;
+    const nextYY = dNext.getFullYear() % 100;
+
+    const isMatchCurr = (k: string) => {
+        const ts = parsePipelineDate(k, params.snapshotYYMM);
+        if (!ts) return true; // "Chưa Invoice" -> T.NÀY
+        const d = new Date(ts);
+        return (d.getMonth() + 1) === snapMM && (d.getFullYear() % 100) === snapYY;
+    };
+
+    const isMatchNext = (k: string) => {
+        const ts = parsePipelineDate(k, params.snapshotYYMM);
+        if (!ts) return false;
+        const d = new Date(ts);
+        return (d.getMonth() + 1) === nextMM && (d.getFullYear() % 100) === nextYY;
+    };
+
+    const incomingCurrentMonth = item.Pipeline ? Object.entries(item.Pipeline).reduce((sum, [k, v]) => isMatchCurr(k) ? sum + v : sum, 0) : 0;
+    const incomingNextMonth = item.Pipeline ? Object.entries(item.Pipeline).reduce((sum, [k, v]) => isMatchNext(k) ? sum + v : sum, 0) : 0;
     const priorityBucket = resolvePriority(available, onOrder, bo, rop, demandMonthly, isStop);
 
     let gapOrExcess = 0;
@@ -606,8 +636,8 @@ export function computeInventory(
     const ratioBB = totalFC > 0 ? fcBB / totalFC : 0.5;
     const physicalNB = (item.QuantityInventory_NB || 0) + (item.QuantityDC_NB || 0) - (item.Backorder_NB || 0);
     const physicalBB = (item.QuantityInventory_BB || 0) + (item.QuantityDC_BB || 0) - (item.Backorder_BB || 0);
-    const incomingNB_Month = item.Pipeline_NB ? Object.entries(item.Pipeline_NB).reduce((sum, [k, v]) => isMatch(k) ? sum + v : sum, 0) : 0;
-    const incomingBB_Month = item.Pipeline_BB ? Object.entries(item.Pipeline_BB).reduce((sum, [k, v]) => isMatch(k) ? sum + v : sum, 0) : 0;
+    const incomingNB_Month = item.Pipeline_NB ? Object.entries(item.Pipeline_NB).reduce((sum, [k, v]) => isMatchCurr(k) ? sum + v : sum, 0) : 0;
+    const incomingBB_Month = item.Pipeline_BB ? Object.entries(item.Pipeline_BB).reduce((sum, [k, v]) => isMatchCurr(k) ? sum + v : sum, 0) : 0;
 
     // ── DRP Multi-Echelon Allocation Algorithm ──────────────────────────
     // Step 1: Target stock per warehouse (demand-weighted)
@@ -714,15 +744,41 @@ export function computeInventory(
         totalIncomingValue: (onOrder + draftQty) * unitCost
     };
 
+    // Aging Calculation (New)
+    const boAging: import('../types/inventory').BackorderAging = {
+        qty30: 0, qty60: 0, qty90: 0, qtyOver90: 0,
+        totalQty: 0, totalValue: 0
+    };
+
+    if (item.BackorderBreakdown && item.BackorderBreakdown.length > 0) {
+        const snapshotTs = now.getTime();
+        item.BackorderBreakdown.forEach(boItem => {
+            const docDate = boItem.RawDate || 0;
+            if (docDate > 0) {
+                const daysOld = Math.floor((snapshotTs - docDate) / MS_PER_DAY);
+                if (daysOld <= 30) boAging.qty30 += boItem.Qty;
+                else if (daysOld <= 60) boAging.qty60 += boItem.Qty;
+                else if (daysOld <= 90) boAging.qty90 += boItem.Qty;
+                else boAging.qtyOver90 += boItem.Qty;
+            } else {
+                // If no date, put in 30d bucket by default or based on some other logic
+                boAging.qty30 += boItem.Qty;
+            }
+            boAging.totalQty += boItem.Qty;
+        });
+        boAging.totalValue = boAging.totalQty * unitCost;
+    }
+
     return {
         effectiveLT, effectiveSP, effectiveSSP, demandRateDaily, demandMonthly,
         available, netAvailable, dcQuantity: dc, unitCost, safetyStock, rop, stockMax,
         stockoutRiskFlag, isStopBiz: isStop, excessQty, excessValue: excessQty * unitCost,
         stockValue: available * unitCost, stockoutGapQty: stockoutRiskFlag ? Math.max(0, rop - reserve) : 0,
         stockoutGapValue: (stockoutRiskFlag ? Math.max(0, rop - reserve) : 0) * unitCost,
-        mos, cst, incomingCurrentMonth, incomingNextMonth: 0,
+        mos, cst, incomingCurrentMonth, incomingNextMonth,
         priorityBucket, priorityScore: 0, stockTurnRatio: 0, fillRate: 0, capitalEfficiency: 0,
         gapOrExcess, suggestedBO, isBOCritical: bo > reserve, snp, ssi,
+        boAging, // Include aging in computed fields
         transfer: transferProps, cv, slope, forecastLinReg: forecast, warnings,
         simulated
     };
@@ -751,16 +807,19 @@ export function resolveItemProfile(item: InventoryItem, sourceProfiles?: SourceP
 }
 
 export function computeInventoryBatch(items: InventoryItem[], params: ComputeParams, draftData?: any): InventoryItem[] {
-    // Build working days cache ONCE for entire batch — eliminates ~13.5M Date allocations
-    const wdCache = buildWorkingDaysCache(new Date());
+    // Build working days cache ONCE for entire batch — anchored to snapshot date
+    const wdCache = buildWorkingDaysCache(params.snapshotDate ? new Date(params.snapshotDate) : new Date());
     return items.map(item => ({ ...item, computed: computeInventory(item, params, draftData?.[item.ItemCode], resolveItemProfile(item, params.sourceProfiles), wdCache) }));
 }
 
 export function makeComputeParams(settings: any): ComputeParams {
+    const sDate = settings.snapshotDate || new Date().toISOString().split('T')[0];
     return {
         lt: settings.params.lt, sp: settings.params.sp, ssp: settings.params.ssp,
         demandSource: settings.demandSource, warehouseScope: settings.warehouseScope,
-        costBasis: settings.costBasis, snapshotYYMM: settings.snapshotDate.replace(/-/g, '').substring(2, 6),
+        costBasis: settings.costBasis, 
+        snapshotYYMM: sDate.replace(/-/g, '').substring(2, 6),
+        snapshotDate: sDate,
         applySeasonality: settings.applySeasonality || false,
         sourceProfiles: settings.sourceProfiles,
         loisProfiles: settings.loisProfiles,

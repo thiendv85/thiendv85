@@ -138,12 +138,17 @@ export const parseBackorderCSV = (text: string): Record<string, BackorderDetail[
         DocNo: getIdx(['doc no', 'số ct', 'document number', 'so chung tu', 'order no', 'docno']),
         ItemCode: getIdx(['item no', 'item code', 'mã hàng', 'ma hang', 'part no', 'part number', 'product code', 'mã sp', 'itemcode']),
         ItemName: getIdx(['item name', 'tên hàng', 'ten hang', 'description', 'diễn giải', 'itemname']),
-        Qty: getIdx(['quantity', 'số lượng', 'sl', 'so luong', 'bo qty', 'backorder', 'open qty', 'balance', 'quantityremainclose', 'booking', 'book qty']),
-        Warehouse: getIdx(['warehouse', 'kho', 'wh', 'kho no']),
-        Note: getIdx(['note', 'ghi chú', 'diễn giải', 'remark', 'estimateddescription']),
+        Qty: getIdx(['quantity', 'số lượng', 'sl', 'so luong', 'bo qty', 'backorder', 'open qty', 'balance', 'quantityremain', 'booking', 'book qty']),
+        Warehouse: getIdx(['warehouse', 'kho', 'wh', 'kho mb']),
+        BranchCode: getIdx(['branch code', 'mã chi nhánh', 'branchcode']),
+        BranchName: getIdx(['branch name', 'tên chi nhánh', 'branchname']),
+        TypeCar: getIdx(['type car', 'loại xe', 'typecar', 'model']),
+        RowId: getIdx(['rowid', 'mã dòng']),
+        KhoNo: getIdx(['khono', 'mã kho']),
+        Note: getIdx(['note', 'ghi chú', 'diễn giải', 'remark', 'estimateddescription', 'ghi chu']),
         Showroom: getIdx(['showroom', 'sr', 'cửa hàng', 'sr-đl2', 'sr-dl2']),
-        OrderType: getIdx(['order type', 'loại đơn']),
-        ETA: getIdx(['eta', 'ngày về', 'expected', 'estimateddate1']),
+        OrderType: getIdx(['order type', 'loại đơn', 'oproperty', 'loại yêu cầu']),
+        ETA: getIdx(['eta', 'ngày về', 'expected', 'estimateddate']),
     };
 
     if (idxMap.ItemCode === -1 || idxMap.Qty === -1) {
@@ -166,7 +171,7 @@ export const parseBackorderCSV = (text: string): Record<string, BackorderDetail[
             if (docDateStr) {
                 try {
                     const cleanDate = docDateStr.split(' ')[0];
-                    const parts = cleanDate.split(/[-/]/);
+                    const parts = cleanDate.split(/[-/.]/); // Added dot separator support
                     if (parts.length === 3) {
                         if (parts[2].length === 4) rawDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])).getTime();
                         else if (parts[0].length === 4) rawDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])).getTime();
@@ -181,6 +186,11 @@ export const parseBackorderCSV = (text: string): Record<string, BackorderDetail[
                 DocNo: idxMap.DocNo > -1 ? row[idxMap.DocNo]?.trim() : '',
                 Qty: qty,
                 Warehouse: idxMap.Warehouse > -1 ? row[idxMap.Warehouse]?.trim() : 'Unknown',
+                BranchCode: idxMap.BranchCode > -1 ? row[idxMap.BranchCode]?.trim() : undefined,
+                BranchName: idxMap.BranchName > -1 ? row[idxMap.BranchName]?.trim() : undefined,
+                TypeCar: idxMap.TypeCar > -1 ? row[idxMap.TypeCar]?.trim() : undefined,
+                RowId: idxMap.RowId > -1 ? row[idxMap.RowId]?.trim() : undefined,
+                KhoNo: idxMap.KhoNo > -1 ? row[idxMap.KhoNo]?.trim() : undefined,
                 Note: idxMap.Note > -1 ? row[idxMap.Note]?.trim() : undefined,
                 Showroom: idxMap.Showroom > -1 ? row[idxMap.Showroom]?.trim() : undefined,
                 OrderType: idxMap.OrderType > -1 ? row[idxMap.OrderType]?.trim() : undefined,

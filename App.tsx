@@ -11,6 +11,7 @@ const Ordering = React.lazy(() => import('./pages/Ordering').then(m => ({ defaul
 const RepairPackageOptimizer = React.lazy(() => import('./components/RepairPackageOptimizer').then(m => ({ default: m.RepairPackageOptimizer })));
 const InventoryDistribution = React.lazy(() => import('./pages/InventoryDistribution').then(m => ({ default: m.InventoryDistribution })));
 const ApprovalQueue = React.lazy(() => import('./pages/ApprovalQueue').then(m => ({ default: m.ApprovalQueue })));
+const BackorderAnalytics = React.lazy(() => import('./pages/BackorderAnalytics').then(m => ({ default: m.BackorderAnalytics })));
 // Settings: static import needed for loadAppSettings/saveAppSettings used at top-level
 import { SettingsPage, loadAppSettings, saveAppSettings, AppSettings } from './pages/Settings';
 import { UpdateLog } from './pages/UpdateLog';
@@ -212,15 +213,10 @@ const AppContent = () => {
     useEffect(() => {
         if (hasRepairedRef.current) return;
         
-        // Auto-repair brand in source profiles if missing
+        // Auto-repair brand in source profiles if missing (schema consistency)
         const needsRepair = appSettings.sourceProfiles.some(p => !p.brand);
         
-        // Migration: Ensure OEM and CXD profiles exist for Kia
-        const hasOEM = appSettings.sourceProfiles.some(p => p.id === 'OEM');
-        const hasCXD = appSettings.sourceProfiles.some(p => p.id === 'CXD');
-        const needsProfileMigration = !hasOEM || !hasCXD;
-
-        if (needsRepair || needsProfileMigration) {
+        if (needsRepair) {
             console.log("App: Repairing settings profiles...");
             hasRepairedRef.current = true;
             
@@ -447,6 +443,7 @@ const AppContent = () => {
                         {[
                             { id: 'dashboard', label: t('nav_dashboard'), icon: 'fa-chart-simple' },
                             { id: 'ordering', label: t('nav_ordering'), icon: 'fa-cart-shopping' },
+                            { id: 'backorder', label: 'Nợ hàng', icon: 'fa-clock-rotate-left' },
                             { id: 'transfer', label: t('nav_transfer'), icon: 'fa-right-left' },
                             { id: 'kitting', label: t('nav_kitting'), icon: 'fa-boxes-stacked' },
                             ...(profile?.role && ['admin', 'approver', 'planner'].includes(profile.role)
@@ -509,6 +506,7 @@ const AppContent = () => {
                     onEditMapping: (m) => { setEditingSsMapping(m); setIsSsModalOpen(true); },
                 }} />}
                 {view === 'ordering' && <Ordering data={data} enrichedData={enrichedData} isEngineProcessing={isEngineProcessing} onItemSelect={handleSelectItem} initialParams={initialParams} initialState={pageStates.current.ordering} onSaveState={(s) => pageStates.current.ordering = s} sharedDraft={sharedDraft} onUpdateDraft={setSharedDraft} graph={supersessionGraph} appSettings={appSettings} onUpdateSettings={(s) => { setAppSettings(s); saveAppSettings(s); }} activeApprovalRequest={activeApprovalRequest} />}
+                {view === 'backorder' && <BackorderAnalytics enrichedData={enrichedData} isProcessing={isEngineProcessing} onSkuSelect={handleSelectItem} graph={supersessionGraph} sourceProfiles={appSettings.sourceProfiles} />}
                 { view === 'transfer' && <InventoryDistribution data={data} enrichedData={enrichedData} isEngineProcessing={isEngineProcessing} onItemSelect={handleSelectItem} appSettings={appSettings} />}
                 { view === 'log' && <UpdateLog />}
                 {view === 'kitting' && <RepairPackageOptimizer data={data} onItemSelect={handleSelectItem} initialState={pageStates.current.kitting} onSaveState={(s) => pageStates.current.kitting = s} draftData={sharedDraft} onUpdateDraft={setSharedDraft} kittingDefs={kittingDefs} onKittingDefsChange={setKittingDefs} />}
@@ -534,6 +532,7 @@ const AppContent = () => {
                     {[
                         { id: 'dashboard', label: 'Dashboard', icon: 'fa-chart-simple' },
                         { id: 'ordering', label: 'Đặt hàng', icon: 'fa-cart-shopping' },
+                        { id: 'backorder', label: 'Nợ hàng', icon: 'fa-clock-rotate-left' },
                         { id: 'transfer', label: 'Phân bổ', icon: 'fa-right-left' },
                         { id: 'kitting', label: 'Kitting', icon: 'fa-boxes-stacked' },
                         ...(profile?.role && ['admin', 'approver', 'planner'].includes(profile.role)

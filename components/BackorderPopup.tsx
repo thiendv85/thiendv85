@@ -1,4 +1,4 @@
-﻿
+
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { BackorderDetail } from '../types/inventory';
@@ -156,7 +156,8 @@ export const BackorderPopup = ({ items, children }: BackorderPopupProps) => {
                                         <thead className="bg-slate-50 sticky top-0 z-20 border-b border-slate-100">
                                             <tr>
                                                 <th className="px-4 py-2 text-left"><Typography variant="label-muted">Ngày / Chứng từ</Typography></th>
-                                                <th className="px-4 py-2 text-left"><Typography variant="label-muted">Kho / Showroom</Typography></th>
+                                                <th className="px-4 py-2 text-left"><Typography variant="label-muted">Xe / Chi nhánh</Typography></th>
+                                                <th className="px-4 py-2 text-left"><Typography variant="label-muted">Kho / SR</Typography></th>
                                                 <th className="px-4 py-2 text-center"><Typography variant="label" className="text-blue-600">Hẹn (ETA)</Typography></th>
                                                 <th className="px-4 py-2 text-right"><Typography variant="label" className="text-rose-600">SL</Typography></th>
                                             </tr>
@@ -190,8 +191,12 @@ export const BackorderPopup = ({ items, children }: BackorderPopupProps) => {
                                                                     {d.Note && <Typography variant="body-sm" className="text-blue-400 italic mt-0.5 truncate max-w-[150px]">{d.Note}</Typography>}
                                                                 </td>
                                                                 <td className="px-4 py-2.5">
+                                                                    <Typography variant="label" className="text-slate-700 !font-bold shadow-none border-none">{d.TypeCar || '-'}</Typography>
+                                                                    <Typography variant="body-sm" className="text-slate-400 font-medium truncate max-w-[120px]">{d.BranchName || '-'}</Typography>
+                                                                </td>
+                                                                <td className="px-4 py-2.5">
                                                                     <Typography variant="label" className="text-slate-600 !font-bold shadow-none border-none">{d.Warehouse}</Typography>
-                                                                    {d.Showroom && <Typography variant="body-sm" className="text-slate-400 font-medium">{d.Showroom}</Typography>}
+                                                                    {d.Showroom && <Typography variant="body-sm" className="text-slate-400 font-medium truncate max-w-[100px]">{d.Showroom}</Typography>}
                                                                 </td>
                                                                 <td className="px-4 py-2.5 text-center">
                                                                     {d.ETA ? (
