@@ -249,6 +249,13 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', notation: 'compact' }).format(val);
     };
 
+    const formatMatrixVal = (val: number) => {
+        if (matrixMetric === 'val') {
+            return (val / 1000000).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 1 });
+        }
+        return val.toLocaleString();
+    };
+
     const matrixData = useMemo(() => {
         const sourceMap: Record<string, { 
             aging: {
@@ -567,18 +574,18 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                     </tr>
                                     <tr>
                                         {/* Group 2: Types */}
-                                        <th className="py-3 text-center border-b border-slate-100 px-2 min-w-[80px] bg-blue-50/10"><Typography variant="label" className="text-blue-600 !text-[10px] font-bold">VOR</Typography></th>
-                                        <th className="py-3 text-center border-b border-slate-100 px-2 min-w-[80px] bg-blue-50/10"><Typography variant="label" className="text-blue-600 !text-[10px] font-bold">BH</Typography></th>
-                                        <th className="py-3 text-center border-b border-slate-100 px-2 min-w-[80px] bg-blue-50/10"><Typography variant="label" className="text-blue-600 !text-[10px] font-bold">KHẨN</Typography></th>
-                                        <th className="py-3 text-center border-b border-slate-100 px-2 min-w-[80px] bg-blue-50/10"><Typography variant="label" className="text-blue-600 !text-[10px] font-bold">C/DỊCH</Typography></th>
-                                        <th className="py-3 text-center border-b border-slate-100 px-2 min-w-[80px] bg-blue-50/10"><Typography variant="label" className="text-blue-600 !text-[10px] font-bold">STOCK</Typography></th>
-                                        <th className="py-3 text-center border-b border-r border-slate-100 px-2 min-w-[80px] bg-blue-50/10"><Typography variant="label" className="text-blue-600 !text-[10px] font-bold">KHÁC</Typography></th>
+                                        <th className="py-3 text-center border-b border-slate-100 px-2 min-w-[80px] bg-blue-50/10"><Typography variant="label" className="text-blue-600 !text-[10px] font-bold">VOR {matrixMetric === 'val' ? '(Tr)' : ''}</Typography></th>
+                                        <th className="py-3 text-center border-b border-slate-100 px-2 min-w-[80px] bg-blue-50/10"><Typography variant="label" className="text-blue-600 !text-[10px] font-bold">BH {matrixMetric === 'val' ? '(Tr)' : ''}</Typography></th>
+                                        <th className="py-3 text-center border-b border-slate-100 px-2 min-w-[80px] bg-blue-50/10"><Typography variant="label" className="text-blue-600 !text-[10px] font-bold">KHẨN {matrixMetric === 'val' ? '(Tr)' : ''}</Typography></th>
+                                        <th className="py-3 text-center border-b border-slate-100 px-2 min-w-[80px] bg-blue-50/10"><Typography variant="label" className="text-blue-600 !text-[10px] font-bold">C/DỊCH {matrixMetric === 'val' ? '(Tr)' : ''}</Typography></th>
+                                        <th className="py-3 text-center border-b border-slate-100 px-2 min-w-[80px] bg-blue-50/10"><Typography variant="label" className="text-blue-600 !text-[10px] font-bold">STOCK {matrixMetric === 'val' ? '(Tr)' : ''}</Typography></th>
+                                        <th className="py-3 text-center border-b border-r border-slate-100 px-2 min-w-[80px] bg-blue-50/10"><Typography variant="label" className="text-blue-600 !text-[10px] font-bold">KHÁC {matrixMetric === 'val' ? '(Tr)' : ''}</Typography></th>
                                         
                                         {/* Group 3: Aging */}
-                                        <th className="py-3 text-center border-b border-slate-100 px-2 min-w-[90px] bg-amber-50/10"><Typography variant="label" className="text-amber-600 !text-[10px] font-bold">&lt; 30D</Typography></th>
-                                        <th className="py-3 text-center border-b border-slate-100 px-2 min-w-[90px] bg-amber-50/10"><Typography variant="label" className="text-amber-600 !text-[10px] font-bold">30-60D</Typography></th>
-                                        <th className="py-3 text-center border-b border-slate-100 px-2 min-w-[90px] bg-rose-50/10"><Typography variant="label" className="text-rose-600 !text-[10px] font-bold">60-90D</Typography></th>
-                                        <th className="py-3 text-center border-b border-slate-100 px-2 min-w-[90px] bg-rose-100/10"><Typography variant="label" className="text-rose-900 !text-[10px] font-bold">&gt; 90D</Typography></th>
+                                        <th className="py-3 text-center border-b border-slate-100 px-2 min-w-[90px] bg-amber-50/10"><Typography variant="label" className="text-amber-600 !text-[10px] font-bold">&lt; 30D {matrixMetric === 'val' ? '(Tr)' : ''}</Typography></th>
+                                        <th className="py-3 text-center border-b border-slate-100 px-2 min-w-[90px] bg-amber-50/10"><Typography variant="label" className="text-amber-600 !text-[10px] font-bold">30-60D {matrixMetric === 'val' ? '(Tr)' : ''}</Typography></th>
+                                        <th className="py-3 text-center border-b border-slate-100 px-2 min-w-[90px] bg-rose-50/10"><Typography variant="label" className="text-rose-600 !text-[10px] font-bold">60-90D {matrixMetric === 'val' ? '(Tr)' : ''}</Typography></th>
+                                        <th className="py-3 text-center border-b border-slate-100 px-2 min-w-[90px] bg-rose-100/10"><Typography variant="label" className="text-rose-900 !text-[10px] font-bold">&gt; 90D {matrixMetric === 'val' ? '(Tr)' : ''}</Typography></th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
@@ -594,18 +601,18 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                             </td>
                                             
                                             {/* Types breakdown */}
-                                            <td className="py-4 text-center px-2 bg-blue-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_1. VOR (Xe nằm đường)'] > 0 ? 'text-blue-700' : 'text-slate-300'}`}>{row['type_1. VOR (Xe nằm đường)'] > 0 ? row['type_1. VOR (Xe nằm đường)'].toLocaleString() : '-'}</Typography></td>
-                                            <td className="py-4 text-center px-2 bg-blue-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_2. Bảo Hành'] > 0 ? 'text-blue-700' : 'text-slate-300'}`}>{row['type_2. Bảo Hành'] > 0 ? row['type_2. Bảo Hành'].toLocaleString() : '-'}</Typography></td>
-                                            <td className="py-4 text-center px-2 bg-blue-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_3. Khẩn (EO/Emergency)'] > 0 ? 'text-blue-700' : 'text-slate-300'}`}>{row['type_3. Khẩn (EO/Emergency)'] > 0 ? row['type_3. Khẩn (EO/Emergency)'].toLocaleString() : '-'}</Typography></td>
-                                            <td className="py-4 text-center px-2 bg-blue-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_4. Chiến dịch'] > 0 ? 'text-blue-700' : 'text-slate-300'}`}>{row['type_4. Chiến dịch'] > 0 ? row['type_4. Chiến dịch'].toLocaleString() : '-'}</Typography></td>
-                                            <td className="py-4 text-center px-2 bg-blue-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_5. Dự trữ (Stock)'] > 0 ? 'text-blue-700' : 'text-slate-300'}`}>{row['type_5. Dự trữ (Stock)'] > 0 ? row['type_5. Dự trữ (Stock)'].toLocaleString() : '-'}</Typography></td>
-                                            <td className="py-4 text-center px-2 bg-blue-50/5 border-r border-slate-100"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_6. Khác'] > 0 ? 'text-blue-700' : 'text-slate-300'}`}>{row['type_6. Khác'] > 0 ? row['type_6. Khác'].toLocaleString() : '-'}</Typography></td>
+                                            <td className="py-4 text-center px-2 bg-blue-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_1. VOR (Xe nằm đường)'] > 0 ? 'text-blue-700' : 'text-slate-300'}`}>{row['type_1. VOR (Xe nằm đường)'] > 0 ? formatMatrixVal(row['type_1. VOR (Xe nằm đường)']) : '-'}</Typography></td>
+                                            <td className="py-4 text-center px-2 bg-blue-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_2. Bảo Hành'] > 0 ? 'text-blue-700' : 'text-slate-300'}`}>{row['type_2. Bảo Hành'] > 0 ? formatMatrixVal(row['type_2. Bảo Hành']) : '-'}</Typography></td>
+                                            <td className="py-4 text-center px-2 bg-blue-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_3. Khẩn (EO/Emergency)'] > 0 ? 'text-blue-700' : 'text-slate-300'}`}>{row['type_3. Khẩn (EO/Emergency)'] > 0 ? formatMatrixVal(row['type_3. Khẩn (EO/Emergency)']) : '-'}</Typography></td>
+                                            <td className="py-4 text-center px-2 bg-blue-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_4. Chiến dịch'] > 0 ? 'text-blue-700' : 'text-slate-300'}`}>{row['type_4. Chiến dịch'] > 0 ? formatMatrixVal(row['type_4. Chiến dịch']) : '-'}</Typography></td>
+                                            <td className="py-4 text-center px-2 bg-blue-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_5. Dự trữ (Stock)'] > 0 ? 'text-blue-700' : 'text-slate-300'}`}>{row['type_5. Dự trữ (Stock)'] > 0 ? formatMatrixVal(row['type_5. Dự trữ (Stock)']) : '-'}</Typography></td>
+                                            <td className="py-4 text-center px-2 bg-blue-50/5 border-r border-slate-100"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_6. Khác'] > 0 ? 'text-blue-700' : 'text-slate-300'}`}>{row['type_6. Khác'] > 0 ? formatMatrixVal(row['type_6. Khác']) : '-'}</Typography></td>
 
                                             {/* Aging breakdown */}
-                                            <td className="py-4 text-center px-2 bg-amber-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row.q30 > 0 ? 'text-amber-700' : 'text-slate-300'}`}>{row.q30 > 0 ? row.q30.toLocaleString() : '-'}</Typography></td>
-                                            <td className="py-4 text-center px-2 bg-amber-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row.q60 > 0 ? 'text-amber-700' : 'text-slate-300'}`}>{row.q60 > 0 ? row.q60.toLocaleString() : '-'}</Typography></td>
-                                            <td className="py-4 text-center px-2 bg-rose-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row.q90 > 0 ? 'text-rose-700' : 'text-slate-300'}`}>{row.q90 > 0 ? row.q90.toLocaleString() : '-'}</Typography></td>
-                                            <td className="py-4 text-center px-2 bg-rose-100/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row.qO90 > 0 ? 'text-rose-900' : 'text-slate-300'}`}>{row.qO90 > 0 ? row.qO90.toLocaleString() : '-'}</Typography></td>
+                                            <td className="py-4 text-center px-2 bg-amber-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row.q30 > 0 ? 'text-amber-700' : 'text-slate-300'}`}>{row.q30 > 0 ? formatMatrixVal(row.q30) : '-'}</Typography></td>
+                                            <td className="py-4 text-center px-2 bg-amber-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row.q60 > 0 ? 'text-amber-700' : 'text-slate-300'}`}>{row.q60 > 0 ? formatMatrixVal(row.q60) : '-'}</Typography></td>
+                                            <td className="py-4 text-center px-2 bg-rose-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row.q90 > 0 ? 'text-rose-700' : 'text-slate-300'}`}>{row.q90 > 0 ? formatMatrixVal(row.q90) : '-'}</Typography></td>
+                                            <td className="py-4 text-center px-2 bg-rose-100/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row.qO90 > 0 ? 'text-rose-900' : 'text-slate-300'}`}>{row.qO90 > 0 ? formatMatrixVal(row.qO90) : '-'}</Typography></td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -614,9 +621,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                         <td className="py-6 px-5 text-slate-500 !text-[12px] uppercase font-black tracking-[0.2em]">Tổng cộng</td>
                                         <td className="py-5 text-right px-4 bg-slate-900/10 border-r border-slate-200">
                                             <Typography variant="mono" className="!text-[15px] font-black text-slate-900">
-                                                {matrixMetric === 'val' 
-                                                    ? formatCurrency(matrixData.reduce((a, b) => a + (b.total || 0), 0)) 
-                                                    : (matrixData.reduce((a, b) => a + (b.total || 0), 0) || 0).toLocaleString()}
+                                                {formatMatrixVal(matrixData.reduce((a, b) => a + (b.total || 0), 0))}
                                             </Typography>
                                         </td>
                                         <td colSpan={6} className="py-5 text-center bg-blue-50/10 border-r border-slate-200">
