@@ -477,9 +477,12 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
             if (deferredFilters.priority !== 'All' && i.computed?.priorityBucket !== deferredFilters.priority) return false;
             if (deferredFilters.status !== 'All' && i.Status !== deferredFilters.status) return false;
             if (deferredFilters.lois.length > 0 && !deferredFilters.lois.includes(i.LOISGroup)) return false;
-            if (deferredFilters.source !== 'All') {
-                const [brand, sid] = deferredFilters.source.split('|');
-                if (i.BrandName !== brand || (i.SourceId || '') !== sid) return false;
+            if (deferredFilters.source && deferredFilters.source.length > 0) {
+                const sourceMatch = deferredFilters.source.some(s => {
+                    const [brand, sid] = s.split('|');
+                    return i.BrandName === brand && (i.SourceId || '') === sid;
+                });
+                if (!sourceMatch) return false;
             }
             if (deferredFilters.trend !== 'All' && i.TrendFlag !== deferredFilters.trend) return false;
             if (deferredFilters.showBackorders && i.Backorder <= 0) return false;

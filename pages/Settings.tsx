@@ -4,6 +4,7 @@ import { saveToCloudStorage, loadFromCloudStorage, verifyAdminPin, saveMonthlyDa
 import { supabase } from '../utils/supabase';
 import { parseMonthlyCSV } from '../utils/csvParser';
 import { Typography } from '../components/Typography';
+import { GlossaryTab } from '../components/GlossaryTab';
 import { clearAllAppCache } from '../utils/db';
 import { Brand, SourceProfile, AVAILABLE_BRANDS, DEFAULT_SOURCE_PROFILES, ApprovalWorkflow, WorkflowLevel, LoisProfile } from '../types/inventory';
 import { useAuth } from '../utils/authContext';
@@ -1121,7 +1122,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
     const [draft, setDraft] = useState<AppSettings>(settings);
     const [saved, setSaved] = useState(false);
     const [adminPinInput, setAdminPinInput] = useState('');
-    const [activeTab, setActiveTab] = useState<'inventory' | 'display' | 'export' | 'system' | 'users' | 'storage'>('inventory');
+    const [activeTab, setActiveTab] = useState<'inventory' | 'display' | 'export' | 'system' | 'users' | 'storage' | 'glossary'>('inventory');
     const { profile: currentUserProfile } = useAuth();
     const isAdmin = currentUserProfile?.role === 'admin';
     const [isSavingCloud, setIsSavingCloud] = useState(false);
@@ -1313,6 +1314,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
         { id: 'display', label: 'Hiển thị', icon: 'fa-palette' },
         { id: 'export', label: 'Xuất dữ liệu', icon: 'fa-file-export' },
         { id: 'system', label: 'Hệ thống', icon: 'fa-gear' },
+        { id: 'glossary', label: 'Thuật ngữ & Công thức', icon: 'fa-book-open' },
         ...(currentUserProfile?.role === 'admin' ? [
             { id: 'users', label: 'Người dùng', icon: 'fa-users' },
             { id: 'storage', label: 'Quản lý Cloud', icon: 'fa-cloud' },
@@ -2167,6 +2169,10 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                     monthlyHistory={monthlyHistory} 
                     handleDeleteMonthly={handleDeleteMonthly}
                 />
+            )}
+
+            {activeTab === 'glossary' && (
+                <GlossaryTab />
             )}
 
             {/* Sticky Save Bar */}
