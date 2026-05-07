@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useDeferredValue } from 'react';
 import * as XLSX from 'xlsx';
 import { Typography } from '../components/Typography';
 import { useLanguage } from '../utils/i18n';
@@ -156,7 +156,6 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
         XLSX.writeFile(wb, `Backorder_Analytics_${new Date().toISOString().slice(0, 10)}.xlsx`);
     };
     const [search, setSearch] = useState('');
-    const [searchResult, setSearchResult] = useState<SearchResult>({ type: 'EMPTY', tokens: [], displayTokens: [], raw: '' });
     const [agingFilter, setAgingFilter] = useState<'all' | '30' | '60' | '90' | 'over90'>('all');
     const [sourceFilters, setSourceFilters] = useState<string[]>([]);
     const [orderTypeFilters, setOrderTypeFilters] = useState<string[]>([]);
@@ -169,6 +168,18 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
     const [masterFilter, setMasterFilter] = useState<'all' | 'stock_ok' | 'po_ok' | 'fail'>('all');
     const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>({ key: 'totalValue', direction: 'desc' });
 
+    // Deferred filters for performance
+    const deferredSearch = useDeferredValue(search);
+    const deferredAgingFilter = useDeferredValue(agingFilter);
+    const deferredSourceFilters = useDeferredValue(sourceFilters);
+    const deferredMotherGroupFilters = useDeferredValue(motherGroupFilters);
+    const deferredOrderTypeFilters = useDeferredValue(orderTypeFilters);
+    const deferredBranchFilters = useDeferredValue(branchFilters);
+    const deferredSpecialFilter = useDeferredValue(specialFilter);
+    const deferredMasterFilter = useDeferredValue(masterFilter);
+
+    const searchResult = useMemo(() => parseInventorySearch(deferredSearch), [deferredSearch]);
+
     // ── Persistence ──────────────────────────────────────────────────────────
     React.useEffect(() => {
         try {
@@ -177,12 +188,14 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                 const parsed = JSON.parse(saved);
                 if (parsed.search) setSearch(parsed.search);
                 if (parsed.agingFilter) setAgingFilter(parsed.agingFilter);
-                if (parsed.sourceFilters) setSourceFilters(parsed.sourceFilters);
-                if (parsed.motherGroupFilters) setMotherGroupFilters(parsed.motherGroupFilters);
-                if (parsed.orderTypeFilters) setOrderTypeFilters(parsed.orderTypeFilters);
-                if (parsed.branchFilters) setBranchFilters(parsed.branchFilters);
+                // Sanitize array filters to remove potential stale "All" or null values
+                if (parsed.sourceFilters) setSourceFilters(parsed.sourceFilters.filter((f: any) => f && f !== 'All' && f !== 'Tất cả'));
+                if (parsed.motherGroupFilters) setMotherGroupFilters(parsed.motherGroupFilters.filter((f: any) => f && f !== 'All' && f !== 'Tất cả'));
+                if (parsed.orderTypeFilters) setOrderTypeFilters(parsed.orderTypeFilters.filter((f: any) => f && f !== 'All' && f !== 'Tất cả'));
+                if (parsed.branchFilters) setBranchFilters(parsed.branchFilters.filter((f: any) => f && f !== 'All' && f !== 'Tất cả'));
                 if (parsed.pageSize) setPageSize(Math.max(1, parsed.pageSize));
                 if (parsed.matrixMetric) setMatrixMetric(parsed.matrixMetric);
+                if (parsed.masterFilter) setMasterFilter(parsed.masterFilter);
             }
         } catch (e) { console.error('Error loading filters:', e); }
     }, []);
@@ -192,10 +205,8 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
         localStorage.setItem('backorder_filters', JSON.stringify(state));
     }, [search, agingFilter, sourceFilters, motherGroupFilters, orderTypeFilters, branchFilters, pageSize, matrixMetric, sortConfig, specialFilter, masterFilter]);
 
-    const cachedData = useMemo(() => {
-        if (!enrichedData) return [];
-        return prepareSearchCache(enrichedData) as InventoryItem[];
-    }, [enrichedData]);
+    // ═══ O11/O12 FIX: EnrichedData now comes with _searchCache from Worker ═══
+    const cachedData = enrichedData || [];
 
     const resolveMotherGroup = (item: InventoryItem): string => {
         const sid = (item.SourceId || '').toUpperCase().trim();
@@ -263,37 +274,41 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
         if (!cachedData) return [];
         let list = cachedData.filter(item => {
             const matchesSearch = matchSearch(item, searchResult);
-            const matchesSource = sourceFilters.length === 0 || sourceFilters.includes(item.SourceId);
-            const matchesMother = motherGroupFilters.length === 0 || motherGroupFilters.includes(resolveMotherGroup(item));
+            // Enhanced robustness for multi-select filters
+            const matchesSource = deferredSourceFilters.length === 0 || deferredSourceFilters.includes(item.SourceId);
+            const matchesMother = deferredMotherGroupFilters.length === 0 || deferredMotherGroupFilters.includes(resolveMotherGroup(item));
             
             const b = item.computed?.boAging;
             let matchesAging = true;
-            if (agingFilter === '30') matchesAging = (b?.qty30 || 0) > 0;
-            else if (agingFilter === '60') matchesAging = (b?.qty60 || 0) > 0;
-            else if (agingFilter === '90') matchesAging = (b?.qty90 || 0) > 0;
-            else if (agingFilter === 'over90') matchesAging = (b?.qtyOver90 || 0) > 0;
+            if (deferredAgingFilter === '30') matchesAging = (b?.qty30 || 0) > 0;
+            else if (deferredAgingFilter === '60') matchesAging = (b?.qty60 || 0) > 0;
+            else if (deferredAgingFilter === '90') matchesAging = (b?.qty90 || 0) > 0;
+            else if (deferredAgingFilter === 'over90') matchesAging = (b?.qtyOver90 || 0) > 0;
 
-            const matchesType = orderTypeFilters.length === 0 || item.BackorderBreakdown?.some(bo => orderTypeFilters.includes(getOrderTypeName(bo)));
-            const matchesBranch = branchFilters.length === 0 || item.BackorderBreakdown?.some(bo => branchFilters.includes(bo.Showroom || bo.BranchName || 'Khác'));
+            const matchesType = deferredOrderTypeFilters.length === 0 || item.BackorderBreakdown?.some(bo => deferredOrderTypeFilters.includes(getOrderTypeName(bo)));
+            const matchesBranch = deferredBranchFilters.length === 0 || item.BackorderBreakdown?.some(bo => deferredBranchFilters.includes(bo.Showroom || bo.BranchName || 'Khác'));
 
             let matchesSpecial = true;
-            if (specialFilter === 'critical') matchesSpecial = (b?.qtyOver90 || 0) > 0 || (b?.qty90 || 0) > 0;
-            else if (specialFilter === 'transfer') {
+            if (deferredSpecialFilter === 'critical') matchesSpecial = (b?.qtyOver90 || 0) > 0 || (b?.qty90 || 0) > 0;
+            else if (deferredSpecialFilter === 'transfer') {
                 const nbStock = item.QuantityInventory_NB + item.QuantityDC_NB;
                 const bbStock = item.QuantityInventory_BB + item.QuantityDC_BB;
                 matchesSpecial = (item.Backorder_BB > 0 && nbStock > 0) || (item.Backorder_NB > 0 && bbStock > 0);
             }
-            else if (specialFilter === 'po') matchesSpecial = item.TotalPO > 0;
+            else if (deferredSpecialFilter === 'po') matchesSpecial = (item.TotalPO || 0) > 0;
 
             let matchesMaster = true;
             const totalStock = (item.QuantityInventory_NB + item.QuantityInventory_BB + item.QuantityDC_NB + item.QuantityDC_BB);
             const poThisMonth = item.computed?.incomingCurrentMonth || 0;
             
-            if (masterFilter === 'stock_ok') matchesMaster = item.Backorder <= totalStock;
-            else if (masterFilter === 'po_ok') matchesMaster = item.Backorder > totalStock && item.Backorder <= (totalStock + poThisMonth);
-            else if (masterFilter === 'fail') matchesMaster = item.Backorder > (totalStock + poThisMonth);
+            // Backorder fallback: use computed aging total if main Backorder field is missing/zero
+            const boQty = Math.max(item.Backorder || 0, b?.totalQty || 0);
 
-            const hasBO = (item.Backorder || 0) > 0;
+            if (deferredMasterFilter === 'stock_ok') matchesMaster = boQty <= totalStock;
+            else if (deferredMasterFilter === 'po_ok') matchesMaster = boQty > totalStock && boQty <= (totalStock + poThisMonth);
+            else if (deferredMasterFilter === 'fail') matchesMaster = boQty > (totalStock + poThisMonth);
+
+            const hasBO = boQty > 0;
             return hasBO && matchesSearch && matchesSource && matchesMother && matchesAging && matchesType && matchesBranch && matchesSpecial && matchesMaster;
         });
 
@@ -325,101 +340,86 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
             });
         }
         return list;
-    }, [cachedData, searchResult, sourceFilters, motherGroupFilters, agingFilter, orderTypeFilters, branchFilters, sortConfig, specialFilter, masterFilter]);
+    }, [cachedData, searchResult, deferredSourceFilters, deferredMotherGroupFilters, deferredAgingFilter, deferredOrderTypeFilters, deferredBranchFilters, sortConfig, deferredSpecialFilter, deferredMasterFilter]);
 
     const stats = useMemo(() => {
         if (!filteredData) return { totalValue: 0, totalQty: 0, criticalCount: 0, aging: { q30: 0, q60: 0, q90: 0, qO90: 0 }, totalPOVal: 0, poCoverage: 0 };
         let totalValue = 0;
         let totalQty = 0;
         let criticalCount = 0;
-        let coveredQty = 0;
+        let poCoverageCount = 0;
         let totalPOVal = 0;
         const aging = { q30: 0, q60: 0, q90: 0, qO90: 0 };
 
         filteredData.forEach(item => {
             const b = item.computed?.boAging;
+            const boQty = Math.max(item.Backorder || 0, b?.totalQty || 0);
+            const cost = item.computed?.unitCost || 0;
+            const val = boQty * cost;
+
+            totalQty += boQty;
+            totalValue += val;
+            if (item.TotalPO > 0) poCoverageCount += boQty;
+            totalPOVal += item.TotalPO * cost;
+
             if (b) {
-                totalValue += b.totalValue;
-                totalQty += item.Backorder;
                 aging.q30 += b.qty30;
                 aging.q60 += b.qty60;
                 aging.q90 += b.qty90;
                 aging.qO90 += b.qtyOver90;
                 if (b.qtyOver90 > 0 || b.qty90 > 0) criticalCount++;
-                coveredQty += Math.min(item.Backorder, item.TotalPO);
-                totalPOVal += item.TotalPO * (item.computed?.unitCost || 0);
             }
         });
 
-        return { totalValue, totalQty, criticalCount, aging, totalPOVal, poCoverage: totalQty > 0 ? (coveredQty / totalQty) * 100 : 0 };
+        return { totalValue, totalQty, criticalCount, aging, totalPOVal, poCoverage: totalQty > 0 ? (poCoverageCount / totalQty) * 100 : 0 };
     }, [filteredData]);
 
 
     const matrixData = useMemo(() => {
-        const sourceMap: Record<string, { 
-            aging: {
-                q30: { skus: Set<string>, qty: number, val: number }, 
-                q60: { skus: Set<string>, qty: number, val: number }, 
-                q90: { skus: Set<string>, qty: number, val: number }, 
-                qO90: { skus: Set<string>, qty: number, val: number } 
-            },
-            types: Record<string, { skus: Set<string>, qty: number, val: number }>
-        }> = {};
+        const matrix: Record<string, any> = {};
         
-        const typeLabels = [
-            '1. VOR (Xe nằm đường)',
-            '2. Bảo Hành',
-            '3. Khẩn (EO/Emergency)',
-            '4. Chiến dịch',
-            '5. Dự trữ (Stock)',
-            '6. Khác'
-        ];
-
         filteredData?.forEach(item => {
             const source = resolveMotherGroup(item);
-            if (!sourceMap[source]) {
-                const init = () => ({ skus: new Set<string>(), qty: 0, val: 0 });
-                sourceMap[source] = { 
-                    aging: { q30: init(), q60: init(), q90: init(), qO90: init() },
+            const b = item.computed?.boAging;
+            if (!b) return;
+
+            if (!matrix[source]) {
+                matrix[source] = {
+                    source,
+                    total: 0,
+                    aging: {
+                        q30: { skus: new Set(), qty: 0, val: 0 },
+                        q60: { skus: new Set(), qty: 0, val: 0 },
+                        q90: { skus: new Set(), qty: 0, val: 0 },
+                        qO90: { skus: new Set(), qty: 0, val: 0 },
+                    },
                     types: {}
                 };
-                typeLabels.forEach(t => { sourceMap[source].types[t] = init(); });
             }
-            
-            const b = item.computed?.boAging;
+
             const cost = item.computed?.unitCost || 0;
-            const sid = item.ItemCode;
+            const boQty = Math.max(item.Backorder || 0, b.totalQty || 0);
 
-            if (b) {
-                if (b.qty30 > 0) { 
-                    sourceMap[source].aging.q30.skus.add(sid);
-                    sourceMap[source].aging.q30.qty += b.qty30;
-                    sourceMap[source].aging.q30.val += b.qty30 * cost;
-                }
-                if (b.qty60 > 0) {
-                    sourceMap[source].aging.q60.skus.add(sid);
-                    sourceMap[source].aging.q60.qty += b.qty60;
-                    sourceMap[source].aging.q60.val += b.qty60 * cost;
-                }
-                if (b.qty90 > 0) {
-                    sourceMap[source].aging.q90.skus.add(sid);
-                    sourceMap[source].aging.q90.qty += b.qty90;
-                    sourceMap[source].aging.q90.val += b.qty90 * cost;
-                }
-                if (b.qtyOver90 > 0) {
-                    sourceMap[source].aging.qO90.skus.add(sid);
-                    sourceMap[source].aging.qO90.qty += b.qtyOver90;
-                    sourceMap[source].aging.qO90.val += b.qtyOver90 * cost;
-                }
-            }
+            // Add to aging buckets
+            const add = (bucket: any, q: number) => {
+                if (q <= 0) return;
+                bucket.skus.add(item.ItemCode);
+                bucket.qty += q;
+                bucket.val += q * cost;
+            };
 
+            add(matrix[source].aging.q30, b.qty30);
+            add(matrix[source].aging.q60, b.qty60);
+            add(matrix[source].aging.q90, b.qty90);
+            add(matrix[source].aging.qO90, b.qtyOver90);
+
+            // Types breakdown
             item.BackorderBreakdown?.forEach(bo => {
-                const typeName = getOrderTypeName(bo);
-                if (sourceMap[source].types[typeName]) {
-                    sourceMap[source].types[typeName].skus.add(sid);
-                    sourceMap[source].types[typeName].qty += bo.Qty;
-                    sourceMap[source].types[typeName].val += bo.Qty * cost;
-                }
+                const t = getOrderTypeName(bo);
+                if (!matrix[source].types[t]) matrix[source].types[t] = { skus: new Set(), qty: 0, val: 0 };
+                matrix[source].types[t].skus.add(item.ItemCode);
+                matrix[source].types[t].qty += bo.Qty;
+                matrix[source].types[t].val += bo.Qty * cost;
             });
         });
 
@@ -430,23 +430,18 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
             return bucket.val;
         };
 
-        return Object.entries(sourceMap).map(([source, data]) => {
-            const row: any = { source };
+        return Object.values(matrix).map((data: any) => {
+            const row: any = { source: data.source };
             row.q30 = getVal(data.aging.q30);
             row.q60 = getVal(data.aging.q60);
             row.q90 = getVal(data.aging.q90);
             row.qO90 = getVal(data.aging.qO90);
             
-            typeLabels.forEach(t => {
-                row[`type_${t}`] = getVal(data.types[t]);
-            });
-
-            const allSkus = new Set([
-                ...data.aging.q30.skus, ...data.aging.q60.skus, ...data.aging.q90.skus, ...data.aging.qO90.skus
-            ]);
+            const typeLabels = ['1. VOR (Xe nằm đường)', '2. Bảo Hành', '3. Khẩn (EO/Emergency)', '4. Chiến dịch', '5. Dự trữ (Stock)', '6. Khác'];
+            typeLabels.forEach(t => { row[`type_${t}`] = getVal(data.types[t]); });
             
             row.total = matrixMetric === 'sku' 
-                ? allSkus.size
+                ? new Set([...data.aging.q30.skus, ...data.aging.q60.skus, ...data.aging.q90.skus, ...data.aging.qO90.skus]).size
                 : (data.aging.q30[matrixMetric] + data.aging.q60[matrixMetric] + data.aging.q90[matrixMetric] + data.aging.qO90[matrixMetric]);
             
             return row;
@@ -603,23 +598,25 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
                     <MetricCard 
-                        label="TỔNG NỢ (SL)" 
+                        label="Tổng nợ (SL)" 
                         value={stats.totalQty.toLocaleString('vi-VN')} 
-                        sub={`${stats.criticalCount} SKU khẩn cấp`} 
-                        icon="fa-clock-rotate-left" 
+                        sub="Số lượng phụ tùng đang nợ" 
+                        icon="fa-boxes-stacked" 
                         colorTheme="slate"
-                        onClick={() => setSpecialFilter(p => p === 'critical' ? 'all' : 'critical')}
-                        isActive={specialFilter === 'critical'}
+                        isActive={masterFilter === 'all'}
+                        onClick={() => setMasterFilter('all')}
                     />
                     <MetricCard 
-                        label="GIÁ TRỊ NỢ" 
-                        value={formatCurrency(stats.totalValue).replace(' Tr', '')} 
-                        sub="Tổng vốn tồn đọng" 
-                        icon="fa-money-bill-trend-up" 
+                        label="Giá trị nợ" 
+                        value={Math.round(stats.totalValue / 1000000).toLocaleString('vi-VN')} 
+                        sub="Tổng giá trị tồn kho nợ (Tr)" 
+                        icon="fa-hand-holding-dollar" 
                         colorTheme="emerald"
+                        isActive={matrixMetric === 'val'}
+                        onClick={() => setMatrixMetric('val')}
                     />
                     <MetricCard 
-                        label="CUNG ỨNG PO" 
+                        label="Cung ứng PO" 
                         value={`${stats.poCoverage.toFixed(1)}%`} 
                         sub={`${formatCurrency(stats.totalPOVal)} đang về`} 
                         icon="fa-truck-fast" 
@@ -1128,7 +1125,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                             <td className="px-4 py-5 text-center">
                                                 <BackorderPopup items={item.BackorderBreakdown || []}>
                                                     <div className="px-4 py-2 bg-[#635bff] text-white rounded-lg font-mono font-bold text-base shadow-sm hover:bg-[#5851ff] hover:scale-110 transition-all inline-block tabular-nums">
-                                                        {item.Backorder.toLocaleString()}
+                                                        {Math.max(item.Backorder || 0, item.computed?.boAging?.totalQty || 0).toLocaleString('vi-VN')}
                                                     </div>
                                                 </BackorderPopup>
                                             </td>
