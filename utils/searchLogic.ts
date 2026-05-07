@@ -157,7 +157,7 @@ export const prepareSearchCache = (items: SearchableItem[]): SearchableItem[] =>
       _searchCache: {
         code: cleanAlphaNumeric(item.ItemCode || ''),
         fullText: removeAccents(
-          `${item.ItemCode || ''} ${item.ItemName || ''} ${item.TypeCar || ''} ${orderDocs}`
+          `${item.ItemCode || ''} ${item.ItemName || ''} ${item.TypeCar || ''} ${item.BrandName || ''} ${item.SourceId || ''} ${orderDocs}`
         )
       }
     };

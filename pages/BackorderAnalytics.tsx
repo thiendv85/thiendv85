@@ -205,27 +205,53 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
         localStorage.setItem('backorder_filters', JSON.stringify(state));
     }, [search, agingFilter, sourceFilters, motherGroupFilters, orderTypeFilters, branchFilters, pageSize, matrixMetric, sortConfig, specialFilter, masterFilter]);
 
+    // ── Auto-Sync Filters when Data Changes ──────────────────────────────────
+    // Ensures that when switching snapshots, filters don't "stick" to values that no longer exist
+    React.useEffect(() => {
+        if (!enrichedData || enrichedData.length === 0) return;
+        
+        const availableSources = new Set(enrichedData.map(i => i.SourceId));
+        const availableMothers = new Set(enrichedData.map(i => resolveMotherGroup(i)));
+
+        // If current filters are entirely invalid for the new data, clear them
+        setSourceFilters(prev => {
+            const valid = prev.filter(f => availableSources.has(f));
+            return valid.length === prev.length ? prev : valid;
+        });
+        
+        setMotherGroupFilters(prev => {
+            const valid = prev.filter(f => availableMothers.has(f));
+            return valid.length === prev.length ? prev : valid;
+        });
+    }, [enrichedData]);
+
     // ═══ O11/O12 FIX: EnrichedData now comes with _searchCache from Worker ═══
     const cachedData = enrichedData || [];
 
     const resolveMotherGroup = (item: InventoryItem): string => {
         const sid = (item.SourceId || '').toUpperCase().trim();
         const brand = (item.BrandName || '').toUpperCase().trim();
+        const code = (item.ItemCode || '').toUpperCase().trim();
+
+        // 1. Precise Match from Source Profiles
         if (sourceProfiles) {
             const profile = sourceProfiles.find(p => p.id === sid && p.brand.toUpperCase() === brand);
             if (profile?.motherGroup) return profile.motherGroup;
         }
+
+        // 2. Brand-First Detection (Prioritize major brands)
+        if (brand.includes('KIA')) return 'KIA';
+        if (brand.includes('MAZDA') || sid === 'MAS' || sid === 'MAZDA' || code.startsWith('MAZ')) return 'MAZDA';
+        if (brand.includes('PEUGEOT') || sid === 'PEU' || sid === 'PEUGEOT' || code.startsWith('PEU')) return 'PEUGEOT';
+        if (brand.includes('BMW')) return 'BMW';
+
+        // 3. Source-Based Fallbacks
         if (sid.startsWith('HQ') || sid === 'KOR' || sid === 'MOBIS') return 'HÀN QUỐC';
         if (sid.startsWith('THA') || sid === 'THAI') return 'THÁI LAN';
         if (sid.startsWith('CHI') || sid === 'CN' || sid === 'CHINA') return 'TRUNG QUỐC';
         if (sid === 'GEN' || sid === 'LOC' || sid === 'VN' || sid === 'CKD') return 'TRONG NƯỚC';
-        if (sid === 'MAS' || sid === 'MAZDA') return 'MAZDA';
         if (sid === 'KIA') return 'KIA';
-        if (sid === 'PEU' || sid === 'PEUGEOT') return 'PEUGEOT';
-        if (brand.includes('KIA')) return 'KIA';
-        if (brand.includes('MAZDA')) return 'MAZDA';
-        if (brand.includes('PEUGEOT')) return 'PEUGEOT';
-        if (brand.includes('BMW')) return 'BMW';
+        
         return brand || sid || 'KHÁC';
     };
 
@@ -291,9 +317,9 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
             let matchesSpecial = true;
             if (deferredSpecialFilter === 'critical') matchesSpecial = (b?.qtyOver90 || 0) > 0 || (b?.qty90 || 0) > 0;
             else if (deferredSpecialFilter === 'transfer') {
-                const nbStock = item.QuantityInventory_NB + item.QuantityDC_NB;
-                const bbStock = item.QuantityInventory_BB + item.QuantityDC_BB;
-                matchesSpecial = (item.Backorder_BB > 0 && nbStock > 0) || (item.Backorder_NB > 0 && bbStock > 0);
+                const nbStock = (item.QuantityInventory_NB || 0) + (item.QuantityDC_NB || 0);
+                const bbStock = (item.QuantityInventory_BB || 0) + (item.QuantityDC_BB || 0);
+                matchesSpecial = ((item.Backorder_BB || 0) > 0 && nbStock > 0) || ((item.Backorder_NB || 0) > 0 && bbStock > 0);
             }
             else if (deferredSpecialFilter === 'po') matchesSpecial = (item.TotalPO || 0) > 0;
 
@@ -627,9 +653,9 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                     <MetricCard 
                         label="ĐIỀU CHUYỂN" 
                         value={enrichedData?.filter(i => {
-                            const nb = i.QuantityInventory_NB + i.QuantityDC_NB;
-                            const bb = i.QuantityInventory_BB + i.QuantityDC_BB;
-                            return (i.Backorder_NB > 0 && bb > 0) || (i.Backorder_BB > 0 && nb > 0);
+                            const nb = (i.QuantityInventory_NB || 0) + (i.QuantityDC_NB || 0);
+                            const bb = (i.QuantityInventory_BB || 0) + (i.QuantityDC_BB || 0);
+                            return ((i.Backorder_NB || 0) > 0 && bb > 0) || ((i.Backorder_BB || 0) > 0 && nb > 0);
                         }).length.toLocaleString('vi-VN') || '0'} 
                         sub="Cơ hội xử lý nội bộ" 
                         icon="fa-right-left" 
@@ -950,7 +976,6 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                     value={search}
                                     onChange={e => {
                                         setSearch(e.target.value);
-                                        setSearchResult(parseInventorySearch(e.target.value));
                                     }}
                                     className="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-[11px] font-bold outline-none focus:ring-4 focus:ring-blue-100 transition-all shadow-sm"
                                 />
