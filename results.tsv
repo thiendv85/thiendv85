@@ -1,2 +1,3 @@
-experiment	commit	metric	status	description
-0	baseline	0	baseline	unmodified code
+timestamp	label	initial_kb	initial_kb_gzip	total_kb	total_kb_gzip
+2026-05-08T04:21:47.819Z	final	643.9	170.3	1732.4	483.7
+2026-05-08T04:22:46.757Z	ux-tokens	644.4	170.6	1732.9	483.9

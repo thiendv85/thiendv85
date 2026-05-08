@@ -33,25 +33,34 @@ serve(async (req) => {
             });
         }
 
+        // Batch fetch all referenced workflows in one query (was N+1).
+        const workflowIds = Array.from(
+            new Set(overdueRequests.map((r) => r.workflow_id).filter(Boolean))
+        );
+        type Level = { level: number; approver_ids: string[] };
+        type Workflow = { id: string; levels: Level[] };
+        const workflowMap = new Map<string, Workflow>();
+        if (workflowIds.length > 0) {
+            const { data: workflows } = await supabase
+                .from('approval_workflows')
+                .select('id, levels')
+                .in('id', workflowIds);
+            for (const wf of (workflows ?? []) as Workflow[]) {
+                workflowMap.set(wf.id, wf);
+            }
+        }
+
         const escalated: string[] = [];
 
         for (const req of overdueRequests) {
-            // Get workflow to find next-level approvers
-            const { data: workflow } = await supabase
-                .from('approval_workflows')
-                .select('levels')
-                .eq('id', req.workflow_id)
-                .single();
-
+            const workflow = workflowMap.get(req.workflow_id);
             if (!workflow) continue;
 
             // Find approvers at next level (or same level if no next)
-            const nextLevel = workflow.levels.find(
-                (l: { level: number }) => l.level === req.current_level + 1
-            );
+            const nextLevel = workflow.levels.find((l) => l.level === req.current_level + 1);
             const escalateToIds = nextLevel
                 ? nextLevel.approver_ids
-                : workflow.levels.find((l: { level: number }) => l.level === req.current_level)?.approver_ids || [];
+                : workflow.levels.find((l) => l.level === req.current_level)?.approver_ids || [];
 
             // Mark as escalated
             const { error: updateError } = await supabase

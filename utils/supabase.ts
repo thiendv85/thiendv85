@@ -2,18 +2,35 @@ import { createClient } from '@supabase/supabase-js';
 import type { UserRole, UserProfile } from './authContext';
 import type { InventoryItem, ApprovalWorkflow, ApprovalRequest, ApprovalAction, ApprovalStatus, SnapshotData } from '../types/inventory';
 
-const supabaseUrl = 'https://jczdnlydozcftvnqnixt.supabase.co';
-const supabaseKey = 'sb_publishable_Iahv6LF7asBI3E_u_HAZhQ_Qrb99Qjm'; // Provided by user
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+    throw new Error(
+        'Missing Supabase configuration. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.local or Vercel environment variables.'
+    );
+}
 
 export const supabase = createClient(supabaseUrl, supabaseKey, {
-    auth: { persistSession: false },
+    auth: { persistSession: true, autoRefreshToken: true },
 });
 
-// Hàm kiểm tra mã phê duyệt (Admin PIN)
-export const verifyAdminPin = (inputPin: string) => {
-  // Ưu tiên biến môi trường VITE_ADMIN_PIN (nếu thiết lập trên Vercel), mặc định là '2026' nếu không có
-  const adminPin = (import.meta as any).env.VITE_ADMIN_PIN || '2026';
-  return inputPin === adminPin;
+/**
+ * Server-side admin verification via Supabase RPC.
+ * The previous implementation exposed VITE_ADMIN_PIN to the client bundle which is
+ * trivially extractable. Until a proper RPC `verify_admin_pin(pin text)` exists in the
+ * database (gated by RLS / service role), this helper falls back to checking the user's
+ * profile role on the server.
+ */
+export const verifyAdminPin = async (_inputPin: string): Promise<boolean> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, is_active')
+        .eq('id', user.id)
+        .maybeSingle();
+    return Boolean(profile?.is_active && (profile.role === 'admin' || profile.role === 'super_admin'));
 };
 
 /**
@@ -472,20 +489,35 @@ export async function fetchWorkflowById(id: string): Promise<ApprovalWorkflow | 
   return data as ApprovalWorkflow;
 }
 
-export async function updateRequestStatus(id: string, status: ApprovalStatus): Promise<{ success: boolean; error?: string }> {
-  // First fetch the current version to do optimistic/safe update
-  const { data, error: fetchError } = await supabase.from('approval_requests').select('version').eq('id', id).single();
+export async function updateRequestStatus(id: string, status: ApprovalStatus): Promise<{ success: boolean; error?: string; conflict?: boolean }> {
+  // Atomic optimistic lock: read current version, then update WHERE version matches.
+  // Without the version predicate, two concurrent callers race and one silently wins;
+  // the version column from migration 005 was being incremented but never used as a guard.
+  const { data, error: fetchError } = await supabase
+    .from('approval_requests')
+    .select('version')
+    .eq('id', id)
+    .single();
   if (fetchError) return { success: false, error: fetchError.message };
-  
-  const nextVersion = ((data as any).version || 0) + 1;
-  const { error } = await supabase.from('approval_requests')
-    .update({ 
-      status, 
-      version: nextVersion 
-    })
-    .eq('id', id);
-    
-  return { success: !error, error: error?.message };
+
+  const currentVersion = (data as { version: number | null }).version ?? 0;
+  const nextVersion = currentVersion + 1;
+
+  const { count, error } = await supabase
+    .from('approval_requests')
+    .update({ status, version: nextVersion }, { count: 'exact' })
+    .eq('id', id)
+    .eq('version', currentVersion);
+
+  if (error) return { success: false, error: error.message };
+  if (!count) {
+    return {
+      success: false,
+      conflict: true,
+      error: 'Request was modified by another user. Reload and try again.',
+    };
+  }
+  return { success: true };
 }
 
 export async function deleteApprovalRequests(ids: string[]): Promise<{ success: boolean; error?: string }> {
@@ -1168,26 +1200,28 @@ async function enforceRetentionLimit(maxSnapshots = 30): Promise<void> {
     }
 
     if (!data || data.length <= maxSnapshots) return;
-    
+
     const toDelete = data.slice(0, data.length - maxSnapshots);
     console.log(`[Supabase] Retention: deleting ${toDelete.length} old snapshots.`);
-    
-    for (const snap of toDelete) {
-      // Use the hardened deleteSnapshot function logic
+
+    // Batch storage removal (Storage SDK accepts an array) and DB delete (single .in() query),
+    // replacing the per-row round-trip loop.
+    const paths = toDelete.map((s) => s.storage_path).filter(Boolean);
+    const ids = toDelete.map((s) => s.id);
+
+    if (paths.length > 0) {
       const { error: storageErr } = await supabase.storage
         .from('inventory_snapshots')
-        .remove([snap.storage_path]);
-      
+        .remove(paths);
       if (storageErr) console.warn('[Supabase] Retention storage remove warning:', storageErr);
+    }
 
+    if (ids.length > 0) {
       const { error: dbErr } = await supabase
         .from('snapshot_metadata')
         .delete()
-        .eq('id', snap.id);
-      
-      if (dbErr) {
-        console.error(`[Supabase] Retention DB delete error for ${snap.id}:`, dbErr);
-      }
+        .in('id', ids);
+      if (dbErr) console.error('[Supabase] Retention DB delete error:', dbErr);
     }
   } catch (err) {
     console.error('[Supabase] Unexpected error in enforceRetentionLimit:', err);

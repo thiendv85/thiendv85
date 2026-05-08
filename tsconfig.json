@@ -26,5 +26,19 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "exclude": ["supabase/functions"]
+  "exclude": [
+    "supabase/functions",
+    "back-order-dashboard",
+    "scratch",
+    "streamlit_apps",
+    "dist",
+    "node_modules",
+    "_fix_all.js",
+    "check_schema.js",
+    "init_db.js",
+    "log_profiles.js",
+    "decode-sourcemap.cjs",
+    "generate-docx.js",
+    "utils/searchLogic.backup_v1.ts"
+  ]
 }

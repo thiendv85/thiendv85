@@ -604,7 +604,9 @@ export const dictionary = {
 interface LanguageContextType {
     language: Language;
     setLanguage: (lang: Language) => void;
-    t: (key: keyof typeof dictionary['en']) => string;
+    // Accept any string — the runtime falls back to the key itself when a translation is missing,
+    // so unknown keys are safe and many call sites already pass dynamic keys built at runtime.
+    t: (key: string) => string;
 }
 
 export const LanguageContext = createContext<LanguageContextType>({
@@ -618,8 +620,9 @@ export const useLanguage = () => useContext(LanguageContext);
 export const LanguageProvider = ({ children }: { children?: ReactNode }) => {
     const [language, setLanguage] = useState<Language>('vi');
 
-    const t = (key: keyof typeof dictionary['en']) => {
-        return dictionary[language][key] || key;
+    const t = (key: string): string => {
+        const dict = dictionary[language] as Record<string, string>;
+        return dict[key] ?? key;
     };
 
     return (

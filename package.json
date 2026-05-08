@@ -1,26 +1,32 @@
 {
-  "name": "atp-v12",
+  "name": "atp-v16",
   "private": true,
-  "version": "2.0.9",
+  "version": "2.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@google/genai": "^1.33.0",
     "@supabase/supabase-js": "^2.99.2",
     "lucide-react": "^0.563.0",
-    "pg": "^8.20.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "source-map": "^0.7.6",
     "xlsx": "0.18.5"
   },
   "devDependencies": {
+    "@fortawesome/fontawesome-free": "^7.2.0",
     "@types/node": "^22.14.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.0.0",
+    "autoprefixer": "^10.4.20",
+    "pg": "^8.20.0",
+    "postcss": "^8.5.0",
+    "source-map": "^0.7.6",
+    "tailwindcss": "^3.4.17",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }

@@ -1,7 +1,7 @@
 ﻿
 import React, { useState, useMemo } from 'react';
 import { InventoryItem } from '../types/inventory';
-import { GoogleGenAI } from "@google/genai";
+import { supabase } from '../utils/supabase';
 import { useLanguage } from '../utils/i18n';
 import { Typography } from './Typography';
 
@@ -193,10 +193,12 @@ export const SimulationLab = ({ item }: SimulationLabProps) => {
         setAIResult(null);
 
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
             const prompt = `Analyze SKU ${item.ItemCode}. History: ${item.SalesHistory.join(', ')}. Trend: ${item.TrendFlag}. Return JSON { "predicted_demand": number, "confidence": "HIGH"|"MEDIUM"|"LOW", "trend_analysis": "string" }`;
-            const res = await ai.models.generateContent({ model: 'gemini-2.0-flash-exp', contents: prompt, config: { responseMimeType: "application/json" } });
-            const result = JSON.parse(res.text);
+            const { data, error } = await supabase.functions.invoke('gemini-proxy', {
+                body: { prompt, model: 'gemini-2.0-flash-exp', responseMimeType: 'application/json' },
+            });
+            if (error || !data) throw error ?? new Error('Empty response from gemini-proxy');
+            const result = typeof data.text === 'string' ? JSON.parse(data.text) : data;
             if (result.predicted_demand > 0) {
                 setSimDemand(Math.round(result.predicted_demand));
                 setAIResult(result);

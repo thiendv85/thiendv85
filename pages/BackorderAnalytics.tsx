@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useDeferredValue } from 'react';
-import * as XLSX from 'xlsx';
+// xlsx is dynamically imported inside handleExport (user-triggered) to keep ~91KB gz
+// out of the initial bundle.
 import { Typography } from '../components/Typography';
 import { useLanguage } from '../utils/i18n';
 import { useInventoryWorker } from '../hooks/useInventoryWorker';
@@ -133,8 +134,9 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
     sourceProfiles?: SourceProfile[]
 }) => {
     const { t } = useLanguage();
-    const handleExport = () => {
+    const handleExport = async () => {
         if (!enrichedData) return;
+        const XLSX = await import('xlsx');
         const data = filteredData.map(item => ({
             'Mã hàng': item.ItemCode,
             'Tên hàng': item.ItemName,
@@ -475,7 +477,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
     }, [filteredData, matrixMetric]);
 
     const loisList = useMemo(() => {
-        const rawList = Array.from(new Set(filteredData?.map(i => i.LOISGroup).filter(Boolean)));
+        const rawList = Array.from(new Set(filteredData?.map(i => i.LOISGroup).filter(Boolean))) as string[];
         const processed = new Set<string>();
         rawList.forEach(code => {
             if (code.startsWith('L')) processed.add(code);
@@ -982,7 +984,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                 {searchResult.type !== 'EMPTY' && (
                                     <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 text-white p-2 rounded-lg text-[9px] font-black z-20 shadow-xl border border-slate-700 animate-fadeIn flex justify-between items-center">
                                         <span><i className="fas fa-microchip mr-2 text-blue-400"></i>{searchResult.modeDescription}</span>
-                                        <button onClick={() => { setSearch(''); setSearchResult({ type: 'EMPTY', tokens: [], displayTokens: [], raw: '' }); }} className="hover:text-rose-400"><i className="fas fa-times"></i></button>
+                                        <button onClick={() => setSearch('')} className="hover:text-rose-400"><i className="fas fa-times"></i></button>
                                     </div>
                                 )}
                             </div>

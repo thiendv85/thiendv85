@@ -16,11 +16,11 @@ export interface SearchResult {
   confidence?: number;
 }
 
-export interface SearchableItem {
-  ItemCode?: string;
-  ItemName?: string;
-  TypeCar?: string;
-  BackorderBreakdown?: { DocNo: string }[];
+// SearchableItem extends InventoryItem so search results carry the full item shape
+// (including computed fields), avoiding casts in callers like Dashboard/BackorderAnalytics.
+import type { InventoryItem } from '../types/inventory';
+
+export interface SearchableItem extends InventoryItem {
   _searchCache?: {
     code: string;
     fullText: string;

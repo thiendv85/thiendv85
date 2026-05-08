@@ -1,5 +1,5 @@
-
-import * as XLSX from 'xlsx';
+// xlsx is dynamically imported inside exportToExcel to keep the ~277KB raw / 91KB gz
+// vendor chunk out of the initial bundle. Excel export is a user-triggered action.
 
 export interface ExportDataRow {
     sku: string;
@@ -17,7 +17,8 @@ export interface ExportDataRow {
  * @param data Danh sách dữ liệu chi tiết
  * @param reportDate Ngày báo cáo (YYYY-MM-DD)
  */
-export const exportToExcel = (data: ExportDataRow[], reportDate: string = new Date().toISOString().split('T')[0]) => {
+export const exportToExcel = async (data: ExportDataRow[], reportDate: string = new Date().toISOString().split('T')[0]) => {
+    const XLSX = await import('xlsx');
     // 1. CHUẨN BỊ DỮ LIỆU SHEET 1 (DETAIL)
     const detailHeaders = ["STT", "SKU", "Tên Mục", "Tồn Kho", "Cầu/Ngày", "Ngày Cần Đặt", "Loại", "Số Lượng", "Trạng Thái"];
     

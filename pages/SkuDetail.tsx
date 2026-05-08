@@ -7,7 +7,6 @@ import { DebtStatusBadge } from '../components/DebtStatusBadge';
 import { Typography } from '../components/Typography';
 import { StockProgressBar } from '../components/StockProgressBar';
 import { SalesHistoryChart } from '../components/SalesHistoryChart';
-import { GoogleGenAI } from "@google/genai";
 import { SimulationLab } from '../components/SimulationLab';
 import { parseInventorySearch, matchSearch } from '../utils/searchLogic';
 import { useLanguage } from '../utils/i18n';

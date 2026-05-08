@@ -457,7 +457,7 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                     value={metrics.seasonal.toString()}
                     subValue="Sắp đến peak 2M tới"
                     icon="fa-calendar-days"
-                    color="purple"
+                    color="blue"
                     onClick={() => { setGroupFilter('SEASONAL'); setCurrentPage(1); }}
                     isActive={groupFilter === 'SEASONAL'}
                 />
@@ -466,7 +466,7 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                     value={metrics.spike.toString()}
                     subValue="Demand spike — review FC"
                     icon="fa-arrow-trend-up"
-                    color="yellow"
+                    color="amber"
                     onClick={() => { setGroupFilter('SPIKE'); setCurrentPage(1); }}
                     isActive={groupFilter === 'SPIKE'}
                 />

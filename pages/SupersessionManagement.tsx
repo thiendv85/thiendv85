@@ -55,7 +55,7 @@ export const SupersessionManagement = ({
     const handleSaveToCloud = async () => {
         const pin = prompt('Vui lòng nhập Mã Phê Duyệt (Admin PIN) để lưu cấu hình này lên máy chủ:\n(Mặc định: 2026)');
         if (pin === null) return;
-        if (!verifyAdminPin(pin)) {
+        if (!(await verifyAdminPin(pin))) {
             alert('❌ Mã phê duyệt không chính xác!');
             return;
         }

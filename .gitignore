@@ -28,3 +28,10 @@ dist-ssr
 .claude/
 everything-claude-code/
 .gemini/
+
+# Supabase CLI internal state
+supabase/.temp/
+supabase/.branches/
+
+# Local database backup snippets
+SupaBackup/

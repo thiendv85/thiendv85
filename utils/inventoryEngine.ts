@@ -314,6 +314,7 @@ export interface ComputedFields {
         code: string;
         message: string;
     }[];
+    boAging?: import('../types/inventory').BackorderAging;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
