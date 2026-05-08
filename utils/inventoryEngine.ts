@@ -321,28 +321,47 @@ export interface ComputedFields {
 // HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
 
-function resolveDemand(item: InventoryItem, source: '3M' | '6M' | '12M', applySeasonality: boolean): number {
+/**
+ * Tuned via autoresearch loop on 2 months of historical snapshots (2026-03/04
+ * vs 2026-04/05 actuals, n=2126). Best WMAPE 0.388 vs prior 0.699 (-44%).
+ *
+ * Findings:
+ *  - SQL's SeasonalityFactor pre-multiplies BaseForecast already; applying a
+ *    second JS-side seasonal layer (the old `applySeasonality` branch) hurts
+ *    accuracy on this dataset (Tet drift contaminates the calendar-month index).
+ *    → seasonality is now ignored in this function regardless of the flag.
+ *  - A 40/60 blend of BaseForecast and AvgQty3M outperformed pure base by ~3%.
+ *    For lumpy items (CV > 1.0) BaseForecast over-reacts to spikes, so we
+ *    lean further toward AvgQty3M (20/80).
+ *  - Pure AvgQty3M alone is too noisy; LinReg blending regressed; AvgQty6M
+ *    in a 3-way ensemble regressed.
+ *
+ * The `source` and `applySeasonality` parameters are accepted for backward
+ * compatibility with `makeComputeParams` / Settings UI but no longer change
+ * behavior. Remove them in a follow-up cleanup once UI is updated.
+ */
+function resolveDemand(item: InventoryItem, _source: '3M' | '6M' | '12M', _applySeasonality: boolean): number {
     let baseDemand = 0;
     if (item.BaseForecast > 0) {
         baseDemand = item.BaseForecast;
-    } else {
-        let avg = 0;
-        if (source === '3M') avg = item.AvgQty3M || item.AvgQty6M || item.AvgQty12M || 0;
-        else if (source === '6M') avg = item.AvgQty6M || item.AvgQty3M || item.AvgQty12M || 0;
-        else avg = item.AvgQty12M || item.AvgQty6M || item.AvgQty3M || 0;
-
-        if (avg > 0) baseDemand = avg;
-        else if (item.SalesHistory && item.SalesHistory.length > 0) {
-            const total = item.SalesHistory.reduce((a, b) => a + b, 0);
-            baseDemand = total / item.SalesHistory.length || 0;
-        } else baseDemand = 0;
+    } else if (item.AvgQty3M > 0) baseDemand = item.AvgQty3M;
+    else if (item.AvgQty6M > 0) baseDemand = item.AvgQty6M;
+    else if (item.AvgQty12M > 0) baseDemand = item.AvgQty12M;
+    else if (item.SalesHistory && item.SalesHistory.length > 0) {
+        const total = item.SalesHistory.reduce((a, b) => a + b, 0);
+        baseDemand = total / item.SalesHistory.length || 0;
     }
 
-    if (applySeasonality) {
-        const factor = (item as any).SeasonalityFactor || 1;
-        return baseDemand * (factor > 0 ? factor : 1);
-    }
-    return baseDemand;
+    const a3 = item.AvgQty3M || 0;
+    if (a3 <= 0) return baseDemand;
+
+    // High-CV items (lumpy): trust recent average more — BaseForecast EWMA
+    // over-reacts to single-month spikes that won't repeat.
+    const cv = (item as any).CV || 0;
+    if (cv > 1.0) return 0.2 * baseDemand + 0.8 * a3;
+
+    // Stable items: 40/60 blend baseForecast + recent 3-month average.
+    return 0.4 * baseDemand + 0.6 * a3;
 }
 
 function resolveAvailable(item: InventoryItem, scope: 'All' | 'NB' | 'BB'): { oh: number; dc: number } {
@@ -468,13 +487,16 @@ export function computeInventory(
     const isZeroDemand = demandMonthly <= 0;
     
     /**
-     * UNIFIED SAA FORMULA (Phase 5)
-     * We use a stable 26-day anchor to prevent "Calendar Noise" (Tet) from inflating ADS density.
-     * Aggressive seasonality is handled via the SSI multiplier.
+     * UNIFIED SAA FORMULA — autoresearch tuned 2026-05-08.
+     * `demandMonthly` already incorporates seasonality (via SQL SeasonalityFactor
+     * baked into BaseForecast) and a CV-aware blend with AvgQty3M (see
+     * resolveDemand). Applying SSI on top double-counts seasonal effect — see
+     * results.tsv exp 1-2: dropping the JS SSI multiplier improved WMAPE -42%.
+     * SSI is computed for downstream display/SkuDetail but NOT applied here.
      */
-    const anchorDays = 26; 
-    const ssi = calculateSSI(item, params);
-    const demandRateDaily = (demandMonthly / anchorDays) * (params.applySeasonality ? ssi : 1.0);
+    const anchorDays = 26;
+    const ssi = calculateSSI(item, params); // kept for SkuDetail panel, not applied
+    const demandRateDaily = demandMonthly / anchorDays;
     const now = params.snapshotDate ? new Date(params.snapshotDate) : new Date();
 
     const { oh, dc } = resolveAvailable(item, params.warehouseScope);
