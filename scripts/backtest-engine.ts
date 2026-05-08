@@ -116,10 +116,9 @@ function resolveDemand_v0(row: BacktestRow, applySeasonality: boolean): number {
 // EXPERIMENT SURFACE — modify ONLY this function during autoresearch loop.
 // ────────────────────────────────────────────────────────────────────────────
 function predict(row: BacktestRow): number {
-    // V1 — Drop JS SSI. Trust SQL's pre-computed SeasonalityFactor entirely.
-    // resolveDemand_v0 with applySeasonality=true returns BaseForecast × sf
-    // (which equals SQL's Forecast_eff for the current month).
-    return resolveDemand_v0(row, true);
+    // V2 — Drop seasonality entirely. Pure BaseForecast (de-seasonalized SQL output).
+    // Tests whether SQL's SeasonalityFactor is signal or noise on this dataset.
+    return resolveDemand_v0(row, false);
 }
 
 // ─── Metric computation ─────────────────────────────────────────────────────
