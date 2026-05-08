@@ -324,30 +324,37 @@ export interface ComputedFields {
 // HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
 
+function median(arr: number[]): number {
+    if (!arr || arr.length === 0) return 0;
+    const sorted = [...arr].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+}
+
 /**
  * Tuned via autoresearch loop on 2 months of historical snapshots (2026-03/04
- * vs 2026-04/05 actuals, n=2126). Best WMAPE 0.388 vs prior 0.699 (-44%).
+ * vs 2026-04/05 actuals, n=2126). Best WMAPE 0.385 vs prior 0.699 (-45%).
  *
- * Findings:
+ * Findings (results.tsv on autoresearch/may08 branch):
  *  - SQL's SeasonalityFactor pre-multiplies BaseForecast already; applying a
- *    second JS-side seasonal layer (the old `applySeasonality` branch) hurts
- *    accuracy on this dataset (Tet drift contaminates the calendar-month index).
- *    → seasonality is now ignored in this function regardless of the flag.
- *  - A 40/60 blend of BaseForecast and AvgQty3M outperformed pure base by ~3%.
- *    For lumpy items (CV > 1.0) BaseForecast over-reacts to spikes, so we
- *    lean further toward AvgQty3M (20/80).
- *  - Pure AvgQty3M alone is too noisy; LinReg blending regressed; AvgQty6M
- *    in a 3-way ensemble regressed.
+ *    second JS-side seasonal layer hurts accuracy on this dataset (Tet drift
+ *    contaminates the calendar-month index). → ignore seasonality flag.
+ *  - Cap base at 3× AvgQty12M to dampen one-month spikes that inflate EWMA.
+ *  - For very lumpy items (CV>1.5): use median(history) instead of base —
+ *    EWMA on lumpy data is too noisy.
+ *  - Smooth CV-aware interpolation: alpha = max(0.1, 0.65 - 0.3·CV).
+ *    CV=0 → 0.65 base / 0.35 a3. CV=1 → 0.35/0.65. CV=2 → 0.1/0.9.
+ *  - LinReg blending, LOIS-tier blending, MAD-aware dampening, AvgQty6M
+ *    ensemble all regressed in backtest.
  *
- * The `source` and `applySeasonality` parameters are accepted for backward
+ * The `source` and `applySeasonality` parameters are kept for backward
  * compatibility with `makeComputeParams` / Settings UI but no longer change
- * behavior. Remove them in a follow-up cleanup once UI is updated.
+ * behavior. Remove in follow-up cleanup once UI is updated.
  */
 function resolveDemand(item: InventoryItem, _source: '3M' | '6M' | '12M', _applySeasonality: boolean): number {
     let baseDemand = 0;
-    if (item.BaseForecast > 0) {
-        baseDemand = item.BaseForecast;
-    } else if (item.AvgQty3M > 0) baseDemand = item.AvgQty3M;
+    if (item.BaseForecast > 0) baseDemand = item.BaseForecast;
+    else if (item.AvgQty3M > 0) baseDemand = item.AvgQty3M;
     else if (item.AvgQty6M > 0) baseDemand = item.AvgQty6M;
     else if (item.AvgQty12M > 0) baseDemand = item.AvgQty12M;
     else if (item.SalesHistory && item.SalesHistory.length > 0) {
@@ -355,16 +362,23 @@ function resolveDemand(item: InventoryItem, _source: '3M' | '6M' | '12M', _apply
         baseDemand = total / item.SalesHistory.length || 0;
     }
 
+    // Outlier cap: prevent EWMA from over-reacting to one-month spikes.
+    if (item.AvgQty12M > 0) {
+        baseDemand = Math.min(baseDemand, 3 * item.AvgQty12M);
+    }
+
     const a3 = item.AvgQty3M || 0;
     if (a3 <= 0) return baseDemand;
 
-    // High-CV items (lumpy): trust recent average more — BaseForecast EWMA
-    // over-reacts to single-month spikes that won't repeat.
     const cv = (item as any).CV || 0;
-    if (cv > 1.0) return 0.2 * baseDemand + 0.8 * a3;
-
-    // Stable items: 40/60 blend baseForecast + recent 3-month average.
-    return 0.4 * baseDemand + 0.6 * a3;
+    // Very lumpy: EWMA unreliable, use median(history)
+    if (cv > 1.5) {
+        const med = median(item.SalesHistory || []);
+        return 0.2 * med + 0.8 * a3;
+    }
+    // Smooth CV-aware blend: more variability → lean more on recent
+    const alpha = Math.max(0.1, 0.65 - 0.3 * cv);
+    return alpha * baseDemand + (1 - alpha) * a3;
 }
 
 function resolveAvailable(item: InventoryItem, scope: 'All' | 'NB' | 'BB'): { oh: number; dc: number } {
