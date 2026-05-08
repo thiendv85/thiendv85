@@ -116,11 +116,10 @@ function resolveDemand_v0(row: BacktestRow, applySeasonality: boolean): number {
 // EXPERIMENT SURFACE — modify ONLY this function during autoresearch loop.
 // ────────────────────────────────────────────────────────────────────────────
 function predict(row: BacktestRow): number {
-    // V4 — 60/40 blend BaseForecast + avg_3m. Recent trend is often more reliable
-    // than EWMA which has long memory. avg_3m is also closer in time to actual_next.
+    // V5 — 40/60 blend BaseForecast + avg_3m. Push more weight onto recent.
     const base = resolveDemand_v0(row, false);
     if (row.avg_qty_3m > 0) {
-        return 0.6 * base + 0.4 * row.avg_qty_3m;
+        return 0.4 * base + 0.6 * row.avg_qty_3m;
     }
     return base;
 }
