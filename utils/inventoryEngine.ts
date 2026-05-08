@@ -7,6 +7,7 @@
 
 import { InventoryItem, SourceProfile } from '../types/inventory';
 import { prepareSearchCache } from './searchLogic';
+import { getZScore } from './safetyStock';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -229,6 +230,8 @@ export interface ComputeParams {
     snapshotYYMM: string;
     snapshotDate: string;
     applySeasonality: boolean;
+    /** Lead-time CV (σ_LT / E[LT]). Default 0.2 = 20% LT variability. */
+    sigmaLT?: number;
     sourceProfiles?: SourceProfile[];
     seasonalityTuning?: {
         useSPD: boolean;
@@ -515,8 +518,41 @@ export function computeInventory(
     const workingDaysInSSP = wdCache ? (wdCache.get(effectiveSSP) ?? getWorkingDaysByLeadTime(effectiveSSP, now)) : getWorkingDaysByLeadTime(effectiveSSP, now);
     const workingDaysInSP = wdCache ? (wdCache.get(effectiveSP) ?? getWorkingDaysByLeadTime(effectiveSP, now)) : getWorkingDaysByLeadTime(effectiveSP, now);
 
-    const safetyStock = (isStop || isZeroDemand) ? 0 : demandRateDaily * workingDaysInSSP;
-    const rop = (isStop || isZeroDemand) ? 0 : demandRateDaily * (workingDaysInLT + workingDaysInSSP);
+    /**
+     * Safety stock — proper Z×√(σ²·LT + d²·σ_LT²) formula.
+     *
+     * Replaces the prior time-based proxy `demandRateDaily × WD(SSP)` which
+     * ignored demand variability entirely (lumpy CV>1.5 SKUs got the same SS
+     * as smooth CV<0.3 SKUs). For LT 2-5 months in this distribution business,
+     * variability is the dominant SS driver — formula now uses:
+     *   - σ_d  = item.Sigma_eff  (computed by SQL on 12-month history)
+     *   - LT   = effectiveLT in months (per-source profile or default)
+     *   - σ_LT = params.sigmaLT (default 0.2 = 20% CV on lead time)
+     *   - Z    = LOIS-tier mapping (98% L1-L3, 95% L4-L5, 90% L6-L7, 80% L8/N/C)
+     *
+     * This compensates for the +19% bias buffer that the old double-count
+     * seasonal formula was implicitly providing (see results.tsv).
+     *
+     * `effectiveSSP` (legacy SSP days config) is no longer used for SS, but
+     * still feeds into the demand-during-lead-time portion of ROP via
+     * `workingDaysInSSP` for backward compatibility with UI. Drop in follow-up.
+     */
+    const sigmaD = (item as any).Sigma_eff || 0;
+    const sigmaLT = params.sigmaLT ?? 0.2;
+    const ltMonths = workingDaysInLT / 26;
+    const z = getZScore(item.LOISGroup || '');
+    const safetyStock = (isStop || isZeroDemand)
+        ? 0
+        : Math.max(
+              0,
+              z * Math.sqrt(
+                  sigmaD * sigmaD * ltMonths +
+                  demandMonthly * demandMonthly * sigmaLT * sigmaLT,
+              ),
+          );
+    // ROP = expected demand during lead time + safety stock
+    const rop = (isStop || isZeroDemand) ? 0 : demandRateDaily * workingDaysInLT + safetyStock;
+    // MAX = ROP + supply-period coverage (review-cycle buffer)
     const stockMax = (isStop || isZeroDemand) ? 0 : rop + (demandRateDaily * workingDaysInSP);
 
     const history = item.SalesHistory || [];
