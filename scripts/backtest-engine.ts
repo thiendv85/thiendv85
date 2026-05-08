@@ -136,7 +136,7 @@ function predict(row: BacktestRow): number {
         return 0.2 * med + 0.8 * a3;
     }
     // Smooth interpolation: alpha = max(0.1, 0.6 - 0.25 × CV)
-    const alpha = Math.max(0.1, 0.6 - 0.25 * row.cv);
+    const alpha = Math.max(0.1, 0.65 - 0.3 * row.cv);
     return alpha * base + (1 - alpha) * a3;
 }
 
