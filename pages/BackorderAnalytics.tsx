@@ -1080,6 +1080,29 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                     </div>
 
 
+                    {/* DIAGNOSTIC BANNER — temporary, helps user verify pipeline parsing without DevTools.
+                        Remove after T.NÀY/T.SAU column is confirmed working. */}
+                    {(() => {
+                        const sample = enrichedData?.find(i => (i.TotalPO || 0) > 0)
+                                    || enrichedData?.find(i => i.Pipeline && Object.keys(i.Pipeline).length > 0)
+                                    || enrichedData?.[0];
+                        const pipelineKeys = sample?.Pipeline ? Object.keys(sample.Pipeline) : [];
+                        const settings = JSON.parse(localStorage.getItem('atp_app_settings') || '{}');
+                        const snap = settings.snapshotDate || '(default today)';
+                        const totalWithPO = (enrichedData || []).filter(i => (i.TotalPO || 0) > 0).length;
+                        const totalWithCurrMonth = (enrichedData || []).filter(i => (i.computed?.incomingCurrentMonth || 0) > 0).length;
+                        return (
+                            <div className="mb-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-[12px] text-amber-900 font-mono space-y-1">
+                                <div className="font-bold uppercase tracking-wider text-amber-700 text-[10px]">⚠ PIPELINE DIAGNOSTIC (tạm thời)</div>
+                                <div>snapshotDate trong Settings: <span className="font-bold">{snap}</span></div>
+                                <div>Tổng SKU có TotalPO &gt; 0: <span className="font-bold">{totalWithPO}</span> / {(enrichedData || []).length}</div>
+                                <div>Tổng SKU có T.này &gt; 0: <span className="font-bold">{totalWithCurrMonth}</span></div>
+                                <div>Sample SKU: <span className="font-bold">{sample?.ItemCode || '(none)'}</span> — TotalPO=<span className="font-bold">{sample?.TotalPO ?? 0}</span> · T.này=<span className="font-bold">{sample?.computed?.incomingCurrentMonth ?? 0}</span> · T.sau=<span className="font-bold">{sample?.computed?.incomingNextMonth ?? 0}</span></div>
+                                <div>Pipeline keys ({pipelineKeys.length}): <span className="font-bold break-all">{pipelineKeys.length > 0 ? pipelineKeys.join(' | ') : '(empty)'}</span></div>
+                            </div>
+                        );
+                    })()}
+
                     <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] overflow-hidden relative group/table hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.12)] transition-all duration-700 flex-1 flex flex-col">
                         <div className="p-8 pb-4 shrink-0 flex justify-between items-center bg-slate-50/30">
                             <div className="flex items-center gap-6">
