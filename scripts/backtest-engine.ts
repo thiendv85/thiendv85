@@ -115,16 +115,27 @@ function resolveDemand_v0(row: BacktestRow, applySeasonality: boolean): number {
 // ────────────────────────────────────────────────────────────────────────────
 // EXPERIMENT SURFACE — modify ONLY this function during autoresearch loop.
 // ────────────────────────────────────────────────────────────────────────────
+function median(arr: number[]): number {
+    if (arr.length === 0) return 0;
+    const sorted = [...arr].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+}
+
 function predict(row: BacktestRow): number {
-    // V11 — Cap base at 3× avg_12m to dampen spike-driven over-prediction.
-    // Items with one extreme month (e.g., 600 units in a single sale) inflate
-    // BaseForecast via EWMA. Hard cap prevents runaway predictions.
+    // V12 — For very high CV (>1.5), use median(history) instead of base
+    // because EWMA on lumpy data is very noisy. Median is robust to spikes.
     let base = resolveDemand_v0(row, false);
-    if (row.avg_qty_12m > 0) {
-        base = Math.min(base, 3 * row.avg_qty_12m);
-    }
+    if (row.avg_qty_12m > 0) base = Math.min(base, 3 * row.avg_qty_12m);
+
     const a3 = row.avg_qty_3m;
     if (a3 <= 0) return base;
+
+    if (row.cv > 1.5) {
+        // Very lumpy — replace base with median, lean heavily on a3
+        const med = median(row.hist);
+        return 0.2 * med + 0.8 * a3;
+    }
     if (row.cv > 1.0) return 0.2 * base + 0.8 * a3;
     return 0.4 * base + 0.6 * a3;
 }
