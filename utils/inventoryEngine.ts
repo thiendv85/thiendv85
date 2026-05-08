@@ -756,11 +756,12 @@ export function computeInventory(
     // Aging Calculation (New)
     const boAging: import('../types/inventory').BackorderAging = {
         qty30: 0, qty60: 0, qty90: 0, qtyOver90: 0,
-        totalQty: 0, totalValue: 0
+        totalQty: 0, totalValue: 0, oldestDebtDays: 0
     };
 
     if (item.BackorderBreakdown && item.BackorderBreakdown.length > 0) {
         const snapshotTs = now.getTime();
+        let maxDaysOld = 0;
         item.BackorderBreakdown.forEach(boItem => {
             const docDate = boItem.RawDate || 0;
             if (docDate > 0) {
@@ -769,6 +770,7 @@ export function computeInventory(
                 else if (daysOld <= 60) boAging.qty60 += boItem.Qty;
                 else if (daysOld <= 90) boAging.qty90 += boItem.Qty;
                 else boAging.qtyOver90 += boItem.Qty;
+                if (daysOld > maxDaysOld) maxDaysOld = daysOld;
             } else {
                 // If no date, put in 30d bucket by default or based on some other logic
                 boAging.qty30 += boItem.Qty;
@@ -776,6 +778,7 @@ export function computeInventory(
             boAging.totalQty += boItem.Qty;
         });
         boAging.totalValue = boAging.totalQty * unitCost;
+        boAging.oldestDebtDays = maxDaysOld;
     }
 
     return {

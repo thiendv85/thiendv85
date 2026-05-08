@@ -302,22 +302,10 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
         return millions.toLocaleString('vi-VN') + ' Tr';
     };
 
-    const getOldestDebtDays = (item: InventoryItem) => {
-        if (!item.BackorderBreakdown || item.BackorderBreakdown.length === 0) return 0;
-        let oldestDate: Date | null = null;
-        item.BackorderBreakdown.forEach(bo => {
-            if (!bo.DocDate) return;
-            const parts = bo.DocDate.split('/');
-            if (parts.length !== 3) return;
-            const date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-            if (isNaN(date.getTime())) return;
-            if (!oldestDate || date < oldestDate) oldestDate = date;
-        });
-        if (!oldestDate) return 0;
-        const today = new Date();
-        const diffTime = Math.abs(today.getTime() - oldestDate.getTime());
-        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    };
+    // Read from engine-computed aging so display matches bucket assignment.
+    // Engine uses snapshotDate as reference; both must agree to avoid the case where
+    // a 141d debt shows here but lands in a lower bucket because of date mismatch.
+    const getOldestDebtDays = (item: InventoryItem) => item.computed?.boAging?.oldestDebtDays || 0;
 
     const formatMatrixVal = (val: number) => {
         if (matrixMetric === 'val') {

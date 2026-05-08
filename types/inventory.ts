@@ -148,12 +148,13 @@ export interface BackorderDetail {
 }
 
 export interface BackorderAging {
-    qty30: number;   // < 30 days
-    qty60: number;   // 30-60 days
-    qty90: number;   // 60-90 days
+    qty30: number;   // <= 30 days
+    qty60: number;   // 31-60 days
+    qty90: number;   // 61-90 days
     qtyOver90: number; // > 90 days
     totalQty: number;
     totalValue: number;
+    oldestDebtDays: number; // computed against snapshotDate to match bucket logic
 }
 
 /**
