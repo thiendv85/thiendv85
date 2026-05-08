@@ -1,6 +1,7 @@
 import React from 'react';
 import { Typography } from './Typography';
 
+import { FaIcon } from './Icon';
 export const GlossaryTab = () => {
     const formulas = [
         { name: 'ROP (Reorder Point)', formula: '(LT + SSP) × Demand_Daily', desc: 'Điểm đặt hàng. Khi lượng hàng Tồn ròng (Net Demand) giảm xuống dưới mức này, hệ thống sẽ gợi ý đặt hàng.' },
@@ -114,7 +115,7 @@ export const GlossaryTab = () => {
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
-                        <i className="fas fa-calculator text-blue-600 text-sm" />
+                        <FaIcon className="fas fa-calculator text-blue-600 text-sm"  />
                     </div>
                     <Typography variant="label" className="text-slate-900">Các Công Thức Toán Học</Typography>
                 </div>
@@ -136,7 +137,7 @@ export const GlossaryTab = () => {
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
-                        <i className="fas fa-spell-check text-emerald-600 text-sm" />
+                        <FaIcon className="fas fa-spell-check text-emerald-600 text-sm"  />
                     </div>
                     <Typography variant="label" className="text-slate-900">Từ Viết Tắt (Abbreviations)</Typography>
                 </div>
@@ -158,7 +159,7 @@ export const GlossaryTab = () => {
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
-                        <i className="fas fa-icons text-purple-600 text-sm" />
+                        <FaIcon className="fas fa-icons text-purple-600 text-sm"  />
                     </div>
                     <Typography variant="label" className="text-slate-900">Ý Nghĩa Các Biểu Tượng (Icons)</Typography>
                 </div>
@@ -167,7 +168,7 @@ export const GlossaryTab = () => {
                         {icons.map((ic, i) => (
                             <div key={i} className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors">
                                 <div className={`w-10 h-10 shrink-0 rounded-xl bg-white shadow-sm border border-slate-100 flex items-center justify-center text-lg ${ic.color}`}>
-                                    <i className={`fas ${ic.icon}`} />
+                                    <FaIcon className={`fas ${ic.icon}`}  />
                                 </div>
                                 <div>
                                     <div className="text-xs font-black text-slate-700">{ic.name}</div>
@@ -182,7 +183,7 @@ export const GlossaryTab = () => {
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
-                        <i className="fas fa-filter text-orange-600 text-sm" />
+                        <FaIcon className="fas fa-filter text-orange-600 text-sm"  />
                     </div>
                     <Typography variant="label" className="text-slate-900">Ý Nghĩa Các Bộ Lọc (Filters)</Typography>
                 </div>

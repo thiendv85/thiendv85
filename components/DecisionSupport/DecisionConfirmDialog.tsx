@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { DecisionSummary } from '../../hooks/useDecisionSupport';
 import { REASON_TAXONOMY } from '../../utils/decision/taxonomy';
+import { FaIcon } from '../Icon';
 
 interface Props {
 
@@ -30,7 +31,7 @@ export const DecisionConfirmDialog = ({ action, summary, onConfirm, onCancel }: 
                 {/* Header */}
                 <div className={`${config.color} p-8 text-white flex items-center gap-4`}>
                     <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-                        <i className={`fas ${config.icon} text-2xl`} />
+                        <FaIcon className={`fas ${config.icon} text-2xl`} />
                     </div>
                     <div>
                         <h3 className="text-2xl font-black tracking-tight">{config.title}</h3>

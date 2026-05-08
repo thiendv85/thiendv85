@@ -4,6 +4,7 @@ import { useApprovalAuth } from '../hooks/useApprovalAuth';
 import { ApprovalStatusBadge } from '../components/ApprovalStatusBadge';
 import { OrderReviewModal } from '../components/OrderReviewModal';
 import { WorkflowStepper } from '../components/WorkflowStepper';
+import { FaIcon } from '../components/Icon';
 import {
     fetchAllRequests,
     fetchMyRequests,
@@ -357,7 +358,7 @@ export const ApprovalQueue = ({ onLoadRequest, appSettings }: Props) => {
 
                         <div className="flex items-center gap-3 flex-wrap">
                             <div className="relative">
-                                <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 text-xs" />
+                                <FaIcon className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 text-xs"  />
                                 <input
                                     type="text"
                                     value={searchTerm}
@@ -377,7 +378,7 @@ export const ApprovalQueue = ({ onLoadRequest, appSettings }: Props) => {
                                                 : 'text-white/50 hover:text-white/80'
                                         }`}
                                     >
-                                        <i className={`fas ${t.icon} mr-1.5 text-[9px]`} />
+                                        <FaIcon className={`fas ${t.icon} mr-1.5 text-[9px]`}  />
                                         {t.label}
                                     </button>
                                 ))}
@@ -402,7 +403,7 @@ export const ApprovalQueue = ({ onLoadRequest, appSettings }: Props) => {
                         </div>
                     ) : orderedStatuses.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-32 text-slate-400">
-                            <i className="fas fa-inbox text-5xl mb-4 opacity-30" />
+                            <FaIcon className="fas fa-inbox text-5xl mb-4 opacity-30"  />
                             <span className="text-xs font-black uppercase tracking-[0.3em]">Không có đơn nào</span>
                         </div>
                     ) : (
@@ -473,7 +474,7 @@ export const ApprovalQueue = ({ onLoadRequest, appSettings }: Props) => {
                     <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setConfirmModal(null)} />
                     <div className="relative bg-white p-8 rounded-[40px] shadow-2xl max-w-sm w-full animate-[scaleIn_0.2s_ease-out] text-center border border-slate-100">
                         <div className={`w-20 h-20 rounded-full mx-auto flex items-center justify-center mb-6 shadow-lg ${confirmModal.type === 'delete' ? 'bg-rose-50 text-rose-500' : 'bg-amber-50 text-amber-500'}`}>
-                            <i className={`fas ${confirmModal.type === 'delete' ? 'fa-trash-can' : 'fa-ban'} text-3xl`} />
+                            <FaIcon className={`fas ${confirmModal.type === 'delete' ? 'fa-trash-can' : 'fa-ban'} text-3xl`}  />
                         </div>
                         <h3 className="text-xl font-black text-slate-800 mb-2">
                             {confirmModal.type === 'delete' ? 'Xóa vĩnh viễn?' : 'Hủy đơn hàng?'}
@@ -517,7 +518,7 @@ export const ApprovalQueue = ({ onLoadRequest, appSettings }: Props) => {
             {toast && (
                 <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[120] animate-fadeIn">
                     <div className={`px-8 py-4 rounded-[20px] shadow-2xl text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-3 backdrop-blur-md ${toast.type === 'error' ? 'bg-rose-600/90' : toast.type === 'loading' ? 'bg-blue-600/90' : toast.type === 'amber' ? 'bg-amber-600/90' : 'bg-slate-900/90'}`}>
-                        {toast.type === 'loading' && <i className="fas fa-circle-notch fa-spin text-white" />}
+                        {toast.type === 'loading' && <FaIcon className="fas fa-circle-notch fa-spin text-white"  />}
                         {toast.msg}
                     </div>
                 </div>
@@ -619,7 +620,7 @@ const RequestCard = ({
                     <ApprovalStatusBadge status={req.status} size="sm" />
                     {deadline && (
                         <span className={`text-[10px] px-2.5 py-1 rounded-full font-black uppercase tracking-wider border ${deadline.cls}`}>
-                            <i className={`fas ${deadline.icon} mr-1`} />{deadline.label}
+                            <FaIcon className={`fas ${deadline.icon} mr-1`}  />{deadline.label}
                         </span>
                     )}
                 </div>
@@ -642,7 +643,7 @@ const RequestCard = ({
                                 {submitterName}
                             </div>
                             <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-slate-500 font-bold tabular-nums">
-                                <i className="fas fa-clock text-[8px] text-slate-400" />
+                                <FaIcon className="fas fa-clock text-[8px] text-slate-400"  />
                                 <span>{new Date(req.submitted_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
                                 <span className="text-slate-300">·</span>
                                 <span>{new Date(req.submitted_at).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
@@ -666,7 +667,7 @@ const RequestCard = ({
                             </span>
                             {currentInfo && (
                                 <span className="inline-flex items-center gap-1.5 text-[10px] font-black bg-amber-50 border border-amber-200 text-amber-800 px-2.5 py-0.5 rounded-full">
-                                    <i className="fas fa-arrow-right text-[8px]" />
+                                    <FaIcon className="fas fa-arrow-right text-[8px]"  />
                                     Đang chờ <span className="font-black">{shortName(currentInfo.primary)}</span>
                                     {currentInfo.extraCount > 0 && (
                                         <span className="text-amber-600/80 font-bold">+{currentInfo.extraCount}</span>
@@ -685,7 +686,7 @@ const RequestCard = ({
                         </h4>
                         {lastAction?.comment && (
                             <p className="mt-2 text-xs italic text-slate-500 line-clamp-2 max-w-2xl">
-                                <i className="fas fa-quote-left text-slate-300 text-[8px] mr-1.5" />
+                                <FaIcon className="fas fa-quote-left text-slate-300 text-[8px] mr-1.5"  />
                                 {lastAction.comment}
                                 <span className="ml-2 text-[10px] font-black not-italic text-slate-400">
                                     — {usersMap[lastAction.actor_id] || 'N/A'}
@@ -790,7 +791,7 @@ const RequestCard = ({
                         }}
                         className="h-9 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.18em] transition-all flex items-center gap-2 shadow-sm hover:shadow-md active:scale-[0.98]"
                     >
-                        <i className="fas fa-folder-open text-[11px]" /> Mở đơn
+                        <FaIcon className="fas fa-folder-open text-[11px]"  /> Mở đơn
                     </button>
                     <button
                         onClick={() => onDownload(req)}
@@ -802,14 +803,14 @@ const RequestCard = ({
                                 : 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'
                         }`}
                     >
-                        {isDownloading ? <i className="fas fa-spinner fa-spin text-[11px]" /> : <i className="fas fa-file-arrow-down text-[11px]" />}
+                        {isDownloading ? <FaIcon className="fas fa-spinner fa-spin text-[11px]"  /> : <FaIcon className="fas fa-file-arrow-down text-[11px]"  />}
                         Tải CSV
                     </button>
                     <button
                         onClick={() => onOpenDetail(req)}
                         className="h-9 px-3 text-slate-400 hover:text-slate-700 rounded-xl text-[10px] font-black uppercase tracking-[0.18em] transition-all flex items-center gap-2"
                     >
-                        <i className="fas fa-eye text-[11px]" /> Chi tiết
+                        <FaIcon className="fas fa-eye text-[11px]"  /> Chi tiết
                     </button>
                 </div>
 
@@ -821,14 +822,14 @@ const RequestCard = ({
                                 disabled={isProcessing}
                                 className="h-9 px-4 bg-white text-slate-500 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 rounded-xl text-[10px] font-black uppercase tracking-[0.18em] transition-colors flex items-center gap-2"
                             >
-                                <i className="fas fa-xmark text-[11px]" /> Từ chối
+                                <FaIcon className="fas fa-xmark text-[11px]"  /> Từ chối
                             </button>
                             <button
                                 onClick={() => onAction(req.id, 'approved')}
                                 disabled={isProcessing}
                                 className="h-9 px-5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.18em] transition-all flex items-center gap-2 shadow-md shadow-emerald-200 active:scale-[0.98]"
                             >
-                                {isProcessing ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-check-double text-[11px]" />}
+                                {isProcessing ? <FaIcon className="fas fa-spinner fa-spin"  /> : <FaIcon className="fas fa-check-double text-[11px]"  />}
                                 Duyệt đơn
                             </button>
                         </>
@@ -839,7 +840,7 @@ const RequestCard = ({
                             className="h-9 w-9 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-colors flex items-center justify-center"
                             title="Xóa vĩnh viễn"
                         >
-                            <i className="fas fa-trash-can text-xs" />
+                            <FaIcon className="fas fa-trash-can text-xs"  />
                         </button>
                     )}
                 </div>

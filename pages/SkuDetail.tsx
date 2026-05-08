@@ -16,6 +16,7 @@ import { SupersessionGraph } from '../utils/supersessionGraph';
 import { SupersessionChainViewer } from '../components/SupersessionChainViewer';
 import { getDebtStatus, DEBT_STATUS_OPTIONS } from '../types/inventory';
 
+import { FaIcon } from '../components/Icon';
 interface SkuDetailProps {
     item: InventoryItem;
     allData?: InventoryItem[];
@@ -90,11 +91,11 @@ const PackageDetailPopup = ({
                                 onClick={() => onOpenOptimizer(packageCode)}
                                 className="bg-white border border-blue-200 text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-2xs font-black uppercase tracking-widest transition-all flex items-center gap-2"
                             >
-                                <i className="fas fa-wand-magic-sparkles"></i> Tối ưu hóa
+                                <FaIcon className="fas fa-wand-magic-sparkles" /> Tối ưu hóa
                             </button>
                         )}
                         <button onClick={onClose} className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:border-rose-200 transition-all">
-                            <i className="fas fa-times"></i>
+                            <FaIcon className="fas fa-times" />
                         </button>
                     </div>
                 </div>
@@ -168,7 +169,7 @@ const StatCard = ({ label, value, sub, icon, color, onClick, children }: { label
             <div className="flex justify-between items-start mb-1.5 md:mb-1.5 mb-1">
                 <Typography variant="label" className="text-slate-500 leading-tight !text-[10px] md:text-xs">{label}</Typography>
                 <div className={`w-6 h-6 md:w-7 md:h-7 rounded-lg flex items-center justify-center text-[10px] md:text-xs shadow-sm ${color} group-hover:scale-110 transition-transform shrink-0`}>
-                    <i className={`fas ${icon}`}></i>
+                    <FaIcon className={`fas ${icon}`} />
                 </div>
             </div>
 
@@ -308,7 +309,7 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
             <div className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-[#F8FAFC] border-b border-slate-200 sticky top-0 z-30 shrink-0">
                 <div className="flex justify-between items-center gap-2 md:gap-4">
                     <div className="relative group flex-1 max-w-sm">
-                        <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <FaIcon className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs" />
                         <input
                             type="text" placeholder={t('sd_quick_search')} value={searchText}
                             onChange={(e) => setSearchText(e.target.value)}
@@ -322,7 +323,7 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
                             className="w-full pl-9 pr-4 py-2 md:py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-bold focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all border-none shadow-inner"
                         />
                     </div>
-                    <button onClick={onClose} className="w-8 h-8 md:w-10 md:h-10 shrink-0 flex items-center justify-center rounded-full bg-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors shadow-sm"><i className="fas fa-times text-base md:text-lg"></i></button>
+                    <button onClick={onClose} className="w-8 h-8 md:w-10 md:h-10 shrink-0 flex items-center justify-center rounded-full bg-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors shadow-sm"><FaIcon className="fas fa-times text-base md:text-lg" /></button>
                 </div>
 
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 md:gap-4">
@@ -344,7 +345,7 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
                                         }`}
                                         title={w.message}
                                     >
-                                        <i className={`fas ${w.type === 'Critical' ? 'fa-fire' : w.type === 'Warning' ? 'fa-triangle-exclamation' : 'fa-info-circle'} text-[10px]`}></i>
+                                        <FaIcon className={`fas ${w.type === 'Critical' ? 'fa-fire' : w.type === 'Warning' ? 'fa-triangle-exclamation' : 'fa-info-circle'} text-[10px]`} />
                                         <Typography variant="label" className="font-black uppercase tracking-widest !text-[9px]">{w.code}</Typography>
                                     </div>
                                 ))}
@@ -363,7 +364,7 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
                                     <div className="flex justify-between items-start mb-1 md:mb-1.5">
                                         <Typography variant="label" className="text-slate-500 leading-tight !text-[10px] md:text-xs">BOOKING / BO</Typography>
                                         <div className={`w-6 h-6 md:w-7 md:h-7 rounded-lg flex items-center justify-center text-[10px] md:text-xs shadow-sm ${item.Backorder > 0 ? "bg-blue-50 text-blue-600" : "bg-slate-50 text-slate-400"} group-hover:scale-110 transition-transform shrink-0`}>
-                                            <i className="fas fa-exclamation-circle"></i>
+                                            <FaIcon className="fas fa-exclamation-circle" />
                                         </div>
                                     </div>
                                     <div>
@@ -394,7 +395,7 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
                             <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-5 gap-3 md:gap-4">
                                 <div>
                                     <Typography variant="h3" className="text-slate-800 flex items-center gap-2">
-                                        <i className="fas fa-chart-line text-emerald-600"></i> {t('sd_chart_title')}
+                                        <FaIcon className="fas fa-chart-line text-emerald-600" /> {t('sd_chart_title')}
                                     </Typography>
                                     <Typography variant="label" className="text-slate-400 mt-0.5 block tracking-wider uppercase !text-[9px]">{t('sd_chart_sub')}</Typography>
                                 </div>
@@ -441,7 +442,7 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
                                 <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 shadow-sm transition-all hover:bg-white hover:shadow-md group">
                                     <div className="flex justify-between items-center mb-2">
                                         <Typography variant="label" className="text-slate-500 font-bold uppercase tracking-widest !text-[10px]">Độ biến thiên (CV)</Typography>
-                                        <i className={`fas fa-wave-square p-2 rounded-lg ${item.computed?.cv > 0.5 ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-500'}`}></i>
+                                        <FaIcon className={`fas fa-wave-square p-2 rounded-lg ${item.computed?.cv > 0.5 ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-500'}`} />
                                     </div>
                                     <Typography variant="h2" className={item.computed?.cv > 0.5 ? 'text-rose-600' : 'text-slate-800'}>
                                         {(item.computed?.cv || 0).toFixed(2)}
@@ -454,7 +455,7 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
                                 <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 shadow-sm transition-all hover:bg-white hover:shadow-md group">
                                     <div className="flex justify-between items-center mb-2">
                                         <Typography variant="label" className="text-slate-500 font-bold uppercase tracking-widest !text-[10px]">Hệ số góc (Slope)</Typography>
-                                        <i className={`fas ${item.computed?.slope < -1 ? 'fa-arrow-trend-down text-rose-500' : 'fa-arrow-trend-up text-emerald-500'} p-2 rounded-lg bg-slate-100`}></i>
+                                        <FaIcon className={`fas ${item.computed?.slope < -1 ? 'fa-arrow-trend-down text-rose-500' : 'fa-arrow-trend-up text-emerald-500'} p-2 rounded-lg bg-slate-100`} />
                                     </div>
                                     <Typography variant="h2" className={item.computed?.slope < -1 ? 'text-rose-600' : 'text-slate-800'}>
                                         {(item.computed?.slope || 0).toFixed(2)}
@@ -467,7 +468,7 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
                                 <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 shadow-sm transition-all hover:bg-white hover:shadow-md group">
                                     <div className="flex justify-between items-center mb-2">
                                         <Typography variant="label" className="text-slate-500 font-bold uppercase tracking-widest !text-[10px]">Dự báo LinReg</Typography>
-                                        <i className="fas fa-magic p-2 rounded-lg bg-indigo-50 text-indigo-500"></i>
+                                        <FaIcon className="fas fa-magic p-2 rounded-lg bg-indigo-50 text-indigo-500" />
                                     </div>
                                     <Typography variant="h2" className="text-indigo-600">
                                         {(item.computed?.forecastLinReg || 0).toFixed(1)}
@@ -483,7 +484,7 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
                         {hasSupersession && graph && (
                             <div className="bg-white rounded-3xl border-2 border-slate-100 shadow-sm p-6">
                                 <Typography variant="h3" className="text-slate-800 flex items-center gap-2 mb-4">
-                                    <i className="fas fa-link text-purple-600"></i> {t('sd_supersession')}
+                                    <FaIcon className="fas fa-link text-purple-600" /> {t('sd_supersession')}
                                 </Typography>
                                 <SupersessionChainViewer
                                     partNumber={item.ItemCode}
@@ -502,7 +503,7 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
                     <div className="lg:col-span-5 space-y-4 md:space-y-6">
                         <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-100 shadow-glass-sm p-4 md:p-6 overflow-hidden transition-all hover:shadow-glass">
                             <Typography variant="label" className="text-slate-400 uppercase tracking-widest mb-4 md:mb-5 flex items-center gap-2 font-bold">
-                                <i className="fas fa-warehouse text-blue-500"></i> {t('sd_supply_net')}
+                                <FaIcon className="fas fa-warehouse text-blue-500" /> {t('sd_supply_net')}
                             </Typography>
                             <div className="space-y-2">
                                 <WarehouseRow
@@ -532,13 +533,13 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
                                             <div className="mx-2 p-3 bg-blue-50/50 border border-blue-100 rounded-xl flex items-center justify-between group animate-in fade-in slide-in-from-top-2 border-dashed">
                                                 <div className="flex items-center gap-2">
                                                     <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-100 text-blue-600 shadow-sm group-hover:scale-110 transition-transform">
-                                                        <i className="fas fa-shuffle text-[10px]"></i>
+                                                        <FaIcon className="fas fa-shuffle text-[10px]" />
                                                     </span>
                                                     <span className="text-[10px] font-black text-blue-600 uppercase tracking-wider">{t('rebalance')}</span>
                                                 </div>
                                                 <div className="flex items-center gap-1.5">
                                                     <span className="text-[10px] font-black text-slate-500">{item.computed.transfer.transferNBtoBB > 0 ? 'NB' : 'BB'}</span>
-                                                    <i className="fas fa-long-arrow-alt-right text-blue-400"></i>
+                                                    <FaIcon className="fas fa-long-arrow-alt-right text-blue-400" />
                                                     <span className="text-[10px] font-black text-slate-900">{item.computed.transfer.transferNBtoBB > 0 ? 'BB' : 'NB'}</span>
                                                     <span className="ml-2 px-2 py-0.5 rounded-md bg-blue-600 text-white text-[11px] font-black shadow-sm">
                                                         {(item.computed.transfer.transferNBtoBB || item.computed.transfer.transferBBtoNB).toLocaleString()}
@@ -551,7 +552,7 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
                                             <div className="mx-2 p-3 bg-indigo-50/50 border border-indigo-100 rounded-xl flex items-center justify-between group animate-in fade-in slide-in-from-top-2 border-dashed">
                                                 <div className="flex items-center gap-2">
                                                     <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 shadow-sm group-hover:scale-110 transition-transform">
-                                                        <i className="fas fa-cart-plus text-[10px]"></i>
+                                                        <FaIcon className="fas fa-cart-plus text-[10px]" />
                                                     </span>
                                                     <span className="text-[10px] font-black text-indigo-600 uppercase tracking-wider">{t('allocation')}</span>
                                                 </div>
@@ -559,7 +560,7 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
                                                     {item.computed.transfer.suggestedOrderNB > 0 && (
                                                         <div className="flex items-center gap-1.5">
                                                             <span className="text-[10px] font-black text-slate-500">SEA</span>
-                                                            <i className="fas fa-long-arrow-alt-right text-indigo-400"></i>
+                                                            <FaIcon className="fas fa-long-arrow-alt-right text-indigo-400" />
                                                             <span className="text-[10px] font-black text-slate-900">NB</span>
                                                             <span className="ml-1 px-1.5 py-0.5 rounded bg-indigo-600 text-white text-[10px] font-black">
                                                                 {item.computed.transfer.suggestedOrderNB.toLocaleString()}
@@ -569,7 +570,7 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
                                                     {item.computed.transfer.suggestedOrderBB > 0 && (
                                                         <div className="flex items-center gap-1.5">
                                                             <span className="text-[10px] font-black text-slate-500">SEA</span>
-                                                            <i className="fas fa-long-arrow-alt-right text-indigo-400"></i>
+                                                            <FaIcon className="fas fa-long-arrow-alt-right text-indigo-400" />
                                                             <span className="text-[10px] font-black text-slate-900">BB</span>
                                                             <span className="ml-1 px-1.5 py-0.5 rounded bg-indigo-600 text-white text-[10px] font-black">
                                                                 {item.computed.transfer.suggestedOrderBB.toLocaleString()}
@@ -595,7 +596,7 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
                         <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-100 shadow-glass-sm p-4 md:p-6 max-h-80 flex flex-col transition-all hover:shadow-glass">
                             <div className="flex items-center justify-between mb-4 md:mb-5">
                                 <Typography variant="label" className="text-slate-400 uppercase tracking-widest flex items-center gap-2 font-bold">
-                                    <i className="fas fa-shipping-fast text-blue-500"></i> {t('sd_pipeline')}
+                                    <FaIcon className="fas fa-shipping-fast text-blue-500" /> {t('sd_pipeline')}
                                 </Typography>
                                 <div className="flex gap-2">
                                     {item.TotalPO_NB !== undefined && <Typography variant="mono-sm" className="bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-lg border border-emerald-100 font-bold">NB: {item.TotalPO_NB.toLocaleString()}</Typography>}
@@ -624,7 +625,7 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
                         <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-100 shadow-glass-sm p-4 md:p-6 overflow-hidden transition-all hover:shadow-glass">
                             <div className="flex items-center justify-between mb-4 md:mb-5">
                                 <Typography variant="label" className="text-slate-400 uppercase tracking-widest flex items-center gap-2 font-bold">
-                                    <i className="fas fa-boxes-packing text-indigo-500"></i> CẤU THÀNH GÓI
+                                    <FaIcon className="fas fa-boxes-packing text-indigo-500" /> CẤU THÀNH GÓI
                                 </Typography>
                                 <Typography variant="mono-sm" className="bg-indigo-50 text-indigo-600 px-2.5 py-0.5 rounded-lg border border-indigo-100 font-bold">{relatedPackages.length} Gói</Typography>
                             </div>

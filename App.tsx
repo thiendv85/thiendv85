@@ -19,6 +19,7 @@ import { cacheUploadedData, getCachedUploadedData, clearCachedUploadedData, cach
 import { loadAppSettings, saveAppSettings, type AppSettings } from './utils/appSettings';
 import { UpdateLog } from './pages/UpdateLog';
 
+import { FaIcon } from './components/Icon';
 // Heavy pages — lazy loaded for code splitting
 const Dashboard = React.lazy(() => import('./pages/Dashboard').then((m) => ({ default: m.Dashboard })));
 const Ordering = React.lazy(() => import('./pages/Ordering').then((m) => ({ default: m.Ordering })));
@@ -60,7 +61,7 @@ type View =
 
 const AuthSpinner = () => (
   <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-    <i className="fas fa-circle-notch fa-spin text-blue-400 text-3xl" />
+    <FaIcon className="fas fa-circle-notch fa-spin text-blue-400 text-3xl"  />
   </div>
 );
 

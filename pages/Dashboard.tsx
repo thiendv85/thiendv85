@@ -15,6 +15,7 @@ import { DemandIntelligence } from './DemandIntelligence';
 import { SupersessionManagement } from './SupersessionManagement';
 import { useDevice } from '../hooks/useDevice';
 
+import { FaIcon } from '../components/Icon';
 const DEFAULT_LOIS_PROFILES: LoisProfile[] = [];
 const formatPct = (val: number) => `${(val || 0).toFixed(1)}%`;
 
@@ -154,7 +155,7 @@ const LoisRow = React.memo(({
                 </Typography>
                 {targetMOS && (
                     <Typography variant="label" className="text-slate-400 font-bold leading-none mt-0.5 whitespace-nowrap block !text-[9px]">
-                        <i className="fas fa-bullseye mr-0.5 opacity-70"></i>{targetMOS}M
+                        <FaIcon className="fas fa-bullseye mr-0.5 opacity-70" />{targetMOS}M
                     </Typography>
                 )}
             </td>
@@ -189,7 +190,7 @@ const LoisRow = React.memo(({
                 </div>
                 {targetExcess && (
                     <div className="text-3xs text-slate-600 font-bold leading-none mt-0.5 whitespace-nowrap">
-                        <i className="fas fa-bullseye mr-0.5 opacity-80"></i>≤{targetExcess}%
+                        <FaIcon className="fas fa-bullseye mr-0.5 opacity-80" />≤{targetExcess}%
                     </div>
                 )}
             </td>
@@ -732,7 +733,7 @@ export const Dashboard = ({ data, enrichedData, isEngineProcessing, onItemSelect
                 <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between px-6 py-4 gap-4">
                     <div className="flex items-center gap-3 w-full sm:w-auto">
                         <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center border border-white/20 shrink-0">
-                            <i className="fas fa-chart-simple text-blue-400"></i>
+                            <FaIcon className="fas fa-chart-simple text-blue-400" />
                         </div>
                         <div className="overflow-hidden">
                             <Typography variant="h2" className="tracking-tight uppercase text-white !text-xl workbench-title leading-none truncate">{t('nav_dashboard')}</Typography>
@@ -746,12 +747,12 @@ export const Dashboard = ({ data, enrichedData, isEngineProcessing, onItemSelect
                             <span className="text-sm font-black text-white">{grandStats.totalSKUs.toLocaleString()}</span>
                         </div>
                         <div className="flex items-center gap-1.5 bg-rose-500/15 border border-rose-400/20 px-3 py-2 rounded-xl">
-                            <i className="fas fa-circle-xmark text-rose-400 text-[10px]"></i>
+                            <FaIcon className="fas fa-circle-xmark text-rose-400 text-[10px]" />
                             <span className="text-[10px] font-black text-rose-300 uppercase tracking-widest">OOS</span>
                             <span className="text-sm font-black text-rose-300">{grandStats.grandNoStock}</span>
                         </div>
                         <div className="flex items-center gap-1.5 bg-amber-500/15 border border-amber-400/20 px-3 py-2 rounded-xl">
-                            <i className="fas fa-triangle-exclamation text-amber-400 text-[10px]"></i>
+                            <FaIcon className="fas fa-triangle-exclamation text-amber-400 text-[10px]" />
                             <span className="text-[10px] font-black text-amber-300 uppercase tracking-widest">Risk</span>
                             <span className="text-sm font-black text-amber-300">{grandStats.grandShort}</span>
                         </div>
@@ -774,7 +775,7 @@ export const Dashboard = ({ data, enrichedData, isEngineProcessing, onItemSelect
                                     : 'text-white/40 hover:text-white/70 hover:bg-white/5 border border-transparent'
                                 }`}
                         >
-                            <i className={`fas ${tab.icon} text-[10px] ${subTab === tab.id ? 'text-blue-300' : ''}`}></i>
+                            <FaIcon className={`fas ${tab.icon} text-[10px] ${subTab === tab.id ? 'text-blue-300' : ''}`} />
                             {tab.label}
                         </button>
                     ))}
@@ -816,7 +817,7 @@ export const Dashboard = ({ data, enrichedData, isEngineProcessing, onItemSelect
                 {/* Compact alert — inline above KPI */}
                 {criticalStockouts > 0 && (
                     <div className="flex items-center gap-3 bg-rose-50 border border-rose-200 px-4 py-2.5 rounded-xl animate-fadeIn">
-                        <i className="fas fa-triangle-exclamation text-rose-500 text-sm shrink-0"></i>
+                        <FaIcon className="fas fa-triangle-exclamation text-rose-500 text-sm shrink-0" />
                         <span className="text-sm font-bold text-rose-800 flex-1">
                             <span className="font-black">{criticalStockouts}</span> mã stockout ưu tiên cao cần xử lý ngay
                         </span>
@@ -827,7 +828,7 @@ export const Dashboard = ({ data, enrichedData, isEngineProcessing, onItemSelect
                             }}
                             className="shrink-0 bg-rose-600 text-white px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wide hover:bg-rose-700 transition-colors flex items-center gap-1.5"
                         >
-                            <i className="fas fa-arrow-right text-[10px]"></i> Xem ngay
+                            <FaIcon className="fas fa-arrow-right text-[10px]" /> Xem ngay
                         </button>
                     </div>
                 )}
@@ -851,7 +852,7 @@ export const Dashboard = ({ data, enrichedData, isEngineProcessing, onItemSelect
                 {showSimulation && (
                     <div className="bg-gradient-to-r from-blue-50 to-white border-b border-blue-100 px-6 py-4 flex items-center justify-between no-print animate-fadeIn">
                         <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-blue flex items-center justify-center text-white shadow-lg shadow-blue-500/20"><i className="fas fa-microchip-ai"></i></div>
+                            <div className="w-10 h-10 rounded-xl bg-gradient-blue flex items-center justify-center text-white shadow-lg shadow-blue-500/20"><FaIcon className="fas fa-microchip-ai" /></div>
                             <div>
                                 <Typography variant="h3" className="text-blue-900 font-bold">Simulation Active</Typography>
                                 <Typography variant="label" className="text-blue-600 block">Including Draft + PO</Typography>
@@ -872,14 +873,14 @@ export const Dashboard = ({ data, enrichedData, isEngineProcessing, onItemSelect
 
                 <div className="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white sticky top-0 z-30">
                     <Typography variant="h2" className="text-slate-900 uppercase tracking-tight flex items-center gap-3">
-                        <i className="fas fa-grid-horizontal text-blue-600"></i> {t('matrix_title')}
+                        <FaIcon className="fas fa-grid-horizontal text-blue-600" /> {t('matrix_title')}
                     </Typography>
                     <div className="flex items-center justify-between w-full sm:w-auto gap-4">
                         <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner">
                             <button onClick={() => setShowSimulation(false)} className={`px-4 py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase transition-all whitespace-nowrap ${!showSimulation ? 'bg-white text-slate-900 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>{t('current')}</button>
                             <button onClick={() => setShowSimulation(true)} className={`px-4 py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase transition-all whitespace-nowrap ${showSimulation ? 'bg-gradient-blue text-white shadow-glow-blue' : 'text-slate-500 hover:text-slate-700'}`}>Simulated</button>
                         </div>
-                        <button onClick={handlePrint} className="bg-white border border-slate-200 text-slate-600 px-3 py-2 rounded-xl hover:bg-slate-50 transition-all hover:text-blue-600 shrink-0"><i className="fas fa-print"></i></button>
+                        <button onClick={handlePrint} className="bg-white border border-slate-200 text-slate-600 px-3 py-2 rounded-xl hover:bg-slate-50 transition-all hover:text-blue-600 shrink-0"><FaIcon className="fas fa-print" /></button>
                     </div>
                 </div>
 

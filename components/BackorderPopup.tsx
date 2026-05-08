@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { BackorderDetail } from '../types/inventory';
 import { Typography } from './Typography';
 
+import { FaIcon } from './Icon';
 interface BackorderPopupProps {
     items: BackorderDetail[];
     children?: React.ReactNode;
@@ -142,7 +143,7 @@ export const BackorderPopup = ({ items, children }: BackorderPopupProps) => {
                         {/* Header Popup */}
                         <div className="bg-gradient-blue px-5 py-3 flex justify-between items-center shadow-lg">
                             <Typography variant="label" className="text-white flex items-center gap-2">
-                                <i className="fas fa-list-check"></i> Phân loại chi tiết Booking
+                                <FaIcon className="fas fa-list-check" /> Phân loại chi tiết Booking
                             </Typography>
                             <Typography variant="label" className="bg-white/20 backdrop-blur-md text-white px-2 py-1 rounded-lg border border-white/20">
                                 {items?.length || 0} ĐƠN HÀNG
@@ -175,7 +176,7 @@ export const BackorderPopup = ({ items, children }: BackorderPopupProps) => {
                                                         <tr className={`${group.color} border-y border-white/50 sticky top-[29px] z-10 shadow-sm`}>
                                                             <td colSpan={4} className="px-4 py-1.5 flex items-center gap-2">
                                                                 <Typography variant="label" className="!font-bold flex items-center gap-2">
-                                                                    <i className={`fas ${group.icon} opacity-70`}></i> {group.label}
+                                                                    <FaIcon className={`fas ${group.icon} opacity-70`} /> {group.label}
                                                                 </Typography>
                                                                 <Typography variant="label" className="ml-auto opacity-70">
                                                                     ({groupItems.length} đơn - {groupTotalQty.toLocaleString()} units)
@@ -243,7 +244,7 @@ export const BackorderPopup = ({ items, children }: BackorderPopupProps) => {
                         ) : (
                             <div className="p-10 text-center bg-slate-50/50">
                                 <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center mx-auto mb-4 text-slate-200">
-                                    <i className="fas fa-folder-open text-2xl"></i>
+                                    <FaIcon className="fas fa-folder-open text-2xl" />
                                 </div>
                                 <Typography variant="label" className="text-slate-500 mb-1">Dữ liệu trống</Typography>
                                 <Typography variant="body-sm" className="text-slate-400 max-w-[200px] mx-auto">Vui lòng kiểm tra lại file Backorder đã tải lên.</Typography>

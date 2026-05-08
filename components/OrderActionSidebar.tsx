@@ -3,6 +3,7 @@ import { ApprovalAction } from '../types/inventory';
 import { SnapshotMatrix } from './SnapshotMatrix';
 import { useLanguage } from '../utils/i18n';
 
+import { FaIcon } from './Icon';
 interface Props {
     sidebarTab: 'info' | 'history' | 'matrix';
     setSidebarTab: (tab: 'info' | 'history' | 'matrix') => void;
@@ -58,7 +59,7 @@ export const OrderActionSidebar: React.FC<Props> = ({
                             onClick={() => setSidebarTab(tab.id as any)}
                             className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${sidebarTab === tab.id ? 'bg-white text-blue-600 shadow-sm border border-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
                         >
-                            <i className={`fas ${tab.icon}`} /> {tab.label}
+                            <FaIcon className={`fas ${tab.icon}`}  /> {tab.label}
                             {tab.count !== undefined && tab.count > 0 && <span className="text-[10px] bg-slate-200 px-1.5 py-0.5 rounded-full text-slate-500">{tab.count}</span>}
                         </button>
                     ))}
@@ -79,7 +80,7 @@ export const OrderActionSidebar: React.FC<Props> = ({
                             />
                             {hasChanges && (
                                 <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-200 px-3 py-1.5 rounded-xl animate-pulse">
-                                    <i className="fas fa-pen-nib text-amber-600 text-xs" />
+                                    <FaIcon className="fas fa-pen-nib text-amber-600 text-xs"  />
                                     <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Adjustment Mode</span>
                                 </div>
                             )}
@@ -89,7 +90,7 @@ export const OrderActionSidebar: React.FC<Props> = ({
                                     disabled={isSubmitting || selectedItems.size === 0}
                                     className="bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] disabled:opacity-50 text-white font-black px-6 py-2 rounded-xl text-xs uppercase tracking-widest flex items-center gap-2 transition-all shadow-xl shadow-emerald-200/50"
                                 >
-                                    {submittingAction === 'approved' ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-check-double" />}
+                                    {submittingAction === 'approved' ? <FaIcon className="fas fa-spinner fa-spin"  /> : <FaIcon className="fas fa-check-double"  />}
                                     {t('common_approve_order')}
                                 </button>
                                 <button
@@ -97,7 +98,7 @@ export const OrderActionSidebar: React.FC<Props> = ({
                                     disabled={isSubmitting}
                                     className="border-2 border-indigo-200 text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100/50 active:scale-[0.98] disabled:opacity-50 font-black px-5 py-2 rounded-xl text-xs uppercase tracking-widest flex items-center gap-2 transition-all"
                                 >
-                                    {submittingAction === 'returned' ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-rotate-left" />}
+                                    {submittingAction === 'returned' ? <FaIcon className="fas fa-spinner fa-spin"  /> : <FaIcon className="fas fa-rotate-left"  />}
                                     {t('common_return_order')}
                                 </button>
                             </div>
@@ -106,7 +107,7 @@ export const OrderActionSidebar: React.FC<Props> = ({
 
                     <div className="flex gap-1.5">
                         <button onClick={handlePrintOrder} className="text-blue-600 font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-blue-50 px-4 py-2 rounded-xl transition-all">
-                            <i className="fas fa-print" /> {t('common_print_slip')}
+                            <FaIcon className="fas fa-print"  /> {t('common_print_slip')}
                         </button>
                         {canAct && (
                             <button onClick={() => handleAction('rejected')} className="text-slate-400 hover:text-rose-500 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all hover:bg-rose-50/50">
@@ -154,13 +155,13 @@ export const OrderActionSidebar: React.FC<Props> = ({
 
                         <div className="ml-auto flex items-center gap-6">
                             <div className="flex items-center gap-2 text-xs font-bold text-slate-400 italic">
-                                <i className="fas fa-circle-check text-blue-500" />
+                                <FaIcon className="fas fa-circle-check text-blue-500"  />
                                 Đã chọn {selectedItems.size}/{rows.length} SKU
                             </div>
                             {hasChanges && (
                                 <button onClick={onReset}
                                     className="text-[10px] text-amber-600 hover:text-amber-700 font-black bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200/50 flex items-center gap-1.5 transition-colors">
-                                    <i className="fas fa-arrow-rotate-left" /> {t('common_reset_changes')}
+                                    <FaIcon className="fas fa-arrow-rotate-left"  /> {t('common_reset_changes')}
                                 </button>
                             )}
                         </div>
@@ -186,7 +187,7 @@ export const OrderActionSidebar: React.FC<Props> = ({
                                             return (
                                                 <div key={a.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm relative pl-10 overflow-hidden">
                                                     <div className={`absolute left-0 top-0 bottom-0 w-8 flex items-center justify-center ${s.cls.replace('text-', 'bg-')}/10 border-r border-slate-100`}>
-                                                        <i className={`fas ${s.icon} ${s.cls} text-sm`} />
+                                                        <FaIcon className={`fas ${s.icon} ${s.cls} text-sm`}  />
                                                     </div>
                                                     <div className="flex justify-between items-start mb-1">
                                                         <span className={`text-xs font-black uppercase ${s.cls}`}>{actionLabels[a.action] || a.action}</span>

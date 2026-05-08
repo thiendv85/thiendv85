@@ -3,6 +3,7 @@ import React from 'react';
 import { useLanguage } from '../utils/i18n';
 import { Typography } from '../components/Typography';
 
+import { FaIcon } from '../components/Icon';
 export const UpdateLog = () => {
     const { t } = useLanguage();
 
@@ -95,13 +96,13 @@ export const UpdateLog = () => {
                     className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-bold shadow-lg hover:shadow-blue-500/30 hover:scale-105 transition-all group"
                 >
                     <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                        <i className="fas fa-book-open text-white" />
+                        <FaIcon className="fas fa-book-open text-white"  />
                     </div>
                     <div className="text-left">
                         <div className="text-xs opacity-80 uppercase font-black tracking-widest">Documentation</div>
                         <div className="text-lg">{t('version_external_wiki')}</div>
                     </div>
-                    <i className="fas fa-chevron-right ml-4 group-hover:translate-x-1 transition-transform" />
+                    <FaIcon className="fas fa-chevron-right ml-4 group-hover:translate-x-1 transition-transform"  />
                 </a>
             </div>
 
@@ -111,7 +112,7 @@ export const UpdateLog = () => {
                     <div key={idx} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
                         {/* Icon */}
                         <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white bg-slate-100 group-[.is-active]:bg-blue-600 text-slate-500 group-[.is-active]:text-white shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 transition-colors">
-                            <i className="fas fa-code-branch text-sm" />
+                            <FaIcon className="fas fa-code-branch text-sm"  />
                         </div>
                         {/* Content */}
                         <div className="w-[calc(100%-4rem)] md:w-[45%] bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
@@ -123,7 +124,7 @@ export const UpdateLog = () => {
                             <ul className="space-y-2">
                                 {upd.items.map((item, i) => (
                                     <li key={i} className="flex items-start gap-3 text-sm text-slate-600">
-                                        <i className="fas fa-check-circle text-blue-500 mt-1 shrink-0" />
+                                        <FaIcon className="fas fa-check-circle text-blue-500 mt-1 shrink-0"  />
                                         <span>{item}</span>
                                     </li>
                                 ))}

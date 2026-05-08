@@ -7,6 +7,7 @@ import { uploadSnapshot, listSnapshots, loadSnapshot, deleteSnapshot, getStorage
 import { useAuth } from '../utils/authContext';
 
 
+import { FaIcon } from '../components/Icon';
 export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataDate, sourceProfiles, activeSourceId }: {
     onData: (data: InventoryItem[], filename: string, sourceId: string) => void;
     monthlyData?: Record<string, MonthlyData> | null;
@@ -230,9 +231,9 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                         ? 'bg-emerald-500/20 border-emerald-400/40 text-emerald-300'
                         : 'bg-amber-500/20 border-amber-400/40 text-amber-300'
                 }`}>
-                    <i className={`fas ${uploadStatus.type === 'success' ? 'fa-cloud-arrow-up' : 'fa-triangle-exclamation'}`} />
+                    <FaIcon className={`fas ${uploadStatus.type === 'success' ? 'fa-cloud-arrow-up' : 'fa-triangle-exclamation'}`}  />
                     <span>{uploadStatus.msg}</span>
-                    <button onClick={() => setUploadStatus(null)} className="ml-2 opacity-60 hover:opacity-100"><i className="fas fa-times" /></button>
+                    <button onClick={() => setUploadStatus(null)} className="ml-2 opacity-60 hover:opacity-100"><FaIcon className="fas fa-times"  /></button>
                 </div>
             )}
 
@@ -268,21 +269,21 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
 
                     <div className="flex flex-wrap items-center gap-6 pt-6 border-t border-white/5">
                         <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-xl border border-white/5 backdrop-blur-sm">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-blue flex items-center justify-center text-white shadow-lg shadow-blue-500/20"><i className="fas fa-chart-pie"></i></div>
+                            <div className="w-8 h-8 rounded-lg bg-gradient-blue flex items-center justify-center text-white shadow-lg shadow-blue-500/20"><FaIcon className="fas fa-chart-pie" /></div>
                             <div className="flex flex-col">
                                 <span className="text-xs font-bold text-white">Real-time</span>
                                 <span className="text-2xs text-slate-400 font-bold uppercase tracking-wider">Analytics</span>
                             </div>
                         </div>
                         <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-xl border border-white/5 backdrop-blur-sm">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-emerald flex items-center justify-center text-white shadow-lg shadow-emerald-500/20"><i className="fas fa-robot"></i></div>
+                            <div className="w-8 h-8 rounded-lg bg-gradient-emerald flex items-center justify-center text-white shadow-lg shadow-emerald-500/20"><FaIcon className="fas fa-robot" /></div>
                             <div className="flex flex-col">
                                 <span className="text-xs font-bold text-white">AI Driven</span>
                                 <span className="text-2xs text-slate-400 font-bold uppercase tracking-wider">Forecast</span>
                             </div>
                         </div>
                         <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-xl border border-white/5 backdrop-blur-sm">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-rose flex items-center justify-center text-white shadow-lg shadow-rose-500/20"><i className="fas fa-shield-halved"></i></div>
+                            <div className="w-8 h-8 rounded-lg bg-gradient-rose flex items-center justify-center text-white shadow-lg shadow-rose-500/20"><FaIcon className="fas fa-shield-halved" /></div>
                             <div className="flex flex-col">
                                 <span className="text-xs font-bold text-white">Risk Control</span>
                                 <span className="text-2xs text-slate-400 font-bold uppercase tracking-wider">Governance</span>
@@ -313,17 +314,17 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                 {mode === 'upload' && (
                                     isMonthlyLoading ? (
                                         <div className="flex items-center gap-1.5 bg-blue-500/20 border border-blue-400/40 text-blue-300 px-2.5 py-1 rounded-lg text-xs font-bold animate-pulse">
-                                            <i className="fas fa-sync fa-spin" />
+                                            <FaIcon className="fas fa-sync fa-spin"  />
                                             <span>Đang đồng bộ...</span>
                                         </div>
                                     ) : monthlyData ? (
                                         <div className="flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 px-2.5 py-1 rounded-lg text-xs font-bold">
-                                            <i className="fas fa-calendar-check" />
+                                            <FaIcon className="fas fa-calendar-check"  />
                                             <span>Dữ liệu Tháng: {monthlyDataDate ? monthlyDataDate.split('-').reverse().join('/') : 'OK'}</span>
                                         </div>
                                     ) : (
                                         <div title="Vào Settings → Hệ thống → Upload File Monthly để kích hoạt" className="flex items-center gap-1.5 bg-amber-500/20 border border-amber-400/40 text-amber-300 px-2.5 py-1 rounded-lg text-xs font-bold cursor-help">
-                                            <i className="fas fa-triangle-exclamation" />
+                                            <FaIcon className="fas fa-triangle-exclamation"  />
                                             <span>Chưa có d/l tháng</span>
                                         </div>
                                     )
@@ -340,7 +341,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                             : 'text-slate-400 hover:text-slate-200'
                                     }`}
                                 >
-                                    <i className="fas fa-upload" />
+                                    <FaIcon className="fas fa-upload"  />
                                     Tải File
                                 </button>
                                 <button
@@ -351,7 +352,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                             : 'text-slate-400 hover:text-slate-200'
                                     }`}
                                 >
-                                    <i className="fas fa-cloud" />
+                                    <FaIcon className="fas fa-cloud"  />
                                     Cloud (Lịch sử)
                                 </button>
                             </div>
@@ -380,7 +381,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                     >
                                         <div className="flex-1 flex items-center gap-5 relative z-10">
                                             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-all shadow-lg ${mainFile ? 'bg-gradient-emerald text-white' : isMonthlyLoading ? 'bg-blue-900/40 text-blue-400' : 'bg-white/10 border border-white/10 text-slate-400 group-hover:bg-gradient-blue group-hover:text-white'}`}>
-                                                <i className={`fas ${isMonthlyLoading ? 'fa-sync fa-spin text-xl' : mainFile ? 'fa-check text-2xl' : 'fa-cloud-arrow-up text-2xl'}`}></i>
+                                                <FaIcon className={`fas ${isMonthlyLoading ? 'fa-sync fa-spin text-xl' : mainFile ? 'fa-check text-2xl' : 'fa-cloud-arrow-up text-2xl'}`} />
                                             </div>
                                             <div className="flex flex-col">
                                                 <span className={`text-2xs font-black uppercase tracking-widest mb-1 ${isMonthlyLoading ? 'text-blue-400' : mainFile ? 'text-emerald-400' : 'text-blue-300'}`}>
@@ -410,7 +411,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                       `}
                                         >
                                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-3 transition-all ${dealerFile ? 'bg-blue-500 text-white shadow-lg' : 'bg-white/5 text-slate-400 group-hover:bg-white/10 group-hover:text-white'}`}>
-                                                <i className="fas fa-store"></i>
+                                                <FaIcon className="fas fa-store" />
                                             </div>
                                             <div className="flex flex-col overflow-hidden">
                                                 <span className="text-2xs font-black text-slate-500 uppercase tracking-widest">Tồn Đại Lý</span>
@@ -433,7 +434,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                       `}
                                         >
                                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-3 transition-all ${boFile ? 'bg-rose-500 text-white shadow-lg' : 'bg-white/5 text-slate-400 group-hover:bg-white/10 group-hover:text-white'}`}>
-                                                <i className="fas fa-file-invoice"></i>
+                                                <FaIcon className="fas fa-file-invoice" />
                                             </div>
                                             <div className="flex flex-col overflow-hidden">
                                                 <span className="text-2xs font-black text-slate-500 uppercase tracking-widest">Đơn Nợ (BO)</span>
@@ -464,7 +465,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                                 ))}
                                             </select>
                                             <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 group-hover/select:text-blue-400 transition-colors">
-                                                <i className="fas fa-chevron-down text-xs"></i>
+                                                <FaIcon className="fas fa-chevron-down text-xs" />
                                             </div>
                                         </div>
                                     </div>
@@ -483,15 +484,15 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                         >
                                             {isLoading || isMonthlyLoading ? (
                                                 <>
-                                                    <i className="fas fa-circle-notch animate-spin"></i>
+                                                    <FaIcon className="fas fa-circle-notch animate-spin" />
                                                     <span>{isMonthlyLoading ? 'Syncing Monthly...' : 'Processing...'}</span>
                                                 </>
                                             ) : (
                                                 <>
                                                     {(profile?.role !== 'admin' && profile?.role !== 'planner' && profile?.role !== 'approver') && (
-                                                        <i className="fas fa-lock text-[10px] opacity-70" title="Bạn không có quyền lưu Cloud. Vui lòng chọn bản Chỉ xem bên dưới." />
+                                                        <FaIcon className="fas fa-lock text-[10px] opacity-70" title="Bạn không có quyền lưu Cloud. Vui lòng chọn bản Chỉ xem bên dưới."  />
                                                     )}
-                                                    <i className={`fas ${isLoading ? 'fa-circle-notch fa-spin' : 'fa-cloud-upload-alt'} group-hover:scale-110 transition-transform`}></i>
+                                                    <FaIcon className={`fas ${isLoading ? 'fa-circle-notch fa-spin' : 'fa-cloud-upload-alt'} group-hover:scale-110 transition-transform`} />
                                                     <span className="font-bold tracking-widest text-xs uppercase">LƯU & PHÂN TÍCH</span>
                                                 </>
                                             )}
@@ -528,7 +529,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                             disabled={isLoadingHistory}
                                             className="text-xs text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1.5 transition-colors"
                                         >
-                                            <i className={`fas fa-sync ${isLoadingHistory ? 'fa-spin' : ''}`} />
+                                            <FaIcon className={`fas fa-sync ${isLoadingHistory ? 'fa-spin' : ''}`}  />
                                             Làm mới
                                         </button>
                                     </div>
@@ -537,12 +538,12 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                     <div className="max-h-[300px] overflow-y-auto space-y-1.5 pr-1 scrollbar-thin scrollbar-thumb-white/10">
                                         {isLoadingHistory ? (
                                             <div className="flex items-center justify-center py-12 text-slate-400">
-                                                <i className="fas fa-circle-notch fa-spin text-2xl" />
+                                                <FaIcon className="fas fa-circle-notch fa-spin text-2xl"  />
                                             </div>
                                         ) : snapshots.length === 0 ? (
                                             <div className="text-center py-12">
                                                 <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
-                                                    <i className="fas fa-cloud text-slate-500 text-2xl"></i>
+                                                    <FaIcon className="fas fa-cloud text-slate-500 text-2xl" />
                                                 </div>
                                                 <p className="text-slate-400 text-sm font-bold">Chưa có bản sao lưu nào</p>
                                                 <p className="text-slate-500 text-xs mt-1">Tải file CSV và bấm "Lưu & Phân Tích" để tạo bản sao đầu tiên</p>
@@ -578,8 +579,8 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                                     className="px-2.5 py-1 rounded-md bg-blue-500/20 border border-blue-400/30 text-blue-300 text-2xs font-black hover:bg-blue-500/30 transition-all disabled:opacity-50 shrink-0"
                                                 >
                                                     {loadingSnapshotId === snap.id
-                                                        ? <i className="fas fa-circle-notch fa-spin" />
-                                                        : <i className="fas fa-download" />
+                                                        ? <FaIcon className="fas fa-circle-notch fa-spin"  />
+                                                        : <FaIcon className="fas fa-download"  />
                                                     }
                                                 </button>
                                                 {/* Delete button */}
@@ -588,7 +589,7 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
                                                     className="p-1 rounded-md text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 transition-all opacity-0 group-hover/item:opacity-100 shrink-0"
                                                     title="Xóa"
                                                 >
-                                                    <i className="fas fa-times text-2xs" />
+                                                    <FaIcon className="fas fa-times text-2xs"  />
                                                 </button>
                                             </div>
                                         );

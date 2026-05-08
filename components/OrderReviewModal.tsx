@@ -24,6 +24,7 @@ import { ApprovalWorkflow } from '../types/inventory';
 
 
 
+import { FaIcon } from './Icon';
 interface Props {
     request: ApprovalRequest;
     actions: ApprovalAction[];
@@ -442,7 +443,7 @@ ${splitNotes.length > 0 ? `<div class="notes-section">
                 {/* Back */}
                 <button onClick={onClose}
                     className="relative p-1.5 rounded-lg hover:bg-white/10 transition-colors text-slate-300 hover:text-white shrink-0">
-                    <i className="fas fa-arrow-left text-sm" />
+                    <FaIcon className="fas fa-arrow-left text-sm"  />
                 </button>
 
                 <div className="relative flex flex-col shrink-0 min-w-0 max-w-[320px]">
@@ -451,7 +452,7 @@ ${splitNotes.length > 0 ? `<div class="notes-section">
                         <ApprovalStatusBadge status={request.status} size="sm" />
                         {hasChanges && (
                             <div className="flex items-center gap-1.5 bg-amber-500 text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg shadow-amber-500/20 animate-pulse uppercase tracking-wider">
-                                <i className="fas fa-pen-nib text-[8px]" /> Adjusting
+                                <FaIcon className="fas fa-pen-nib text-[8px]"  /> Adjusting
                             </div>
                         )}
                         {request.brand && (
@@ -467,13 +468,13 @@ ${splitNotes.length > 0 ? `<div class="notes-section">
                                 }}
                                 className="text-[9px] bg-amber-500/20 hover:bg-amber-500 text-amber-500 hover:text-white px-2 py-0.5 rounded font-black border border-amber-500/30 transition-colors uppercase tracking-wider"
                             >
-                                <i className="fas fa-ban mr-1" /> Hủy đơn
+                                <FaIcon className="fas fa-ban mr-1"  /> Hủy đơn
                             </button>
                         )}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5 opacity-80">
                         <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
-                            <i className="fas fa-user text-[8px]" /> {proposerName}
+                            <FaIcon className="fas fa-user text-[8px]"  /> {proposerName}
                         </span>
                         <div className="w-0.5 h-0.5 bg-slate-600 rounded-full opacity-30" />
                         <span className="text-[10px] text-slate-400 font-bold">
@@ -489,14 +490,14 @@ ${splitNotes.length > 0 ? `<div class="notes-section">
                 <div className="relative flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
                     {/* SKU */}
                     <div className="flex items-center gap-1.5 bg-white/8 border border-white/10 rounded-lg px-3 py-1.5 shrink-0">
-                        <i className="fas fa-boxes-stacked text-slate-400 text-[10px]" />
+                        <FaIcon className="fas fa-boxes-stacked text-slate-400 text-[10px]"  />
                         <span className="text-[11px] font-black text-white">{rows.length}</span>
                         <span className="text-[10px] text-slate-400">SKU</span>
                     </div>
                     {/* Air */}
                     {totals.air > 0 && (
                         <div className="flex items-center gap-1.5 bg-rose-500/15 border border-rose-400/25 rounded-lg px-3 py-1.5 shrink-0">
-                            <i className="fas fa-plane text-rose-400 text-[10px]" />
+                            <FaIcon className="fas fa-plane text-rose-400 text-[10px]"  />
                             <span className="text-[11px] font-black text-rose-300">{totals.air.toLocaleString()}</span>
                             <span className="text-[10px] text-rose-400/70">Air</span>
                         </div>
@@ -504,35 +505,35 @@ ${splitNotes.length > 0 ? `<div class="notes-section">
                     {/* Sea */}
                     {totals.sea > 0 && (
                         <div className="flex items-center gap-1.5 bg-blue-500/15 border border-blue-400/25 rounded-lg px-3 py-1.5 shrink-0">
-                            <i className="fas fa-ship text-blue-400 text-[10px]" />
+                            <FaIcon className="fas fa-ship text-blue-400 text-[10px]"  />
                             <span className="text-[11px] font-black text-blue-300">{totals.sea.toLocaleString()}</span>
                             <span className="text-[10px] text-blue-400/70">Sea</span>
                         </div>
                     )}
                     {/* Value */}
                     <div className="flex items-center gap-1.5 bg-emerald-500/15 border border-emerald-400/25 rounded-lg px-3 py-1.5 shrink-0">
-                        <i className="fas fa-circle-dollar-to-slot text-emerald-400 text-[10px]" />
+                        <FaIcon className="fas fa-circle-dollar-to-slot text-emerald-400 text-[10px]"  />
                         <span className="text-[11px] font-black text-emerald-300">{(totals.value / 1e6).toFixed(1)}M</span>
                         <span className="text-[10px] text-emerald-400/70">VNĐ</span>
                     </div>
                     {/* OOS warning */}
                     {totals.oos > 0 && (
                         <div className="flex items-center gap-1.5 bg-rose-600/20 border border-rose-500/30 rounded-lg px-3 py-1.5 shrink-0">
-                            <i className="fas fa-circle-exclamation text-rose-400 text-[10px]" />
+                            <FaIcon className="fas fa-circle-exclamation text-rose-400 text-[10px]"  />
                             <span className="text-[11px] font-black text-rose-300">OOS: {totals.oos}</span>
                         </div>
                     )}
                     {/* Risk warning */}
                     {totals.risk > 0 && (
                         <div className="flex items-center gap-1.5 bg-amber-500/15 border border-amber-400/25 rounded-lg px-3 py-1.5 shrink-0">
-                            <i className="fas fa-triangle-exclamation text-amber-400 text-[10px]" />
+                            <FaIcon className="fas fa-triangle-exclamation text-amber-400 text-[10px]"  />
                             <span className="text-[11px] font-black text-amber-300">Risk: {totals.risk}</span>
                         </div>
                     )}
                     {/* Changed badge */}
                     {hasChanges && (
                         <div className="flex items-center gap-1.5 bg-amber-500/20 border border-amber-400/30 rounded-lg px-3 py-1.5 shrink-0">
-                            <i className="fas fa-pencil text-amber-400 text-[10px]" />
+                            <FaIcon className="fas fa-pencil text-amber-400 text-[10px]"  />
                             <span className="text-[11px] font-black text-amber-300">Đã điều chỉnh</span>
                         </div>
                     )}
@@ -577,7 +578,7 @@ ${splitNotes.length > 0 ? `<div class="notes-section">
                                     onClick={() => setSidebarTab(tab.id as any)}
                                     className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${sidebarTab === tab.id ? 'bg-white text-blue-600 shadow-sm border border-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
                                 >
-                                    <i className={`fas ${tab.icon}`} /> {tab.label}
+                                    <FaIcon className={`fas ${tab.icon}`}  /> {tab.label}
                                     {tab.count !== undefined && tab.count > 0 && <span className="text-[10px] bg-slate-200 px-1.5 py-0.5 rounded-full text-slate-500">{tab.count}</span>}
                                 </button>
                             ))}
@@ -598,7 +599,7 @@ ${splitNotes.length > 0 ? `<div class="notes-section">
                                     />
                                     {hasChanges && (
                                         <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-200 px-3 py-1.5 rounded-xl animate-pulse">
-                                            <i className="fas fa-pen-nib text-amber-600 text-xs" />
+                                            <FaIcon className="fas fa-pen-nib text-amber-600 text-xs"  />
                                             <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Adjustment Mode</span>
                                         </div>
                                     )}
@@ -609,7 +610,7 @@ ${splitNotes.length > 0 ? `<div class="notes-section">
                                             disabled={isSubmitting || selectedItems.size === 0}
                                             className="bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] disabled:opacity-50 text-white font-black px-6 py-2 rounded-xl text-xs uppercase tracking-widest flex items-center gap-2 transition-all shadow-xl shadow-emerald-200/50"
                                         >
-                                            {submittingAction === 'approved' ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-check-double" />}
+                                            {submittingAction === 'approved' ? <FaIcon className="fas fa-spinner fa-spin"  /> : <FaIcon className="fas fa-check-double"  />}
                                             Duyệt đơn
                                         </button>
                                         <button
@@ -617,7 +618,7 @@ ${splitNotes.length > 0 ? `<div class="notes-section">
                                             disabled={isSubmitting}
                                             className="border-2 border-indigo-200 text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100/50 active:scale-[0.98] disabled:opacity-50 font-black px-5 py-2 rounded-xl text-xs uppercase tracking-widest flex items-center gap-2 transition-all"
                                         >
-                                            {submittingAction === 'returned' ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-rotate-left" />}
+                                            {submittingAction === 'returned' ? <FaIcon className="fas fa-spinner fa-spin"  /> : <FaIcon className="fas fa-rotate-left"  />}
                                             Trả lại
                                         </button>
                                     </div>
@@ -627,7 +628,7 @@ ${splitNotes.length > 0 ? `<div class="notes-section">
 
                             <div className="flex gap-1.5">
                                 <button onClick={handlePrintOrder} className="text-blue-600 font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-blue-50 px-4 py-2 rounded-xl transition-all">
-                                    <i className="fas fa-print" /> In phiếu
+                                    <FaIcon className="fas fa-print"  /> In phiếu
                                 </button>
                                 {canAct && (
                                     <button onClick={() => handleAction('rejected')} className="text-slate-400 hover:text-rose-500 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all hover:bg-rose-50/50">
@@ -680,13 +681,13 @@ ${splitNotes.length > 0 ? `<div class="notes-section">
                                 
                                 <div className="ml-auto flex items-center gap-6">
                                     <div className="flex items-center gap-2 text-xs font-bold text-slate-400 italic">
-                                        <i className="fas fa-circle-check text-blue-500" />
+                                        <FaIcon className="fas fa-circle-check text-blue-500"  />
                                         Đã chọn {selectedItems.size}/{rows.length} SKU
                                     </div>
                                     {hasChanges && (
                                         <button onClick={() => setLocalQtys(Object.fromEntries(Object.entries(snap.quantities).map(([k, v]) => [k, { air: v.air, sea: v.sea }])))}
                                             className="text-[10px] text-amber-600 hover:text-amber-700 font-black bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200/50 flex items-center gap-1.5 transition-colors">
-                                            <i className="fas fa-arrow-rotate-left" /> Hoàn tác thay đổi
+                                            <FaIcon className="fas fa-arrow-rotate-left"  /> Hoàn tác thay đổi
                                         </button>
                                     )}
                                 </div>
@@ -723,7 +724,7 @@ ${splitNotes.length > 0 ? `<div class="notes-section">
                                                     return (
                                                         <div key={a.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm relative pl-10 overflow-hidden">
                                                             <div className={`absolute left-0 top-0 bottom-0 w-8 flex items-center justify-center ${s.cls.replace('text-', 'bg-')}/10 border-r border-slate-100`}>
-                                                                <i className={`fas ${s.icon} ${s.cls} text-sm`} />
+                                                                <FaIcon className={`fas ${s.icon} ${s.cls} text-sm`}  />
                                                             </div>
                                                             <div className="flex justify-between items-start mb-1">
                                                                 <span className={`text-xs font-black uppercase ${s.cls}`}>{actionLabels[a.action] || a.action}</span>
@@ -781,8 +782,8 @@ ${splitNotes.length > 0 ? `<div class="notes-section">
                             </div>
                             <div className="w-px h-4 bg-slate-200" />
                             <div className="flex items-center gap-2 text-xs font-bold">
-                                {totals.air > 0 && <span className="text-rose-600"><i className="fas fa-plane mr-1" />Air: {totals.air}</span>}
-                                {totals.sea > 0 && <span className="text-blue-700"><i className="fas fa-ship mr-1" />Sea: {totals.sea}</span>}
+                                {totals.air > 0 && <span className="text-rose-600"><FaIcon className="fas fa-plane mr-1"  />Air: {totals.air}</span>}
+                                {totals.sea > 0 && <span className="text-blue-700"><FaIcon className="fas fa-ship mr-1"  />Sea: {totals.sea}</span>}
                                 <span className="text-emerald-700 font-black">{currencyVND.format(totals.value)}</span>
                             </div>
                         </div>
@@ -843,10 +844,10 @@ ${splitNotes.length > 0 ? `<div class="notes-section">
                             <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Trang {safePage} / {totalPages}</span>
                             <div className="flex items-center gap-1">
                                 <button onClick={() => goToPage(safePage - 1)} disabled={safePage === 1} className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-400 disabled:opacity-30 hover:bg-slate-100 transition-all">
-                                    <i className="fas fa-chevron-left text-xs" />
+                                    <FaIcon className="fas fa-chevron-left text-xs"  />
                                 </button>
                                 <button onClick={() => goToPage(safePage + 1)} disabled={safePage === totalPages} className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-400 disabled:opacity-30 hover:bg-slate-100 transition-all">
-                                    <i className="fas fa-chevron-right text-xs" />
+                                    <FaIcon className="fas fa-chevron-right text-xs"  />
                                 </button>
                             </div>
                         </div>
@@ -865,7 +866,7 @@ ${splitNotes.length > 0 ? `<div class="notes-section">
                     <div className="px-8 py-6 bg-slate-900 text-white flex items-center justify-between shrink-0">
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-white/10 rounded-2xl">
-                                <i className="fas fa-magnifying-glass-chart text-blue-400 text-xl" />
+                                <FaIcon className="fas fa-magnifying-glass-chart text-blue-400 text-xl"  />
                             </div>
                             <div>
                                 <div className="flex items-center gap-3">
@@ -878,7 +879,7 @@ ${splitNotes.length > 0 ? `<div class="notes-section">
                             </div>
                         </div>
                         <button onClick={() => setInspectingItem(null)} className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all">
-                            <i className="fas fa-xmark text-lg" />
+                            <FaIcon className="fas fa-xmark text-lg"  />
                         </button>
                     </div>
 

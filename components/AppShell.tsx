@@ -3,6 +3,7 @@ import { Typography } from './Typography';
 import { useLanguage } from '../utils/i18n';
 import { NotificationBell } from './NotificationBell';
 
+import { FaIcon } from './Icon';
 type View =
   | 'upload'
   | 'dashboard'
@@ -77,7 +78,7 @@ export const AppShell = ({
             onClick={() => onSelectView('dashboard')}
           >
             <div className="bg-white/10 backdrop-blur-md text-white w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center border border-white/20 shadow-lg group-hover:scale-105 transition-transform">
-              <i className="fas fa-cubes text-sm md:text-lg text-blue-400" />
+              <FaIcon className="fas fa-cubes text-sm md:text-lg text-blue-400"  />
             </div>
             <div className="hidden lg:block">
               <Typography variant="label" className="text-white !leading-none group-hover:text-blue-400 transition-colors font-bold uppercase tracking-widest">
@@ -92,7 +93,7 @@ export const AppShell = ({
           <div className="hidden md:flex items-center gap-2">
             {isMonthlyLoading ? (
               <div className="flex items-center gap-1.5 bg-blue-500/20 border border-blue-400/30 text-blue-200 px-3 py-1.5 rounded-lg text-xs font-bold animate-pulse">
-                <i className="fas fa-sync fa-spin text-blue-400 text-xs" />
+                <FaIcon className="fas fa-sync fa-spin text-blue-400 text-xs"  />
                 <span className="hidden xl:inline">Đang đồng bộ tháng...</span>
                 <span className="xl:hidden">...</span>
               </div>
@@ -106,12 +107,12 @@ export const AppShell = ({
                 }`}
                 title={monthlyDataDate ? `Dữ liệu tháng: ${monthlyDataDate} — Click để chọn bản khác` : 'Chưa có dữ liệu tháng — Click để chọn'}
               >
-                <i className={monthlyDataDate ? 'fas fa-database' : 'fas fa-triangle-exclamation text-amber-300'} />
+                <FaIcon className={monthlyDataDate ? 'fas fa-database' : 'fas fa-triangle-exclamation text-amber-300'}  />
                 <span className="hidden xl:inline">
                   {monthlyDataDate ? `Dữ liệu Tháng: ${monthlyDataDate.split('-').reverse().join('/')}` : 'Chưa có d/l tháng'}
                 </span>
                 <span className="xl:hidden">{monthlyDataDate ? monthlyDataDate.split('-').reverse().join('/') : '!'}</span>
-                <i className="fas fa-chevron-down text-[8px] opacity-50 ml-0.5" />
+                <FaIcon className="fas fa-chevron-down text-[8px] opacity-50 ml-0.5"  />
               </button>
             )}
           </div>
@@ -129,7 +130,7 @@ export const AppShell = ({
                       : 'text-white/70 hover:bg-white/10 hover:text-white'
                   } ${isPending && nav.id !== view ? 'opacity-50 cursor-wait' : ''}`}
                 >
-                  <i className={`fas ${nav.icon} text-xs ${isActive ? 'text-blue-600' : ''}`} />
+                  <FaIcon className={`fas ${nav.icon} text-xs ${isActive ? 'text-blue-600' : ''}`}  />
                   <Typography variant="label" className={`hidden md:inline text-[10px] xl:text-xs ${isActive ? 'text-blue-700' : 'text-white/60'}`}>
                     {nav.label}
                   </Typography>
@@ -164,14 +165,14 @@ export const AppShell = ({
                 view === 'settings' ? 'bg-purple-100/20 text-purple-400' : 'text-slate-400 hover:text-purple-400 hover:bg-purple-500/20'
               }`}
             >
-              <i className="fas fa-sliders text-base md:text-lg" />
+              <FaIcon className="fas fa-sliders text-base md:text-lg"  />
             </button>
             <button
               onClick={onSignOut}
               title={`${profile?.full_name || 'User'} — Đăng xuất`}
               className="text-slate-400 hover:text-rose-500 transition-colors p-2 hover:bg-rose-50 rounded-lg"
             >
-              <i className="fas fa-power-off text-base md:text-lg" />
+              <FaIcon className="fas fa-power-off text-base md:text-lg"  />
             </button>
           </div>
         </div>
@@ -193,7 +194,7 @@ export const AppShell = ({
                   isActive ? 'text-blue-600 font-bold' : 'text-slate-400 hover:text-slate-600'
                 } ${isPending && nav.id !== view ? 'opacity-50' : ''}`}
               >
-                <i className={`fas ${nav.icon} text-base ${isActive ? 'text-blue-600' : ''}`} />
+                <FaIcon className={`fas ${nav.icon} text-base ${isActive ? 'text-blue-600' : ''}`}  />
                 <span className={`text-[9px] font-black uppercase tracking-tight leading-none ${isActive ? 'text-blue-600' : 'text-slate-400'}`}>
                   {nav.mobile}
                 </span>

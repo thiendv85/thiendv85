@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect, useDeferredValue } from 'react';
-// xlsx is dynamically imported inside handleExport (user-triggered) to keep ~91KB gz
-// out of the initial bundle.
+import { FaIcon } from '../components/Icon';
+// exceljs is dynamically imported inside handleExport (user-triggered) to keep
+// the vendor chunk out of the initial bundle.
+import { exportObjectsToExcel } from '../utils/excelExport';
 import { Typography } from '../components/Typography';
 import { useLanguage } from '../utils/i18n';
 import { useInventoryWorker } from '../hooks/useInventoryWorker';
@@ -47,7 +49,7 @@ const MetricCard = ({ label, value, sub, icon, colorTheme, onClick, isActive }: 
         >
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-1000 blur-2xl"></div>
             <div className="w-14 h-14 rounded-xl bg-white/10 text-white flex items-center justify-center text-2xl transition-all group-hover:rotate-12 group-hover:bg-white/20 shadow-inner border border-white/10">
-                <i className={`fas ${icon}`}></i>
+                <FaIcon className={`fas ${icon}`} />
             </div>
             <div className="relative z-10 flex-1">
                 <Typography variant="label" className="text-white/85 font-black uppercase tracking-[0.2em] !text-[9px] mb-1 block group-hover:text-white transition-colors">{label}</Typography>
@@ -72,9 +74,9 @@ const FilterDropdown = ({ label, options, selected, onChange, icon }: any) => {
                 onClick={() => setIsOpen(!isOpen)}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-[11px] font-bold uppercase tracking-wider transition-all shadow-sm ${selected.length > 0 ? 'bg-[#635bff] border-[#635bff] text-white' : 'bg-white border-slate-200 text-[#4f566b] hover:border-slate-300'}`}
             >
-                <i className={`fas ${icon}`}></i>
+                <FaIcon className={`fas ${icon}`} />
                 {label} {selected.length > 0 && <span className="bg-white/20 px-1.5 py-0.5 rounded text-white ml-1 tabular-nums">{selected.length}</span>}
-                <i className={`fas fa-chevron-down text-[8px] ml-1 transition-transform ${isOpen ? 'rotate-180' : ''}`}></i>
+                <FaIcon className={`fas fa-chevron-down text-[8px] ml-1 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
             {isOpen && (
                 <>
@@ -136,7 +138,6 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
     const { t } = useLanguage();
     const handleExport = async () => {
         if (!enrichedData) return;
-        const XLSX = await import('xlsx');
         const data = filteredData.map(item => ({
             'Mã hàng': item.ItemCode,
             'Tên hàng': item.ItemName,
@@ -151,11 +152,12 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
             'Hàng về (PO)': item.TotalPO,
             'Ưu tiên': item.computed?.boAging?.qtyOver90 > 0 ? 'CRITICAL' : (item.computed?.boAging?.qty60 > 0 ? 'HIGH' : 'NORMAL')
         }));
-        
-        const ws = XLSX.utils.json_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Backorder');
-        XLSX.writeFile(wb, `Backorder_Analytics_${new Date().toISOString().slice(0, 10)}.xlsx`);
+
+        await exportObjectsToExcel(
+            data,
+            'Backorder',
+            `Backorder_Analytics_${new Date().toISOString().slice(0, 10)}.xlsx`,
+        );
     };
     const [search, setSearch] = useState('');
     const [agingFilter, setAgingFilter] = useState<'all' | '30' | '60' | '90' | 'over90'>('all');
@@ -632,10 +634,10 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                             onClick={handleExport}
                             className="flex items-center gap-2 px-6 py-3 bg-[#635bff] text-white rounded-xl text-[11px] font-bold uppercase tracking-widest hover:bg-[#5851ff] hover:shadow-lg transition-all duration-300 group shadow-sm shadow-indigo-200"
                         >
-                            <i className="fas fa-file-excel group-hover:animate-bounce"></i> Xuất Excel
+                            <FaIcon className="fas fa-file-excel group-hover:animate-bounce" /> Xuất Excel
                         </button>
                         <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-200 hover:scale-110 transition-transform cursor-pointer">
-                            <i className="fas fa-ellipsis-v"></i>
+                            <FaIcon className="fas fa-ellipsis-v" />
                         </div>
                     </div>
                 </div>
@@ -717,7 +719,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                 className={`flex-1 flex items-center gap-5 p-5 rounded-[2.25rem] transition-all duration-700 relative group cursor-pointer ${isActive ? 'bg-gradient-to-br from-blue-50 to-indigo-50 ring-2 ring-blue-500/20 shadow-[0_15px_35px_-10px_rgba(59,130,246,0.15)] -translate-y-1' : 'hover:bg-white/60 text-slate-500'}`}
                             >
                                 <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center text-2xl transition-all duration-500 shadow-inner ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 scale-105 rotate-3' : `${colorClasses[f.color]} group-hover:scale-110 group-hover:rotate-3`}`}>
-                                    <i className={`fas ${f.icon}`}></i>
+                                    <FaIcon className={`fas ${f.icon}`} />
                                 </div>
                                 <div className="text-left flex-1">
                                     <div className="flex items-center justify-between mb-1">
@@ -911,7 +913,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                     <Typography variant="h3" className="text-slate-900 !font-black tracking-tight">Phân tách nợ đại lý</Typography>
                                 </div>
                                 <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 shadow-inner">
-                                    <i className="fas fa-chart-pie text-sm"></i>
+                                    <FaIcon className="fas fa-chart-pie text-sm" />
                                 </div>
                             </div>
                             <div className="space-y-4 flex-1 overflow-auto max-h-[340px] pr-4 custom-scrollbar">
@@ -948,7 +950,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                     <Typography variant="h3" className="text-slate-900 !font-black tracking-tight">Hiệu suất chi nhánh</Typography>
                                 </div>
                                 <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-500 shadow-inner">
-                                    <i className="fas fa-building text-sm"></i>
+                                    <FaIcon className="fas fa-building text-sm" />
                                 </div>
                             </div>
                             <div className="space-y-4 flex-1 overflow-auto max-h-[340px] pr-4 custom-scrollbar">
@@ -987,7 +989,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                     <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                         <div className="flex items-center gap-3 flex-wrap">
                             <div className="relative w-64">
-                                <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                <FaIcon className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                                 <input 
                                     type="text" 
                                     placeholder="Tìm mã, tên hàng (hỗ trợ dán list từ Excel)..." 
@@ -999,8 +1001,8 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                 />
                                 {searchResult.type !== 'EMPTY' && (
                                     <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 text-white p-2 rounded-lg text-[9px] font-black z-20 shadow-xl border border-slate-700 animate-fadeIn flex justify-between items-center">
-                                        <span><i className="fas fa-microchip mr-2 text-blue-400"></i>{searchResult.modeDescription}</span>
-                                        <button onClick={() => setSearch('')} className="hover:text-rose-400"><i className="fas fa-times"></i></button>
+                                        <span><FaIcon className="fas fa-microchip mr-2 text-blue-400" />{searchResult.modeDescription}</span>
+                                        <button onClick={() => setSearch('')} className="hover:text-rose-400"><FaIcon className="fas fa-times" /></button>
                                     </div>
                                 )}
                             </div>
@@ -1091,8 +1093,8 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                                 <div className={`flex items-center gap-2 ${align === 'center' ? 'justify-center' : align === 'right' ? 'justify-end' : ''}`}>
                                                     <Typography variant="label" className={`${isActive ? 'text-[#635bff]' : 'text-[#4f566b]'} group-hover/th:text-[#635bff] transition-colors font-bold uppercase tracking-wider`}>{label}</Typography>
                                                     <div className={`flex flex-col text-[8px] ${isActive ? 'text-[#635bff]' : 'text-slate-400 opacity-0 group-hover/th:opacity-100'}`}>
-                                                        <i className={`fas fa-caret-up ${isActive && sortConfig.direction === 'asc' ? 'opacity-100' : 'opacity-30'}`}></i>
-                                                        <i className={`fas fa-caret-down ${isActive && sortConfig.direction === 'desc' ? 'opacity-100' : 'opacity-30'}`}></i>
+                                                        <FaIcon className={`fas fa-caret-up ${isActive && sortConfig.direction === 'asc' ? 'opacity-100' : 'opacity-30'}`} />
+                                                        <FaIcon className={`fas fa-caret-down ${isActive && sortConfig.direction === 'desc' ? 'opacity-100' : 'opacity-30'}`} />
                                                     </div>
                                                 </div>
                                             </th>
@@ -1296,7 +1298,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                         {filteredData.length === 0 && (
                             <div className="p-20 text-center">
                                 <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-dashed border-slate-200">
-                                    <i className="fas fa-search text-slate-400 text-2xl"></i>
+                                    <FaIcon className="fas fa-search text-slate-400 text-2xl" />
                                 </div>
                                 <Typography variant="h3" className="text-slate-400 uppercase tracking-widest">Không tìm thấy dữ liệu nợ hàng</Typography>
                             </div>
@@ -1315,7 +1317,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                 onClick={() => setCurrentPage(prev => prev - 1)}
                                 className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 disabled:opacity-30 hover:bg-slate-50 transition-colors"
                             >
-                                <i className="fas fa-chevron-left text-xs"></i>
+                                <FaIcon className="fas fa-chevron-left text-xs" />
                             </button>
                             <div className="flex items-center gap-1">
                                 {(() => {
@@ -1342,7 +1344,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                 onClick={() => setCurrentPage(prev => prev + 1)}
                                 className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 disabled:opacity-30 hover:bg-slate-50 transition-colors"
                             >
-                                <i className="fas fa-chevron-right text-xs"></i>
+                                <FaIcon className="fas fa-chevron-right text-xs" />
                             </button>
                         </div>
                     </div>

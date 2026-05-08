@@ -3,6 +3,7 @@ import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Typography } from './Typography';
 
+import { FaIcon } from './Icon';
 interface PipelinePopupProps {
     pipeline: Record<string, number>;
     pipelineNB?: Record<string, number>;
@@ -118,7 +119,7 @@ export const PipelinePopup = ({ pipeline, pipelineNB, pipelineBB, children }: Pi
                         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex justify-between items-center shadow-lg">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/20">
-                                    <i className="fas fa-truck-fast"></i>
+                                    <FaIcon className="fas fa-truck-fast" />
                                 </div>
                                 <Typography variant="label" className="text-white !text-sm font-black uppercase tracking-widest">
                                     PIPELINE (PO)
@@ -159,7 +160,7 @@ export const PipelinePopup = ({ pipeline, pipelineNB, pipelineBB, children }: Pi
                         ) : (
                             <div className="p-10 text-center bg-white">
                                 <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-200">
-                                    <i className="fas fa-box-open text-2xl"></i>
+                                    <FaIcon className="fas fa-box-open text-2xl" />
                                 </div>
                                 <Typography variant="label" className="text-slate-400 font-black uppercase tracking-widest">Không có PO đang về</Typography>
                             </div>

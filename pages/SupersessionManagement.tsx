@@ -8,7 +8,8 @@ import { MetricCard } from '../components/MetricCard';
 import { SupersessionCSVUpload } from '../components/SupersessionCSVUpload';
 import { SupersessionMappingsTable } from '../components/SupersessionMappingsTable';
 import { SupersessionEditModal } from '../components/SupersessionEditModal';
-import { OldStockAlert } from '../components/OldStockAlert'; // Imported OldStockAlert
+import { OldStockAlert } from '../components/OldStockAlert'; import { FaIcon } from '../components/Icon';
+// Imported OldStockAlert
 import {
     Download,
     Trash2,
@@ -159,18 +160,18 @@ export const SupersessionManagement = ({
                     {mappings.length > 0 && (
                         <div className="flex items-center gap-2 mx-4">
                             <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg">
-                                <i className="fas fa-link text-purple-300 text-[10px]"></i>
+                                <FaIcon className="fas fa-link text-purple-300 text-[10px]" />
                                 <span className="text-[10px] font-black text-white/50 uppercase">Mapping</span>
                                 <span className="text-sm font-black text-white">{stats.totalMappings.toLocaleString()}</span>
                             </div>
                             <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg">
-                                <i className="fas fa-diagram-project text-emerald-300 text-[10px]"></i>
+                                <FaIcon className="fas fa-diagram-project text-emerald-300 text-[10px]" />
                                 <span className="text-[10px] font-black text-white/50 uppercase">Chuỗi</span>
                                 <span className="text-sm font-black text-white">{stats.totalChains.toLocaleString()}</span>
                             </div>
                             {stats.errors > 0 && (
                                 <div className="flex items-center gap-1.5 bg-rose-500/20 border border-rose-400/30 px-3 py-1.5 rounded-lg">
-                                    <i className="fas fa-triangle-exclamation text-rose-300 text-[10px]"></i>
+                                    <FaIcon className="fas fa-triangle-exclamation text-rose-300 text-[10px]" />
                                     <span className="text-sm font-black text-rose-300">{stats.errors}</span>
                                 </div>
                             )}
@@ -187,14 +188,14 @@ export const SupersessionManagement = ({
                             <Plus size={13} /> Thêm
                         </button>
                         <button onClick={handleLoadFromCloud} disabled={isLoadingCloud} title="Tải từ Cloud" className="w-8 h-8 flex items-center justify-center bg-white/10 border border-white/20 text-white/70 hover:bg-white/20 rounded-lg transition-all">
-                            <i className={`fas ${isLoadingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-down'} text-xs`} />
+                            <FaIcon className={`fas ${isLoadingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-down'} text-xs`}  />
                         </button>
                         <button onClick={() => setShowUpload(!showUpload)} title={showUpload ? 'Hủy' : 'Nhập Local'} className={`w-8 h-8 flex items-center justify-center border rounded-lg transition-all ${showUpload ? 'bg-white/20 border-white/30 text-white' : 'bg-white/10 border-white/20 text-white/70 hover:bg-white/20'}`}>
                             {showUpload ? <X size={13} /> : <Upload size={13} />}
                         </button>
                         {mappings.length > 0 && (<>
                             <button onClick={handleSaveToCloud} disabled={isSavingCloud} title="Lưu Cloud" className="w-8 h-8 flex items-center justify-center bg-white/10 border border-white/20 text-white/70 hover:bg-white/20 rounded-lg transition-all">
-                                <i className={`fas ${isSavingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up'} text-xs`} />
+                                <FaIcon className={`fas ${isSavingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up'} text-xs`}  />
                             </button>
                             <button onClick={handleExport} title="Xuất Local" className="w-8 h-8 flex items-center justify-center bg-white/10 border border-white/20 text-white/70 hover:bg-white/20 rounded-lg transition-all">
                                 <Download size={13} />

@@ -4,6 +4,7 @@ import { TrendBadge } from '../TrendBadge';
 import { StockProgressBar } from '../StockProgressBar';
 import { DealerStockPopup } from '../DealerStockPopup';
 
+import { FaIcon } from '../Icon';
 interface Props {
     key?: string;
     ctx: any;
@@ -70,12 +71,12 @@ export const OrderItemRow = ({
                 <div className="flex flex-col items-center gap-1">
                     {localQty.air > 0 && (
                         <span className="px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[9px] font-black uppercase flex items-center gap-1">
-                            <i className="fas fa-plane-up text-[8px]" /> Air
+                            <FaIcon className="fas fa-plane-up text-[8px]"  /> Air
                         </span>
                     )}
                     {localQty.sea > 0 && (
                         <span className="px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[9px] font-black uppercase flex items-center gap-1">
-                            <i className="fas fa-ship text-[8px]" /> Sea
+                            <FaIcon className="fas fa-ship text-[8px]"  /> Sea
                         </span>
                     )}
                     {localQty.air === 0 && localQty.sea === 0 && <span className="text-slate-300">—</span>}
@@ -116,7 +117,7 @@ export const OrderItemRow = ({
                 <div className="flex flex-col gap-1">
                     {(ctx.warnings || []).slice(0, 1).map((w: string, i: number) => (
                         <div key={i} className="text-[9px] text-rose-600 font-black leading-tight flex items-center gap-1">
-                            <i className="fas fa-triangle-exclamation" /> {w}
+                            <FaIcon className="fas fa-triangle-exclamation"  /> {w}
                         </div>
                     ))}
                     {ctx.notes && <div className="text-[10px] text-slate-500 font-bold italic line-clamp-1">{ctx.notes}</div>}
@@ -129,7 +130,7 @@ export const OrderItemRow = ({
 
             <td className="px-3 py-2 sticky right-0 z-10 bg-inherit border-l border-slate-100 text-center" onClick={e => e.stopPropagation()}>
                 <button onClick={() => onInspect(ctx)} className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center hover:bg-slate-800 transition-all shadow-lg active:scale-95">
-                    <i className="fas fa-magnifying-glass-chart text-xs" />
+                    <FaIcon className="fas fa-magnifying-glass-chart text-xs"  />
                 </button>
             </td>
         </tr>

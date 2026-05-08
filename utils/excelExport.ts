@@ -1,5 +1,5 @@
-// xlsx is dynamically imported inside exportToExcel to keep the ~277KB raw / 91KB gz
-// vendor chunk out of the initial bundle. Excel export is a user-triggered action.
+// exceljs is dynamically imported to keep ~250KB raw / ~80KB gz vendor chunk
+// out of the initial bundle. Excel export is always a user-triggered action.
 
 export interface ExportDataRow {
     sku: string;
@@ -12,50 +12,59 @@ export interface ExportDataRow {
     status: string; // PHAI_DAT_NGAY, v.v.
 }
 
+const triggerDownload = (buffer: ArrayBuffer, filename: string) => {
+    const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+};
+
 /**
  * Xuất dữ liệu cảnh báo hết hàng ra Excel
  * @param data Danh sách dữ liệu chi tiết
  * @param reportDate Ngày báo cáo (YYYY-MM-DD)
  */
 export const exportToExcel = async (data: ExportDataRow[], reportDate: string = new Date().toISOString().split('T')[0]) => {
-    const XLSX = await import('xlsx');
-    // 1. CHUẨN BỊ DỮ LIỆU SHEET 1 (DETAIL)
-    const detailHeaders = ["STT", "SKU", "Tên Mục", "Tồn Kho", "Cầu/Ngày", "Ngày Cần Đặt", "Loại", "Số Lượng", "Trạng Thái"];
-    
-    const detailData = data.map((item, index) => [
-        index + 1,
-        item.sku,
-        item.name,
-        item.stock,
-        parseFloat(item.demand.toFixed(2)), // Format số
-        item.orderDate,
-        item.type,
-        item.qty,
-        item.status.replace(/_/g, ' ')
-    ]);
+    const ExcelJS = (await import('exceljs')).default;
+    const wb = new ExcelJS.Workbook();
 
-    // Tạo Worksheet từ mảng dữ liệu (bao gồm Header)
-    const wsDetail = XLSX.utils.aoa_to_sheet([detailHeaders, ...detailData]);
-
-    // Format Column Widths (Auto-fit giả lập)
-    const wscols = [
-        { wch: 5 },  // STT
-        { wch: 15 }, // SKU
-        { wch: 40 }, // Tên
-        { wch: 10 }, // Tồn
-        { wch: 10 }, // Cầu
-        { wch: 15 }, // Ngày
-        { wch: 8 },  // Loại
-        { wch: 10 }, // SL
-        { wch: 20 }  // Trạng thái
+    // 1. SHEET 1 (DETAIL)
+    const wsDetail = wb.addWorksheet('Chi Tiet', {
+        views: [{ state: 'frozen', ySplit: 1 }],
+    });
+    wsDetail.columns = [
+        { header: 'STT', key: 'stt', width: 5 },
+        { header: 'SKU', key: 'sku', width: 15 },
+        { header: 'Tên Mục', key: 'name', width: 40 },
+        { header: 'Tồn Kho', key: 'stock', width: 10 },
+        { header: 'Cầu/Ngày', key: 'demand', width: 10 },
+        { header: 'Ngày Cần Đặt', key: 'orderDate', width: 15 },
+        { header: 'Loại', key: 'type', width: 8 },
+        { header: 'Số Lượng', key: 'qty', width: 10 },
+        { header: 'Trạng Thái', key: 'status', width: 20 },
     ];
-    wsDetail['!cols'] = wscols;
+    data.forEach((item, index) => {
+        wsDetail.addRow({
+            stt: index + 1,
+            sku: item.sku,
+            name: item.name,
+            stock: item.stock,
+            demand: parseFloat(item.demand.toFixed(2)),
+            orderDate: item.orderDate,
+            type: item.type,
+            qty: item.qty,
+            status: item.status.replace(/_/g, ' '),
+        });
+    });
 
-    // Frozen Header Row (Cố định dòng 1)
-    wsDetail['!views'] = [{ state: 'frozen', xSplit: 0, ySplit: 1 }];
-
-    // 2. CHUẨN BỊ DỮ LIỆU SHEET 2 (STATISTICS)
-    // Tính toán thống kê
+    // 2. SHEET 2 (STATISTICS)
     const stats = {
         total: data.length,
         critical: data.filter(i => i.status === 'PHAI_DAT_NGAY').length,
@@ -65,28 +74,47 @@ export const exportToExcel = async (data: ExportDataRow[], reportDate: string = 
         totalSea: data.filter(i => i.type === 'SEA').reduce((sum, i) => sum + i.qty, 0),
     };
 
-    const statsData = [
-        ["THỐNG KÊ TỔNG QUAN", ""],
-        ["Ngày báo cáo", reportDate],
-        ["", ""],
-        ["Tổng số mục", stats.total],
-        ["🔴 Khẩn cấp (Phải đặt ngay)", stats.critical],
-        ["🟠 Cảnh báo tuần này", stats.week],
-        ["🟡 Theo dõi tháng này", stats.month],
-        ["", ""],
-        ["📦 TỔNG NHU CẦU ĐẶT HÀNG", ""],
-        ["✈️ Tổng Air (chiếc)", stats.totalAir],
-        ["🌊 Tổng Sea (chiếc)", stats.totalSea]
-    ];
+    const wsStats = wb.addWorksheet('Thong Ke');
+    wsStats.columns = [{ width: 30 }, { width: 15 }];
+    wsStats.addRows([
+        ['THỐNG KÊ TỔNG QUAN', ''],
+        ['Ngày báo cáo', reportDate],
+        ['', ''],
+        ['Tổng số mục', stats.total],
+        ['🔴 Khẩn cấp (Phải đặt ngay)', stats.critical],
+        ['🟠 Cảnh báo tuần này', stats.week],
+        ['🟡 Theo dõi tháng này', stats.month],
+        ['', ''],
+        ['📦 TỔNG NHU CẦU ĐẶT HÀNG', ''],
+        ['✈️ Tổng Air (chiếc)', stats.totalAir],
+        ['🌊 Tổng Sea (chiếc)', stats.totalSea],
+    ]);
 
-    const wsStats = XLSX.utils.aoa_to_sheet(statsData);
-    wsStats['!cols'] = [{ wch: 30 }, { wch: 15 }]; // Width cho sheet stats
+    // 3. WRITE & DOWNLOAD
+    const buffer = await wb.xlsx.writeBuffer();
+    triggerDownload(buffer as ArrayBuffer, `Canh_bao_het_hang_${reportDate}.xlsx`);
+};
 
-    // 3. TẠO WORKBOOK & APPEND SHEETS
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, wsDetail, "Chi Tiet");
-    XLSX.utils.book_append_sheet(wb, wsStats, "Thong Ke");
+/**
+ * Generic helper: xuất 1 sheet từ array of objects.
+ */
+export const exportObjectsToExcel = async (
+    rows: Record<string, unknown>[],
+    sheetName: string,
+    filename: string,
+) => {
+    const ExcelJS = (await import('exceljs')).default;
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet(sheetName, {
+        views: [{ state: 'frozen', ySplit: 1 }],
+    });
 
-    // 4. XUẤT FILE
-    XLSX.writeFile(wb, `Canh_bao_het_hang_${reportDate}.xlsx`);
+    if (rows.length > 0) {
+        const headers = Object.keys(rows[0]);
+        ws.columns = headers.map(h => ({ header: h, key: h, width: 18 }));
+        rows.forEach(r => ws.addRow(r));
+    }
+
+    const buffer = await wb.xlsx.writeBuffer();
+    triggerDownload(buffer as ArrayBuffer, filename);
 };

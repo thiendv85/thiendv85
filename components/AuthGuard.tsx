@@ -6,6 +6,7 @@ import React, { ReactNode } from 'react';
 import { UserRole } from '../utils/authContext';
 import { useApprovalAuth } from '../hooks/useApprovalAuth';
 
+import { FaIcon } from './Icon';
 interface AuthGuardProps {
     /** Required roles to access this content */
     requiredRoles?: UserRole[];
@@ -23,7 +24,7 @@ export const AuthGuard = ({ requiredRoles, requiredLevel, fallback, children }: 
         return (
             <div className="flex items-center justify-center p-12">
                 <div className="flex items-center gap-3 text-slate-400">
-                    <i className="fas fa-spinner fa-spin text-xl" />
+                    <FaIcon className="fas fa-spinner fa-spin text-xl"  />
                     <span className="font-bold text-sm">Đang kiểm tra quyền truy cập...</span>
                 </div>
             </div>
@@ -36,7 +37,7 @@ export const AuthGuard = ({ requiredRoles, requiredLevel, fallback, children }: 
             <div className="flex items-center justify-center p-12">
                 <div className="max-w-md bg-amber-50 border border-amber-200 rounded-2xl p-8 text-center">
                     <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i className="fas fa-shield-halved text-2xl text-amber-500" />
+                        <FaIcon className="fas fa-shield-halved text-2xl text-amber-500"  />
                     </div>
                     <h2 className="text-lg font-black text-amber-900 mb-2">Truy cập bị từ chối</h2>
                     <p className="text-sm text-amber-700 leading-relaxed">
@@ -55,7 +56,7 @@ export const AuthGuard = ({ requiredRoles, requiredLevel, fallback, children }: 
         return fallback ? <>{fallback}</> : (
             <div className="flex items-center justify-center p-8">
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 text-center max-w-sm">
-                    <i className="fas fa-lock text-slate-300 text-2xl mb-3" />
+                    <FaIcon className="fas fa-lock text-slate-300 text-2xl mb-3"  />
                     <p className="text-sm font-bold text-slate-600">
                         Bạn không có quyền duyệt cấp {requiredLevel}.
                     </p>

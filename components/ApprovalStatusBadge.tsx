@@ -1,5 +1,6 @@
 import React from 'react';
 import { ApprovalStatus } from '../types/inventory';
+import { FaIcon } from './Icon';
 
 const CONFIG: Record<ApprovalStatus, { label: string; icon: string; cls: string }> = {
     pending:     { label: 'Chờ duyệt',   icon: 'fa-clock',           cls: 'bg-amber-500/15 border-amber-400/40 text-amber-300' },
@@ -30,7 +31,7 @@ export const ApprovalStatusBadge = ({ status, size = 'md' }: Props) => {
 
     return (
         <span className={`inline-flex items-center gap-1 border rounded-md font-black uppercase tracking-widest ${sizeCls} ${cls}`}>
-            <i className={`fas ${icon} text-[7px]`} />
+            <FaIcon className={`fas ${icon} text-[7px]`} />
             {label}
         </span>
     );

@@ -1,5 +1,6 @@
 import React from 'react';
 import { ApprovalRequest, ApprovalAction, ApprovalWorkflow } from '../types/inventory';
+import { FaIcon } from './Icon';
 
 interface Props {
     request: ApprovalRequest;
@@ -164,7 +165,7 @@ export const WorkflowStepper = ({ request, workflow, actions, usersMap, classNam
                             <div className="flex flex-col items-center min-w-[88px] max-w-[140px] flex-1 group" title={step.note ? `"${step.note}"` : undefined}>
                                 <div className="flex items-center gap-1.5">
                                     <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 transition-all shadow-md ${tk.circle}`}>
-                                        <i className={`fas ${step.icon} text-[10px]`} />
+                                        <FaIcon className={`fas ${step.icon} text-[10px]`} />
                                     </div>
                                 </div>
                                 <div className="mt-1.5 flex flex-col items-center text-center">
@@ -215,7 +216,7 @@ export const WorkflowStepper = ({ request, workflow, actions, usersMap, classNam
                         )}
                         <div className="flex flex-col items-center min-w-[140px] max-w-[180px] flex-1">
                             <div className={`w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all shadow-lg ${tk.circle}`}>
-                                <i className={`fas ${step.icon} text-xs`} />
+                                <FaIcon className={`fas ${step.icon} text-xs`} />
                             </div>
                             <div className="mt-2 flex flex-col items-center text-center">
                                 <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${step.status === 'future' ? 'text-slate-400' : 'text-slate-700'}`}>

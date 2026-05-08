@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useApprovalNotifications } from '../hooks/useApprovalNotifications';
 import type { ApprovalRequest } from '../types/inventory';
 
+import { FaIcon } from './Icon';
 interface Props {
     onNavigate: (requestId?: string) => void;
 }
@@ -54,7 +55,7 @@ export const NotificationBell = ({ onNavigate }: Props) => {
         <div className="border-b border-slate-100 last:border-b-0">
             <div className="px-4 py-2 bg-slate-50/80 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <i className={`fas ${icon} ${color} text-xs`} />
+                    <FaIcon className={`fas ${icon} ${color} text-xs`}  />
                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">{title}</span>
                 </div>
                 <span className="text-[10px] font-black text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded-full">
@@ -89,7 +90,7 @@ export const NotificationBell = ({ onNavigate }: Props) => {
                                     <span>{formatRelative(req.submitted_at)}</span>
                                 </div>
                             </div>
-                            <i className="fas fa-chevron-right text-slate-300 text-[10px] mt-1.5 shrink-0" />
+                            <FaIcon className="fas fa-chevron-right text-slate-300 text-[10px] mt-1.5 shrink-0"  />
                         </li>
                     ))}
                     {items.length > 8 && (
@@ -114,7 +115,7 @@ export const NotificationBell = ({ onNavigate }: Props) => {
                     open ? 'bg-blue-500/30 text-blue-200' : 'text-slate-400 hover:text-blue-300 hover:bg-blue-500/15'
                 }`}
             >
-                <i className={`fas fa-bell text-base md:text-lg ${total > 0 ? 'animate-[swing_1s_ease-in-out_infinite]' : ''}`} />
+                <FaIcon className={`fas fa-bell text-base md:text-lg ${total > 0 ? 'animate-[swing_1s_ease-in-out_infinite]' : ''}`} />
                 {total > 0 && (
                     <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-slate-900 shadow-lg">
                         {total > 99 ? '99+' : total}
@@ -126,23 +127,23 @@ export const NotificationBell = ({ onNavigate }: Props) => {
                 <div className="absolute right-0 mt-2 w-[380px] max-w-[90vw] bg-white rounded-2xl shadow-2xl border border-slate-200 z-[100] overflow-hidden animate-[dropdownIn_0.15s_ease-out]">
                     <div className="px-4 py-3 bg-slate-900 text-white flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <i className="fas fa-bell text-blue-300 text-xs" />
+                            <FaIcon className="fas fa-bell text-blue-300 text-xs"  />
                             <span className="text-xs font-black uppercase tracking-widest">Thông báo</span>
-                            {isLoading && <i className="fas fa-circle-notch fa-spin text-blue-300 text-[10px]" />}
+                            {isLoading && <FaIcon className="fas fa-circle-notch fa-spin text-blue-300 text-[10px]"  />}
                         </div>
                         <button
                             onClick={() => { refetch(); }}
                             title="Làm mới"
                             className="text-white/40 hover:text-white text-xs p-1 rounded hover:bg-white/10 transition-colors"
                         >
-                            <i className="fas fa-arrows-rotate" />
+                            <FaIcon className="fas fa-arrows-rotate"  />
                         </button>
                     </div>
 
                     <div className="max-h-[480px] overflow-y-auto">
                         {total === 0 && !isLoading ? (
                             <div className="flex flex-col items-center justify-center py-10 text-slate-400">
-                                <i className="fas fa-circle-check text-3xl mb-2 text-emerald-300" />
+                                <FaIcon className="fas fa-circle-check text-3xl mb-2 text-emerald-300"  />
                                 <span className="text-xs font-bold">Bạn đã xử lý hết!</span>
                             </div>
                         ) : (
@@ -176,7 +177,7 @@ export const NotificationBell = ({ onNavigate }: Props) => {
                         onClick={() => { setOpen(false); onNavigate(); }}
                         className="px-4 py-3 bg-slate-50 border-t border-slate-100 text-center text-xs font-black uppercase tracking-widest text-blue-600 hover:bg-blue-50 cursor-pointer transition-colors"
                     >
-                        Mở trang phê duyệt <i className="fas fa-arrow-right ml-1 text-[10px]" />
+                        Mở trang phê duyệt <FaIcon className="fas fa-arrow-right ml-1 text-[10px]"  />
                     </div>
                 </div>
             )}

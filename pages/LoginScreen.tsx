@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../utils/authContext';
 
+import { FaIcon } from '../components/Icon';
 export const LoginScreen = () => {
     const { signIn } = useAuth();
     const [email, setEmail] = useState('');
@@ -49,7 +50,7 @@ export const LoginScreen = () => {
                     {/* Success content */}
                     <div className="relative z-10 flex flex-col items-center gap-5" style={{ animation: 'lgScaleIn 0.4s ease-out both' }}>
                         <div className="w-24 h-24 rounded-full bg-emerald-500/20 border-2 border-emerald-400/50 flex items-center justify-center shadow-[0_0_40px_rgba(52,211,153,0.3)]">
-                            <i className="fas fa-check text-emerald-400 text-4xl" />
+                            <FaIcon className="fas fa-check text-emerald-400 text-4xl"  />
                         </div>
                         <div className="text-center">
                             <p className="text-white font-black text-xl tracking-widest uppercase">Xác thực thành công</p>
@@ -106,7 +107,7 @@ export const LoginScreen = () => {
                         ].map(f => (
                             <div key={f.label} className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-xl border border-white/5 backdrop-blur-sm">
                                 <div className={`w-8 h-8 rounded-lg ${f.color} flex items-center justify-center text-white shadow-lg`}>
-                                    <i className={`fas ${f.icon}`} />
+                                    <FaIcon className={`fas ${f.icon}`}  />
                                 </div>
                                 <div>
                                     <div className="text-xs font-bold text-white">{f.label}</div>
@@ -144,7 +145,7 @@ export const LoginScreen = () => {
                                 {/* Email */}
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                                        <i className="fas fa-envelope mr-1.5 opacity-60" />Email
+                                        <FaIcon className="fas fa-envelope mr-1.5 opacity-60"  />Email
                                     </label>
                                     <input
                                         type="email"
@@ -161,7 +162,7 @@ export const LoginScreen = () => {
                                 {/* Password */}
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                                        <i className="fas fa-lock mr-1.5 opacity-60" />Mật khẩu
+                                        <FaIcon className="fas fa-lock mr-1.5 opacity-60"  />Mật khẩu
                                     </label>
                                     <input
                                         type="password"
@@ -177,7 +178,7 @@ export const LoginScreen = () => {
                                 {/* Error message */}
                                 {error && (
                                     <div className="flex items-center gap-2 bg-rose-500/10 border border-rose-500/30 rounded-2xl px-4 py-3">
-                                        <i className="fas fa-circle-exclamation text-rose-400 shrink-0" />
+                                        <FaIcon className="fas fa-circle-exclamation text-rose-400 shrink-0"  />
                                         <span className="text-rose-300 text-sm font-bold">{error}</span>
                                     </div>
                                 )}
@@ -197,18 +198,18 @@ export const LoginScreen = () => {
                                     }`}
                                 >
                                     {loginSuccess ? (
-                                        <><i className="fas fa-check" /> Đăng nhập thành công</>
+                                        <><FaIcon className="fas fa-check"  /> Đăng nhập thành công</>
                                     ) : isLoading ? (
-                                        <><i className="fas fa-circle-notch fa-spin" /> Đang xác thực...</>
+                                        <><FaIcon className="fas fa-circle-notch fa-spin"  /> Đang xác thực...</>
                                     ) : (
-                                        <><i className="fas fa-arrow-right-to-bracket" /> Bắt đầu phân tích →</>
+                                        <><FaIcon className="fas fa-arrow-right-to-bracket"  /> Bắt đầu phân tích →</>
                                     )}
                                 </button>
                             </form>
 
                             {/* Footer */}
                             <div className="flex items-center gap-2 pt-2 border-t border-white/5">
-                                <i className="fas fa-circle-info text-slate-600 text-xs shrink-0" />
+                                <FaIcon className="fas fa-circle-info text-slate-600 text-xs shrink-0"  />
                                 <p className="text-slate-600 text-xs">Liên hệ Admin để được cấp tài khoản.</p>
                             </div>
                         </div>

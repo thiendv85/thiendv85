@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { DealerDetail } from '../types/inventory';
 import { Typography } from './Typography';
 
+import { FaIcon } from './Icon';
 interface DealerInventoryPopupProps {
     items: DealerDetail[];
     children?: React.ReactNode;
@@ -97,7 +98,7 @@ export const DealerInventoryPopup = ({ items, children }: DealerInventoryPopupPr
 
                         <div className="bg-slate-900 px-5 py-3 flex justify-between items-center">
                             <Typography variant="label" className="text-white flex items-center gap-2">
-                                <i className="fas fa-warehouse"></i> Chi tiết tồn Đại lý
+                                <FaIcon className="fas fa-warehouse" /> Chi tiết tồn Đại lý
                             </Typography>
                             <Typography variant="label" className="bg-white/20 text-white px-2 py-1 rounded-lg">
                                 {items?.length || 0} ĐƠN VỊ

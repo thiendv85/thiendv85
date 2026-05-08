@@ -5,8 +5,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Font Awesome is loaded non-blocking from public/fa/all.min.css via index.html. */
-
 :root {
     /* Color Palette - Vibrant Premium V13.5 */
     --color-primary: #0F172A;

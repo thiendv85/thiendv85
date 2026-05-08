@@ -2,6 +2,7 @@
 import React from 'react';
 import { StockoutForecastResult } from '../utils/StockoutForecastWithLeadTime';
 
+import { FaIcon } from './Icon';
 export interface WidgetProps {
     analysis: StockoutForecastResult;
     onAction?: (sku: string, qty: number, method: 'AIR' | 'SEA') => void;
@@ -60,7 +61,7 @@ export const StockoutForecastWithLeadTimeWidget: React.FC<WidgetProps> = ({ anal
                     <div className="text-xs font-bold text-slate-800 truncate w-48" title={analysis.name}>{analysis.name}</div>
                 </div>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${config.bg} ${config.text} shadow-sm`}>
-                    <i className={`fas ${config.icon}`}></i>
+                    <FaIcon className={`fas ${config.icon}`} />
                 </div>
             </div>
 
@@ -103,7 +104,7 @@ export const StockoutForecastWithLeadTimeWidget: React.FC<WidgetProps> = ({ anal
 
                 {/* Recommendation Message */}
                 <div className={`text-2xs font-medium leading-relaxed p-2 rounded ${config.headerBg} ${config.text} border ${config.border}`}>
-                    <i className="fas fa-info-circle mr-1"></i> {analysis.actionMessage}
+                    <FaIcon className="fas fa-info-circle mr-1" /> {analysis.actionMessage}
                 </div>
             </div>
 
@@ -118,7 +119,7 @@ export const StockoutForecastWithLeadTimeWidget: React.FC<WidgetProps> = ({ anal
                                 : 'bg-amber-500 hover:bg-amber-600 shadow-amber-200'
                         }`}
                     >
-                        <i className={`fas ${analysis.shippingMethod === 'AIR' ? 'fa-plane' : 'fa-ship'}`}></i>
+                        <FaIcon className={`fas ${analysis.shippingMethod === 'AIR' ? 'fa-plane' : 'fa-ship'}`} />
                         Order {analysis.suggestedQty.toLocaleString()} pcs via {analysis.shippingMethod}!
                     </button>
                 </div>

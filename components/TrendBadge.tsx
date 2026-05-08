@@ -2,6 +2,7 @@
 import React from 'react';
 import { useLanguage } from '../utils/i18n';
 
+import { FaIcon } from './Icon';
 interface TrendBadgeProps {
     trend?: string;
     className?: string;
@@ -29,7 +30,7 @@ export const TrendBadge: React.FC<TrendBadgeProps> = ({ trend = 'Stable', classN
 
     return (
         <span className={`text-[10px] font-black px-1.5 py-0.5 rounded uppercase flex items-center gap-1 border ${colorClass} ${className}`}>
-            <i className={`fas fa-${icon}`}></i> {t(labelKey)}
+            <FaIcon className={`fas fa-${icon}`} /> {t(labelKey)}
         </span>
     );
 };

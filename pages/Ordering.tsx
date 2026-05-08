@@ -25,6 +25,7 @@ import { listWorkflows, submitApprovalRequest, submitApprovalRequestPrecompresse
 import { ApprovalRequest, ApprovalWorkflow, ApprovalAction } from '../types/inventory';
 import { useDevice } from '../hooks/useDevice';
 
+import { FaIcon } from '../components/Icon';
 // --- MODULE-LEVEL CONSTANTS ---
 const PRIORITY_ORDER: Record<string, number> = { P1: 0, P2: 1, P3: 2 };
 
@@ -58,7 +59,7 @@ const DraftAnalysisCharts = ({ itemMap, orderQuantities, costBasis }: { itemMap:
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fadeIn">
             <div className="bg-white p-6 rounded-2xl border border-slate-200 flex flex-col justify-between hover:border-atp-action/30 shadow-sm transition-all group/air">
                 <div>
-                    <Typography variant="label" className="text-slate-500 mb-4 flex items-center gap-2 transition-transform group-hover/air:translate-x-1"><i className="fas fa-plane-up text-atp-action"></i> {t('ord_air_title')}</Typography>
+                    <Typography variant="label" className="text-slate-500 mb-4 flex items-center gap-2 transition-transform group-hover/air:translate-x-1"><FaIcon className="fas fa-plane-up text-atp-action" /> {t('ord_air_title')}</Typography>
                     <Typography variant="h1" className="text-atp-action tabular-nums">{formatter.format(stats.airVal)}</Typography>
                     <Typography variant="label" className="text-slate-600 mt-1 font-bold tabular-nums uppercase">{stats.airQty.toLocaleString()} units &bull; {stats.airSkus.toLocaleString()} SKUs</Typography>
                 </div>
@@ -68,7 +69,7 @@ const DraftAnalysisCharts = ({ itemMap, orderQuantities, costBasis }: { itemMap:
             </div>
             <div className="bg-white p-6 rounded-2xl border border-slate-200 flex flex-col justify-between hover:border-atp-secondary/30 shadow-sm transition-all group/sea">
                 <div>
-                    <Typography variant="label" className="text-slate-500 mb-4 flex items-center gap-2 transition-transform group-hover/sea:translate-x-1"><i className="fas fa-ship text-atp-secondary"></i> {t('ord_sea_title')}</Typography>
+                    <Typography variant="label" className="text-slate-500 mb-4 flex items-center gap-2 transition-transform group-hover/sea:translate-x-1"><FaIcon className="fas fa-ship text-atp-secondary" /> {t('ord_sea_title')}</Typography>
                     <Typography variant="h1" className="text-atp-secondary tabular-nums">{formatter.format(stats.seaVal)}</Typography>
                     <Typography variant="label" className="text-slate-600 mt-1 font-bold tabular-nums uppercase">{stats.seaQty.toLocaleString()} units &bull; {stats.seaSkus.toLocaleString()} SKUs</Typography>
                 </div>
@@ -77,7 +78,7 @@ const DraftAnalysisCharts = ({ itemMap, orderQuantities, costBasis }: { itemMap:
                 </div>
             </div>
             <div className="bg-atp-primary p-6 rounded-2xl flex flex-col justify-center text-white relative overflow-hidden shadow-glass group/total">
-                <div className="absolute -right-4 -bottom-4 opacity-10 text-8xl transform -rotate-12 transition-transform group-hover/total:scale-125 duration-700"><i className="fas fa-cart-flatbed-boxes"></i></div>
+                <div className="absolute -right-4 -bottom-4 opacity-10 text-8xl transform -rotate-12 transition-transform group-hover/total:scale-125 duration-700"><FaIcon className="fas fa-cart-flatbed-boxes" /></div>
                 <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,#ffffff10,transparent)] pointer-events-none"></div>
                 <Typography variant="label" className="text-slate-300 mb-2">{t('ord_total_val')}</Typography>
                 <Typography variant="h1" className="text-white text-4xl tabular-nums">{formatter.format(stats.totalVal)}</Typography>
@@ -735,7 +736,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                 <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                     <div className="flex items-center gap-4">
                         <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-glass group-hover/header:scale-110 group-hover/header:rotate-6 transition-all duration-500">
-                            <i className="fas fa-cart-shopping text-blue-400 text-2xl"></i>
+                            <FaIcon className="fas fa-cart-shopping text-blue-400 text-2xl" />
                         </div>
                         <div>
                             <Typography variant="h1" className="tracking-tight uppercase text-white !text-3xl workbench-title">
@@ -797,7 +798,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                     <div className="px-6 py-4 bg-amber-50 border-b border-amber-100">
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2 text-amber-800">
-                                <i className="fas fa-triangle-exclamation"></i>
+                                <FaIcon className="fas fa-triangle-exclamation" />
                                 <span className="text-sm font-black uppercase tracking-wider">Cảnh báo thay thế mã ({Object.keys(supersessionWarnings).length})</span>
                             </div>
                             {Object.keys(supersessionWarnings).length > 1 && (
@@ -805,7 +806,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                                     onClick={handleConvertAll}
                                     className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-sm active:scale-95 flex items-center gap-2"
                                 >
-                                    <i className="fas fa-sync-alt"></i> Chuyển tất cả sang mã mới
+                                    <FaIcon className="fas fa-sync-alt" /> Chuyển tất cả sang mã mới
                                 </button>
                             )}
                         </div>
@@ -847,14 +848,14 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                                     onClick={() => handleMainFilterChange({ ...filters, onlyAdjusted: !filters.onlyAdjusted })}
                                     className={`px-3 py-1.5 text-[10px] md:text-xs font-black rounded-xl border transition-all flex items-center gap-1.5 ${filters.onlyAdjusted ? 'bg-indigo-600 text-white border-indigo-700 shadow-md' : 'bg-white text-indigo-600 border-indigo-200 hover:bg-indigo-50'}`}
                                 >
-                                    <i className={`fas ${filters.onlyAdjusted ? 'fa-check-circle' : 'fa-circle-dot'}`} />
+                                    <FaIcon className={`fas ${filters.onlyAdjusted ? 'fa-check-circle' : 'fa-circle-dot'}`}  />
                                     Có điều chỉnh
                                 </button>
                             )}
 
                             {/* Desktop Sort */}
                             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl shrink-0">
-                                <i className="fas fa-sort-amount-down text-slate-400 text-[10px]"></i>
+                                <FaIcon className="fas fa-sort-amount-down text-slate-400 text-[10px]" />
                                 <select value={sortKey} onChange={(e) => setSortKey(e.target.value)} className="bg-transparent text-[10px] font-black text-slate-700 outline-none cursor-pointer uppercase">
                                     <option value="priority">Sắp xếp: Hệ thống</option>
                                     <option value="mos_asc">MOS (Thấp nhất)</option>
@@ -871,30 +872,30 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                         <div className="hidden md:flex flex-wrap items-center gap-2 justify-end">
                             <div className="flex items-center gap-2 bg-white/40 backdrop-blur-md border border-white/20 p-1.5 rounded-2xl shadow-sm">
                                 <button onClick={() => setIsCloudModalOpen(true)} className="bg-blue-600/90 hover:bg-blue-600 text-white rounded-xl transition-all border border-blue-400/30 flex items-center justify-center shadow-lg shadow-blue-500/20 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest backdrop-blur-sm active:scale-95">
-                                    <i className="fas fa-cloud mr-2"></i> Cloud
+                                    <FaIcon className="fas fa-cloud mr-2" /> Cloud
                                 </button>
                                 {!isApproverMode && (
                                     <>
                                         <input type="file" ref={fileInputRef} className="hidden" accept=".csv" onChange={handleImport} />
                                         <button onClick={() => fileInputRef.current?.click()} className="bg-white/60 text-slate-700 hover:bg-white/80 rounded-xl transition-all border border-slate-200/50 flex items-center justify-center px-4 py-2.5 text-[10px] font-black uppercase tracking-widest active:scale-95">
-                                            <i className="fas fa-file-import mr-2 text-blue-500"></i> Import
+                                            <FaIcon className="fas fa-file-import mr-2 text-blue-500" /> Import
                                         </button>
                                         <button onClick={handleClearDraft} className="bg-white/60 text-rose-600 hover:bg-rose-50/80 rounded-xl transition-all border border-rose-200/50 flex items-center justify-center px-4 py-2.5 text-[10px] font-black uppercase tracking-widest active:scale-95">
-                                            <i className="fas fa-trash-can mr-2"></i> Xóa Draft
+                                            <FaIcon className="fas fa-trash-can mr-2" /> Xóa Draft
                                         </button>
                                     </>
                                 )}
                             </div>
                             <button onClick={handleExport} className="bg-slate-800/90 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-slate-900/10 flex items-center gap-2 border border-slate-700/50 backdrop-blur-md active:scale-95">
-                                <i className="fas fa-file-export text-blue-300"></i> {t('ord_export_btn')}
+                                <FaIcon className="fas fa-file-export text-blue-300" /> {t('ord_export_btn')}
                             </button>
                             {isApproverMode ? (
                                 <>
                                     <button onClick={handleReturn} disabled={isSubmitting} className="bg-rose-600/90 hover:bg-rose-600 disabled:opacity-40 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-rose-500/20 flex items-center gap-2 border border-rose-400/30 active:scale-95 backdrop-blur-sm">
-                                        <i className="fas fa-times"></i> Trả lại
+                                        <FaIcon className="fas fa-times" /> Trả lại
                                     </button>
                                     <button onClick={handleApprove} disabled={isSubmitting} className="bg-emerald-600/90 hover:bg-emerald-600 disabled:opacity-40 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 flex items-center gap-2 border border-emerald-400/30 active:scale-95 backdrop-blur-sm">
-                                        <i className="fas fa-check"></i> Phê duyệt
+                                        <FaIcon className="fas fa-check" /> Phê duyệt
                                     </button>
                                 </>
                             ) : (
@@ -910,13 +911,13 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                     <div className="flex items-center gap-2">
                         {/* Search */}
                         <div className="flex-1 relative group">
-                            <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs group-focus-within:text-blue-600 transition-colors"></i>
+                            <FaIcon className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs group-focus-within:text-blue-600 transition-colors" />
                             <input type="text" placeholder={t('ord_search_ph')} value={filters.search} onChange={(e) => handleMainFilterChange({ ...filters, search: e.target.value })} className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:bg-white focus:border-blue-400 transition-all text-slate-700" />
                         </div>
                         
                         {/* Mobile Sort Icon Only */}
                         <div className="md:hidden flex items-center justify-center w-9 h-9 bg-slate-50 border border-slate-200 rounded-xl relative shrink-0">
-                            <i className="fas fa-sort-amount-down text-slate-500 text-xs"></i>
+                            <FaIcon className="fas fa-sort-amount-down text-slate-500 text-xs" />
                             <select value={sortKey} onChange={(e) => setSortKey(e.target.value)} className="absolute inset-0 opacity-0 w-full h-full cursor-pointer">
                                 <option value="priority">Hệ thống</option>
                                 <option value="mos_asc">MOS</option>
@@ -929,20 +930,20 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                         {/* Mobile Action Icons (Flat) */}
                         <div className="md:hidden flex items-center gap-1.5 shrink-0">
                             <button onClick={() => setIsCloudModalOpen(true)} className="w-9 h-9 flex items-center justify-center text-blue-600 bg-blue-50/50 rounded-xl border border-blue-100 active:bg-blue-100">
-                                <i className="fas fa-cloud text-xs"></i>
+                                <FaIcon className="fas fa-cloud text-xs" />
                             </button>
                             {!isApproverMode && (
                                 <button onClick={handleClearDraft} className="w-9 h-9 flex items-center justify-center text-rose-600 bg-rose-50/50 rounded-xl border border-rose-100 active:bg-rose-100">
-                                    <i className="fas fa-trash-can text-xs"></i>
+                                    <FaIcon className="fas fa-trash-can text-xs" />
                                 </button>
                             )}
                             {isApproverMode ? (
                                 <>
                                     <button onClick={handleReturn} disabled={isSubmitting} className="w-9 h-9 flex items-center justify-center text-rose-600 bg-rose-50/50 backdrop-blur-md rounded-xl border border-rose-200/50 active:bg-rose-100 disabled:opacity-40 active:scale-95 transition-all">
-                                        <i className="fas fa-times text-xs"></i>
+                                        <FaIcon className="fas fa-times text-xs" />
                                     </button>
                                     <button onClick={handleApprove} disabled={isSubmitting} className="w-9 h-9 flex items-center justify-center text-emerald-600 bg-emerald-50/50 backdrop-blur-md rounded-xl border border-emerald-200/50 active:bg-emerald-100 disabled:opacity-40 active:scale-95 transition-all">
-                                        <i className="fas fa-check text-xs"></i>
+                                        <FaIcon className="fas fa-check text-xs" />
                                     </button>
                                 </>
                             ) : (
@@ -958,12 +959,12 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                 {isReturned && (
                     <div className="mx-4 mb-2 bg-indigo-50 border border-indigo-200 rounded-2xl px-4 py-3 flex flex-col gap-2">
                         <div className="flex items-center gap-3">
-                            <i className="fas fa-rotate-left text-indigo-600 shrink-0" />
+                            <FaIcon className="fas fa-rotate-left text-indigo-600 shrink-0"  />
                             <div className="flex-1 min-w-0">
                                 <span className="text-indigo-800 font-black text-sm block">Draft bị trả lại — Approver đã điều chỉnh</span>
                                 {returnReason && (
                                     <div className="flex items-start gap-1.5 mt-1">
-                                        <i className="fas fa-comment-dots text-indigo-400 text-xs mt-0.5 shrink-0" />
+                                        <FaIcon className="fas fa-comment-dots text-indigo-400 text-xs mt-0.5 shrink-0"  />
                                         <span className="text-indigo-700 text-xs font-medium italic">"{returnReason}"</span>
                                     </div>
                                 )}
@@ -973,12 +974,12 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                                 disabled={isSubmitting || Object.values(orderQuantities).every((v: any) => !v.air && !v.sea)}
                                 className="shrink-0 bg-indigo-600/90 hover:bg-indigo-600 disabled:opacity-40 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95 backdrop-blur-sm border border-indigo-400/30"
                             >
-                                {isSubmitting ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-paper-plane" />}
+                                {isSubmitting ? <FaIcon className="fas fa-spinner fa-spin"  /> : <FaIcon className="fas fa-paper-plane"  />}
                                 Gửi lại
                             </button>
                         </div>
                         <div className="flex items-center gap-1.5 text-[11px] text-indigo-500 bg-indigo-100/60 rounded-lg px-3 py-1.5">
-                            <i className="fas fa-circle-info text-indigo-400" />
+                            <FaIcon className="fas fa-circle-info text-indigo-400"  />
                             Số lượng đặt hàng đã được cập nhật theo điều chỉnh của approver. Xem lại, sửa nếu cần rồi nhấn Gửi lại.
                         </div>
                     </div>
@@ -987,7 +988,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                 {/* ─── Lock banner ─── */}
                 {isLocked && (
                     <div className="mx-4 mb-2 flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3">
-                        <i className="fas fa-lock text-emerald-600" />
+                        <FaIcon className="fas fa-lock text-emerald-600"  />
                         <span className="text-emerald-700 font-black text-sm">Draft đã được phê duyệt và khóa. Liên hệ approver để mở khóa chỉnh sửa.</span>
                         <span className="ml-auto text-emerald-500 text-xs font-medium">{approvalRequest?.draft_name}</span>
                     </div>
@@ -999,7 +1000,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                     <div className="mobile-card-grid pb-4">
                         {paginatedData.length === 0 ? (
                             <div className="text-center py-12 text-slate-400">
-                                <i className="fas fa-box-open text-3xl mb-3 block" />
+                                <FaIcon className="fas fa-box-open text-3xl mb-3 block"  />
                                 <p className="font-bold">Không có dữ liệu</p>
                             </div>
                         ) : paginatedData.map((item, idx) => {
@@ -1067,7 +1068,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                                     <div className="grid grid-cols-2 gap-px bg-slate-100 border-t border-slate-100">
                                         <div className="bg-rose-50/80 px-3 py-2.5">
                                             <div className="text-[9px] font-black text-rose-500 uppercase mb-1 flex items-center gap-1">
-                                                <i className="fas fa-plane-up text-[8px]" />Air
+                                                <FaIcon className="fas fa-plane-up text-[8px]"  />Air
                                             </div>
                                             <input
                                                 type="number"
@@ -1084,7 +1085,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                                         </div>
                                         <div className="bg-blue-50/80 px-3 py-2.5">
                                             <div className="text-[9px] font-black text-blue-500 uppercase mb-1 flex items-center gap-1">
-                                                <i className="fas fa-ship text-[8px]" />Sea
+                                                <FaIcon className="fas fa-ship text-[8px]"  />Sea
                                             </div>
                                             <input
                                                 type="number"
@@ -1168,7 +1169,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                                                 <DebtStatusBadge item={item} />
                                                 {item.computed?.warnings?.find(w => w.code === 'STK_GAP') && (
                                                     <span className="text-xs font-black px-1.5 py-0.5 rounded uppercase bg-rose-600 text-white border border-rose-700 shadow-sm animate-pulse flex items-center gap-1 cursor-help" title={item.computed.warnings.find(w => w.code === 'STK_GAP')?.message}>
-                                                        <i className="fas fa-clock-rotate-left text-[10px]" />
+                                                        <FaIcon className="fas fa-clock-rotate-left text-[10px]"  />
                                                         Gap: {item.computed.warnings.find(w => w.code === 'STK_GAP')?.message.split(': ')[1].split(' ngày')[0]}d
                                                     </span>
                                                 )}
@@ -1216,7 +1217,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                                                                 : 'bg-emerald-100 text-emerald-700 border-emerald-200';
                                                         return (
                                                             <div className={`px-2 py-0.5 rounded-md border font-black text-xs text-center shadow-sm flex items-center gap-1 transition-all hover:scale-105 active:scale-95 cursor-help ${colorClass}`} title={`MOS tính cả hàng về & BO: ${effMos === 99 ? '∞' : effMos.toFixed(1)}M`}>
-                                                                <i className={`fas ${effMos < 1.0 ? 'fa-triangle-exclamation' : 'fa-hourglass-half'} text-[10px] opacity-70`} />
+                                                                <FaIcon className={`fas ${effMos < 1.0 ? 'fa-triangle-exclamation' : 'fa-hourglass-half'} text-[10px] opacity-70`}  />
                                                                 {demandMonthly <= 0 ? '∞' : `${item.computed!.mos?.toFixed(1)}M`}
                                                             </div>
                                                         );
@@ -1241,7 +1242,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                                                 
                                                 {(item.TotalPO || 0) > 0 && (
                                                     <div className="inline-flex items-center gap-1 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 shadow-sm" title="Tổng PO Pipeline">
-                                                        <i className="fas fa-ship text-indigo-400 text-[9px]" />
+                                                        <FaIcon className="fas fa-ship text-indigo-400 text-[9px]"  />
                                                         <span className="text-[10px] font-black text-indigo-600">PO: {(item.TotalPO || 0).toLocaleString()}</span>
                                                     </div>
                                                 )}
@@ -1314,7 +1315,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                                                             : 'text-blue-600 bg-blue-50 border-blue-100 hover:bg-blue-100'
                                                     }`}
                                                 >
-                                                    <i className={`fas ${item.computed?.warnings?.some(w => w.code === 'TREND_DECLINE') ? 'fa-triangle-exclamation' : 'fa-lightbulb'} mr-1.5`} />
+                                                    <FaIcon className={`fas ${item.computed?.warnings?.some(w => w.code === 'TREND_DECLINE') ? 'fa-triangle-exclamation' : 'fa-lightbulb'} mr-1.5`} />
                                                     <span className="opacity-80 uppercase tracking-tight mr-1">
                                                         {item.computed?.warnings?.some(w => w.code === 'TREND_DECLINE') ? 'Thận trọng: ' : ''}
                                                     </span>
@@ -1334,10 +1335,10 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                                                 </div>
                                             )}
                                             {item.computed?.transfer && item.computed.transfer.transferNBtoBB > 0 && (
-                                                <div className="mt-1 flex justify-center"><span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded uppercase border border-amber-200" title="Chuyển từ NB sang BB">NB <i className="fas fa-arrow-right mx-0.5"></i> BB: {item.computed.transfer.transferNBtoBB}</span></div>
+                                                <div className="mt-1 flex justify-center"><span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded uppercase border border-amber-200" title="Chuyển từ NB sang BB">NB <FaIcon className="fas fa-arrow-right mx-0.5" /> BB: {item.computed.transfer.transferNBtoBB}</span></div>
                                             )}
                                             {item.computed?.transfer && item.computed.transfer.transferBBtoNB > 0 && (
-                                                <div className="mt-1 flex justify-center"><span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded uppercase border border-amber-200" title="Chuyển từ BB sang NB">BB <i className="fas fa-arrow-right mx-0.5"></i> NB: {item.computed.transfer.transferBBtoNB}</span></div>
+                                                <div className="mt-1 flex justify-center"><span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded uppercase border border-amber-200" title="Chuyển từ BB sang NB">BB <FaIcon className="fas fa-arrow-right mx-0.5" /> NB: {item.computed.transfer.transferBBtoNB}</span></div>
                                             )}
                                         </td>
                                         <td className="px-4 py-3 border-b border-slate-50 hidden xl:table-cell"><textarea value={orderNotes[item.ItemCode] || ''} onChange={e => setOrderNotes(p => ({ ...p, [item.ItemCode]: e.target.value }))} className="w-full text-xs font-bold text-slate-600 bg-slate-50 p-2 rounded-xl border border-slate-200 outline-none focus:bg-white focus:border-blue-300 resize-none h-10" placeholder="..." /></td>
@@ -1365,7 +1366,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                         <span className="text-slate-400 whitespace-nowrap">{t('common_total')}: <span className="text-slate-700">{filteredData.length}</span></span>
                     </div>
                     <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pb-2 sm:pb-0 max-w-full">
-                        <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="pagination-pill text-slate-600 shrink-0"><i className="fas fa-chevron-left text-[10px]"></i></button>
+                        <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="pagination-pill text-slate-600 shrink-0"><FaIcon className="fas fa-chevron-left text-[10px]" /></button>
                         {[...Array(totalPages)].map((_, i) => {
                             const page = i + 1;
                             if (totalPages > 5 && Math.abs(currentPage - page) > 1 && page !== 1 && page !== totalPages) {
@@ -1374,7 +1375,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                             }
                             return <button key={i} onClick={() => setCurrentPage(page)} className={`pagination-pill shrink-0 ${currentPage === page ? 'active' : 'text-slate-600'}`}>{page}</button>;
                         })}
-                        <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0} className="pagination-pill text-slate-600 shrink-0"><i className="fas fa-chevron-right text-[10px]"></i></button>
+                        <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0} className="pagination-pill text-slate-600 shrink-0"><FaIcon className="fas fa-chevron-right text-[10px]" /></button>
                     </div>
                 </div>
             </div >
@@ -1389,7 +1390,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                     
                     <div className="bg-white rounded-3xl shadow-2xl border-2 border-amber-200 p-8 max-w-lg w-full relative animate-[scaleIn_0.2s_ease-out]">
                         <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-3xl mb-6 mx-auto">
-                            <i className="fas fa-triangle-exclamation"></i>
+                            <FaIcon className="fas fa-triangle-exclamation" />
                         </div>
                         <Typography variant="h2" className="text-center text-slate-900 mb-2">Kiểm tra rủi ro</Typography>
                         <Typography variant="body" className="text-center text-slate-500 mb-6 block">
@@ -1432,7 +1433,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                                     <div className="flex flex-col text-right pt-2 border-t border-slate-200/50">
                                         <span className="text-[10px] font-black text-slate-400 uppercase">Xu hướng (Slope)</span>
                                         <div className={`text-sm font-black ${slope < -1 ? 'text-rose-600' : slope > 1 ? 'text-emerald-600' : 'text-slate-600'}`}>
-                                            <i className={`fas ${slope < -1 ? 'fa-arrow-trend-down' : slope > 1 ? 'fa-arrow-trend-up' : 'fa-minus'} mr-1`}></i>
+                                            <FaIcon className={`fas ${slope < -1 ? 'fa-arrow-trend-down' : slope > 1 ? 'fa-arrow-trend-up' : 'fa-minus'} mr-1`} />
                                             {slope.toFixed(2)}
                                         </div>
                                     </div>
@@ -1476,7 +1477,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                                         w.type === 'Warning' ? 'bg-amber-100' :
                                         'bg-blue-100'
                                     }`}>
-                                        <i className={`fas ${w.type === 'Critical' ? 'fa-fire' : 'fa-triangle-exclamation'} text-xs`}></i>
+                                        <FaIcon className={`fas ${w.type === 'Critical' ? 'fa-fire' : 'fa-triangle-exclamation'} text-xs`} />
                                     </div>
                                     <div>
                                         <div className="text-[10px] font-black uppercase tracking-wider opacity-60">{w.code}</div>
@@ -1559,11 +1560,11 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                         {/* Premium Header */}
                         <div className="bg-gradient-professional px-6 py-5 border-b border-white/10 flex justify-between items-center z-10">
                             <div className="flex items-center gap-3 text-white">
-                                <i className="fas fa-paper-plane text-xl text-emerald-300"></i>
+                                <FaIcon className="fas fa-paper-plane text-xl text-emerald-300" />
                                 <Typography variant="h2" className="text-white !text-xl m-0">Gửi Phê duyệt</Typography>
                             </div>
                             <button onClick={() => setIsSubmitModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/10 text-white hover:bg-rose-500 transition-colors">
-                                <i className="fas fa-times"></i>
+                                <FaIcon className="fas fa-times" />
                             </button>
                         </div>
                         
@@ -1615,7 +1616,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                                     disabled={isSubmitting || !submitDraftName.trim() || !selectedWorkflowId}
                                     className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black py-3.5 rounded-2xl text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.98]"
                                 >
-                                    {isSubmitting ? <><i className="fas fa-circle-notch fa-spin" /> {submitProgress?.step || 'Đang xử lý...'}</> : <><i className="fas fa-paper-plane" /> Xác nhận gửi</>}
+                                    {isSubmitting ? <><FaIcon className="fas fa-circle-notch fa-spin"  /> {submitProgress?.step || 'Đang xử lý...'}</> : <><FaIcon className="fas fa-paper-plane"  /> Xác nhận gửi</>}
                                 </button>
                             </div>
                         </div>

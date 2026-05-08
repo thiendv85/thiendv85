@@ -5,6 +5,7 @@ import { supabase } from '../utils/supabase';
 import { useLanguage } from '../utils/i18n';
 import { Typography } from './Typography';
 
+import { FaIcon } from './Icon';
 interface SimulationLabProps {
     item: InventoryItem;
 }
@@ -225,7 +226,7 @@ export const SimulationLab = ({ item }: SimulationLabProps) => {
                 <div className="flex items-center gap-4">
                     <Typography variant="h3" className="text-slate-800 flex items-center gap-3">
                         <div className="w-9 h-9 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shadow-glass-sm border border-indigo-100">
-                            <i className="fas fa-flask text-xs"></i>
+                            <FaIcon className="fas fa-flask text-xs" />
                         </div>
                         {t('sim_title') || 'WHAT-IF LAB'}
                     </Typography>
@@ -246,7 +247,7 @@ export const SimulationLab = ({ item }: SimulationLabProps) => {
                         title="Copy Report"
                         className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-900 transition-all border border-transparent hover:border-slate-200"
                     >
-                        <i className="fas fa-copy text-xs"></i>
+                        <FaIcon className="fas fa-copy text-xs" />
                     </button>
                     <div className="flex bg-slate-100/50 backdrop-blur-sm p-1 rounded-xl border border-slate-200 shadow-inner scale-90 origin-right ml-1">
                         <button onClick={() => setMode('BASIC')} className={`px-4 py-1.5 text-2xs font-bold rounded-lg uppercase tracking-wider transition-all ${mode === 'BASIC' ? 'bg-white shadow-soft text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}>{t('sim_basic') || 'CƠ BẢN'}</button>
@@ -300,7 +301,7 @@ export const SimulationLab = ({ item }: SimulationLabProps) => {
                                 </div>
                             </div>
                             <button onClick={handleSmartForecast} disabled={isForecasting} className="w-full h-10 bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-xl font-bold text-[9px] uppercase tracking-[0.1em] flex items-center justify-center gap-2 hover:shadow-glass hover:scale-[1.01] transition-all disabled:opacity-60 border border-emerald-400/30">
-                                {isForecasting ? <i className="fas fa-circle-notch animate-spin"></i> : <i className="fas fa-robot text-sm"></i>}
+                                {isForecasting ? <FaIcon className="fas fa-circle-notch animate-spin" /> : <FaIcon className="fas fa-robot text-sm" />}
                                 <span>{isForecasting ? 'PROCESSING...' : 'AI FORECAST'}</span>
                             </button>
                         </div>
@@ -325,7 +326,7 @@ export const SimulationLab = ({ item }: SimulationLabProps) => {
                     <div className="bg-slate-50/30 rounded-2xl border border-slate-100/50 p-4 space-y-4">
                         <div className="flex justify-between items-center border-b border-slate-100 pb-2">
                             <Typography variant="label" className="text-slate-400 uppercase tracking-widest flex items-center gap-2 !text-[10px]">
-                                <i className="fas fa-calculator text-blue-400"></i> Results
+                                <FaIcon className="fas fa-calculator text-blue-400" /> Results
                             </Typography>
                             {baseline.stockoutRisk && <Typography variant="mono-sm" className="bg-rose-50 text-rose-600 px-2 py-0.5 rounded-lg font-bold border border-rose-100 shadow-sm animate-pulse !text-[9px]">RISK</Typography>}
                         </div>
@@ -338,7 +339,7 @@ export const SimulationLab = ({ item }: SimulationLabProps) => {
                     <div className="grid grid-cols-3 gap-3">
                         <div className={`rounded-2xl p-4 border transition-all flex flex-col justify-between h-24 relative overflow-hidden ${baseline.mos < 1 ? 'bg-rose-50/30 border-rose-100' : 'bg-slate-50/50 border-slate-100'}`}>
                             <Typography variant="label" className="text-slate-400 uppercase tracking-widest flex items-center gap-2 !text-[9px]">
-                                <i className="fas fa-hourglass-half"></i> MOS
+                                <FaIcon className="fas fa-hourglass-half" /> MOS
                             </Typography>
                             <div className="flex items-baseline gap-1.5">
                                 <Typography variant="h3" className={`${baseline.mos < 1 ? 'text-rose-600' : baseline.mos < 2 ? 'text-amber-500' : 'text-emerald-600'}`}>
@@ -350,7 +351,7 @@ export const SimulationLab = ({ item }: SimulationLabProps) => {
 
                         <div className={`rounded-2xl p-4 border transition-all flex flex-col justify-between h-24 relative overflow-hidden ${baseline.stockAtDelivery < 0 ? 'bg-rose-50/30 border-rose-100' : 'bg-slate-50/50 border-slate-100'}`}>
                             <Typography variant="label" className="text-slate-400 uppercase tracking-widest flex items-center gap-2 !text-[9px]">
-                                <i className="fas fa-calendar-check mt-[1px]"></i> @ ETA
+                                <FaIcon className="fas fa-calendar-check mt-[1px]" /> @ ETA
                             </Typography>
                             <div className="flex items-baseline gap-1.5">
                                 <Typography variant="h3" className={`${baseline.stockAtDelivery < 0 ? 'text-rose-600' : 'text-slate-700'}`}>
@@ -362,7 +363,7 @@ export const SimulationLab = ({ item }: SimulationLabProps) => {
 
                         <div className="rounded-2xl p-4 border bg-white/50 border-slate-100 shadow-glass-sm flex flex-col justify-between h-24 relative overflow-hidden group">
                             <Typography variant="label" className="text-slate-400 uppercase tracking-widest flex items-center gap-2 !text-[9px]">
-                                <i className="fas fa-wallet text-indigo-400"></i> Capital
+                                <FaIcon className="fas fa-wallet text-indigo-400" /> Capital
                             </Typography>
                             <div className="flex items-baseline gap-1">
                                 <Typography variant="h3" className="text-indigo-600 tracking-tighter">

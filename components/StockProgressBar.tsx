@@ -4,6 +4,7 @@ import { BackorderDetail } from '../types/inventory';
 import { BackorderPopup } from './BackorderPopup';
 import { Typography } from './Typography';
 
+import { FaIcon } from './Icon';
 // Mock i18n for demo
 const useLanguage = () => ({
   t: (key: string) => ({
@@ -187,7 +188,7 @@ const ActionTag: React.FC<{
       variant="label"
       className={`${config.className} border px-2 py-0.5 rounded-md flex items-center gap-1.5 transition-all duration-300 text-xs whitespace-nowrap font-black`}
     >
-      {config.icon && <i className={`fas ${config.icon} text-[10px]`}></i>}
+      {config.icon && <FaIcon className={`fas ${config.icon} text-[10px]`} />}
       {config.text}
     </Typography>
   );
@@ -337,7 +338,7 @@ export const StockProgressBar: React.FC<StockProgressBarProps> = (props) => {
         {/* Action tag — full in normal, mini badge in compact */}
         {compact ? (
           <span className={`inline-flex items-center gap-0.5 border px-1.5 py-0 rounded text-[9px] font-black leading-4 ${COMPACT_TAG[actionTagType].cls}`}>
-            <i className={`fas ${COMPACT_TAG[actionTagType].icon} text-[8px]`} />
+            <FaIcon className={`fas ${COMPACT_TAG[actionTagType].icon} text-[8px]`}  />
             {COMPACT_TAG[actionTagType].label}
             {actionTagType === 'ORDER' && shortageQty > 0 && <span>:{shortageQty}</span>}
           </span>
@@ -360,7 +361,7 @@ export const StockProgressBar: React.FC<StockProgressBarProps> = (props) => {
                   className="text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md flex items-center gap-1.5 border border-blue-100 font-bold"
                   title="Projected Total (Net)"
                 >
-                  <i className="fas fa-arrow-trend-up text-2xs"></i>
+                  <FaIcon className="fas fa-arrow-trend-up text-2xs" />
                   <span>{Math.max(0, metrics.projectedPosition).toLocaleString()}</span>
                 </Typography>
                 <Typography variant="body-sm" className="text-slate-300 !font-light">•</Typography>
@@ -369,7 +370,7 @@ export const StockProgressBar: React.FC<StockProgressBarProps> = (props) => {
 
 
             <Typography variant="body-sm" className="flex items-center gap-1 text-slate-500 font-semibold" title="Total PO Pipeline">
-              <i className="fas fa-truck text-2xs text-blue-500"></i>
+              <FaIcon className="fas fa-truck text-2xs text-blue-500" />
               <span>{onOrder.toLocaleString()}</span>
 
             </Typography>
@@ -379,7 +380,7 @@ export const StockProgressBar: React.FC<StockProgressBarProps> = (props) => {
                 <Typography variant="body-sm" className="text-slate-300 !font-light">•</Typography>
                 <BackorderPopup items={breakdown}>
                   <Typography variant="body-sm" className="text-rose-600 !font-bold flex items-center gap-1.5 cursor-help hover:scale-105 transition-transform" title="Backorder Quantity (Hover for details)">
-                    <i className="fas fa-clock text-2xs"></i>
+                    <FaIcon className="fas fa-clock text-2xs" />
                     <span className="border-b border-dashed border-rose-300">{backorder}</span>
                     {hasDraft && (
                       <Typography

@@ -6,6 +6,7 @@ import { ApprovalStatusBadge } from './ApprovalStatusBadge';
 import { ApprovalRequest, ApprovalStatus } from '../types/inventory';
 import { useAuth } from '../utils/authContext';
 
+import { FaIcon } from './Icon';
 interface CloudDraftModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -190,11 +191,11 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
             <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-[scaleIn_0.2s_ease-out]">
                 <div className="bg-gradient-professional px-6 py-5 border-b border-white/10 flex justify-between items-center z-10">
                     <div className="flex items-center gap-3 text-white">
-                        <i className="fas fa-cloud text-xl text-blue-300"></i>
+                        <FaIcon className="fas fa-cloud text-xl text-blue-300" />
                         <Typography variant="h2" className="text-white !text-xl">Cloud Drafts</Typography>
                     </div>
                     <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/10 text-white hover:bg-rose-500 transition-colors">
-                        <i className="fas fa-times"></i>
+                        <FaIcon className="fas fa-times" />
                     </button>
                 </div>
 
@@ -203,7 +204,7 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
                     {TABS.map(t => (
                         <button key={t.id} onClick={() => setActiveTab(t.id)}
                             className={`py-3 text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 ${activeTab === t.id ? 'bg-white border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'} ${t.id === 'RETURNED' && returnedRequests.length > 0 ? 'text-indigo-500' : ''}`}>
-                            <i className={`fas ${t.icon} text-[10px]`}></i>
+                            <FaIcon className={`fas ${t.icon} text-[10px]`} />
                             {t.label}
                             {t.id === 'RETURNED' && returnedRequests.length > 0 && (
                                 <span className="bg-indigo-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">{returnedRequests.length}</span>
@@ -236,7 +237,7 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
                                 </select>
                             </div>
                             <div className="relative mb-4">
-                                <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                                <FaIcon className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs" />
                                 <input type="text" placeholder="Tìm tên dự thảo..." value={filterSearch}
                                     onChange={e => setFilterSearch(e.target.value)}
                                     className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 py-2 text-xs font-bold outline-none focus:border-blue-500" />
@@ -246,17 +247,17 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
                                     Dự thảo của tôi ({filteredDrafts.length})
                                 </Typography>
                                 <button onClick={fetchDrafts} disabled={isLoading} className="text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1">
-                                    <i className={`fas fa-sync-alt ${isLoading ? 'fa-spin' : ''}`}></i> Làm mới
+                                    <FaIcon className={`fas fa-sync-alt ${isLoading ? 'fa-spin' : ''}`} /> Làm mới
                                 </button>
                             </div>
                             {isLoading ? (
                                 <div className="flex flex-col items-center justify-center py-12 text-blue-500">
-                                    <i className="fas fa-spinner fa-spin text-3xl mb-2"></i>
+                                    <FaIcon className="fas fa-spinner fa-spin text-3xl mb-2" />
                                     <span className="text-xs font-bold uppercase tracking-widest">Đang tải...</span>
                                 </div>
                             ) : filteredDrafts.length === 0 ? (
                                 <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-2xl border border-slate-100">
-                                    <i className="fas fa-folder-open text-3xl mb-3 text-slate-300"></i>
+                                    <FaIcon className="fas fa-folder-open text-3xl mb-3 text-slate-300" />
                                     <Typography variant="body" className="block text-xs">Không tìm thấy dự thảo phù hợp.</Typography>
                                 </div>
                             ) : (
@@ -277,20 +278,20 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
                                                         <Typography variant="body" className="font-black text-slate-800 truncate text-sm">{n}</Typography>
                                                         {approvalStatusMap[n] && <ApprovalStatusBadge status={approvalStatusMap[n]} size="sm" />}
                                                     </div>
-                                                    <Typography variant="label" className="text-slate-400 block text-[10px]"><i className="far fa-clock"></i> {new Date(d.updated_at).toLocaleString('vi-VN')}</Typography>
+                                                    <Typography variant="label" className="text-slate-400 block text-[10px]"><FaIcon className="far fa-clock" /> {new Date(d.updated_at).toLocaleString('vi-VN')}</Typography>
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     {(!approvalStatusMap[n] && onWaitAndSubmit) && (
                                                         <button onClick={() => handleLoadAndSubmit(d.id, n)}
                                                             className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all shadow-sm shrink-0"
                                                             title="Gửi Phê Duyệt">
-                                                            <i className="fas fa-paper-plane"></i>
+                                                            <FaIcon className="fas fa-paper-plane" />
                                                         </button>
                                                     )}
                                                     <button onClick={() => handleLoadCloud(d.id, n)}
                                                         className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm shrink-0"
                                                         title="Tải Xuống">
-                                                        <i className="fas fa-download"></i>
+                                                        <FaIcon className="fas fa-download" />
                                                     </button>
                                                 </div>
                                             </div>
@@ -305,7 +306,7 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
                     {activeTab === 'INBOX' && (
                         <div className="flex flex-col h-full min-h-0">
                             <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 leading-relaxed">
-                                <i className="fas fa-clipboard-check mr-1.5"></i>
+                                <FaIcon className="fas fa-clipboard-check mr-1.5" />
                                 Các đơn đang chờ phê duyệt. Nhấn "Mở Đơn" để kiểm tra và tiến hành duyệt hoặc trả lại.
                             </div>
                             <div className="flex justify-between items-center mb-3">
@@ -313,17 +314,17 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
                                     Đơn cần duyệt ({pendingRequests.length})
                                 </Typography>
                                 <button onClick={fetchInbox} disabled={isLoading} className="text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1">
-                                    <i className={`fas fa-sync-alt ${isLoading ? 'fa-spin' : ''}`}></i> Làm mới
+                                    <FaIcon className={`fas fa-sync-alt ${isLoading ? 'fa-spin' : ''}`} /> Làm mới
                                 </button>
                             </div>
                             {isLoading ? (
                                 <div className="flex flex-col items-center justify-center py-12 text-blue-500">
-                                    <i className="fas fa-spinner fa-spin text-3xl mb-2"></i>
+                                    <FaIcon className="fas fa-spinner fa-spin text-3xl mb-2" />
                                     <span className="text-xs font-bold uppercase tracking-widest">Đang tải...</span>
                                 </div>
                             ) : pendingRequests.length === 0 ? (
                                 <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-2xl border border-slate-100">
-                                    <i className="fas fa-check-double text-3xl mb-3 text-emerald-300"></i>
+                                    <FaIcon className="fas fa-check-double text-3xl mb-3 text-emerald-300" />
                                     <Typography variant="body" className="block text-xs">Bạn đã duyệt hết đơn trong hàng chờ!</Typography>
                                 </div>
                             ) : (
@@ -340,14 +341,14 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
                                                             <Typography variant="body" className="font-black text-slate-800 truncate text-sm">{req.draft_name}</Typography>
                                                         </div>
                                                         <div className="flex items-center gap-3 text-[10px] text-slate-500">
-                                                            <span><i className="fas fa-box mr-1"></i>{itemCount} mã hàng</span>
-                                                            <span><i className="far fa-clock mr-1"></i>{new Date(req.submitted_at).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                                            <span><FaIcon className="fas fa-box mr-1" />{itemCount} mã hàng</span>
+                                                            <span><FaIcon className="far fa-clock mr-1" />{new Date(req.submitted_at).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                                                             {req.brand && <span className="font-bold uppercase tracking-wider">{req.brand}</span>}
                                                         </div>
                                                     </div>
                                                     <button onClick={() => handleLoadReturned(req)}
                                                         className="shrink-0 bg-rose-500 hover:bg-rose-600 text-white px-3 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-md shadow-rose-200">
-                                                        <i className="fas fa-external-link-alt"></i> Mở Đơn
+                                                        <FaIcon className="fas fa-external-link-alt" /> Mở Đơn
                                                     </button>
                                                 </div>
                                             </div>
@@ -362,7 +363,7 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
                     {activeTab === 'RETURNED' && (
                         <div className="flex flex-col h-full min-h-0">
                             <div className="mb-4 p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-700 leading-relaxed">
-                                <i className="fas fa-info-circle mr-1.5"></i>
+                                <FaIcon className="fas fa-info-circle mr-1.5" />
                                 Các đơn bị approver trả lại để điều chỉnh. Tải về, sửa và gửi lại mà không cần lưu nháp.
                             </div>
                             <div className="flex justify-between items-center mb-3">
@@ -370,17 +371,17 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
                                     Đơn cần điều chỉnh ({returnedRequests.length})
                                 </Typography>
                                 <button onClick={fetchReturned} disabled={isLoading} className="text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1">
-                                    <i className={`fas fa-sync-alt ${isLoading ? 'fa-spin' : ''}`}></i> Làm mới
+                                    <FaIcon className={`fas fa-sync-alt ${isLoading ? 'fa-spin' : ''}`} /> Làm mới
                                 </button>
                             </div>
                             {isLoading ? (
                                 <div className="flex flex-col items-center justify-center py-12 text-blue-500">
-                                    <i className="fas fa-spinner fa-spin text-3xl mb-2"></i>
+                                    <FaIcon className="fas fa-spinner fa-spin text-3xl mb-2" />
                                     <span className="text-xs font-bold uppercase tracking-widest">Đang tải...</span>
                                 </div>
                             ) : returnedRequests.length === 0 ? (
                                 <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-2xl border border-slate-100">
-                                    <i className="fas fa-check-circle text-3xl mb-3 text-emerald-300"></i>
+                                    <FaIcon className="fas fa-check-circle text-3xl mb-3 text-emerald-300" />
                                     <Typography variant="body" className="block text-xs">Không có đơn nào bị trả lại.</Typography>
                                 </div>
                             ) : (
@@ -397,14 +398,14 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
                                                             <Typography variant="body" className="font-black text-slate-800 truncate text-sm">{req.draft_name}</Typography>
                                                         </div>
                                                         <div className="flex items-center gap-3 text-[10px] text-slate-500">
-                                                            <span><i className="fas fa-box mr-1"></i>{itemCount} mã hàng</span>
-                                                            <span><i className="far fa-clock mr-1"></i>{new Date(req.submitted_at).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                                            <span><FaIcon className="fas fa-box mr-1" />{itemCount} mã hàng</span>
+                                                            <span><FaIcon className="far fa-clock mr-1" />{new Date(req.submitted_at).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                                                             {req.brand && <span className="font-bold">{req.brand}</span>}
                                                         </div>
                                                     </div>
                                                     <button onClick={() => handleLoadReturned(req)}
                                                         className="shrink-0 bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all">
-                                                        <i className="fas fa-pencil"></i> Tải & Sửa
+                                                        <FaIcon className="fas fa-pencil" /> Tải & Sửa
                                                     </button>
                                                 </div>
                                             </div>
@@ -435,21 +436,21 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
                                     <div className="text-lg font-black text-blue-700 tracking-tight font-mono">{generatedDraftName}</div>
                                 </div>
                                 <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
-                                    <i className="fas fa-magic"></i>
+                                    <FaIcon className="fas fa-magic" />
                                 </div>
                             </div>
                             <Typography variant="label" className="text-slate-400 block mt-1 leading-tight text-[11px] px-1">
-                                <i className="fas fa-info-circle mr-1"></i> Mã dự thảo được sinh tự động dựa trên tên và ngày lập.
+                                <FaIcon className="fas fa-info-circle mr-1" /> Mã dự thảo được sinh tự động dựa trên tên và ngày lập.
                             </Typography>
                             <div className="grid grid-cols-2 gap-3 mt-2">
                                 <button onClick={() => handleSave(false)} disabled={isLoading}
                                     className="bg-slate-100/80 backdrop-blur-md hover:bg-slate-200/80 text-slate-600 font-black py-4 rounded-2xl uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 text-[10px] border border-slate-200/50 shadow-sm">
-                                    {isLoading ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-file-pen"></i>}
+                                    {isLoading ? <FaIcon className="fas fa-spinner fa-spin" /> : <FaIcon className="fas fa-file-pen" />}
                                     Lưu Nháp
                                 </button>
                                 <button onClick={() => handleSave(true)} disabled={isLoading}
                                     className="bg-emerald-600/90 backdrop-blur-md hover:bg-emerald-600 text-white font-black py-4 rounded-2xl uppercase tracking-widest transition-all shadow-xl shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-2 text-[10px] border border-emerald-400/30">
-                                    {isLoading ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-paper-plane"></i>}
+                                    {isLoading ? <FaIcon className="fas fa-spinner fa-spin" /> : <FaIcon className="fas fa-paper-plane" />}
                                     Lưu & Gửi Duyệt
                                 </button>
                             </div>

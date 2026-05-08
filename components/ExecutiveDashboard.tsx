@@ -14,6 +14,7 @@ import { ConsolidatedStockCell } from './ConsolidatedStockCell';
 import { Typography } from './Typography';
 import { TrendBadge } from './TrendBadge';
 
+import { FaIcon } from './Icon';
 // Inline: StockOutCountdown
 const StockOutCountdown = React.memo(({ current, onOrder, dailyDemand, backorder }: { current: number; onOrder: number; dailyDemand: number; backorder: number }) => {
     const available = Math.max(0, current - backorder);
@@ -90,7 +91,7 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-blue-200 transition-colors">
-                        <i className="fas fa-arrow-down-wide-short text-slate-400 text-xs"></i>
+                        <FaIcon className="fas fa-arrow-down-wide-short text-slate-400 text-xs" />
                         <select
                             value={sortKey}
                             onChange={(e) => setSortKey(e.target.value)}
@@ -109,12 +110,12 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
 
                     {!isMobile && (
                         <button onClick={() => exportToCSV(sortedList, 'export.csv', exportOptions)} className="bg-white text-slate-700 hover:bg-slate-50 hover:text-blue-600 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-slate-200 transition-all flex items-center gap-2 shadow-sm">
-                            <i className="fas fa-file-export"></i> {t('common_export')}
+                            <FaIcon className="fas fa-file-export" /> {t('common_export')}
                         </button>
                     )}
 
                     <div className="relative group w-full md:w-72">
-                        <i className="fas fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm group-focus-within:text-blue-500 transition-colors"></i>
+                        <FaIcon className="fas fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm group-focus-within:text-blue-500 transition-colors" />
                         <input 
                             type="text" 
                             placeholder={t('filter_search')} 
@@ -247,7 +248,7 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
                                 <th className="px-4 py-4 text-center border-b border-slate-200/60 min-w-[80px]">RUNWAY</th>
                                 <th className="px-4 py-4 text-center border-b border-slate-200/60">{t('ord_th_dealer_cst')}</th>
                                 <th className="px-4 py-4 text-right border-b border-slate-200/60">{t('th_stock_val')}</th>
-                                <th className="px-4 py-4 text-center sticky right-0 z-40 bg-white border-b border-slate-200/60 border-l border-slate-200"><i className="fas fa-gear"></i></th>
+                                <th className="px-4 py-4 text-center sticky right-0 z-40 bg-white border-b border-slate-200/60 border-l border-slate-200"><FaIcon className="fas fa-gear" /></th>
                             </tr>
                         </thead>
                         <tbody className="bg-white stagger-children">
@@ -341,7 +342,7 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
                                                 )}
                                                 {item.TotalPO > 0 && (
                                                     <div className="flex items-center gap-1 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100 tabular-nums">
-                                                        <i className="fas fa-ship text-indigo-400 text-[9px]"></i>
+                                                        <FaIcon className="fas fa-ship text-indigo-400 text-[9px]" />
                                                         <span className="text-[10px] font-black text-indigo-600">PO: {item.TotalPO.toLocaleString()}</span>
                                                     </div>
                                                 )}
@@ -369,7 +370,7 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
                                         <td className="px-4 py-3 text-right border-b border-slate-50">
                                             <Typography variant="body" className="font-bold text-slate-900 tabular-nums">{currencyFormatter.format(item.computed?.stockValue || 0)}</Typography>
                                         </td>
-                                        <td className="px-4 py-3 text-center sticky right-0 z-40 bg-white group-hover:bg-slate-50/80 border-b border-slate-50 border-l border-slate-200"><i className="fas fa-chevron-right text-slate-300 group-hover:text-blue-500 transition-colors"></i></td>
+                                        <td className="px-4 py-3 text-center sticky right-0 z-40 bg-white group-hover:bg-slate-50/80 border-b border-slate-50 border-l border-slate-200"><FaIcon className="fas fa-chevron-right text-slate-300 group-hover:text-blue-500 transition-colors" /></td>
                                     </tr>
                                 );
                             })}
@@ -391,7 +392,7 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
                     </Typography>
                 </div>
                 <div className="flex items-center gap-1 overflow-x-auto no-scrollbar max-w-full pb-1 sm:pb-0">
-                    <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="pagination-pill text-slate-600 shrink-0"><i className="fas fa-chevron-left text-[10px]"></i></button>
+                    <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="pagination-pill text-slate-600 shrink-0"><FaIcon className="fas fa-chevron-left text-[10px]" /></button>
                     {[...Array(totalPages)].map((_, i) => { 
                         const page = i + 1; 
                         if (totalPages > 5 && Math.abs(currentPage - page) > 1 && page !== 1 && page !== totalPages) { 
@@ -400,7 +401,7 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
                         } 
                         return <button key={i} onClick={() => setCurrentPage(page)} className={`pagination-pill shrink-0 tabular-nums ${currentPage === page ? 'active' : 'text-slate-600'}`}>{page}</button>; 
                     })}
-                    <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} className="pagination-pill text-slate-600 shrink-0"><i className="fas fa-chevron-right text-[10px]"></i></button>
+                    <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} className="pagination-pill text-slate-600 shrink-0"><FaIcon className="fas fa-chevron-right text-[10px]" /></button>
                 </div>
             </div>
         </div>

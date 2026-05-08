@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Typography } from './Typography';
 import { useLanguage } from '../utils/i18n';
 
+import { FaIcon } from './Icon';
 interface SalesHistoryChartProps {
     history: number[];
     forecast?: number;
@@ -332,7 +333,7 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
                         ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
                         : 'bg-rose-100 text-rose-700 border border-rose-200'
                         }`}>
-                        <i className={`fas fa-arrow-${trend.direction === 'up' ? 'up' : 'down'}`}></i>
+                        <FaIcon className={`fas fa-arrow-${trend.direction === 'up' ? 'up' : 'down'}`} />
                         {Math.abs(trend.change).toFixed(1)}%
                     </div>
                 )}
@@ -769,14 +770,14 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
             {/* Analytics Summary Table */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-glass-sm p-5">
                 <Typography variant="h3" className="text-slate-800 flex items-center gap-2 mb-4">
-                    <i className="fas fa-chart-line text-blue-600"></i>
+                    <FaIcon className="fas fa-chart-line text-blue-600" />
                     {t('sd_trend_analysis') || 'Phân tích xu hướng'}
                 </Typography>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div className="bg-gradient-to-br from-emerald-50 to-white p-4 rounded-2xl border border-emerald-100 shadow-glass-sm transition-all hover:shadow-glass hover:-translate-y-1">
                         <div className="flex items-center gap-2 mb-1.5">
-                            <i className={`fas fa-arrow-trend-${trendLine.slope > 0 ? 'up' : 'down'} text-base ${trendLine.slope > 0 ? 'text-emerald-600' : 'text-rose-600'}`}></i>
+                            <FaIcon className={`fas fa-arrow-trend-${trendLine.slope > 0 ? 'up' : 'down'} text-base ${trendLine.slope > 0 ? 'text-emerald-600' : 'text-rose-600'}`} />
                             <Typography variant="label" className="text-slate-500 uppercase tracking-tight">Xu hướng</Typography>
                         </div>
                         <Typography variant="h3" className={`${trendLine.slope > 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
@@ -791,7 +792,7 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
                     {volatility && (
                         <div className="bg-gradient-to-br from-amber-50 to-white p-4 rounded-2xl border border-amber-100 shadow-glass-sm transition-all hover:shadow-glass hover:-translate-y-1">
                             <div className="flex items-center gap-2 mb-1.5">
-                                <i className="fas fa-wave-square text-base text-amber-600"></i>
+                                <FaIcon className="fas fa-wave-square text-base text-amber-600" />
                                 <Typography variant="label" className="text-slate-500 uppercase tracking-tight">Độ biến động</Typography>
                             </div>
                             <Typography variant="h3" className="text-amber-700">
@@ -809,7 +810,7 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
                     {demandPattern && (
                         <div className="bg-gradient-to-br from-blue-50 to-white p-4 rounded-2xl border border-blue-100 shadow-glass-sm transition-all hover:shadow-glass hover:-translate-y-1">
                             <div className="flex items-center gap-2 mb-1.5">
-                                <i className="fas fa-chart-bar text-base text-blue-600"></i>
+                                <FaIcon className="fas fa-chart-bar text-base text-blue-600" />
                                 <Typography variant="label" className="text-slate-500 uppercase tracking-tight">Loại demand</Typography>
                             </div>
                             <Typography variant="h3" className="text-blue-700 uppercase">
@@ -825,7 +826,7 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
                     {seasonality && (
                         <div className="bg-gradient-to-br from-purple-50 to-white p-4 rounded-2xl border border-purple-100 shadow-glass-sm transition-all hover:shadow-glass hover:-translate-y-1">
                             <div className="flex items-center gap-2 mb-1.5">
-                                <i className="fas fa-calendar-alt text-base text-purple-600"></i>
+                                <FaIcon className="fas fa-calendar-alt text-base text-purple-600" />
                                 <Typography variant="label" className="text-slate-500 uppercase tracking-tight">Mùa vụ</Typography>
                             </div>
                             <Typography variant="h3" className="text-purple-700">
@@ -838,7 +839,7 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
                             </Typography>
                             {seasonality.approachingPeak !== null && (
                                 <Typography variant="body-sm" className="text-amber-600 font-bold mt-1.5 !text-[10px] flex items-center gap-1 animate-pulse">
-                                    <i className="fas fa-exclamation-triangle"></i>
+                                    <FaIcon className="fas fa-exclamation-triangle" />
                                     Sắp đến mùa cao điểm (Tháng {seasonality.approachingPeak + 1}) - Cần đặt hàng ngay!
                                 </Typography>
                             )}
@@ -848,7 +849,7 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
                     {/* Anomalies */}
                     <div className="bg-gradient-to-br from-rose-50 to-white p-4 rounded-2xl border border-rose-100 shadow-glass-sm transition-all hover:shadow-glass hover:-translate-y-1">
                         <div className="flex items-center gap-2 mb-1.5">
-                            <i className="fas fa-exclamation-triangle text-base text-rose-600"></i>
+                            <FaIcon className="fas fa-exclamation-triangle text-base text-rose-600" />
                             <Typography variant="label" className="text-slate-500 uppercase tracking-tight">Bất thường</Typography>
                         </div>
                         <Typography variant="h3" className="text-rose-700">
@@ -864,7 +865,7 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
                     {/* Average */}
                     <div className="bg-gradient-to-br from-indigo-50 to-white p-4 rounded-2xl border border-indigo-100 shadow-glass-sm transition-all hover:shadow-glass hover:-translate-y-1">
                         <div className="flex items-center gap-2 mb-1.5">
-                            <i className="fas fa-chart-line text-base text-indigo-600"></i>
+                            <FaIcon className="fas fa-chart-line text-base text-indigo-600" />
                             <Typography variant="label" className="text-slate-500 uppercase tracking-tight">Trung bình</Typography>
                         </div>
                         <Typography variant="h3" className="text-indigo-700">

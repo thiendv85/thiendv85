@@ -4,6 +4,7 @@ import { parseKittingCSV } from '../utils/csvParser';
 import { useLanguage } from '../utils/i18n';
 import { saveToCloudStorage, loadFromCloudStorage, verifyAdminPin } from '../utils/supabase';
 
+import { FaIcon } from './Icon';
 // Inline: RepairPackageMetrics
 const RepairPackageMetrics = ({ sets }: { sets: any[] }) => {
     const totalSets = sets.length;
@@ -27,7 +28,7 @@ const RepairPackageMetrics = ({ sets }: { sets: any[] }) => {
             {metrics.map(m => (
                 <div key={m.label} className="bg-white rounded-2xl border border-slate-200 p-4 flex items-center gap-3 shadow-sm">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${m.bg} shrink-0`}>
-                        <i className={`fas ${m.icon} ${m.color}`} />
+                        <FaIcon className={`fas ${m.icon} ${m.color}`}  />
                     </div>
                     <div>
                         <div className={`text-lg font-black ${m.color}`}>{m.value}</div>
@@ -412,11 +413,11 @@ export const RepairPackageOptimizer = ({
     if (!kittingDefs || kittingDefs.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[400px] bg-white rounded-2xl border-2 border-dashed border-slate-300 p-8 text-center animate-fadeIn">
-                <div className="w-20 h-20 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-6"><i className="fas fa-boxes-packing text-3xl"></i></div>
+                <div className="w-20 h-20 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-6"><FaIcon className="fas fa-boxes-packing text-3xl" /></div>
                 <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-2">Chưa có dữ liệu Gói phụ tùng</h3>
                 <p className="text-slate-500 max-w-md mb-8 text-base">Vui lòng tải lên file định nghĩa (CSV) để hệ thống tính toán khả năng sẵn sàng của các bộ linh kiện sửa chữa.</p>
                 <input type="file" ref={fileInputRef} className="hidden" accept=".csv" onChange={handleFileUpload} />
-                <button onClick={() => fileInputRef.current?.click()} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-blue-200 transition-all flex items-center gap-3"><i className="fas fa-upload"></i> {t('kit_upload_btn')}</button>
+                <button onClick={() => fileInputRef.current?.click()} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-blue-200 transition-all flex items-center gap-3"><FaIcon className="fas fa-upload" /> {t('kit_upload_btn')}</button>
             </div>
         );
     }
@@ -430,7 +431,7 @@ export const RepairPackageOptimizer = ({
                 <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
                         <h2 className="text-2xl md:text-3xl font-black tracking-tight uppercase flex items-center gap-3">
-                            <i className="fas fa-boxes-packing text-amber-200"></i> {t('kit_title')}
+                            <FaIcon className="fas fa-boxes-packing text-amber-200" /> {t('kit_title')}
                         </h2>
                         <p className="text-amber-200 text-sm font-bold mt-1 uppercase tracking-widest">Tối ưu hóa khả năng sẵn sàng của các bộ linh kiện sửa chữa</p>
                     </div>
@@ -443,7 +444,7 @@ export const RepairPackageOptimizer = ({
                                     onClick={handleClearDraft}
                                     className="px-3 py-1 bg-rose-50 text-rose-600 border border-rose-100 rounded-lg text-[10px] font-black hover:bg-rose-100 transition-colors"
                                 >
-                                    <i className="fas fa-trash-alt mr-1"></i> Xóa Draft
+                                    <FaIcon className="fas fa-trash-alt mr-1" /> Xóa Draft
                                 </button>
                             </div>
                         )}
@@ -454,7 +455,7 @@ export const RepairPackageOptimizer = ({
                             disabled={isLoadingCloud}
                             className="bg-white text-slate-800 hover:bg-slate-50 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-sm border border-slate-200 disabled:opacity-60"
                         >
-                            <i className={`fas ${isLoadingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-down'} text-blue-600`} /> Tải Cloud
+                            <FaIcon className={`fas ${isLoadingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-down'} text-blue-600`}  /> Tải Cloud
                         </button>
                         
                         {kittingDefs.length > 0 && (
@@ -463,7 +464,7 @@ export const RepairPackageOptimizer = ({
                                 disabled={isSavingCloud}
                                 className="bg-white text-slate-800 hover:bg-slate-50 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-sm border border-slate-200 disabled:opacity-60"
                             >
-                                <i className={`fas ${isSavingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up'} text-emerald-600`} /> Lưu Cloud
+                                <FaIcon className={`fas ${isSavingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up'} text-emerald-600`}  /> Lưu Cloud
                             </button>
                         )}
 
@@ -472,7 +473,7 @@ export const RepairPackageOptimizer = ({
                             <button onClick={() => setViewMode('SIMILARITY')} className={`px-4 py-1.5 text-[10px] font-black rounded-lg transition-all uppercase ${viewMode === 'SIMILARITY' ? 'bg-white text-slate-900 shadow-sm' : 'text-white/40 hover:text-white'}`}>Similarity</button>
                         </div>
                         <div className="relative group w-56">
-                            <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                            <FaIcon className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs" />
                             <input type="text" placeholder="Tìm Gói / Model xe..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl outline-none text-xs font-black text-slate-900 placeholder-slate-400 focus:ring-4 focus:ring-blue-500/5 transition-all" />
                         </div>
                     </div>
@@ -499,7 +500,7 @@ export const RepairPackageOptimizer = ({
                                     className={`absolute top-4 right-4 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${selectedComparisonCodes.includes(set.setCode) ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-200 hover:border-slate-400'}`}
                                     title="Chọn để so sánh đối ứng"
                                 >
-                                    <i className="fas fa-check text-2xs"></i>
+                                    <FaIcon className="fas fa-check text-2xs" />
                                 </button>
 
                                 <div className="flex justify-between items-start mb-4 border-b border-slate-50 pb-4 pr-8">
@@ -532,7 +533,7 @@ export const RepairPackageOptimizer = ({
                                                 <input type="number" min="0" placeholder="SL Đặt" className="w-full h-8 pl-2 pr-8 text-center text-sm font-black bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-400 transition-colors" value={orderInputs[set.setCode]?.nb || ''} onChange={e => setOrderInputs(p => ({ ...p, [set.setCode]: { ...p[set.setCode], nb: parseInt(e.target.value) || 0 } }))} />
                                                 <span className="absolute right-2 top-1/2 -translate-y-1/2 text-2xs text-slate-400 font-bold uppercase">Bộ</span>
                                             </div>
-                                            <button onClick={() => handleAddToDraft(set, 'NB')} className="bg-blue-600 text-white w-8 h-8 rounded-lg flex items-center justify-center shadow-sm active:scale-90 transition-all hover:bg-blue-700" title="Thêm gói vào dự thảo (NB)"><i className="fas fa-cart-plus text-xs"></i></button>
+                                            <button onClick={() => handleAddToDraft(set, 'NB')} className="bg-blue-600 text-white w-8 h-8 rounded-lg flex items-center justify-center shadow-sm active:scale-90 transition-all hover:bg-blue-700" title="Thêm gói vào dự thảo (NB)"><FaIcon className="fas fa-cart-plus text-xs" /></button>
                                         </div>
                                     </div>
                                     {/* MIỀN BẮC REFILL */}
@@ -550,7 +551,7 @@ export const RepairPackageOptimizer = ({
                                                 <input type="number" min="0" placeholder="SL Đặt" className="w-full h-8 pl-2 pr-8 text-center text-sm font-black bg-white border border-slate-200 rounded-lg outline-none focus:border-amber-400 transition-colors" value={orderInputs[set.setCode]?.bb || ''} onChange={e => setOrderInputs(p => ({ ...p, [set.setCode]: { ...p[set.setCode], bb: parseInt(e.target.value) || 0 } }))} />
                                                 <span className="absolute right-2 top-1/2 -translate-y-1/2 text-2xs text-slate-400 font-bold uppercase">Bộ</span>
                                             </div>
-                                            <button onClick={() => handleAddToDraft(set, 'BB')} className="bg-blue-600 text-white w-8 h-8 rounded-lg flex items-center justify-center shadow-sm active:scale-90 transition-all hover:bg-blue-700" title="Thêm gói vào dự thảo (BB)"><i className="fas fa-cart-plus text-xs"></i></button>
+                                            <button onClick={() => handleAddToDraft(set, 'BB')} className="bg-blue-600 text-white w-8 h-8 rounded-lg flex items-center justify-center shadow-sm active:scale-90 transition-all hover:bg-blue-700" title="Thêm gói vào dự thảo (BB)"><FaIcon className="fas fa-cart-plus text-xs" /></button>
                                         </div>
                                     </div>
                                 </div>
@@ -631,7 +632,7 @@ export const RepairPackageOptimizer = ({
                         <div className="space-y-6">
                             <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
                                 <h3 className="text-2xl font-black text-slate-900 uppercase flex items-center gap-3">
-                                    <i className="fas fa-layer-group text-blue-600"></i> Ma trận đối ứng linh kiện đã chọn
+                                    <FaIcon className="fas fa-layer-group text-blue-600" /> Ma trận đối ứng linh kiện đã chọn
                                 </h3>
                                 <button onClick={() => setSelectedComparisonCodes([])} className="px-4 py-2 bg-rose-50 text-rose-600 rounded-xl text-xs font-black uppercase border border-rose-100 hover:bg-rose-100 transition-all">Hủy so sánh</button>
                             </div>
@@ -640,7 +641,7 @@ export const RepairPackageOptimizer = ({
                     ) : (
                         <div className="bg-white rounded-[40px] border-2 border-dashed border-slate-200 p-16 text-center shadow-inner">
                             <div className="w-20 h-20 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-6">
-                                <i className="fas fa-check-double text-3xl"></i>
+                                <FaIcon className="fas fa-check-double text-3xl" />
                             </div>
                             <h3 className="text-2xl font-black text-slate-800 uppercase mb-3">So sánh tùy chọn 2-3 gói</h3>
                             <p className="text-base text-slate-500 max-w-md mx-auto mb-8 leading-relaxed font-medium">Bạn có thể chọn tối đa 3 gói từ tab <strong>Refill Optimizer</strong> bằng cách tích chọn vào nút ở góc phải mỗi thẻ gói để xem bảng đối ứng linh kiện chi tiết tại đây.</p>
@@ -651,7 +652,7 @@ export const RepairPackageOptimizer = ({
                     {/* AI SIMILARITY SUGGESTIONS (Always show at bottom) */}
                     <div className="pt-10 border-t border-slate-200">
                         <h3 className="text-2xl font-black text-slate-900 uppercase mb-6 flex items-center gap-3">
-                            <i className="fas fa-wand-magic-sparkles text-purple-600"></i> Gợi ý các gói tương đồng (AI Insights)
+                            <FaIcon className="fas fa-wand-magic-sparkles text-purple-600" /> Gợi ý các gói tương đồng (AI Insights)
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {similarityPairs.map((pair: any, idx: number) => (
@@ -663,7 +664,7 @@ export const RepairPackageOptimizer = ({
                                         </div>
                                         <div className="flex items-center gap-2 text-sm font-black text-slate-700">
                                             <span className="truncate max-w-[130px] uppercase">{pair.setA.setName}</span>
-                                            <i className="fas fa-arrows-left-right text-slate-300"></i>
+                                            <FaIcon className="fas fa-arrows-left-right text-slate-300" />
                                             <span className="truncate max-w-[130px] uppercase">{pair.setB.setName}</span>
                                         </div>
                                     </div>
@@ -672,7 +673,7 @@ export const RepairPackageOptimizer = ({
                                         className="ml-4 w-10 h-10 rounded-xl bg-slate-50 text-slate-400 group-hover:bg-purple-600 group-hover:text-white transition-all flex items-center justify-center border border-slate-100"
                                         title="Xem chi tiết so sánh"
                                     >
-                                        <i className="fas fa-eye"></i>
+                                        <FaIcon className="fas fa-eye" />
                                     </button>
                                 </div>
                             ))}
@@ -694,7 +695,7 @@ export const RepairPackageOptimizer = ({
                             {selectedComparisonCodes.map((code) => (
                                 <div key={code} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 border border-white/5 group">
                                     <span className="text-xs font-mono font-bold">{code}</span>
-                                    <button onClick={() => toggleSelection(code)} className="text-white/30 hover:text-rose-400 transition-colors"><i className="fas fa-times text-2xs"></i></button>
+                                    <button onClick={() => toggleSelection(code)} className="text-white/30 hover:text-rose-400 transition-colors"><FaIcon className="fas fa-times text-2xs" /></button>
                                 </div>
                             ))}
                         </div>
@@ -704,7 +705,7 @@ export const RepairPackageOptimizer = ({
                                 onClick={() => setViewMode('SIMILARITY')}
                                 className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 shadow-lg shadow-blue-900/40 transition-all active:scale-95 ml-2 whitespace-nowrap"
                             >
-                                <i className="fas fa-chart-simple"></i> Bật bảng đối ứng
+                                <FaIcon className="fas fa-chart-simple" /> Bật bảng đối ứng
                             </button>
                         )}
                     </div>

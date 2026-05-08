@@ -5,6 +5,7 @@ import { InventoryItem, DashboardSettings, InventoryFilters, COST_RANGES, FOB_CO
 import { useLanguage } from '../utils/i18n';
 import { useDevice } from '../hooks/useDevice';
 
+import { FaIcon } from './Icon';
 interface FilterPanelProps {
   data: InventoryItem[];
   settings: DashboardSettings;
@@ -17,7 +18,7 @@ interface FilterPanelProps {
 
 const SpecialFilterButton = ({ label, icon, isActive, onClick }: { label: string, icon: string, isActive: boolean, onClick: () => void }) => (
   <button onClick={onClick} title={label} className={`flex items-center justify-center rounded-xl text-sm transition-all shadow-sm border h-8 w-10 outline-none backdrop-blur-md ${isActive ? 'bg-slate-800/90 text-white border-slate-700 shadow-md ring-1 ring-slate-400/30' : 'bg-white/60 text-slate-700 border-white/50 hover:bg-white/95 hover:border-slate-300 hover:shadow'}`}>
-    <i className={`fas ${icon}`}></i>
+    <FaIcon className={`fas ${icon}`} />
   </button>
 );
 
@@ -116,7 +117,7 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
                   onClick={() => setIsSourceDropdownOpen(!isSourceDropdownOpen)}
                   className={`flex items-center justify-between w-full px-3 py-0 bg-white/60 backdrop-blur-md border rounded-xl text-[11px] font-bold h-8 shadow-sm transition-all uppercase tracking-tighter outline-none ${(filters.source || []).length > 0 ? 'border-blue-500/50 text-blue-800 bg-blue-50/80' : 'border-white/60 text-slate-700 hover:border-slate-300'}`}>
                 <span className="truncate pr-2">{(filters.source || []).length > 0 ? `SOURCE (${filters.source.length})` : 'SOURCE'}</span>
-                <i className={`fas fa-chevron-${isSourceDropdownOpen ? 'up' : 'down'} text-[10px] text-slate-500`}></i>
+                <FaIcon className={`fas fa-chevron-${isSourceDropdownOpen ? 'up' : 'down'} text-[10px] text-slate-500`} />
               </button>
               {isSourceDropdownOpen && (
                 <>
@@ -133,7 +134,7 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
                            }}
                          >
                            <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300'}`}>
-                             {isSelected && <i className="fas fa-check text-[9px]"></i>}
+                             {isSelected && <FaIcon className="fas fa-check text-[9px]" />}
                            </div>
                            <span className="text-xs font-semibold text-slate-700 truncate uppercase">{s.label}</span>
                          </div>
@@ -174,14 +175,14 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
                   <option value="Sleeping">Sleep</option>
                   <option value="Dead Stock">Dead</option>
                 </select>
-                <i className="fas fa-chevron-down absolute right-3 bottom-[10px] text-[10px] text-slate-500 pointer-events-none"></i>
+                <FaIcon className="fas fa-chevron-down absolute right-3 bottom-[10px] text-[10px] text-slate-500 pointer-events-none" />
               </div>
               {/* Cost */}
               <div className="relative shrink-0 w-[130px]">
                 <select value={filters.costRange} onChange={e => onFiltersChange({ ...filters, costRange: Number(e.target.value) })} className={`w-full cursor-pointer pl-3 pr-7 bg-white/60 backdrop-blur-md border rounded-xl text-xs font-bold h-8 shadow-sm transition-all uppercase appearance-none outline-none ${filters.costRange > 0 ? 'border-slate-500/50 text-slate-800 bg-slate-200/70' : 'border-white/60 text-slate-700 hover:border-slate-300'}`}>
                   {COST_RANGES.map((r, i) => <option key={i} value={i}>{r.label === 'TẤT CẢ (PP)' ? 'Cost Range' : r.label}</option>)}
                 </select>
-                <i className="fas fa-chevron-down absolute right-3 bottom-[10px] text-[10px] text-slate-500 pointer-events-none"></i>
+                <FaIcon className="fas fa-chevron-down absolute right-3 bottom-[10px] text-[10px] text-slate-500 pointer-events-none" />
               </div>
               {/* Trend */}
               <div className="relative shrink-0 w-[110px]">
@@ -189,7 +190,7 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
                   <option value="All">Trend</option>
                   {trendFlags.map(f => <option key={f} value={f}>{f}</option>)}
                 </select>
-                <i className="fas fa-chevron-down absolute right-3 bottom-[10px] text-[10px] text-slate-500 pointer-events-none"></i>
+                <FaIcon className="fas fa-chevron-down absolute right-3 bottom-[10px] text-[10px] text-slate-500 pointer-events-none" />
               </div>
             </div>
             
@@ -214,7 +215,7 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
                 return (
                   <button key={opt.id} onClick={() => toggleDebtStatus(opt.id)}
                     className={`px-4 h-7 rounded-full text-[11px] sm:text-xs font-bold border outline-none transition-all shrink-0 flex items-center justify-center tracking-wide backdrop-blur-md ${isActive ? 'bg-slate-700/90 text-white border-slate-600 shadow-md ring-1 ring-slate-400/30' : 'bg-white/60 text-slate-700 border-white/60 hover:bg-white/95 hover:border-slate-300 hover:shadow'}`}>
-                    {isActive ? <i className="fas fa-check mr-2 text-[10px] text-white/80"></i> : null}
+                    {isActive ? <FaIcon className="fas fa-check mr-2 text-[10px] text-white/80" /> : null}
                     {opt.label.replace('Trạng thái Cung ứng (Debt): ','').replace('BÌNH THƯỜNG','Normal').replace('TỒN ĐỦ TRẢ','Sufficient').replace('TRẢ TRONG THÁNG','Repay').replace('PO ĐỦ TRẢ','PO Cover').replace('THIẾU (CÓ PO)','Short+PO').replace('THIẾU (NO PO)','Short-NoPO')}
                   </button>
                 );
@@ -228,7 +229,7 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
         <div className="lg:col-span-3 flex flex-col gap-2.5 bg-slate-50/50 p-3 rounded-3xl border border-slate-200 shadow-inner overflow-hidden">
           <div className="flex items-center justify-between">
             <div className="text-[10px] font-black text-blue-800 uppercase tracking-[0.15em] flex items-center gap-1.5">
-              <i className="fas fa-sliders-h text-blue-600/80"></i> {t('Planning Params')}
+              <FaIcon className="fas fa-sliders-h text-blue-600/80" /> {t('Planning Params')}
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -236,7 +237,7 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
                 className={`flex items-center gap-2 px-2.5 py-1 rounded-full text-[9px] font-black transition-all border ${settings.applySeasonality ? 'bg-emerald-600 text-white border-emerald-700 shadow-md shadow-emerald-500/20' : 'bg-white text-slate-400 border-slate-200 hover:text-slate-600'}`}
                 title="Áp dụng Hệ số Mùa vụ"
               >
-                <i className={`fas ${settings.applySeasonality ? 'fa-calendar-check' : 'fa-calendar-circle-minus'}`}></i>
+                <FaIcon className={`fas ${settings.applySeasonality ? 'fa-calendar-check' : 'fa-calendar-circle-minus'}`} />
                 {settings.applySeasonality ? 'MÙA VỤ: ON' : 'MÙA VỤ: OFF'}
               </button>
               <button
@@ -259,7 +260,7 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
                 className="w-7 h-7 flex items-center justify-center rounded-full bg-white border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-300 transition-all shadow-sm group active:scale-95"
                 title="Reset to Defaults"
               >
-                <i className="fas fa-undo text-[10px] group-active:rotate-[-90deg] transition-transform"></i>
+                <FaIcon className="fas fa-undo text-[10px] group-active:rotate-[-90deg] transition-transform" />
               </button>
             </div>
           </div>
@@ -366,7 +367,7 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
             onClick={() => setMobileOpen(true)}
             className="flex-1 flex items-center gap-2.5 min-h-[36px]"
           >
-            <i className="fas fa-sliders text-blue-600 text-sm" />
+            <FaIcon className="fas fa-sliders text-blue-600 text-sm"  />
             <span className="font-black text-slate-700 text-xs uppercase tracking-wider">Bộ lọc</span>
             {activeFilterCount > 0 && (
               <span className="bg-blue-600 text-white text-[9px] font-black min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1">{activeFilterCount}</span>
@@ -393,12 +394,12 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
               {/* Modal header */}
               <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-200 bg-white rounded-t-3xl shrink-0">
                 <div className="flex items-center gap-2">
-                  <i className="fas fa-sliders text-blue-600" />
+                  <FaIcon className="fas fa-sliders text-blue-600"  />
                   <span className="font-black text-slate-800 text-sm uppercase tracking-wider">Bộ lọc</span>
                   {activeFilterCount > 0 && <span className="bg-blue-600 text-white text-[9px] font-black min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1">{activeFilterCount}</span>}
                 </div>
                 <button onClick={() => setMobileOpen(false)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition-colors">
-                  <i className="fas fa-xmark text-sm" />
+                  <FaIcon className="fas fa-xmark text-sm"  />
                 </button>
               </div>
               {/* Modal scrollable body */}

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { SalesHistoryChart } from './SalesHistoryChart';
 
+import { FaIcon } from './Icon';
 interface SalesMomentumProps {
     values: number[]; // [24M, 12M, 6M, 3M]
     history?: number[]; // 12 months history
@@ -79,7 +80,7 @@ export const SalesMomentum = ({ values, history = [], forecast = 0, compact = fa
                         <div className="flex justify-between items-center mb-2 px-1">
                             <span className="text-2xs font-black uppercase tracking-widest text-slate-400">Momentum</span>
                             <div className={`flex items-center gap-1 ${config.text}`}>
-                                <i className={`fas ${config.icon} text-2xs`}></i>
+                                <FaIcon className={`fas ${config.icon} text-2xs`} />
                                 <span className="text-2xs font-black">{Math.abs(trend).toFixed(0)}%</span>
                             </div>
                         </div>
@@ -88,7 +89,7 @@ export const SalesMomentum = ({ values, history = [], forecast = 0, compact = fa
                     {/* Trend badge inline for compact mode */}
                     {compact && (
                         <div className={`flex items-center gap-0.5 mb-0.5 ${config.text}`}>
-                            <i className={`fas ${config.icon} text-[9px]`}></i>
+                            <FaIcon className={`fas ${config.icon} text-[9px]`} />
                             <span className="text-[9px] font-black">{Math.abs(trend).toFixed(0)}%</span>
                         </div>
                     )}
@@ -145,7 +146,7 @@ export const SalesMomentum = ({ values, history = [], forecast = 0, compact = fa
                             className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:border-rose-200 transition-all z-10"
                             onClick={() => setIsOpen(false)}
                         >
-                            <i className="fas fa-times text-sm"></i>
+                            <FaIcon className="fas fa-times text-sm" />
                         </button>
 
                         {/* Content */}
@@ -154,7 +155,7 @@ export const SalesMomentum = ({ values, history = [], forecast = 0, compact = fa
                             <div className="flex justify-between items-start mb-4 pr-6">
                                 <div>
                                     <h4 className="flex items-center gap-2 text-xs font-black text-slate-800 uppercase tracking-widest">
-                                        <i className="fas fa-chart-line text-emerald-600"></i> DEMAND ANALYTICS
+                                        <FaIcon className="fas fa-chart-line text-emerald-600" /> DEMAND ANALYTICS
                                     </h4>
                                     <p className="text-2xs text-slate-400 font-bold mt-0.5">12-Month Rolling History</p>
                                 </div>

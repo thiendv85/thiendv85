@@ -2,6 +2,7 @@
 import React from 'react';
 import { Typography } from './Typography';
 
+import { FaIcon } from './Icon';
 // Modern Gradient Palette Map aligned with ATP Design Tokens
 const styleConfig = {
   blue: {
@@ -108,7 +109,7 @@ export const MetricCard = React.memo(({ label, value, subValue, icon, color = 's
       {/* === MOBILE: compact horizontal row (< 768px) === */}
       <div className="md:hidden relative z-10 flex items-center gap-3 px-3 py-3 min-h-[56px]">
         <div className={`w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center text-base text-white ${style.iconBg}`}>
-          <i className={`fas ${icon}`} />
+          <FaIcon className={`fas ${icon}`}  />
         </div>
         <div className="flex-1 min-w-0">
           <div className={`text-[9px] font-black uppercase tracking-widest leading-none mb-0.5 opacity-80 ${style.labelText}`}>{label}</div>
@@ -124,7 +125,7 @@ export const MetricCard = React.memo(({ label, value, subValue, icon, color = 's
       <div className="hidden md:block relative z-10 p-4">
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center text-base text-white ${style.iconBg} transition-all group-hover:scale-110 group-hover:rotate-12 duration-300`}>
-            <i className={`fas ${icon}`} />
+            <FaIcon className={`fas ${icon}`}  />
           </div>
           <div className="flex-1 min-w-0">
             <Typography variant="label" className={`${style.labelText} metric-label truncate block !text-[10px]`}>
@@ -147,7 +148,7 @@ export const MetricCard = React.memo(({ label, value, subValue, icon, color = 's
               trend.direction === 'down' ? 'text-rose-200' : 'text-white/70'
             }`}>
               {(trend.direction === 'up' || trend.direction === 'down') && (
-                <i className={`fas fa-arrow-${trend.direction} text-[8px]`} />
+                <FaIcon className={`fas fa-arrow-${trend.direction} text-[8px]`}  />
               )}
               <Typography variant="label" className="inherit-color !text-[9px]">
                 {trend.value}

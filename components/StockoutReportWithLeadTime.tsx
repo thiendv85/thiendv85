@@ -6,6 +6,7 @@ import { StockoutForecastWithLeadTimeWidget } from './StockoutForecastWithLeadTi
 import { MetricCard } from './MetricCard';
 import { useLanguage } from '../utils/i18n';
 
+import { FaIcon } from './Icon';
 interface ReportProps {
     data: InventoryItem[];
     onAction?: (sku: string, qty: number, method: 'AIR' | 'SEA') => void;
@@ -98,7 +99,7 @@ export const StockoutReportWithLeadTime = ({ data, onAction }: ReportProps) => {
             <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="text-lg font-black text-slate-800 uppercase flex items-center gap-2">
-                        <i className="fas fa-calendar-check text-blue-600"></i> Lead Time Analysis
+                        <FaIcon className="fas fa-calendar-check text-blue-600" /> Lead Time Analysis
                     </h3>
                     <div className="flex bg-slate-100 p-1 rounded-xl">
                         {['ALL', 'CRITICAL', 'WARNING', 'SAFE'].map(f => (
@@ -115,7 +116,7 @@ export const StockoutReportWithLeadTime = ({ data, onAction }: ReportProps) => {
 
                 {sortedResults.length === 0 ? (
                     <div className="text-center py-20 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                        <i className="fas fa-check-circle text-4xl text-slate-300 mb-4"></i>
+                        <FaIcon className="fas fa-check-circle text-4xl text-slate-300 mb-4" />
                         <p className="text-slate-500 font-bold uppercase text-xs">No items found in this category</p>
                     </div>
                 ) : (

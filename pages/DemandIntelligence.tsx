@@ -7,6 +7,7 @@ import { parseInventorySearch, SearchResult, matchSearch } from '../utils/search
 import { getVietnameseWorkingDays } from '../utils/inventoryEngine';
 import { AppSettings } from './Settings';
 
+import { FaIcon } from '../components/Icon';
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
 // ─────────────────────────────────────────────────────────────────────────────
@@ -498,14 +499,14 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                 >
                     <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
-                            <i className="fas fa-sliders text-purple-600 text-xs"></i>
+                            <FaIcon className="fas fa-sliders text-purple-600 text-xs" />
                         </div>
                         <div>
                             <h3 className="text-sm font-bold text-slate-800">Hiệu chỉnh Mùa vụ (Advanced Tuning)</h3>
                             <p className="text-[10px] text-slate-500 font-medium">SPD Normalization • Tet Weights • Weather Factors</p>
                         </div>
                     </div>
-                    <i className={`fas fa-chevron-down text-slate-400 transition-transform ${showPanel ? 'rotate-180' : ''}`}></i>
+                    <FaIcon className={`fas fa-chevron-down text-slate-400 transition-transform ${showPanel ? 'rotate-180' : ''}`} />
                 </div>
 
                 {showPanel && (
@@ -560,7 +561,7 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                         {/* Phase 5: Unified SAA Diagnostic Panel */}
                         <div className="mt-6 pt-6 border-t border-slate-100">
                             <h4 className="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-4 flex items-center gap-2">
-                                <i className="fas fa-brain text-violet-500"></i>
+                                <FaIcon className="fas fa-brain text-violet-500" />
                                 Seasonal-Adaptive Anchor (SAA Engine)
                             </h4>
                             
@@ -647,7 +648,7 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
 
                         {/* Sort */}
                         <div className="flex items-center gap-2 px-3 py-1 bg-slate-50 border border-slate-200 rounded-xl">
-                            <i className="fas fa-sort-amount-down text-slate-400 text-[10px]"></i>
+                            <FaIcon className="fas fa-sort-amount-down text-slate-400 text-[10px]" />
                             <select value={sortKey} onChange={(e) => setSortKey(e.target.value)} className="bg-transparent text-[10px] font-black text-slate-700 outline-none cursor-pointer uppercase">
                                 <option value="group">Nhóm hành động</option>
                                 <option value="mos_asc">MOS (Thấp nhất)</option>
@@ -661,7 +662,7 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
 
                     <div className="flex items-center gap-4 w-full md:w-auto">
                         <div className="relative w-full md:w-64">
-                            <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                            <FaIcon className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs" />
                             <input
                                 type="text"
                                 placeholder={t('common_search')}
@@ -706,7 +707,7 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                                         {/* Group Badge */}
                                         <td className="px-3 py-2.5">
                                             <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-black uppercase ${cfg.bgColor} ${cfg.color} border ${cfg.borderColor}`}>
-                                                <i className={`fas ${cfg.icon} text-[8px]`}></i>
+                                                <FaIcon className={`fas ${cfg.icon} text-[8px]`} />
                                                 {cfg.label}
                                             </span>
                                         </td>
@@ -807,7 +808,7 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                     </span>
                     <div className="flex items-center gap-1">
                         <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="pagination-pill text-slate-600">
-                            <i className="fas fa-chevron-left text-xs"></i>
+                            <FaIcon className="fas fa-chevron-left text-xs" />
                         </button>
                         {(() => {
                             return [...Array(totalPages)].map((_, i) => {
@@ -824,7 +825,7 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                             });
                         })()}
                         <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} className="pagination-pill text-slate-600">
-                            <i className="fas fa-chevron-right text-xs"></i>
+                            <FaIcon className="fas fa-chevron-right text-xs" />
                         </button>
                     </div>
                 </div>

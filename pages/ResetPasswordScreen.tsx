@@ -3,6 +3,7 @@ import { supabase } from '../utils/supabase';
 import { useAuth } from '../utils/authContext';
 import { Typography } from '../components/Typography';
 
+import { FaIcon } from '../components/Icon';
 export const ResetPasswordScreen = () => {
     const { clearPasswordReset, signOut } = useAuth();
     const [password, setPassword] = useState('');
@@ -36,7 +37,7 @@ export const ResetPasswordScreen = () => {
             <div className="relative w-full max-w-md">
                 <div className="text-center mb-8">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-500/20 border border-blue-400/30 mb-4 backdrop-blur-sm">
-                        <i className="fas fa-key text-blue-400 text-2xl"></i>
+                        <FaIcon className="fas fa-key text-blue-400 text-2xl" />
                     </div>
                     <Typography variant="h1" className="text-white !text-3xl tracking-tight">Đặt mật khẩu mới</Typography>
                     <Typography variant="body" className="text-slate-400 mt-1">ATP System</Typography>
@@ -45,7 +46,7 @@ export const ResetPasswordScreen = () => {
                 <div className="bg-slate-800/60 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-8 shadow-2xl">
                     {success ? (
                         <div className="text-center py-4">
-                            <i className="fas fa-circle-check text-emerald-400 text-4xl mb-3"></i>
+                            <FaIcon className="fas fa-circle-check text-emerald-400 text-4xl mb-3" />
                             <p className="text-emerald-300 font-bold">Mật khẩu đã được cập nhật!</p>
                             <p className="text-slate-400 text-sm mt-1">Đang chuyển hướng...</p>
                         </div>
@@ -77,7 +78,7 @@ export const ResetPasswordScreen = () => {
 
                             {error && (
                                 <div className="flex items-center gap-2 bg-rose-500/10 border border-rose-500/30 rounded-2xl px-4 py-3">
-                                    <i className="fas fa-circle-exclamation text-rose-400"></i>
+                                    <FaIcon className="fas fa-circle-exclamation text-rose-400" />
                                     <span className="text-rose-300 text-sm font-bold">{error}</span>
                                 </div>
                             )}
@@ -88,9 +89,9 @@ export const ResetPasswordScreen = () => {
                                 className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-black py-3 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest text-sm mt-2"
                             >
                                 {isLoading ? (
-                                    <><i className="fas fa-circle-notch fa-spin"></i> Đang lưu...</>
+                                    <><FaIcon className="fas fa-circle-notch fa-spin" /> Đang lưu...</>
                                 ) : (
-                                    <><i className="fas fa-floppy-disk"></i> Lưu mật khẩu</>
+                                    <><FaIcon className="fas fa-floppy-disk" /> Lưu mật khẩu</>
                                 )}
                             </button>
 

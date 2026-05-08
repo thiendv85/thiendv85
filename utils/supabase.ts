@@ -220,11 +220,15 @@ export async function saveMonthlyData(monthlyMap: Record<string, any>, options?:
     }
 
     // Also save a snapshot record (for listing history)
-    await supabase.from('cloud_storage').upsert({
-      id: `monthly_index_${snapshotMonth}`,
-      data: { snapshotMonth, count: rows.length },
-      updated_at: now,
-    });
+    await supabase.from('monthly_snapshots').upsert(
+      {
+        snapshot_month: snapshotMonth,
+        row_count: rows.length,
+        metadata: { snapshotMonth, count: rows.length },
+        updated_at: now,
+      },
+      { onConflict: 'snapshot_month' },
+    );
 
     return true;
   } catch (error) {
@@ -235,31 +239,23 @@ export async function saveMonthlyData(monthlyMap: Record<string, any>, options?:
 
 /**
  * Loads the latest monthly data from monthly_sku_data table.
- * Uses cloud_storage index to find the latest version first.
+ * Uses monthly_snapshots index to find the latest version first.
  */
 export async function loadLatestMonthlyData(lastUpdatedAt?: string | null): Promise<{ data: Record<string, any>; updatedAt: string; isUpToDate?: boolean } | null> {
   try {
-    // Step 1: Find the latest snapshot from cloud_storage index records
+    // Step 1: Find the latest snapshot from monthly_snapshots
     const { data: indexRows, error: idxErr } = await supabase
-      .from('cloud_storage')
-      .select('id, updated_at, data')
-      .ilike('id', 'monthly_index_%');
-    
+      .from('monthly_snapshots')
+      .select('snapshot_month, updated_at')
+      .order('snapshot_month', { ascending: false })
+      .order('updated_at', { ascending: false })
+      .limit(1);
+
     if (idxErr || !indexRows || indexRows.length === 0) return null;
 
-    // Sort to find the latest month and latest update
-    const sorted = indexRows.sort((a, b) => {
-      // Primary sort: snapshotMonth (YYYY-MM)
-      const m1 = a.data?.snapshotMonth || '';
-      const m2 = b.data?.snapshotMonth || '';
-      if (m1 !== m2) return m2.localeCompare(m1);
-      // Secondary sort: updated_at
-      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-    });
-
-    const latestIndex = sorted[0];
-    const latestMonth = latestIndex.data.snapshotMonth;
-    const updatedAt = latestIndex.updated_at;
+    const latestIndex = indexRows[0];
+    const latestMonth = latestIndex.snapshot_month as string;
+    const updatedAt = latestIndex.updated_at as string;
 
     // Phase: Version Check Optimization
     if (lastUpdatedAt && updatedAt === lastUpdatedAt) {
@@ -423,31 +419,31 @@ export async function loadSpecificMonthlyData(month: string): Promise<{ data: Re
 
 /**
  * Deletes all records for a specific snapshot_month.
- * Also removes the index record from cloud_storage.
+ * Also removes the index record from monthly_snapshots.
  */
 export async function deleteMonthlyData(snapshotMonth: string): Promise<{ success: boolean; error?: string }> {
   try {
     console.log(`[Supabase] Deleting monthly data for: ${snapshotMonth}`);
-    
+
     // 1. Delete rows from monthly_sku_data
     const { error: dErr } = await supabase
       .from('monthly_sku_data')
       .delete()
       .eq('snapshot_month', snapshotMonth);
-    
+
     if (dErr) {
       console.error('[Supabase] Error deleting from monthly_sku_data:', dErr);
       return { success: false, error: dErr.message };
     }
 
-    // 2. Delete index record from cloud_storage
+    // 2. Delete index record from monthly_snapshots
     const { error: cErr } = await supabase
-      .from('cloud_storage')
+      .from('monthly_snapshots')
       .delete()
-      .eq('id', `monthly_index_${snapshotMonth}`);
+      .eq('snapshot_month', snapshotMonth);
 
     if (cErr) {
-      console.error('[Supabase] Error deleting from cloud_storage:', cErr);
+      console.error('[Supabase] Error deleting from monthly_snapshots:', cErr);
       return { success: false, error: cErr.message };
     }
 
@@ -1634,19 +1630,18 @@ export async function deleteSnapshot(id: string, storagePath: string): Promise<{
 
 /**
  * Lists available monthly snapshots for history display in Settings.
- * Reads from the cloud_storage index records (monthly_index_YYYY-MM).
+ * Reads from the monthly_snapshots table.
  */
 export async function listMonthlyDataSnapshots(): Promise<{ id: string; updated_at: string }[]> {
   try {
     const { data, error } = await supabase
-      .from('cloud_storage')
-      .select('id, updated_at')
-      .like('id', 'monthly_index_%')
-      .order('id', { ascending: false }); // Better ordering by ID (YYYY-MM)
+      .from('monthly_snapshots')
+      .select('snapshot_month, updated_at')
+      .order('snapshot_month', { ascending: false });
     if (error) return [];
     return (data || []).map(d => ({
-      id: (d.id as string).replace('monthly_index_', ''), // Clean version: YYYY-MM
-      updated_at: d.updated_at,
+      id: d.snapshot_month as string,
+      updated_at: d.updated_at as string,
     }));
   } catch {
     return [];

@@ -1,5 +1,6 @@
 import React from 'react';
 import { DecisionSummary } from '../../hooks/useDecisionSupport';
+import { FaIcon } from '../Icon';
 
 interface Props {
     summary: DecisionSummary;
@@ -28,7 +29,7 @@ export const AdjustmentImpactPanel = ({ summary }: Props) => {
                         </div>
                     </div>
                     <div className={`px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1.5 ${color} bg-current/5`}>
-                        <i className={`fas ${icon}`} />
+                        <FaIcon className={`fas ${icon}`} />
                         {Math.abs(delta).toLocaleString()}{unit}
                     </div>
                 </div>

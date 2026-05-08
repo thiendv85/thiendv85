@@ -6,6 +6,7 @@ import { computeInventoryBatch, makeComputeParams } from '../utils/inventoryEngi
 import { enrichItemWithCostTransfer, TransferEnrichment } from '../utils/transferEngine';
 import { useDevice } from '../hooks/useDevice';
 
+import { FaIcon } from '../components/Icon';
 interface InventoryDistributionProps {
     data: InventoryItem[];
     enrichedData?: InventoryItem[];
@@ -203,7 +204,7 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                 <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between px-4 py-3 gap-3 md:gap-0">
                     <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center border border-white/20 shrink-0">
-                            <i className="fas fa-right-left text-blue-300 text-sm"></i>
+                            <FaIcon className="fas fa-right-left text-blue-300 text-sm" />
                         </div>
                         <div>
                             <Typography variant="h2" className="text-white !text-lg md:!text-xl tracking-tight leading-none">
@@ -234,7 +235,7 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                         className={`px-3 py-1.5 md:py-2 rounded-lg text-xs font-black transition-all flex items-center gap-2 whitespace-nowrap shrink-0
                             ${activeTab === 'rebalance' ? 'bg-white text-blue-900 shadow-sm' : 'text-white/70 hover:text-white hover:bg-white/10'}`}
                     >
-                        <i className={`fas fa-right-left text-[10px] ${activeTab === 'rebalance' ? 'text-blue-600' : ''}`}></i>
+                        <FaIcon className={`fas fa-right-left text-[10px] ${activeTab === 'rebalance' ? 'text-blue-600' : ''}`} />
                         Điều phối tồn kho
                         <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full leading-none ${activeTab === 'rebalance' ? 'bg-blue-100 text-blue-800' : 'bg-white/20 text-white'}`}>{stats.rebalanceCount}</span>
                     </button>
@@ -243,7 +244,7 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                         className={`px-3 py-1.5 md:py-2 rounded-lg text-xs font-black transition-all flex items-center gap-2 whitespace-nowrap shrink-0
                             ${activeTab === 'allocation' ? 'bg-white text-indigo-900 shadow-sm' : 'text-white/70 hover:text-white hover:bg-white/10'}`}
                     >
-                        <i className={`fas fa-cart-plus text-[10px] ${activeTab === 'allocation' ? 'text-indigo-600' : ''}`}></i>
+                        <FaIcon className={`fas fa-cart-plus text-[10px] ${activeTab === 'allocation' ? 'text-indigo-600' : ''}`} />
                         Phân bổ đặt hàng
                         <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full leading-none ${activeTab === 'allocation' ? 'bg-indigo-100 text-indigo-800' : 'bg-white/20 text-white'}`}>{stats.allocationCount}</span>
                     </button>
@@ -255,14 +256,14 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                 <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full md:w-auto">
                     {/* Search */}
                     <div className="relative group w-full md:w-80">
-                        <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm group-focus-within:text-blue-600 transition-colors"></i>
+                        <FaIcon className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm group-focus-within:text-blue-600 transition-colors" />
                         <input type="text" placeholder="Tìm mã hoặc tên..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} className="w-full pl-9 pr-3 py-2 bg-slate-50 md:bg-white border border-slate-200 rounded-xl text-sm shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all font-medium" />
                     </div>
 
                     {/* Filter & Sort Row (Mobile flat grid) */}
                     <div className="grid grid-cols-2 md:flex md:items-center gap-2 w-full md:w-auto">
                         <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 md:bg-white border border-slate-200 rounded-xl shadow-sm relative shrink-0">
-                            <i className="fas fa-filter text-slate-400 text-xs shrink-0"></i>
+                            <FaIcon className="fas fa-filter text-slate-400 text-xs shrink-0" />
                             <select value={necessityFilter} onChange={(e) => { setNecessityFilter(e.target.value as any); setCurrentPage(1); }} className="bg-transparent text-[10px] md:text-xs font-black text-slate-700 outline-none cursor-pointer uppercase absolute inset-0 opacity-0 md:opacity-100 md:relative w-full">
                                 <option value="All">Lọc: Tất cả</option>
                                 <option value="P1">Khẩn (MOS &lt; 0.5)</option>
@@ -275,7 +276,7 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                         </div>
 
                         <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 md:bg-white border border-slate-200 rounded-xl shadow-sm relative shrink-0">
-                            <i className="fas fa-sort-amount-down text-slate-400 text-xs shrink-0"></i>
+                            <FaIcon className="fas fa-sort-amount-down text-slate-400 text-xs shrink-0" />
                             <select value={sortKey} onChange={(e) => { setSortKey(e.target.value); setCurrentPage(1); }} className="bg-transparent text-[10px] md:text-xs font-black text-slate-700 outline-none cursor-pointer uppercase absolute inset-0 opacity-0 md:opacity-100 md:relative w-full">
                                 <option value="mos_asc">Sắp xếp: MOS</option>
                                 <option value="val_desc">Giá trị giảm dần</option>
@@ -288,7 +289,7 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                 </div>
 
                 <button onClick={handleExportCSV} className="bg-slate-900 text-white px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 shrink-0 md:w-auto w-full mt-2 md:mt-0">
-                    <i className="fas fa-file-csv"></i>
+                    <FaIcon className="fas fa-file-csv" />
                     {selectedItems.size > 0 ? `Xuất ${selectedItems.size} mã` : (isMobile ? 'Xuất Data' : t('transfer_export'))}
                 </button>
             </div>
@@ -299,7 +300,7 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                 <div className="mobile-card-grid pb-4">
                     {paginatedData.length === 0 ? (
                         <div className="text-center py-16 text-slate-300">
-                            <i className={`fas ${activeTab === 'rebalance' ? 'fa-shuffle' : 'fa-cart-flatbed'} text-5xl mb-4 block opacity-50`}></i>
+                            <FaIcon className={`fas ${activeTab === 'rebalance' ? 'fa-shuffle' : 'fa-cart-flatbed'} text-5xl mb-4 block opacity-50`} />
                             <Typography variant="h3" className="text-slate-400 font-bold">{searchTerm ? 'Không tìm thấy' : 'Không có kế hoạch'}</Typography>
                         </div>
                     ) : paginatedData.map((item) => {
@@ -325,7 +326,7 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                                     <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
                                         <div onClick={(e) => { e.stopPropagation(); toggleSelection(item.ItemCode); }} className="shrink-0 p-1 -ml-1">
                                             <div className={`w-4 h-4 rounded border flex items-center justify-center ${isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300'}`}>
-                                                {isSelected && <i className="fas fa-check text-[10px]"></i>}
+                                                {isSelected && <FaIcon className="fas fa-check text-[10px]" />}
                                             </div>
                                         </div>
                                         <div className="min-w-0">
@@ -354,7 +355,7 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                                                 {line.qty.toLocaleString()}
                                             </div>
                                             <div className="absolute top-1/2 left-0 w-full h-[2px] bg-slate-200 -z-0 mt-2"></div>
-                                            <div className="absolute top-1/2 right-0 -mt-0.5 text-slate-300"><i className="fas fa-chevron-right text-[10px]"></i></div>
+                                            <div className="absolute top-1/2 right-0 -mt-0.5 text-slate-300"><FaIcon className="fas fa-chevron-right text-[10px]" /></div>
                                         </div>
                                         {/* TO Node */}
                                         <div className="flex flex-col items-center w-20">
@@ -428,7 +429,7 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                                                         <div className={`px-4 py-1 rounded-xl font-black text-xs border ${isRebalance ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-indigo-50 text-indigo-700 border-indigo-100'}`}>
                                                             {line.qty.toLocaleString()}
                                                         </div>
-                                                        <i className="fas fa-caret-right text-slate-300 -mt-1 scale-x-150"></i>
+                                                        <FaIcon className="fas fa-caret-right text-slate-300 -mt-1 scale-x-150" />
                                                     </div>
                                                     <span className="text-xs font-black text-slate-900 w-8">{line.to}</span>
                                                 </div>
@@ -507,7 +508,7 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                                                                 className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${tInfo.transferNetBenefit > 0 ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-slate-500 bg-slate-50 border-slate-200'}`}
                                                                 title={`Lợi ích: ${Math.round(tInfo.transferBenefit).toLocaleString()}đ — Chi phí: ${Math.round(tInfo.transferCost).toLocaleString()}đ`}
                                                             >
-                                                                <i className="fas fa-chart-line text-[7px] mr-1"></i>
+                                                                <FaIcon className="fas fa-chart-line text-[7px] mr-1" />
                                                                 Net: {Math.round(tInfo.transferNetBenefit).toLocaleString()}đ
                                                             </span>
                                                         </div>
@@ -520,7 +521,7 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                                     <tr>
                                         <td colSpan={7} className="py-24 text-center">
                                             <div className="flex flex-col items-center gap-4 opacity-20">
-                                                <i className={`fas ${activeTab === 'rebalance' ? 'fa-shuffle' : 'fa-cart-flatbed'} text-6xl`}></i>
+                                                <FaIcon className={`fas ${activeTab === 'rebalance' ? 'fa-shuffle' : 'fa-cart-flatbed'} text-6xl`} />
                                                 <Typography variant="h3" className="italic">{searchTerm ? 'Không tìm thấy mã phù hợp' : 'Hiện chưa có đề xuất nào'}</Typography>
                                             </div>
                                         </td>
@@ -545,7 +546,7 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                 
                 <div className="flex items-center gap-1 w-full md:w-auto justify-center md:justify-end">
                     <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className={`w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-xl transition-all ${currentPage === 1 ? 'text-slate-300' : 'text-slate-600 bg-white shadow-sm'}`}>
-                        <i className="fas fa-chevron-left text-xs"></i>
+                        <FaIcon className="fas fa-chevron-left text-xs" />
                     </button>
                     
                     {[...Array(totalPages)].map((_, i) => {
@@ -562,7 +563,7 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({ da
                     })}
                     
                     <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0} className={`w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-xl transition-all ${currentPage === totalPages || totalPages === 0 ? 'text-slate-300' : 'text-slate-600 bg-white shadow-sm'}`}>
-                        <i className="fas fa-chevron-right text-xs"></i>
+                        <FaIcon className="fas fa-chevron-right text-xs" />
                     </button>
                 </div>
             </div>

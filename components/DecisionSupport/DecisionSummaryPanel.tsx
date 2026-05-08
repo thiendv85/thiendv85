@@ -1,5 +1,6 @@
 import { DecisionSummary, DecisionStatus } from '../../hooks/useDecisionSupport';
 
+import { FaIcon } from '../Icon';
 interface Props {
     summary: DecisionSummary;
     onReset: () => void;
@@ -24,7 +25,7 @@ export const DecisionSummaryPanel = ({ summary, onReset }: Props) => {
                 {/* 1. Primary Recommendation */}
                 <div className="flex items-center gap-6 shrink-0">
                     <div className={`w-16 h-16 rounded-3xl ${config.bg} flex items-center justify-center shadow-lg shadow-inner overflow-hidden relative group`}>
-                        <i className={`fas ${config.icon} text-white text-3xl transition-transform group-hover:scale-110`} />
+                        <FaIcon className={`fas ${config.icon} text-white text-3xl transition-transform group-hover:scale-110`}  />
                         <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                     <div>
@@ -37,14 +38,14 @@ export const DecisionSummaryPanel = ({ summary, onReset }: Props) => {
                             </div>
                         </div>
                         <div className="flex items-center gap-4 mt-2 text-sm font-bold text-slate-500">
-                            <span className="flex items-center gap-1.5"><i className="fas fa-layer-group text-[10px]" /> {counts.totalSkus} SKUs in Draft</span>
+                            <span className="flex items-center gap-1.5"><FaIcon className="fas fa-layer-group text-[10px]"  /> {counts.totalSkus} SKUs in Draft</span>
                             <span className="w-1.5 h-1.5 rounded-full bg-slate-200" />
-                            <span className="flex items-center gap-1.5"><i className="fas fa-check-double text-[10px]" /> {counts.selectedSkus} Selected</span>
+                            <span className="flex items-center gap-1.5"><FaIcon className="fas fa-check-double text-[10px]"  /> {counts.selectedSkus} Selected</span>
                             {counts.changedSkus > 0 && (
                                 <>
                                     <span className="w-1.5 h-1.5 rounded-full bg-slate-200" />
                                     <span className="text-blue-600 flex items-center gap-1.5 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 animate-pulse">
-                                        <i className="fas fa-pen-to-square text-[10px]" /> {counts.changedSkus} Adjusted
+                                        <FaIcon className="fas fa-pen-to-square text-[10px]"  /> {counts.changedSkus} Adjusted
                                     </span>
                                 </>
                             )}
@@ -57,7 +58,7 @@ export const DecisionSummaryPanel = ({ summary, onReset }: Props) => {
                     {summary.reasons.slice(0, 4).map((reason, i) => (
                         <div key={i} className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100/50 hover:bg-slate-100/50 transition-colors">
                             <div className={`mt-1 flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-full ${reason.severity === 'critical' ? 'bg-rose-100 text-rose-600' : reason.severity === 'major' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}`}>
-                                <i className={`fas ${reason.severity === 'critical' ? 'fa-circle-exclamation' : 'fa-info-circle'} text-[10px]`} />
+                                <FaIcon className={`fas ${reason.severity === 'critical' ? 'fa-circle-exclamation' : 'fa-info-circle'} text-[10px]`}  />
                             </div>
                             <div>
                                 <div className="text-[11px] font-black text-slate-800 uppercase tracking-wide leading-none mb-1">{reason.title}</div>

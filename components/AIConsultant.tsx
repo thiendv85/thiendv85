@@ -1,6 +1,7 @@
 ﻿
 import React from 'react';
 
+import { FaIcon } from './Icon';
 interface AIConsultantProps {
   isLoading: boolean;
   response: string | null;
@@ -105,7 +106,7 @@ export const AIConsultant = ({ isLoading, response, onAnalyze }: AIConsultantPro
         onKeyDown={isInitialState ? (e) => (e.key === 'Enter' || e.key === ' ') && onAnalyze() : undefined}
       >
         <div className="w-12 h-12 bg-emerald-800 text-white rounded-full flex-shrink-0 flex items-center justify-center shadow-lg">
-          <i className="fas fa-brain text-lg"></i>
+          <FaIcon className="fas fa-brain text-lg" />
         </div>
         <div className="flex-1">
           <h4 className="text-emerald-950 font-black text-sm tracking-widest uppercase">AI Expert Analysis</h4>
@@ -119,7 +120,7 @@ export const AIConsultant = ({ isLoading, response, onAnalyze }: AIConsultantPro
         {isInitialState && (
             <div className="pr-4">
                 <div className="w-10 h-10 rounded-full bg-white/50 flex items-center justify-center">
-                    <i className="fas fa-play text-emerald-700"></i>
+                    <FaIcon className="fas fa-play text-emerald-700" />
                 </div>
             </div>
         )}
@@ -127,7 +128,7 @@ export const AIConsultant = ({ isLoading, response, onAnalyze }: AIConsultantPro
       
       {isLoading && (
         <div className="text-center p-10 bg-white/50 rounded-2xl border border-emerald-100 border-dashed mt-6">
-            <i className="fas fa-circle-notch animate-spin text-3xl text-emerald-500"></i>
+            <FaIcon className="fas fa-circle-notch animate-spin text-3xl text-emerald-500" />
             <p className="mt-4 font-bold text-emerald-700">AI đang tư duy sâu...</p>
             <p className="text-xs text-emerald-600">Vui lòng đợi trong giây lát.</p>
         </div>
@@ -143,7 +144,7 @@ export const AIConsultant = ({ isLoading, response, onAnalyze }: AIConsultantPro
               onClick={() => navigator.clipboard.writeText(response)}
               className="text-emerald-600 font-bold text-2xs uppercase flex items-center gap-2 hover:text-emerald-800 transition-colors"
             >
-              <i className="far fa-copy"></i> Sao chép báo cáo
+              <FaIcon className="far fa-copy" /> Sao chép báo cáo
             </button>
           </div>
         </div>
