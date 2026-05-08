@@ -116,23 +116,10 @@ function resolveDemand_v0(row: BacktestRow, applySeasonality: boolean): number {
 // EXPERIMENT SURFACE — modify ONLY this function during autoresearch loop.
 // ────────────────────────────────────────────────────────────────────────────
 function predict(row: BacktestRow): number {
-    // V0 BASELINE — replicates current engine exactly:
-    //   demandRateDaily = (resolveDemand / 26) × SSI_JS, applied with applySeasonality=true
-    //   monthly prediction = demandRateDaily × 26 = resolveDemand × SSI_JS
-    //
-    // resolveDemand already multiplies BaseForecast × SeasonalityFactor when
-    // applySeasonality=true. Then SSI_JS is applied on top — this is the
-    // double-counting that prior analysis identified.
-    const params: PredictParams = {
-        applySeasonality: true,
-        tetWeight: 1.2,
-        weatherWeight: 1.1,
-    };
-    const baseDemand = resolveDemand_v0(row, params.applySeasonality);
-    // SSI uses snapshot date for Tet proximity — use a representative mid-snapshot date
-    const snapshotDate = new Date('2026-04-15');
-    const ssi = calculateSSI_v0(row.hist, snapshotDate, params);
-    return baseDemand * ssi;
+    // V1 — Drop JS SSI. Trust SQL's pre-computed SeasonalityFactor entirely.
+    // resolveDemand_v0 with applySeasonality=true returns BaseForecast × sf
+    // (which equals SQL's Forecast_eff for the current month).
+    return resolveDemand_v0(row, true);
 }
 
 // ─── Metric computation ─────────────────────────────────────────────────────
