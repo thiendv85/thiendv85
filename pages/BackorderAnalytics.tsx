@@ -50,12 +50,12 @@ const MetricCard = ({ label, value, sub, icon, colorTheme, onClick, isActive }: 
                 <i className={`fas ${icon}`}></i>
             </div>
             <div className="relative z-10 flex-1">
-                <Typography variant="label" className="text-white/70 font-black uppercase tracking-[0.2em] !text-[9px] mb-1 block group-hover:text-white transition-colors">{label}</Typography>
+                <Typography variant="label" className="text-white/85 font-black uppercase tracking-[0.2em] !text-[9px] mb-1 block group-hover:text-white transition-colors">{label}</Typography>
                 <div className="flex items-baseline gap-1">
                     <Typography variant="h2" className="text-white !font-black !text-2xl tracking-tight group-hover:scale-110 origin-left transition-transform duration-500">{value}</Typography>
-                    <Typography variant="label" className="text-white/50 !text-[10px] font-bold">tr</Typography>
+                    <Typography variant="label" className="text-white/80 !text-[10px] font-bold">tr</Typography>
                 </div>
-                {sub && <Typography variant="label" className="text-white/40 block mt-1 !text-[10px] font-medium normal-case group-hover:text-white/70 transition-colors">{sub}</Typography>}
+                {sub && <Typography variant="label" className="text-white/75 block mt-1 !text-[10px] font-medium normal-case group-hover:text-white transition-colors">{sub}</Typography>}
             </div>
             {isActive && (
                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/50 animate-pulse"></div>
@@ -81,7 +81,7 @@ const FilterDropdown = ({ label, options, selected, onChange, icon }: any) => {
                     <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
                     <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 z-50 animate-in fade-in zoom-in-95 origin-top-left">
                         <div className="p-2 border-b border-slate-50 mb-1">
-                            <Typography variant="label" className="text-slate-400 !text-[9px] uppercase font-black">Lọc theo {label}</Typography>
+                            <Typography variant="label" className="text-slate-600 !text-[9px] uppercase font-black">Lọc theo {label}</Typography>
                         </div>
                         <div className="max-h-60 overflow-auto custom-scrollbar p-1">
                             {options.length > 0 && (
@@ -267,6 +267,34 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
         if (type.includes('CHIẾN DỊCH') || type.includes('CAMPAIGN')) return '4. Chiến dịch';
         if (prefix === 'S' || doc.startsWith('RO') || ['DỰ TRỮ', 'STOCK'].some(k => type.includes(k))) return '5. Dự trữ (Stock)';
         return '6. Khác';
+    };
+
+    // Compact one-letter symbol for table display (V/F/E/C/S/X). Title attr exposes full name.
+    const ORDER_TYPE_SYMBOL: Record<string, { sym: string; full: string; color: string }> = {
+        '1. VOR (Xe nằm đường)':  { sym: 'V', full: 'VOR — Xe nằm đường',  color: 'text-rose-700' },
+        '2. Bảo Hành':            { sym: 'F', full: 'Bảo Hành',            color: 'text-blue-700' },
+        '3. Khẩn (EO/Emergency)': { sym: 'E', full: 'Khẩn (EO/Emergency)', color: 'text-amber-700' },
+        '4. Chiến dịch':          { sym: 'C', full: 'Chiến dịch',          color: 'text-indigo-700' },
+        '5. Dự trữ (Stock)':      { sym: 'S', full: 'Dự trữ (Stock)',      color: 'text-emerald-700' },
+        '6. Khác':                { sym: 'X', full: 'Khác',                color: 'text-slate-600' },
+    };
+
+    // Coverage status — same logic as the master filter cards above the table.
+    // STOCK: backorder ≤ on-hand. PO: incoming-this-month closes the gap. GAP: still short.
+    type CoverageStatus = 'STOCK' | 'PO' | 'GAP';
+    const COVERAGE_META: Record<CoverageStatus, { label: string; full: string; cls: string }> = {
+        STOCK: { label: 'STOCK', full: 'Tồn đủ trả',     cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
+        PO:    { label: 'PO',    full: 'PO đủ trả',      cls: 'bg-blue-50 text-blue-700 ring-blue-200' },
+        GAP:   { label: 'GAP',   full: 'Không đủ trả',   cls: 'bg-rose-50 text-rose-700 ring-rose-200' },
+    };
+    const getCoverageStatus = (item: InventoryItem): CoverageStatus => {
+        const totalStock = (item.QuantityInventory_NB || 0) + (item.QuantityInventory_BB || 0)
+                         + (item.QuantityDC_NB || 0) + (item.QuantityDC_BB || 0);
+        const poThisMonth = item.computed?.incomingCurrentMonth || 0;
+        const boQty = Math.max(item.Backorder || 0, item.computed?.boAging?.totalQty || 0);
+        if (boQty <= totalStock) return 'STOCK';
+        if (boQty <= totalStock + poThisMonth) return 'PO';
+        return 'GAP';
     };
 
     const formatCurrency = (val: number) => {
@@ -713,7 +741,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                             {count.toLocaleString('vi-VN')}
                                         </div>
                                     </div>
-                                    <Typography variant="label" className={`block !text-[10px] normal-case ${isActive ? 'text-blue-600/70' : 'opacity-60'} font-medium tracking-tight truncate max-w-[140px]`}>{f.sub}</Typography>
+                                    <Typography variant="label" className={`block !text-[10px] normal-case ${isActive ? 'text-blue-700' : 'text-slate-600'} font-medium tracking-tight truncate max-w-[140px]`}>{f.sub}</Typography>
                                 </div>
                                 {isActive && (
                                     <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-blue-500 rounded-full blur-[1px] shadow-[0_0_15px_rgba(59,130,246,0.6)]"></div>
@@ -740,7 +768,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                     <button 
                                         key={m.id}
                                         onClick={() => setMatrixMetric(m.id as any)}
-                                        className={`px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${matrixMetric === m.id ? 'bg-white text-[#635bff] shadow-lg shadow-indigo-100 ring-1 ring-slate-100' : 'text-slate-400 hover:text-slate-600 hover:bg-white/50'}`}
+                                        className={`px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${matrixMetric === m.id ? 'bg-white text-[#635bff] shadow-lg shadow-indigo-100 ring-1 ring-slate-100' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'}`}
                                     >
                                         {m.label}
                                     </button>
@@ -785,18 +813,18 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                             </td>
                                             
                                             {/* Types breakdown */}
-                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_1. VOR (Xe nằm đường)'] > 0 ? 'text-slate-900' : 'text-slate-300'}`}>{row['type_1. VOR (Xe nằm đường)'] > 0 ? formatMatrixVal(row['type_1. VOR (Xe nằm đường)']) : '-'}</Typography></td>
-                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_2. Bảo Hành'] > 0 ? 'text-slate-900' : 'text-slate-300'}`}>{row['type_2. Bảo Hành'] > 0 ? formatMatrixVal(row['type_2. Bảo Hành']) : '-'}</Typography></td>
-                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_3. Khẩn (EO/Emergency)'] > 0 ? 'text-slate-900' : 'text-slate-300'}`}>{row['type_3. Khẩn (EO/Emergency)'] > 0 ? formatMatrixVal(row['type_3. Khẩn (EO/Emergency)']) : '-'}</Typography></td>
-                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_4. Chiến dịch'] > 0 ? 'text-slate-900' : 'text-slate-300'}`}>{row['type_4. Chiến dịch'] > 0 ? formatMatrixVal(row['type_4. Chiến dịch']) : '-'}</Typography></td>
-                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_5. Dự trữ (Stock)'] > 0 ? 'text-slate-900' : 'text-slate-300'}`}>{row['type_5. Dự trữ (Stock)'] > 0 ? formatMatrixVal(row['type_5. Dự trữ (Stock)']) : '-'}</Typography></td>
-                                            <td className="py-4 text-center px-2 bg-slate-50/5 border-r border-slate-200"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_6. Khác'] > 0 ? 'text-slate-900' : 'text-slate-300'}`}>{row['type_6. Khác'] > 0 ? formatMatrixVal(row['type_6. Khác']) : '-'}</Typography></td>
+                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_1. VOR (Xe nằm đường)'] > 0 ? 'text-slate-900' : 'text-slate-400'}`}>{row['type_1. VOR (Xe nằm đường)'] > 0 ? formatMatrixVal(row['type_1. VOR (Xe nằm đường)']) : '-'}</Typography></td>
+                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_2. Bảo Hành'] > 0 ? 'text-slate-900' : 'text-slate-400'}`}>{row['type_2. Bảo Hành'] > 0 ? formatMatrixVal(row['type_2. Bảo Hành']) : '-'}</Typography></td>
+                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_3. Khẩn (EO/Emergency)'] > 0 ? 'text-slate-900' : 'text-slate-400'}`}>{row['type_3. Khẩn (EO/Emergency)'] > 0 ? formatMatrixVal(row['type_3. Khẩn (EO/Emergency)']) : '-'}</Typography></td>
+                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_4. Chiến dịch'] > 0 ? 'text-slate-900' : 'text-slate-400'}`}>{row['type_4. Chiến dịch'] > 0 ? formatMatrixVal(row['type_4. Chiến dịch']) : '-'}</Typography></td>
+                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_5. Dự trữ (Stock)'] > 0 ? 'text-slate-900' : 'text-slate-400'}`}>{row['type_5. Dự trữ (Stock)'] > 0 ? formatMatrixVal(row['type_5. Dự trữ (Stock)']) : '-'}</Typography></td>
+                                            <td className="py-4 text-center px-2 bg-slate-50/5 border-r border-slate-200"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_6. Khác'] > 0 ? 'text-slate-900' : 'text-slate-400'}`}>{row['type_6. Khác'] > 0 ? formatMatrixVal(row['type_6. Khác']) : '-'}</Typography></td>
 
                                             {/* Aging breakdown */}
-                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row.q30 > 0 ? 'text-slate-900' : 'text-slate-300'}`}>{row.q30 > 0 ? formatMatrixVal(row.q30) : '-'}</Typography></td>
-                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row.q60 > 0 ? 'text-slate-900' : 'text-slate-300'}`}>{row.q60 > 0 ? formatMatrixVal(row.q60) : '-'}</Typography></td>
-                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row.q90 > 0 ? 'text-rose-600' : 'text-slate-300'}`}>{row.q90 > 0 ? formatMatrixVal(row.q90) : '-'}</Typography></td>
-                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row.qO90 > 0 ? 'text-rose-700' : 'text-slate-300'}`}>{row.qO90 > 0 ? formatMatrixVal(row.qO90) : '-'}</Typography></td>
+                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row.q30 > 0 ? 'text-slate-900' : 'text-slate-400'}`}>{row.q30 > 0 ? formatMatrixVal(row.q30) : '-'}</Typography></td>
+                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row.q60 > 0 ? 'text-slate-900' : 'text-slate-400'}`}>{row.q60 > 0 ? formatMatrixVal(row.q60) : '-'}</Typography></td>
+                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row.q90 > 0 ? 'text-rose-600' : 'text-slate-400'}`}>{row.q90 > 0 ? formatMatrixVal(row.q90) : '-'}</Typography></td>
+                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row.qO90 > 0 ? 'text-rose-700' : 'text-slate-400'}`}>{row.qO90 > 0 ? formatMatrixVal(row.qO90) : '-'}</Typography></td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -858,7 +886,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                             </td>
                                             {loisList.map(lois => (
                                                 <td key={lois} className="py-4 text-center px-2 bg-slate-50/5">
-                                                    <Typography variant="mono" className={`!text-[12px] font-bold ${row[`lois_${lois}`] > 0 ? 'text-slate-900' : 'text-slate-300'}`}>
+                                                    <Typography variant="mono" className={`!text-[12px] font-bold ${row[`lois_${lois}`] > 0 ? 'text-slate-900' : 'text-slate-400'}`}>
                                                         {row[`lois_${lois}`] > 0 ? formatMatrixVal(row[`lois_${lois}`]) : '-'}
                                                     </Typography>
                                                 </td>
@@ -891,7 +919,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                         <div className="bg-white p-10 rounded-[2.5rem] border border-slate-50 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] hover:shadow-[0_40px_80px_-20px_rgba(99,91,255,0.12)] transition-all duration-700 flex flex-col group hover:-translate-y-2">
                             <div className="mb-8 flex justify-between items-start">
                                 <div>
-                                    <Typography variant="label" className="text-slate-400 font-black uppercase tracking-[0.2em] mb-2 block !text-[10px]">Cơ cấu nợ theo loại đơn</Typography>
+                                    <Typography variant="label" className="text-slate-600 font-black uppercase tracking-[0.2em] mb-2 block !text-[10px]">Cơ cấu nợ theo loại đơn</Typography>
                                     <Typography variant="h3" className="text-slate-900 !font-black tracking-tight">Phân tách nợ đại lý</Typography>
                                 </div>
                                 <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 shadow-inner">
@@ -928,7 +956,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                         <div className="bg-white p-10 rounded-[2.5rem] border border-slate-50 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] hover:shadow-[0_40px_80px_-20px_rgba(99,91,255,0.12)] transition-all duration-700 flex flex-col group hover:-translate-y-2">
                             <div className="mb-8 flex justify-between items-start">
                                 <div>
-                                    <Typography variant="label" className="text-slate-400 font-black uppercase tracking-[0.2em] mb-2 block !text-[10px]">Top 5 đơn vị nợ hàng</Typography>
+                                    <Typography variant="label" className="text-slate-600 font-black uppercase tracking-[0.2em] mb-2 block !text-[10px]">Top 5 đơn vị nợ hàng</Typography>
                                     <Typography variant="h3" className="text-slate-900 !font-black tracking-tight">Hiệu suất chi nhánh</Typography>
                                 </div>
                                 <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-500 shadow-inner">
@@ -1028,7 +1056,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                     <button
                                         key={val}
                                         onClick={() => setAgingFilter(val as any)}
-                                        className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all ${agingFilter === val ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+                                        className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all ${agingFilter === val ? 'bg-slate-900 text-white shadow-md' : 'text-slate-600 hover:text-slate-900'}`}
                                     >
                                         {val === 'all' ? 'Tất cả' : val === 'over90' ? '> 90D' : `${val}D`}
                                     </button>
@@ -1037,7 +1065,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                         </div>
 
                         <div className="flex items-center gap-2">
-                            <Typography variant="label" className="text-slate-400 !text-[10px] mr-2">HIỂN THỊ:</Typography>
+                            <Typography variant="label" className="text-slate-600 !text-[10px] mr-2">HIỂN THỊ:</Typography>
                             <select 
                                 value={pageSize}
                                 onChange={e => setPageSize(Number(e.target.value))}
@@ -1057,7 +1085,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                             <div className="flex items-center gap-6">
                                 <div>
                                     <Typography variant="h3" className="text-slate-900 !font-black tracking-tight">Chi tiết danh sách SKU</Typography>
-                                    <Typography variant="label" className="text-slate-400 !text-[10px] uppercase font-bold tracking-widest">Hiển thị {filteredData.length} kết quả phù hợp</Typography>
+                                    <Typography variant="label" className="text-slate-600 !text-[10px] uppercase font-bold tracking-widest">Hiển thị {filteredData.length} kết quả phù hợp</Typography>
                                 </div>
                             </div>
                         </div>
@@ -1074,7 +1102,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                             >
                                                 <div className={`flex items-center gap-2 ${align === 'center' ? 'justify-center' : align === 'right' ? 'justify-end' : ''}`}>
                                                     <Typography variant="label" className={`${isActive ? 'text-[#635bff]' : 'text-[#4f566b]'} group-hover/th:text-[#635bff] transition-colors font-bold uppercase tracking-wider`}>{label}</Typography>
-                                                    <div className={`flex flex-col text-[8px] ${isActive ? 'text-[#635bff]' : 'text-slate-300 opacity-0 group-hover/th:opacity-100'}`}>
+                                                    <div className={`flex flex-col text-[8px] ${isActive ? 'text-[#635bff]' : 'text-slate-400 opacity-0 group-hover/th:opacity-100'}`}>
                                                         <i className={`fas fa-caret-up ${isActive && sortConfig.direction === 'asc' ? 'opacity-100' : 'opacity-30'}`}></i>
                                                         <i className={`fas fa-caret-down ${isActive && sortConfig.direction === 'desc' ? 'opacity-100' : 'opacity-30'}`}></i>
                                                     </div>
@@ -1085,14 +1113,15 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
 
                                     return (
                                         <tr>
-                                            <SortableHeader label="SKU & CHI TIẾT NỢ" sortKey="ItemCode" align="left" />
-                                            <SortableHeader label="TỔNG NỢ" sortKey="Backorder" />
-                                            <SortableHeader label="NỢ LÂU NHẤT" sortKey="OldestDebt" />
-                                            <th className="px-4 py-4 text-center"><Typography variant="label" className="text-slate-400 font-black uppercase tracking-widest">LOẠI ĐƠN</Typography></th>
-                                            <SortableHeader label="TUỔI NỢ (AGING)" sortKey="Aging" />
+                                            <SortableHeader label="SKU" sortKey="ItemCode" align="left" />
+                                            <th className="px-3 py-3 text-left"><Typography variant="label" className="text-slate-600 font-black uppercase tracking-widest">TÌNH TRẠNG</Typography></th>
+                                            <SortableHeader label="TỔNG NỢ" sortKey="Backorder" align="right" />
+                                            <SortableHeader label="NỢ LÂU" sortKey="OldestDebt" align="right" />
+                                            <th className="px-3 py-3 text-left"><Typography variant="label" className="text-slate-600 font-black uppercase tracking-widest">LOẠI ĐƠN</Typography></th>
+                                            <SortableHeader label="AGING" sortKey="Aging" />
                                             <SortableHeader label="TỒN KHO" sortKey="Stock" />
-                                            <SortableHeader label="TỒN ĐẠI LÝ" sortKey="DealerInventory" />
-                                            <SortableHeader label="HÀNG ĐANG VỀ" sortKey="TotalPO" />
+                                            <SortableHeader label="ĐẠI LÝ" sortKey="DealerInventory" align="right" />
+                                            <SortableHeader label="HÀNG ĐANG VỀ" sortKey="TotalPO" align="right" />
                                             <SortableHeader label="GIÁ TRỊ NỢ (TR)" sortKey="totalValue" align="right" />
                                         </tr>
                                     );
@@ -1122,172 +1151,155 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                     if (aging && (aging.qtyOver90 > 0 || aging.qty90 > 0)) priority = 'CRITICAL';
                                     else if (aging && aging.qty60 > 0) priority = 'HIGH';
 
+                                    // Rewritten for data density: single semantic color (rose) for critical state,
+                                    // mono numbers throughout, no decorative pills/badges. Padding tightened.
+                                    const isCritical = priority === 'CRITICAL';
+                                    const isHigh = priority === 'HIGH';
+                                    const totalBO = Math.max(item.Backorder || 0, item.computed?.boAging?.totalQty || 0);
+                                    // Unified sizing: data = 13px mono, labels = 9px slate-400, single semantic color.
                                     return (
-                                        <tr key={item.ItemCode} className="hover:bg-blue-50/40 transition-all group cursor-pointer border-b border-slate-50 last:border-0 relative" onClick={() => onSkuSelect(item)}>
-                                            <td className="px-6 py-5">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="relative">
-                                                        <div className={`w-14 h-14 rounded-2xl bg-white border-2 ${priority === 'CRITICAL' ? 'border-rose-200 text-rose-600' : 'border-slate-100 text-slate-500'} flex items-center justify-center font-black text-lg shrink-0 group-hover:border-blue-300 group-hover:text-blue-700 transition-all shadow-md group-hover:shadow-lg group-hover:rotate-3`}>
-                                                            {item.ItemCode.charAt(0)}
-                                                        </div>
-                                                        {priority === 'CRITICAL' && <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-600 rounded-full border-[3px] border-white animate-pulse shadow-xl"></span>}
-                                                    </div>
+                                        <tr key={item.ItemCode} className={`hover:bg-blue-50/40 transition-colors group cursor-pointer border-b border-slate-100 last:border-0 ${isCritical ? 'bg-rose-50/30' : ''}`} onClick={() => onSkuSelect(item)}>
+                                            <td className="px-4 py-3">
+                                                <div className="flex items-start gap-2.5">
+                                                    <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${isCritical ? 'bg-rose-500' : isHigh ? 'bg-amber-500' : 'bg-slate-200'}`} aria-hidden />
                                                     <div className="min-w-0">
-                                                        <div className="flex items-center gap-2">
-                                                            <Typography variant="mono" className="font-bold text-[#1a1f36] group-hover:text-[#635bff] transition-colors text-[17px] tracking-tight tabular-nums">{item.ItemCode}</Typography>
-                                                            {priority !== 'NORMAL' && (
-                                                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${priority === 'CRITICAL' ? 'bg-[#df1b41] text-white' : 'bg-[#ff8c00] text-white'}`}>
-                                                                    {priority}
-                                                                </span>
-                                                            )}
+                                                        <div className="font-mono font-bold text-slate-900 group-hover:text-[#635bff] transition-colors text-[13px] tabular-nums tracking-tight">
+                                                            {item.ItemCode}
                                                         </div>
-                                                        <Typography variant="label" className="text-[#4f566b] block mt-1 truncate max-w-[240px] normal-case font-medium !text-[12px] group-hover:text-[#1a1f36] transition-colors">{item.ItemName}</Typography>
-                                                        <div className="flex gap-2 mt-2">
-                                                            <span className="text-[9px] bg-slate-900 text-white px-2 py-0.5 rounded-lg font-black tracking-widest shadow-sm">{item.BrandName}</span>
-                                                            {item.TypeCar && <span className="text-[9px] bg-white text-slate-500 px-2 py-0.5 rounded-lg font-black border border-slate-200 shadow-sm">{item.TypeCar}</span>}
+                                                        <div className="text-[11px] text-slate-500 truncate max-w-[260px] mt-0.5 font-medium">{item.ItemName}</div>
+                                                        <div className="text-[10px] text-slate-400 font-medium mt-0.5 flex flex-wrap items-baseline gap-x-1">
+                                                            {item.SourceId && (
+                                                                <span className="font-mono font-black text-[10px] text-[#635bff] uppercase tracking-wider">{item.SourceId}</span>
+                                                            )}
+                                                            <span className="text-slate-600 font-bold">· {item.BrandName}</span>
+                                                            {item.TypeCar && <span>· {item.TypeCar}</span>}
                                                         </div>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-5 text-center">
+                                            <td className="px-3 py-3">
+                                                {(() => {
+                                                    const cs = getCoverageStatus(item);
+                                                    const meta = COVERAGE_META[cs];
+                                                    return (
+                                                        <span title={meta.full} className={`inline-flex font-mono font-black text-[10px] uppercase tracking-wider px-2 py-1 rounded-md ring-1 ${meta.cls}`}>
+                                                            {meta.label}
+                                                        </span>
+                                                    );
+                                                })()}
+                                            </td>
+                                            <td className="px-3 py-3 text-right">
                                                 <BackorderPopup items={item.BackorderBreakdown || []}>
-                                                    <div className="px-4 py-2 bg-[#635bff] text-white rounded-lg font-mono font-bold text-base shadow-sm hover:bg-[#5851ff] hover:scale-110 transition-all inline-block tabular-nums">
-                                                        {Math.max(item.Backorder || 0, item.computed?.boAging?.totalQty || 0).toLocaleString('vi-VN')}
-                                                    </div>
+                                                    <span className={`font-mono font-bold text-[13px] tabular-nums ${isCritical ? 'text-rose-600' : 'text-slate-900'} hover:text-[#635bff] transition-colors`}>
+                                                        {totalBO.toLocaleString('vi-VN')}
+                                                    </span>
                                                 </BackorderPopup>
                                             </td>
-                                            <td className="px-4 py-5 text-center">
-                                                <div className="flex flex-col items-center">
-                                                    <Typography variant="mono" className="font-bold text-[#df1b41] text-[15px] tabular-nums">{getOldestDebtDays(item)}</Typography>
-                                                    <Typography variant="label" className="text-[#4f566b] !text-[8px] font-bold uppercase">NGÀY</Typography>
+                                            <td className="px-3 py-3 text-right">
+                                                <span className={`font-mono font-bold text-[13px] tabular-nums ${isCritical ? 'text-rose-600' : isHigh ? 'text-amber-600' : 'text-slate-700'}`}>
+                                                    {getOldestDebtDays(item)}<span className="text-[9px] text-slate-400 font-medium ml-0.5">d</span>
+                                                </span>
+                                            </td>
+                                            <td className="px-3 py-3">
+                                                <div className="text-[13px] tabular-nums font-bold text-slate-800 max-w-[180px] leading-snug">
+                                                    {Object.entries(boTypes).map(([type, qty], idx) => {
+                                                        const meta = ORDER_TYPE_SYMBOL[type] ?? { sym: '?', full: type, color: 'text-slate-600' };
+                                                        return (
+                                                            <span key={type} title={meta.full}>
+                                                                {idx > 0 && <span className="text-slate-300 mx-1.5">|</span>}
+                                                                <span>{qty}</span>
+                                                                <span className={`font-mono font-black text-[11px] ml-0.5 ${meta.color}`}>({meta.sym})</span>
+                                                            </span>
+                                                        );
+                                                    })}
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-5">
-                                                <div className="flex flex-wrap justify-center gap-1.5 max-w-[200px] mx-auto">
-                                                    {Object.entries(boTypes).map(([type, qty]) => (
-                                                        <span key={type} className="text-[10px] bg-slate-50 text-[#4f566b] px-2 py-1 rounded-md border border-slate-100 font-bold whitespace-nowrap tabular-nums">
-                                                            {type}: {qty}
-                                                        </span>
+                                            <td className="px-3 py-3">
+                                                <div className="flex justify-center gap-3 text-[13px] tabular-nums font-bold">
+                                                    {[
+                                                        { label: '30d', val: aging?.qty30 || 0, color: 'text-slate-700' },
+                                                        { label: '60d', val: aging?.qty60 || 0, color: 'text-amber-600' },
+                                                        { label: '90d', val: aging?.qty90 || 0, color: 'text-rose-500' },
+                                                        { label: '>90d', val: aging?.qtyOver90 || 0, color: 'text-rose-700' },
+                                                    ].map(({ label, val, color }) => (
+                                                        <div key={label} className="flex flex-col items-center min-w-[34px]">
+                                                            <span className={val > 0 ? color : 'text-slate-300'}>{val > 0 ? val : '–'}</span>
+                                                            <span className="text-[9px] text-slate-400 uppercase tracking-wide font-medium">{label}</span>
+                                                        </div>
                                                     ))}
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-5">
-                                                 <div className="flex justify-center gap-1">
-                                                     <AgingBadge days="30" qty={aging?.qty30 || 0} />
-                                                     <AgingBadge days="60" qty={aging?.qty60 || 0} />
-                                                     <AgingBadge days="90" qty={aging?.qty90 || 0} />
-                                                     <AgingBadge days=">90" qty={aging?.qtyOver90 || 0} />
-                                                 </div>
-                                             </td>
-                                            <td className="px-4 py-5 text-center">
-                                                <div className="flex flex-col items-center gap-2">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="text-center">
-                                                            <Typography variant="mono-sm" className={`font-bold tabular-nums ${item.Backorder_NB > 0 ? 'text-[#df1b41] underline decoration-[#df1b41]/30 decoration-2 underline-offset-4' : 'text-[#1a1f36]'}`}>{nbStock}</Typography>
-                                                            <Typography variant="label" className="text-[#4f566b] !text-[8px] font-bold uppercase">NAM</Typography>
-                                                        </div>
-                                                        <div className="w-px h-6 bg-slate-200"></div>
-                                                        <div className="text-center">
-                                                            <Typography variant="mono-sm" className={`font-bold tabular-nums ${item.Backorder_BB > 0 ? 'text-[#df1b41] underline decoration-[#df1b41]/30 decoration-2 underline-offset-4' : 'text-[#1a1f36]'}`}>{bbStock}</Typography>
-                                                            <Typography variant="label" className="text-[#4f566b] !text-[8px] font-bold uppercase">BẮC</Typography>
-                                                        </div>
+                                            <td className="px-3 py-3 text-center">
+                                                <div className="flex justify-center gap-3 text-[13px] tabular-nums font-bold">
+                                                    <div className="flex flex-col items-center min-w-[34px]">
+                                                        <span className={item.Backorder_NB > 0 ? 'text-rose-600' : 'text-slate-700'}>{nbStock}</span>
+                                                        <span className="text-[9px] text-slate-400 uppercase tracking-wide font-medium">NB</span>
                                                     </div>
-                                                    {(canTransferToBB || canTransferToNB) && (
-                                                        <div className="px-2 py-0.5 bg-[#00d924] text-white rounded font-bold text-[8px] uppercase flex items-center gap-1 shadow-sm">
-                                                            <i className="fas fa-right-left"></i> Điều chuyển
-                                                        </div>
-                                                    )}
+                                                    <div className="flex flex-col items-center min-w-[34px]">
+                                                        <span className={item.Backorder_BB > 0 ? 'text-rose-600' : 'text-slate-700'}>{bbStock}</span>
+                                                        <span className="text-[9px] text-slate-400 uppercase tracking-wide font-medium">BB</span>
+                                                    </div>
                                                 </div>
+                                                {(canTransferToBB || canTransferToNB) && (
+                                                    <div className="text-[9px] text-emerald-600 uppercase font-bold tracking-wide mt-1">↔ Điều chuyển</div>
+                                                )}
                                             </td>
-                                            <td className="px-4 py-5 text-center">
+                                            <td className="px-3 py-3 text-right">
                                                 <DealerInventoryPopup items={item.DealerBreakdown || []}>
-                                                    <div className="flex flex-col items-center group/dl">
-                                                        <Typography variant="mono" className="font-black text-blue-600 text-[15px] group-hover/dl:scale-110 transition-transform">{item.DealerInventory.toLocaleString()}</Typography>
-                                                        <Typography variant="label" className="text-slate-400 !text-[8px] font-black uppercase group-hover/dl:text-blue-500 transition-colors">TỒN ĐL</Typography>
-                                                    </div>
+                                                    <span className="font-mono font-bold tabular-nums text-slate-700 hover:text-blue-600 text-[13px] transition-colors">
+                                                        {item.DealerInventory.toLocaleString()}
+                                                    </span>
                                                 </DealerInventoryPopup>
                                             </td>
-                                            <td className="px-4 py-5">
-                                                <PipelinePopup 
-                                                    pipeline={item.Pipeline} 
-                                                    pipelineNB={item.Pipeline_NB} 
-                                                    pipelineBB={item.Pipeline_BB}
-                                                >
-                                                    <div className="flex flex-col items-center gap-1">
-                                                        <div className="grid grid-cols-2 gap-2 w-full max-w-[120px]">
-                                                            <div className="bg-blue-50 border border-blue-100 p-1 rounded text-center hover:bg-blue-100 transition-colors">
-                                                                <Typography variant="mono" className="text-blue-700 font-black !text-[10px] leading-none">{poM0}</Typography>
-                                                                <Typography variant="label" className="text-blue-400 !text-[7px] uppercase font-black block mt-0.5">T.NÀY</Typography>
-                                                            </div>
-                                                            <div className="bg-indigo-50 border border-indigo-100 p-1 rounded text-center hover:bg-indigo-100 transition-colors">
-                                                                <Typography variant="mono" className="text-indigo-700 font-black !text-[10px] leading-none">{poM1}</Typography>
-                                                                <Typography variant="label" className="text-indigo-400 !text-[7px] uppercase font-black block mt-0.5">T.SAU</Typography>
-                                                            </div>
+                                            <td className="px-3 py-3">
+                                                <PipelinePopup pipeline={item.Pipeline} pipelineNB={item.Pipeline_NB} pipelineBB={item.Pipeline_BB}>
+                                                    <div className="flex justify-end gap-3 text-[13px] tabular-nums font-bold cursor-help">
+                                                        <div className="flex flex-col items-center min-w-[34px]">
+                                                            <span className={poM0 > 0 ? 'text-slate-900' : 'text-slate-300'}>{poM0 > 0 ? poM0 : '–'}</span>
+                                                            <span className="text-[9px] text-slate-400 uppercase tracking-wide font-medium">T.này</span>
                                                         </div>
-                                                        <div className="flex justify-between items-center w-full max-w-[120px] mt-1 px-1">
-                                                            <Typography variant="label" className="text-slate-400 font-black !text-[8px] uppercase">TỔNG PO:</Typography>
-                                                            <Typography variant="mono" className="text-slate-900 font-black !text-[10px]">{item.TotalPO}</Typography>
+                                                        <div className="flex flex-col items-center min-w-[34px]">
+                                                            <span className={poM1 > 0 ? 'text-slate-900' : 'text-slate-300'}>{poM1 > 0 ? poM1 : '–'}</span>
+                                                            <span className="text-[9px] text-slate-400 uppercase tracking-wide font-medium">T.sau</span>
+                                                        </div>
+                                                        <div className="flex flex-col items-center min-w-[42px] border-l border-slate-200 pl-3">
+                                                            <span className={item.TotalPO > 0 ? 'text-slate-900' : 'text-slate-300'}>{item.TotalPO}</span>
+                                                            <span className="text-[9px] text-slate-400 uppercase tracking-wide font-medium">Tổng</span>
                                                         </div>
                                                     </div>
                                                 </PipelinePopup>
                                             </td>
-                                            <td className="px-6 py-5 text-right">
-                                                <Typography variant="mono" className="font-bold text-[#1a1f36] !text-[16px] tabular-nums">{formatCurrency(item.computed?.boAging?.totalValue || 0)}</Typography>
-                                                <Typography variant="label" className="text-[#4f566b] !text-[10px] font-bold block mt-1 uppercase tracking-wider">GIÁ TRỊ TỔNG NỢ</Typography>
+                                            <td className="px-4 py-3 text-right">
+                                                <span className="font-mono font-bold text-slate-900 text-[13px] tabular-nums">
+                                                    {formatCurrency(item.computed?.boAging?.totalValue || 0)}
+                                                </span>
                                             </td>
                                         </tr>
                                     );
                                 })}
                             </tbody>
                             <tfoot className="sticky bottom-0 bg-slate-900 text-white z-10 shadow-2xl">
-                                <tr>
-                                    <td className="px-6 py-4">
-                                        <Typography variant="label" className="text-white/70 font-black uppercase tracking-widest !text-[11px]">TỔNG CỘNG TRANG</Typography>
+                                <tr className="text-[13px] tabular-nums font-bold">
+                                    <td className="px-4 py-3 text-white/80 !text-[11px] uppercase tracking-widest">Tổng cộng trang</td>
+                                    <td className="px-3 py-3 text-white/40">–</td>
+                                    <td className="px-3 py-3 text-right">
+                                        {pagedData.reduce((a, b) => a + b.Backorder, 0).toLocaleString()}
                                     </td>
-                                    <td className="px-4 py-4 text-center">
-                                        <Typography variant="mono" className="font-black text-white text-base tabular-nums">
-                                            {pagedData.reduce((a, b) => a + b.Backorder, 0).toLocaleString()}
-                                        </Typography>
+                                    <td className="px-3 py-3 text-right text-white/40">–</td>
+                                    <td className="px-3 py-3 text-white/40">–</td>
+                                    <td className="px-3 py-3 text-center text-white/40">–</td>
+                                    <td className="px-3 py-3 text-center">
+                                        <span className="mr-3">{pagedData.reduce((a, b) => a + (b.QuantityInventory_NB + b.QuantityDC_NB), 0).toLocaleString()}<span className="text-white/50 text-[9px] font-medium ml-0.5">NB</span></span>
+                                        <span>{pagedData.reduce((a, b) => a + (b.QuantityInventory_BB + b.QuantityDC_BB), 0).toLocaleString()}<span className="text-white/50 text-[9px] font-medium ml-0.5">BB</span></span>
                                     </td>
-                                    <td className="px-4 py-4 text-center">
-                                        <Typography variant="label" className="text-white/40 !text-[8px] uppercase font-black">---</Typography>
+                                    <td className="px-3 py-3 text-right">
+                                        {pagedData.reduce((a, b) => a + b.DealerInventory, 0).toLocaleString()}
                                     </td>
-                                    <td className="px-4 py-4 text-center">
-                                        <Typography variant="label" className="text-white/40 !text-[8px] uppercase font-black">---</Typography>
+                                    <td className="px-3 py-3 text-right">
+                                        {pagedData.reduce((a, b) => a + b.TotalPO, 0).toLocaleString()}<span className="text-white/50 text-[9px] font-medium ml-0.5">tổng</span>
                                     </td>
-                                    <td className="px-4 py-4 text-center">
-                                        <Typography variant="label" className="text-white/40 !text-[8px] uppercase font-black">---</Typography>
-                                    </td>
-                                    <td className="px-4 py-4 text-center border-x border-white/10">
-                                        <div className="flex items-center justify-center gap-4">
-                                            <div className="text-center">
-                                                <Typography variant="mono-sm" className="font-black text-white tabular-nums">
-                                                    {pagedData.reduce((a, b) => a + (b.QuantityInventory_NB + b.QuantityDC_NB), 0).toLocaleString()}
-                                                </Typography>
-                                                <Typography variant="label" className="text-white/50 !text-[7px] uppercase font-black">NAM</Typography>
-                                            </div>
-                                            <div className="text-center">
-                                                <Typography variant="mono-sm" className="font-black text-white tabular-nums">
-                                                    {pagedData.reduce((a, b) => a + (b.QuantityInventory_BB + b.QuantityDC_BB), 0).toLocaleString()}
-                                                </Typography>
-                                                <Typography variant="label" className="text-white/50 !text-[7px] uppercase font-black">BẮC</Typography>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-4 text-center border-r border-white/10">
-                                        <Typography variant="mono" className="font-black text-white text-[13px] tabular-nums">
-                                            {pagedData.reduce((a, b) => a + b.DealerInventory, 0).toLocaleString()}
-                                        </Typography>
-                                    </td>
-                                    <td className="px-4 py-4 text-center border-r border-white/10">
-                                        <Typography variant="mono" className="font-black text-white text-[13px] tabular-nums">
-                                            {pagedData.reduce((a, b) => a + b.TotalPO, 0).toLocaleString()}
-                                        </Typography>
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <Typography variant="mono" className="font-black text-white !text-[16px] tabular-nums">
-                                            {formatCurrency(pagedData.reduce((a, b) => a + (b.computed?.boAging?.totalValue || 0), 0))}
-                                        </Typography>
+                                    <td className="px-4 py-3 text-right !text-[14px]">
+                                        {formatCurrency(pagedData.reduce((a, b) => a + (b.computed?.boAging?.totalValue || 0), 0))}
                                     </td>
                                 </tr>
                             </tfoot>
@@ -1296,7 +1308,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                         {filteredData.length === 0 && (
                             <div className="p-20 text-center">
                                 <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-dashed border-slate-200">
-                                    <i className="fas fa-search text-slate-300 text-2xl"></i>
+                                    <i className="fas fa-search text-slate-400 text-2xl"></i>
                                 </div>
                                 <Typography variant="h3" className="text-slate-400 uppercase tracking-widest">Không tìm thấy dữ liệu nợ hàng</Typography>
                             </div>
@@ -1328,14 +1340,14 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                             <button 
                                                 key={page}
                                                 onClick={() => setCurrentPage(page)}
-                                                className={`w-10 h-10 rounded-xl text-[11px] font-black transition-all ${currentPage === page ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
+                                                className={`w-10 h-10 rounded-xl text-[11px] font-black transition-all ${currentPage === page ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}`}
                                             >
                                                 {page}
                                             </button>
                                         );
                                     });
                                 })()}
-                                {Math.ceil(filteredData.length / (pageSize || 25)) > 5 && <span className="text-slate-300 px-2">...</span>}
+                                {Math.ceil(filteredData.length / (pageSize || 25)) > 5 && <span className="text-slate-400 px-2">...</span>}
                             </div>
                             <button 
                                 disabled={pageSize <= 0 || currentPage === Math.ceil(filteredData.length / (pageSize || 25))}

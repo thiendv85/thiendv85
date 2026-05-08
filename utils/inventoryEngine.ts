@@ -596,9 +596,12 @@ export function computeInventory(
     const nextMM = dNext.getMonth() + 1;
     const nextYY = dNext.getFullYear() % 100;
 
+    // T.NÀY = pipeline có ETA trong tháng snapshot. Pipeline keys không parse được date
+    // (ví dụ "Chưa Invoice") không được gộp vào — chúng là PO chưa lên lịch giao,
+    // không phải PO sẽ về tháng này.
     const isMatchCurr = (k: string) => {
         const ts = parsePipelineDate(k, params.snapshotYYMM);
-        if (!ts) return true; // "Chưa Invoice" -> T.NÀY
+        if (!ts) return false;
         const d = new Date(ts);
         return (d.getMonth() + 1) === snapMM && (d.getFullYear() % 100) === snapYY;
     };
