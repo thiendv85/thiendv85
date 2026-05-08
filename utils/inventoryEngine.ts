@@ -585,29 +585,27 @@ export function computeInventory(
     const mos = demandMonthly > 0 ? netAvailable / demandMonthly : 0;
     const cst = demandMonthly > 0 ? (item.NetDemand + (item.DealerInventory || 0)) / demandMonthly : 99;
 
-    const snapshotMM = params.snapshotYYMM.slice(2, 4);
-    const snapshotYY = params.snapshotYYMM.slice(0, 2);
-    
-    const snapMM = parseInt(snapshotMM);
-    const snapYY = parseInt(snapshotYY);
-    
-    const dNext = new Date(now);
-    dNext.setMonth(dNext.getMonth() + 1);
-    const nextMM = dNext.getMonth() + 1;
-    const nextYY = dNext.getFullYear() % 100;
+    // T.NÀY / T.SAU dùng **lịch hôm nay**, không phải snapshotDate. Nguyên nhân:
+    // snapshotDate là ngày data được upload (có thể cũ vài tháng), trong khi PO trong Pipeline
+    // là forward-looking — user quan tâm "PO sắp về tháng nào theo lịch hiện tại".
+    const today = new Date();
+    const currMM = today.getMonth() + 1;
+    const currYY = today.getFullYear() % 100;
+    const nextDate = new Date(today);
+    nextDate.setMonth(nextDate.getMonth() + 1);
+    const nextMM = nextDate.getMonth() + 1;
+    const nextYY = nextDate.getFullYear() % 100;
 
-    // Pipeline header format: `OO YYMM[XX]` where MM is the arrival month. We match purely
-    // by MM (and tolerate ±1 year drift on YY) because:
-    //   - Stale data may carry last-year YY but still represent this-month arrivals.
-    //   - Some headers omit a parseable date entirely; those are excluded (no false positives).
-    // "Chưa Invoice" (no date at all) is excluded from both buckets.
+    // Pipeline header format: `OO YYMM[XX]` where MM is the arrival month. We match by MM
+    // primarily and tolerate ±1y drift on YY for stale-year-tag tolerance. "Chưa Invoice"
+    // (no parseable date) is excluded from both buckets.
     const isMatchCurr = (k: string) => {
         const ts = parsePipelineDate(k, params.snapshotYYMM);
         if (!ts) return false;
         const d = new Date(ts);
-        if ((d.getMonth() + 1) !== snapMM) return false;
+        if ((d.getMonth() + 1) !== currMM) return false;
         const yy = d.getFullYear() % 100;
-        return Math.abs(yy - snapYY) <= 1;
+        return Math.abs(yy - currYY) <= 1;
     };
 
     const isMatchNext = (k: string) => {
