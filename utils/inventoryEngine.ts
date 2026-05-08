@@ -596,21 +596,27 @@ export function computeInventory(
     const nextMM = dNext.getMonth() + 1;
     const nextYY = dNext.getFullYear() % 100;
 
-    // T.NÀY = pipeline có ETA trong tháng snapshot. Pipeline keys không parse được date
-    // (ví dụ "Chưa Invoice") không được gộp vào — chúng là PO chưa lên lịch giao,
-    // không phải PO sẽ về tháng này.
+    // Pipeline header format: `OO YYMM[XX]` where MM is the arrival month. We match purely
+    // by MM (and tolerate ±1 year drift on YY) because:
+    //   - Stale data may carry last-year YY but still represent this-month arrivals.
+    //   - Some headers omit a parseable date entirely; those are excluded (no false positives).
+    // "Chưa Invoice" (no date at all) is excluded from both buckets.
     const isMatchCurr = (k: string) => {
         const ts = parsePipelineDate(k, params.snapshotYYMM);
         if (!ts) return false;
         const d = new Date(ts);
-        return (d.getMonth() + 1) === snapMM && (d.getFullYear() % 100) === snapYY;
+        if ((d.getMonth() + 1) !== snapMM) return false;
+        const yy = d.getFullYear() % 100;
+        return Math.abs(yy - snapYY) <= 1;
     };
 
     const isMatchNext = (k: string) => {
         const ts = parsePipelineDate(k, params.snapshotYYMM);
         if (!ts) return false;
         const d = new Date(ts);
-        return (d.getMonth() + 1) === nextMM && (d.getFullYear() % 100) === nextYY;
+        if ((d.getMonth() + 1) !== nextMM) return false;
+        const yy = d.getFullYear() % 100;
+        return Math.abs(yy - nextYY) <= 1;
     };
 
     const incomingCurrentMonth = item.Pipeline ? Object.entries(item.Pipeline).reduce((sum, [k, v]) => isMatchCurr(k) ? sum + v : sum, 0) : 0;

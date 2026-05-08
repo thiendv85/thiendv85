@@ -435,31 +435,39 @@ export const parseCSV = (text: string, monthlyData?: Record<string, MonthlyData>
         let totalPONB = 0;
         let totalPOBB = 0;
 
+        // Pipeline (PO) headers come in many shapes from upstream exports:
+        //   "O O NB.250515", "OONB 250515", "O O BB 250515", "OOBB.250515",
+        //   "O O.250515", "OO.250515", "OO 250515", "OO250515".
+        // Strategy: detect whether header starts with the OO/O O prefix, then strip the prefix
+        // (incl. NB/BB suffix and any '.' / spaces) to get a clean date key.
+        const stripOOPrefix = (header: string): { key: string; bucket: 'NB' | 'BB' | null } | null => {
+            const m = header.match(/^\s*o\s*o\s*(nb|bb)?\s*[.\s]*(.+)$/i);
+            if (!m) return null;
+            const bucket = m[1] ? (m[1].toUpperCase() as 'NB' | 'BB') : null;
+            const key = (m[2] || '').trim();
+            return key ? { key, bucket } : null;
+        };
+
         headers.forEach((h, i) => {
-            const hUpper = h.toUpperCase();
-            if (hUpper.startsWith('O O ') || hUpper.startsWith('OONB') || hUpper.startsWith('OOBB')) {
-                const val = parseNum(row[i]);
-                if (val > 0) {
-                    if (hUpper.startsWith('O O NB') || hUpper.startsWith('OONB')) {
-                        const dateKey = h.replace(/o o nb\.?|oonb\.?\s?/i, '').trim();
-                        pipelineNB[dateKey] = val;
-                        totalPONB += val;
-                        // Đồng thời lưu vào mảng chung cho backward compatibility
-                        pipeline[dateKey] = (pipeline[dateKey] || 0) + val;
-                        totalPO += val;
-                    } else if (hUpper.startsWith('O O BB') || hUpper.startsWith('OOBB')) {
-                        const dateKey = h.replace(/o o bb\.?|oobb\.?\s?/i, '').trim();
-                        pipelineBB[dateKey] = val;
-                        totalPOBB += val;
-                        // Đồng thời lưu vào mảng chung
-                        pipeline[dateKey] = (pipeline[dateKey] || 0) + val;
-                        totalPO += val;
-                    } else if (hUpper.startsWith('O O.')) {
-                        const dateKey = h.replace(/o o\./i, '').trim();
-                        pipeline[dateKey] = (pipeline[dateKey] || 0) + val;
-                        totalPO += val;
-                    }
-                }
+            const parsed = stripOOPrefix(h);
+            if (!parsed) return;
+            const val = parseNum(row[i]);
+            if (val <= 0) return;
+            const { key: dateKey, bucket } = parsed;
+
+            if (bucket === 'NB') {
+                pipelineNB[dateKey] = val;
+                totalPONB += val;
+                pipeline[dateKey] = (pipeline[dateKey] || 0) + val;
+                totalPO += val;
+            } else if (bucket === 'BB') {
+                pipelineBB[dateKey] = val;
+                totalPOBB += val;
+                pipeline[dateKey] = (pipeline[dateKey] || 0) + val;
+                totalPO += val;
+            } else {
+                pipeline[dateKey] = (pipeline[dateKey] || 0) + val;
+                totalPO += val;
             }
         });
 
