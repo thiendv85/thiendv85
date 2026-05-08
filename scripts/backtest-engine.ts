@@ -116,9 +116,13 @@ function resolveDemand_v0(row: BacktestRow, applySeasonality: boolean): number {
 // EXPERIMENT SURFACE — modify ONLY this function during autoresearch loop.
 // ────────────────────────────────────────────────────────────────────────────
 function predict(row: BacktestRow): number {
-    // V2 — Drop seasonality entirely. Pure BaseForecast (de-seasonalized SQL output).
-    // Tests whether SQL's SeasonalityFactor is signal or noise on this dataset.
-    return resolveDemand_v0(row, false);
+    // V4 — 60/40 blend BaseForecast + avg_3m. Recent trend is often more reliable
+    // than EWMA which has long memory. avg_3m is also closer in time to actual_next.
+    const base = resolveDemand_v0(row, false);
+    if (row.avg_qty_3m > 0) {
+        return 0.6 * base + 0.4 * row.avg_qty_3m;
+    }
+    return base;
 }
 
 // ─── Metric computation ─────────────────────────────────────────────────────
