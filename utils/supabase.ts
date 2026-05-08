@@ -1,6 +1,34 @@
 import { createClient } from '@supabase/supabase-js';
 import type { UserRole, UserProfile } from './authContext';
-import type { InventoryItem, ApprovalWorkflow, ApprovalRequest, ApprovalAction, ApprovalStatus, SnapshotData } from '../types/inventory';
+import type { InventoryItem, ApprovalWorkflow, ApprovalRequest, ApprovalAction, ApprovalStatus, SnapshotData, ApprovalSummary } from '../types/inventory';
+
+/**
+ * Tính KPI tóm tắt cho 1 snapshot đơn hàng:
+ *   - skuCount   : số SKU có quantity > 0
+ *   - totalQty   : tổng số lượng (Air + Sea) trên tất cả SKU đã đặt
+ *   - totalValue : giá trị đơn (VND) — tính bằng quantity × unitCost của ctx
+ */
+export function computeSnapshotSummary(snap: SnapshotData | null | undefined): ApprovalSummary {
+  let skuCount = 0;
+  let totalQty = 0;
+  let totalValue = 0;
+  if (!snap) return { skuCount, totalQty, totalValue };
+  const qtys = snap.quantities || {};
+  const ctxList = snap.inventory_context || [];
+  const costMap: Record<string, number> = {};
+  ctxList.forEach((c) => { costMap[c.itemCode] = c.unitCost || 0; });
+
+  Object.entries(qtys).forEach(([code, q]) => {
+    const air = q?.air || 0;
+    const sea = q?.sea || 0;
+    const total = air + sea;
+    if (total <= 0) return;
+    skuCount++;
+    totalQty += total;
+    totalValue += total * (costMap[code] || 0);
+  });
+  return { skuCount, totalQty, totalValue };
+}
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -447,6 +475,61 @@ export async function listProfiles(): Promise<(UserProfile & { email?: string })
   return data as UserProfile[];
 }
 
+/**
+ * Directory tối thiểu của tất cả thành viên active — dùng để hiển thị tên (full_name)
+ * trong UI cho user thường, tránh fall-back về UUID.
+ *
+ * Yêu cầu migration 013 đã được apply (RPC `list_profile_directory`).
+ * Nếu RPC chưa tồn tại, fallback xuống `listProfiles()` (admin sẽ thấy đủ,
+ * user thường chỉ thấy chính mình).
+ */
+export interface ProfileDirectoryEntry {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  role: string;
+}
+
+let DIRECTORY_RPC_AVAILABLE: boolean | null = null;
+
+export async function fetchProfileDirectory(): Promise<ProfileDirectoryEntry[]> {
+  if (DIRECTORY_RPC_AVAILABLE !== false) {
+    const { data, error } = await supabase.rpc('list_profile_directory');
+    if (!error && Array.isArray(data)) {
+      DIRECTORY_RPC_AVAILABLE = true;
+      return data as ProfileDirectoryEntry[];
+    }
+    if (error && (error.code === '42883' || error.code === 'PGRST202' || /function .* does not exist|could not find/i.test(error.message || ''))) {
+      DIRECTORY_RPC_AVAILABLE = false;
+      console.warn('[profiles] RPC list_profile_directory chưa được apply, fallback listProfiles');
+    } else if (error) {
+      console.error('[profiles] RPC list_profile_directory lỗi:', error);
+    }
+  }
+  // Fallback: dùng listProfiles. Nếu user không phải admin, RLS chỉ trả profile chính mình.
+  const profiles = await listProfiles();
+  return profiles.map(p => ({
+    id: p.id,
+    full_name: p.full_name ?? null,
+    email: (p as any).email ?? null,
+    role: p.role,
+  }));
+}
+
+/**
+ * Convert một entry directory thành tên hiển thị thân thiện.
+ * Ưu tiên `full_name` → email-prefix → "Người dùng <id8>".
+ */
+export function displayNameFromEntry(entry: ProfileDirectoryEntry | undefined, fallbackId?: string): string {
+  if (entry) {
+    const name = (entry.full_name || '').trim();
+    if (name) return name;
+    if (entry.email) return entry.email.split('@')[0];
+  }
+  const id = fallbackId || entry?.id || '';
+  return id ? `Người dùng ${id.slice(0, 6)}` : 'Người dùng';
+}
+
 export async function updateProfileRole(userId: string, role: UserRole): Promise<boolean> {
   const { error } = await supabase.from('profiles').update({ role }).eq('id', userId);
   return !error;
@@ -487,6 +570,26 @@ export async function fetchWorkflowById(id: string): Promise<ApprovalWorkflow | 
   const { data, error } = await supabase.from('approval_workflows').select('*').eq('id', id).single();
   if (error || !data) return null;
   return data as ApprovalWorkflow;
+}
+
+export async function fetchWorkflowsByIds(ids: string[]): Promise<ApprovalWorkflow[]> {
+  if (!ids.length) return [];
+  const uniq = Array.from(new Set(ids));
+  const { data, error } = await supabase.from('approval_workflows').select('*').in('id', uniq);
+  if (error || !data) return [];
+  return data as ApprovalWorkflow[];
+}
+
+export async function fetchActionsByRequestIds(requestIds: string[]): Promise<ApprovalAction[]> {
+  if (!requestIds.length) return [];
+  const uniq = Array.from(new Set(requestIds));
+  const { data, error } = await supabase
+    .from('approval_actions')
+    .select('*')
+    .in('request_id', uniq)
+    .order('acted_at', { ascending: true });
+  if (error || !data) return [];
+  return data as ApprovalAction[];
 }
 
 export async function updateRequestStatus(id: string, status: ApprovalStatus): Promise<{ success: boolean; error?: string; conflict?: boolean }> {
@@ -594,27 +697,41 @@ export async function submitApprovalRequest(payload: SubmitRequestPayload): Prom
       };
     }
 
-    const { data, error } = await supabase
+    const baseRow: Record<string, unknown> = {
+      draft_name: payload.draft_name,
+      brand: normalizeBrand(payload.brand),
+      workflow_id: payload.workflow_id,
+      current_level: 1,
+      status: 'pending',
+      submitted_by: payload.submitted_by,
+      snapshot_data: finalSnapshotData,
+      version: 1,
+      deadline: deadline.toISOString(),
+    };
+    const rowWithSummary = { ...baseRow, summary: computeSnapshotSummary(fullSnapshot) };
+
+    let { data, error } = await supabase
       .from('approval_requests')
-      .insert({
-        draft_name: payload.draft_name,
-        brand: normalizeBrand(payload.brand),
-        workflow_id: payload.workflow_id,
-        current_level: 1,
-        status: 'pending',
-        submitted_by: payload.submitted_by,
-        snapshot_data: finalSnapshotData,
-        version: 1,
-        deadline: deadline.toISOString(),
-      })
+      .insert(SUMMARY_COLUMN_AVAILABLE === false ? baseRow : rowWithSummary)
       .select('id')
       .single();
+
+    if (error && isMissingSummaryColumn(error) && SUMMARY_COLUMN_AVAILABLE !== false) {
+      SUMMARY_COLUMN_AVAILABLE = false;
+      ({ data, error } = await supabase
+        .from('approval_requests')
+        .insert(baseRow)
+        .select('id')
+        .single());
+    } else if (!error) {
+      SUMMARY_COLUMN_AVAILABLE = true;
+    }
 
     if (error) {
       console.error('submitApprovalRequest failed:', error);
       return { id: null, error: error.message };
     }
-    
+
     if (!data) {
       return { id: null, error: 'Không nhận được phản hồi từ máy chủ' };
     }
@@ -638,6 +755,7 @@ export async function submitApprovalRequestPrecompressed(payload: {
   submitted_by: string;
   compressedBlob: Blob;
   meta: { submitted_at: string; app_version: string };
+  summary?: ApprovalSummary;
 }): Promise<{ id: string | null; error: string | null }> {
   try {
     // Deadline: 3 business days
@@ -671,21 +789,35 @@ export async function submitApprovalRequestPrecompressed(payload: {
       is_compressed: true,
     };
 
-    const { data, error } = await supabase
+    const baseRow: Record<string, unknown> = {
+      draft_name: payload.draft_name,
+      brand: normalizeBrand(payload.brand),
+      workflow_id: payload.workflow_id,
+      current_level: 1,
+      status: 'pending',
+      submitted_by: payload.submitted_by,
+      snapshot_data: finalSnapshotData,
+      version: 1,
+      deadline: deadline.toISOString(),
+    };
+    const rowWithSummary = { ...baseRow, summary: payload.summary || { skuCount: 0, totalQty: 0, totalValue: 0 } };
+
+    let { data, error } = await supabase
       .from('approval_requests')
-      .insert({
-        draft_name: payload.draft_name,
-        brand: normalizeBrand(payload.brand),
-        workflow_id: payload.workflow_id,
-        current_level: 1,
-        status: 'pending',
-        submitted_by: payload.submitted_by,
-        snapshot_data: finalSnapshotData,
-        version: 1,
-        deadline: deadline.toISOString(),
-      })
+      .insert(SUMMARY_COLUMN_AVAILABLE === false ? baseRow : rowWithSummary)
       .select('id')
       .single();
+
+    if (error && isMissingSummaryColumn(error) && SUMMARY_COLUMN_AVAILABLE !== false) {
+      SUMMARY_COLUMN_AVAILABLE = false;
+      ({ data, error } = await supabase
+        .from('approval_requests')
+        .insert(baseRow)
+        .select('id')
+        .single());
+    } else if (!error) {
+      SUMMARY_COLUMN_AVAILABLE = true;
+    }
 
     if (error) {
       console.error('submitApprovalRequestPrecompressed failed:', error);
@@ -699,27 +831,68 @@ export async function submitApprovalRequestPrecompressed(payload: {
   }
 }
 
+// Cache 1 lần / phiên: nếu DB chưa có cột `summary` thì các query sau bỏ luôn,
+// tránh request thừa.
+let SUMMARY_COLUMN_AVAILABLE: boolean | null = null;
+
+const isMissingSummaryColumn = (err: any) => {
+  if (!err) return false;
+  const code = err.code || '';
+  const msg = (err.message || '').toLowerCase();
+  return code === '42703' || (msg.includes('column') && msg.includes('summary'));
+};
+
 export async function fetchMyRequests(userId: string): Promise<ApprovalRequest[]> {
+  if (SUMMARY_COLUMN_AVAILABLE !== false) {
+    const { data, error } = await supabase
+      .from('approval_requests')
+      .select('id, draft_name, brand, workflow_id, current_level, status, submitted_by, submitted_at, version, deadline, summary')
+      .eq('submitted_by', userId)
+      .order('submitted_at', { ascending: false });
+    if (!error) { SUMMARY_COLUMN_AVAILABLE = true; return (data || []) as unknown as ApprovalRequest[]; }
+    if (!isMissingSummaryColumn(error)) return [];
+    SUMMARY_COLUMN_AVAILABLE = false;
+    console.warn('[approval] cột `summary` chưa tồn tại, retry không có summary');
+  }
   const { data, error } = await supabase
     .from('approval_requests')
     .select('id, draft_name, brand, workflow_id, current_level, status, submitted_by, submitted_at, version, deadline')
     .eq('submitted_by', userId)
     .order('submitted_at', { ascending: false });
   if (error || !data) return [];
-  return data as ApprovalRequest[];
+  return data as unknown as ApprovalRequest[];
 }
 
 export async function fetchPendingForApprover(
   _userId?: string,
   approvalLevels?: number[]
 ): Promise<ApprovalRequest[]> {
-  const { data, error } = await supabase
-    .from('approval_requests')
-    .select('id, draft_name, brand, workflow_id, current_level, status, submitted_by, submitted_at, version, deadline')
-    .in('status', ['pending', 'in_progress'])
-    .order('submitted_at', { ascending: true });
-  if (error || !data) return [];
-  const requests = data as ApprovalRequest[];
+  let requests: ApprovalRequest[] = [];
+  if (SUMMARY_COLUMN_AVAILABLE !== false) {
+    const { data, error } = await supabase
+      .from('approval_requests')
+      .select('id, draft_name, brand, workflow_id, current_level, status, submitted_by, submitted_at, version, deadline, summary')
+      .in('status', ['pending', 'in_progress'])
+      .order('submitted_at', { ascending: true });
+    if (!error) {
+      SUMMARY_COLUMN_AVAILABLE = true;
+      requests = (data || []) as unknown as ApprovalRequest[];
+    } else if (isMissingSummaryColumn(error)) {
+      SUMMARY_COLUMN_AVAILABLE = false;
+      console.warn('[approval] cột `summary` chưa tồn tại, retry không có summary');
+    } else {
+      return [];
+    }
+  }
+  if (SUMMARY_COLUMN_AVAILABLE === false) {
+    const { data, error } = await supabase
+      .from('approval_requests')
+      .select('id, draft_name, brand, workflow_id, current_level, status, submitted_by, submitted_at, version, deadline')
+      .in('status', ['pending', 'in_progress'])
+      .order('submitted_at', { ascending: true });
+    if (error || !data) return [];
+    requests = data as unknown as ApprovalRequest[];
+  }
   if (approvalLevels && approvalLevels.length > 0) {
     return requests.filter(r => approvalLevels.includes(r.current_level));
   }
@@ -727,12 +900,22 @@ export async function fetchPendingForApprover(
 }
 
 export async function fetchAllRequests(): Promise<ApprovalRequest[]> {
+  if (SUMMARY_COLUMN_AVAILABLE !== false) {
+    const { data, error } = await supabase
+      .from('approval_requests')
+      .select('id, draft_name, brand, workflow_id, current_level, status, submitted_by, submitted_at, version, deadline, summary')
+      .order('submitted_at', { ascending: false });
+    if (!error) { SUMMARY_COLUMN_AVAILABLE = true; return (data || []) as unknown as ApprovalRequest[]; }
+    if (!isMissingSummaryColumn(error)) return [];
+    SUMMARY_COLUMN_AVAILABLE = false;
+    console.warn('[approval] cột `summary` chưa tồn tại, retry không có summary');
+  }
   const { data, error } = await supabase
     .from('approval_requests')
     .select('id, draft_name, brand, workflow_id, current_level, status, submitted_by, submitted_at, version, deadline')
     .order('submitted_at', { ascending: false });
   if (error || !data) return [];
-  return data as ApprovalRequest[];
+  return data as unknown as ApprovalRequest[];
 }
 
 export async function fetchRequestById(id: string): Promise<ApprovalRequest | null> {
@@ -745,19 +928,38 @@ export async function fetchRequestById(id: string): Promise<ApprovalRequest | nu
       const { data: blob, error: dlErr } = await supabase.storage
         .from('inventory_snapshots')
         .download(request.snapshot_data.storage_path);
-      
+
       if (dlErr || !blob) {
         console.error('Failed to download compressed snapshot:', dlErr);
         return request;
       }
-      
+
       const decompressed = await decompressData(blob);
       request.snapshot_data = decompressed;
     } catch (e) {
       console.error('Decompression failed:', e);
     }
   }
-  
+
+  // Lazy backfill: nếu record cũ chưa có summary mà giờ ta có full snapshot, viết lại
+  const needBackfill = !request.summary
+    || (request.summary.skuCount === 0 && request.summary.totalQty === 0 && request.summary.totalValue === 0);
+  if (needBackfill && request.snapshot_data?.inventory_context?.length) {
+    const summary = computeSnapshotSummary(request.snapshot_data);
+    if (summary.skuCount > 0 || summary.totalQty > 0) {
+      request.summary = summary;
+      // fire-and-forget update — chỉ thử nếu cột summary tồn tại (RLS có thể chặn, không sao)
+      if (SUMMARY_COLUMN_AVAILABLE !== false) {
+        supabase.from('approval_requests').update({ summary }).eq('id', id).then(
+          (res: any) => {
+            if (res?.error && isMissingSummaryColumn(res.error)) SUMMARY_COLUMN_AVAILABLE = false;
+          },
+          () => {},
+        );
+      }
+    }
+  }
+
   return request;
 }
 
@@ -987,9 +1189,16 @@ export async function resubmitApprovalRequest(
     rejection_reason: null,
     returned_reason: null,
   };
-  // Phase 5: version increment
+  if (SUMMARY_COLUMN_AVAILABLE !== false) {
+    update.summary = computeSnapshotSummary(snapshotData);
+  }
   if (expectedVersion !== undefined) update.version = expectedVersion + 1;
-  const { error } = await supabase.from('approval_requests').update(update).eq('id', requestId);
+  let { error } = await supabase.from('approval_requests').update(update).eq('id', requestId);
+  if (error && isMissingSummaryColumn(error)) {
+    SUMMARY_COLUMN_AVAILABLE = false;
+    delete update.summary;
+    ({ error } = await supabase.from('approval_requests').update(update).eq('id', requestId));
+  }
   return !error;
 }
 
@@ -1000,7 +1209,7 @@ export async function resubmitApprovalRequest(
 export async function resubmitApprovalRequestPrecompressed(
   requestId: string,
   compressedBlob: Blob,
-  meta: { submitted_at: string; app_version: string; brand?: string | null },
+  meta: { submitted_at: string; app_version: string; brand?: string | null; summary?: ApprovalSummary },
   expectedVersion?: number
 ): Promise<boolean> {
   try {
@@ -1031,8 +1240,14 @@ export async function resubmitApprovalRequestPrecompressed(
       rejection_reason: null,
       returned_reason: null,
     };
+    if (meta.summary && SUMMARY_COLUMN_AVAILABLE !== false) update.summary = meta.summary;
     if (expectedVersion !== undefined) update.version = expectedVersion + 1;
-    const { error } = await supabase.from('approval_requests').update(update).eq('id', requestId);
+    let { error } = await supabase.from('approval_requests').update(update).eq('id', requestId);
+    if (error && isMissingSummaryColumn(error)) {
+      SUMMARY_COLUMN_AVAILABLE = false;
+      delete update.summary;
+      ({ error } = await supabase.from('approval_requests').update(update).eq('id', requestId));
+    }
     return !error;
   } catch (err) {
     console.error('resubmitApprovalRequestPrecompressed exception:', err);

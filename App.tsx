@@ -314,6 +314,7 @@ const AppContent = () => {
         {view === 'settings' && <SettingsPage settings={appSettings} onSave={updateSettings} />}
         {view === 'approval-queue' && (
           <ApprovalQueue
+            appSettings={appSettings}
             onLoadRequest={(req) => {
               setSharedDraft({
                 quantities: req.snapshot_data?.quantities || {},

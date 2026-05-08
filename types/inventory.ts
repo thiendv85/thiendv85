@@ -458,6 +458,12 @@ export interface SnapshotData {
     is_compressed?: boolean;
 }
 
+export interface ApprovalSummary {
+    skuCount: number;   // số SKU thực sự đặt (qty > 0)
+    totalQty: number;   // tổng SL hàng (Air + Sea)
+    totalValue: number; // giá trị đơn (VND)
+}
+
 export interface ApprovalRequest {
     id: string;
     draft_name: string;
@@ -477,6 +483,7 @@ export interface ApprovalRequest {
     deadline: string | null;
     escalated_at: string | null;
     escalated_to: string | null;
+    summary?: ApprovalSummary | null;
 }
 
 export interface ApprovalAction {

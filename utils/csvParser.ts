@@ -1,6 +1,7 @@
 
 import { InventoryItem, DealerDetail, BackorderDetail, KittingDefinition, MonthlyData, getDebtStatus } from '../types/inventory';
 import { SupersessionMapping } from './supersessionGraph';
+import { splitDraftQty } from './splitDraft';
 
 
 // Logic tính toán mức độ ưu tiên pick hàng cho NCC (1: Cao nhất, 3: Thấp nhất)
@@ -693,22 +694,9 @@ export const exportOrderDraftToCSV = (list: any[], filename: string, costBasis: 
         { key: 'typeCar', header: 'TypeCar', value: (_, i) => safeCSV(i.TypeCar || '') },
         { key: 'airQty', header: 'SL Đặt (AIR)', value: (e) => safeCSV(e.airQty) },
         { key: 'seaQty', header: 'SL Đặt (SEA)', value: (e) => safeCSV(e.seaQty) },
-        { key: 'orderNB', header: 'Đề Xuất Đặt (Kho NB)', value: (e, i) => {
-            const total = e.airQty + e.seaQty;
-            const sugNB = i.computed?.transfer?.suggestedOrderNB || 0;
-            const sugBB = i.computed?.transfer?.suggestedOrderBB || 0;
-            const totalSug = sugNB + sugBB;
-            if (totalSug <= 0) return safeCSV(total);
-            return safeCSV(Math.round(total * (sugNB / totalSug)));
-        }},
-        { key: 'orderBB', header: 'Đề Xuất Đặt (Kho BB)', value: (e, i) => {
-            const total = e.airQty + e.seaQty;
-            const sugNB = i.computed?.transfer?.suggestedOrderNB || 0;
-            const sugBB = i.computed?.transfer?.suggestedOrderBB || 0;
-            const totalSug = sugNB + sugBB;
-            if (totalSug <= 0) return safeCSV(0);
-            return safeCSV(Math.round(total * (sugBB / totalSug)));
-        }},
+        { key: 'orderNB', header: 'Đề Xuất Đặt (Kho NB)', value: (_, __, d) => safeCSV(d.splitNB) },
+        { key: 'orderBB', header: 'Đề Xuất Đặt (Kho BB)', value: (_, __, d) => safeCSV(d.splitBB) },
+        { key: 'splitNote', header: 'Ghi chú chia kho', value: (_, __, d) => safeCSV(d.splitNote || '') },
         { key: 'totalQty', header: 'Tổng SL Đặt', value: (_, __, d) => safeCSV(d.totalQty) },
         { key: 'totalAmount', header: 'Thành Tiền', value: (_, __, d) => safeCSV(d.totalAmount.toFixed(prec)) },
         { key: 'currency', header: 'Tiền Tệ', value: (_, __, d) => safeCSV(d.currency) },
@@ -777,8 +765,19 @@ export const exportOrderDraftToCSV = (list: any[], filename: string, costBasis: 
             const cstProjected = monthlyDemand > 0
                 ? (item.NetDemand + item.DealerInventory + totalQty) / monthlyDemand
                 : 99.9;
+            const sugNB = item.computed?.transfer?.suggestedOrderNB || 0;
+            const sugBB = item.computed?.transfer?.suggestedOrderBB || 0;
+            const split = splitDraftQty(totalQty, sugNB, sugBB, {
+                backorderNB: item.Backorder_NB,
+                backorderBB: item.Backorder_BB,
+                availableNB: (item.QuantityInventory_NB || 0) + (item.QuantityDC_NB || 0),
+                availableBB: (item.QuantityInventory_BB || 0) + (item.QuantityDC_BB || 0),
+            });
             const derived = {
                 totalQty, totalAmount, currency, unitCost, currentCst, cstProjected,
+                splitNB: split.nb,
+                splitBB: split.bb,
+                splitNote: split.note,
                 debtPriority: calculatePickingPriority(item, totalQty),
                 debtStatus: getDebtStatus(item),
             };

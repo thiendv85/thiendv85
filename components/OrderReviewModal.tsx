@@ -10,6 +10,7 @@ import { DealerStockPopup } from './DealerStockPopup';
 import { useAuth } from '../utils/authContext';
 import { useApprovalAuth } from '../hooks/useApprovalAuth';
 import { processApprovalAction, unlockRequest, fetchWorkflowById, updateRequestStatus } from '../utils/supabase';
+import { splitDraftQty } from '../utils/splitDraft';
 import { validateReason, getAvailableActions } from '../utils/approval-validation';
 import { validatePreApproval } from '../utils/approval-rules';
 import { useDecisionSupport } from '../hooks/useDecisionSupport';
@@ -277,17 +278,28 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
         // Build data rows
         let totalQty = 0, totalBB = 0, totalNB = 0, totalValue = 0;
         let bodyRows = '';
+        const splitNotes: string[] = [];
         rows.forEach((ctx, idx) => {
             const q = localQtys[ctx.itemCode] || { air: 0, sea: 0 };
             const isSelected = selectedItems.has(ctx.itemCode);
-            const qtyNB = isSelected ? (ctx.qtyNB || 0) : 0; 
-            const qtyBB = isSelected ? (ctx.qtyBB || 0) : 0; 
-            const qty = qtyBB + qtyNB;
+            const userTotal = isSelected ? (q.air + q.sea) : 0;
+            // Chia tổng do planner duyệt thành NB/BB sao cho NB+BB === total — không round độc lập
+            const split = splitDraftQty(userTotal, ctx.qtyNB || 0, ctx.qtyBB || 0, {
+                backorderNB: ctx.backorder_NB,
+                backorderBB: ctx.backorder_BB,
+                availableNB: ctx.available_NB,
+                availableBB: ctx.available_BB,
+            });
+            const qtyNB = split.nb;
+            const qtyBB = split.bb;
+            const qty = qtyNB + qtyBB; // ≡ userTotal nhờ thuật toán
+            if (split.note) splitNotes.push(`${ctx.itemCode}: ${split.note}`);
             const value = (ctx.unitCost || 0) * qty;
             const totalStock = (ctx.available || 0) + (ctx.dealerInventory || 0);
             const fc = ctx.baseForecast || 0;
             const ltMonths = (ctx as any).effectiveLT ? ((ctx as any).effectiveLT / 30).toFixed(1) : '-';
             const mosSauDat = fc > 0 ? ((totalStock + (ctx.totalPO || 0) + qty) / fc).toFixed(1) : '-';
+            const noteCell = split.note ? `<i class="warn">${split.note.replace(/</g, '&lt;')}</i>` : '';
 
             totalQty += qty; totalBB += qtyBB; totalNB += qtyNB; totalValue += value;
 
@@ -312,7 +324,7 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
                 <td class="r">${fmt(qtyNB)}</td>
                 <td class="r">${fmtMoney(value)}</td>
                 <td class="r">${mosSauDat}</td>
-                <td class="c"></td>
+                <td class="c">${noteCell}</td>
             </tr>`;
         });
 
@@ -345,6 +357,11 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
 .r { text-align: right; } .c { text-align: center; } .b { font-weight: 900; }
 .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 110px; }
 .hdr-group { background: #ddd; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.warn { color: #b45309; font-size: 5.8pt; line-height: 1.1; display: inline-block; max-width: 110px; word-wrap: break-word; }
+.notes-section { margin-top: 6mm; font-size: 7pt; }
+.notes-section h4 { font-size: 8pt; color: #b45309; margin-bottom: 2mm; text-transform: uppercase; letter-spacing: 0.05em; }
+.notes-section ul { padding-left: 4mm; line-height: 1.5; }
+.notes-section li { color: #6b7280; margin-bottom: 1mm; }
 @media print { body { margin: 0; } }
 </style>
 </head><body>
@@ -386,6 +403,10 @@ tfoot td { background: #f0f0f0; font-weight: 900; border: 1px solid #999; paddin
 <tbody>${bodyRows}</tbody>
 <tfoot>${footerRow}</tfoot>
 </table>
+${splitNotes.length > 0 ? `<div class="notes-section">
+<h4>⚠ Ghi chú chia kho — Planner cân nhắc</h4>
+<ul>${splitNotes.map(n => `<li>${n.replace(/</g, '&lt;')}</li>`).join('')}</ul>
+</div>` : ''}
 </body></html>`;
 
         const w = window.open('', '_blank', 'width=1200,height=800');

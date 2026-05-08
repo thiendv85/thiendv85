@@ -1,6 +1,7 @@
 import React from 'react';
 import { Typography } from './Typography';
 import { useLanguage } from '../utils/i18n';
+import { NotificationBell } from './NotificationBell';
 
 type View =
   | 'upload'
@@ -153,6 +154,9 @@ export const AppShell = ({
               </button>
             </div>
 
+            {profile?.role && ['admin', 'approver', 'planner'].includes(profile.role) && (
+              <NotificationBell onNavigate={() => onSelectView('approval-queue')} />
+            )}
             <button
               onClick={() => onSelectView('settings')}
               title="Cấu hình hệ thống"

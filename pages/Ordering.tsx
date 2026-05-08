@@ -21,7 +21,7 @@ import { Typography } from '../components/Typography';
 import { CloudDraftModal } from '../components/CloudDraftModal';
 import { useAuth } from '../utils/authContext';
 import { ApprovalStatusBadge } from '../components/ApprovalStatusBadge';
-import { listWorkflows, submitApprovalRequest, submitApprovalRequestPrecompressed, compressData, fetchRequestByDraftName, resubmitApprovalRequest, resubmitApprovalRequestPrecompressed, fetchRequestActions, normalizeBrand, processApprovalAction } from '../utils/supabase';
+import { listWorkflows, submitApprovalRequest, submitApprovalRequestPrecompressed, compressData, fetchRequestByDraftName, resubmitApprovalRequest, resubmitApprovalRequestPrecompressed, fetchRequestActions, normalizeBrand, processApprovalAction, computeSnapshotSummary } from '../utils/supabase';
 import { ApprovalRequest, ApprovalWorkflow, ApprovalAction } from '../types/inventory';
 import { useDevice } from '../hooks/useDevice';
 
@@ -359,6 +359,7 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
                 submitted_by: user.id,
                 compressedBlob,
                 meta: { submitted_at: snapshot.submitted_at, app_version: snapshot.app_version },
+                summary: computeSnapshotSummary(fullSnapshot),
             });
 
             setIsSubmitting(false);
@@ -403,7 +404,12 @@ export const Ordering = ({ data, enrichedData, isEngineProcessing, onItemSelect,
         const ok = await resubmitApprovalRequestPrecompressed(
             approvalRequest.id,
             compressedBlob,
-            { submitted_at: snapshot.submitted_at, app_version: snapshot.app_version, brand: normalizeBrand(profile?.department) }
+            {
+                submitted_at: snapshot.submitted_at,
+                app_version: snapshot.app_version,
+                brand: normalizeBrand(profile?.department),
+                summary: computeSnapshotSummary(snapshot),
+            }
         );
         setIsSubmitting(false);
         setSubmitProgress(null);
