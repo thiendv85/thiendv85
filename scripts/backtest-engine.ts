@@ -123,8 +123,8 @@ function median(arr: number[]): number {
 }
 
 function predict(row: BacktestRow): number {
-    // V12 — For very high CV (>1.5), use median(history) instead of base
-    // because EWMA on lumpy data is very noisy. Median is robust to spikes.
+    // V15 — Smooth CV-aware interpolation instead of step thresholds.
+    // alpha = weight on base. CV=0 → 0.6 base. CV=2 → 0.1 base. Clamped.
     let base = resolveDemand_v0(row, false);
     if (row.avg_qty_12m > 0) base = Math.min(base, 3 * row.avg_qty_12m);
 
@@ -132,12 +132,12 @@ function predict(row: BacktestRow): number {
     if (a3 <= 0) return base;
 
     if (row.cv > 1.5) {
-        // Very lumpy — replace base with median, lean heavily on a3
         const med = median(row.hist);
         return 0.2 * med + 0.8 * a3;
     }
-    if (row.cv > 1.0) return 0.2 * base + 0.8 * a3;
-    return 0.4 * base + 0.6 * a3;
+    // Smooth interpolation: alpha = max(0.1, 0.6 - 0.25 × CV)
+    const alpha = Math.max(0.1, 0.6 - 0.25 * row.cv);
+    return alpha * base + (1 - alpha) * a3;
 }
 
 // ─── Metric computation ─────────────────────────────────────────────────────
