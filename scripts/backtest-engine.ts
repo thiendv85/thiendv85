@@ -116,12 +116,17 @@ function resolveDemand_v0(row: BacktestRow, applySeasonality: boolean): number {
 // EXPERIMENT SURFACE — modify ONLY this function during autoresearch loop.
 // ────────────────────────────────────────────────────────────────────────────
 function predict(row: BacktestRow): number {
-    // V5 — 40/60 blend BaseForecast + avg_3m. Push more weight onto recent.
+    // V8 — Volatility-aware blend.
+    // For high-CV (lumpy) items, BaseForecast (EWMA-driven) over-reacts to spikes.
+    // Dampen base toward avg_3m when CV > 1.0; use stable 40/60 otherwise.
     const base = resolveDemand_v0(row, false);
-    if (row.avg_qty_3m > 0) {
-        return 0.4 * base + 0.6 * row.avg_qty_3m;
+    const a3 = row.avg_qty_3m;
+    if (a3 <= 0) return base;
+    if (row.cv > 1.0) {
+        // Lumpy: lean heavier on recent average to avoid spike contamination
+        return 0.2 * base + 0.8 * a3;
     }
-    return base;
+    return 0.4 * base + 0.6 * a3;
 }
 
 // ─── Metric computation ─────────────────────────────────────────────────────
