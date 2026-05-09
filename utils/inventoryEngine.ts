@@ -19,23 +19,23 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /**
  * Parse a Vietnamese-ERP date string into a timestamp. Mirror of
- * csvParser.parseFlexibleDate, kept here as a private helper so the engine
- * can recover oldestDebtDays/aging buckets for backorder entries imported
- * by older csvParser versions (RawDate=0 because DD/MM/YY 2-digit-year
- * wasn't matched). Returns 0 on any parse failure.
+ * csvParser.parseFlexibleDate — kept inline so the engine can recover
+ * oldestDebtDays/aging buckets when BackorderDetail.RawDate is 0 or stale.
+ * Uses regex match so trailing time portions and whitespace separators don't
+ * break parsing. Returns 0 on failure.
  */
 const parseDocDateFallback = (str?: string): number => {
     if (!str) return 0;
-    const clean = str.split(/[\sT]/)[0].trim();
-    if (!clean) return 0;
-    const parts = clean.split(/[-/.]/);
-    if (parts.length !== 3) return 0;
-    const [a, b, c] = parts.map(p => parseInt(p, 10));
+    const m = str.match(/(\d{1,4})[-/.\s]+(\d{1,2})[-/.\s]+(\d{1,4})/);
+    if (!m) return 0;
+    const a = parseInt(m[1], 10);
+    const b = parseInt(m[2], 10);
+    const c = parseInt(m[3], 10);
     if (!Number.isFinite(a) || !Number.isFinite(b) || !Number.isFinite(c)) return 0;
     let day: number, month: number, year: number;
-    if (parts[0].length === 4) {
+    if (m[1].length === 4) {
         year = a; month = b; day = c;
-    } else if (parts[2].length === 4) {
+    } else if (m[3].length === 4) {
         day = a; month = b; year = c;
     } else {
         day = a; month = b;
@@ -867,22 +867,17 @@ export function computeInventory(
     if (item.BackorderBreakdown && item.BackorderBreakdown.length > 0) {
         // Aging is measured against TODAY (real wall clock), not the snapshot
         // export date. Reason: an operator looking at this dashboard is asking
-        // "how old is this debt RIGHT NOW so I can chase the supplier today",
-        // not "how old was it when the file was exported". Using snapshotDate
-        // here under-reported aging when users uploaded an older snapshot —
-        // a Feb 6 debt viewed on May 9 should show 92d, not 41d (= snapshot
-        // March 19 - Feb 6).
+        // "how old is this debt RIGHT NOW so I can chase the supplier today".
         const todayTs = Date.now();
         let maxDaysOld = 0;
         item.BackorderBreakdown.forEach(boItem => {
-            // Prefer RawDate (numeric, set by csvParser); fall back to parsing DocDate
-            // string at compute time for entries imported by older parser versions
-            // (CSV files with DD/MM/YY 2-digit-year format used to leave RawDate=0
-            // and silently bucket into qty30, dropping them from oldestDebtDays).
-            let docTs = boItem.RawDate || 0;
-            if (docTs <= 0 && boItem.DocDate) {
-                docTs = parseDocDateFallback(boItem.DocDate);
-            }
+            // ALWAYS prefer recomputing from DocDate string. Older snapshot uploads
+            // can leave RawDate=0 (parser miss) OR set to a stale/wrong value (e.g.
+            // upload-time timestamp). The DocDate string is the ground truth from
+            // the CSV — parse it fresh every time. Only fall back to RawDate when
+            // DocDate is empty or unparseable.
+            const reparsed = parseDocDateFallback(boItem.DocDate);
+            const docTs = reparsed > 0 ? reparsed : (boItem.RawDate || 0);
             if (docTs > 0) {
                 const daysOld = Math.max(0, Math.floor((todayTs - docTs) / MS_PER_DAY));
                 if (daysOld <= 30) boAging.qty30 += boItem.Qty;

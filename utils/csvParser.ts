@@ -39,26 +39,32 @@ const detectDelimiter = (text: string): string => {
  *   DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY      (4-digit year, day-first)
  *   YYYY-MM-DD, YYYY/MM/DD                  (4-digit year, ISO)
  *   DD/MM/YY                                (2-digit year — assumed 20YY for YY < 50, else 19YY)
- * Strips a trailing "HH:MM:SS" (or "T...") time component before parsing.
+ *   "25 / 3 / 2026"                         (whitespace as separator)
+ *   "25/3/2026 09:30:00", "...T10:00:00Z"   (trailing time portion is ignored)
+ *
+ * Uses a regex match so leading/trailing whitespace, time suffixes, and
+ * whitespace-as-separator all work without fragile split/trim chains.
  * Returns 0 on any parse failure so callers can distinguish "no date" from "epoch".
  */
 export const parseFlexibleDate = (str?: string | null): number => {
     if (!str) return 0;
-    const clean = str.split(/[\sT]/)[0].trim();
-    if (!clean) return 0;
-    const parts = clean.split(/[-/.]/);
-    if (parts.length !== 3) return 0;
-    const [a, b, c] = parts.map(p => parseInt(p, 10));
+    // Match three numeric groups separated by `-`, `/`, `.`, or whitespace runs.
+    // First match wins, so a trailing time component (e.g. "...09:30:00") is ignored.
+    const m = str.match(/(\d{1,4})[-/.\s]+(\d{1,2})[-/.\s]+(\d{1,4})/);
+    if (!m) return 0;
+    const a = parseInt(m[1], 10);
+    const b = parseInt(m[2], 10);
+    const c = parseInt(m[3], 10);
     if (!Number.isFinite(a) || !Number.isFinite(b) || !Number.isFinite(c)) return 0;
     let day: number, month: number, year: number;
-    if (parts[0].length === 4) {
+    if (m[1].length === 4) {
         // YYYY-MM-DD
         year = a; month = b; day = c;
-    } else if (parts[2].length === 4) {
+    } else if (m[3].length === 4) {
         // DD-MM-YYYY
         day = a; month = b; year = c;
     } else {
-        // 2-digit year — heuristic: < 50 → 20YY, else → 19YY (matches typical VN ERP convention)
+        // 2-digit year — heuristic: < 50 → 20YY, else → 19YY (typical VN ERP convention)
         day = a; month = b;
         year = c < 50 ? 2000 + c : 1900 + c;
     }
