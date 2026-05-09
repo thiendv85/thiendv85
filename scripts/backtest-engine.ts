@@ -132,7 +132,8 @@ function predict(row: BacktestRow): number {
     // V15 — Smooth CV-aware interpolation instead of step thresholds.
     // alpha = weight on base. CV=0 → 0.6 base. CV=2 → 0.1 base. Clamped.
     let base = resolveDemand_v0(row, false);
-    if (row.avg_qty_12m > 0) base = Math.min(base, 3 * row.avg_qty_12m);
+    // EXP7: tighter cap 3x → 2.5x avg_qty_12m
+    if (row.avg_qty_12m > 0) base = Math.min(base, 2.5 * row.avg_qty_12m);
 
     const a3 = row.avg_qty_3m;
     if (a3 <= 0) return base;
