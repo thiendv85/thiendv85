@@ -13,6 +13,7 @@ import { BackorderPopup } from '../components/BackorderPopup';
 import { PipelinePopup } from '../components/PipelinePopup';
 import { DealerInventoryPopup } from '../components/DealerInventoryPopup';
 import { parseInventorySearch, SearchResult, matchSearch, prepareSearchCache } from '../utils/searchLogic';
+import { classifyItemAnomalies, ANOMALY_META, type OrderAnomaly } from '../utils/supplierAnomaly';
 
 const AgingBadge = ({ days, qty }: { days: string, qty: number }) => {
     const getColor = (d: string) => {
@@ -165,6 +166,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
     const [orderTypeFilters, setOrderTypeFilters] = useState<string[]>([]);
     const [branchFilters, setBranchFilters] = useState<string[]>([]);
     const [supplierStatusFilters, setSupplierStatusFilters] = useState<string[]>([]);
+    const [anomalyFilters, setAnomalyFilters] = useState<OrderAnomaly[]>([]);
     const [pageSize, setPageSize] = useState(25);
     const [currentPage, setCurrentPage] = useState(1);
     const [matrixMetric, setMatrixMetric] = useState<'sku' | 'qty' | 'val'>('sku');
@@ -181,6 +183,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
     const deferredOrderTypeFilters = useDeferredValue(orderTypeFilters);
     const deferredBranchFilters = useDeferredValue(branchFilters);
     const deferredSupplierStatusFilters = useDeferredValue(supplierStatusFilters);
+    const deferredAnomalyFilters = useDeferredValue(anomalyFilters);
     const deferredSpecialFilter = useDeferredValue(specialFilter);
     const deferredMasterFilter = useDeferredValue(masterFilter);
 
@@ -200,6 +203,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                 if (parsed.orderTypeFilters) setOrderTypeFilters(parsed.orderTypeFilters.filter((f: any) => f && f !== 'All' && f !== 'Tất cả'));
                 if (parsed.branchFilters) setBranchFilters(parsed.branchFilters.filter((f: any) => f && f !== 'All' && f !== 'Tất cả'));
                 if (Array.isArray(parsed.supplierStatusFilters)) setSupplierStatusFilters(parsed.supplierStatusFilters.filter((f: any) => f && ['overdue','due_this_month','due_next_month'].includes(f)));
+                if (Array.isArray(parsed.anomalyFilters)) setAnomalyFilters(parsed.anomalyFilters.filter((f: any) => f && ['CRITICAL','HIGH','WARNING','DUE_SOON'].includes(f)));
                 if (parsed.pageSize) setPageSize(Math.max(1, parsed.pageSize));
                 if (parsed.matrixMetric) setMatrixMetric(parsed.matrixMetric);
                 if (parsed.masterFilter) setMasterFilter(parsed.masterFilter);
@@ -208,9 +212,9 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
     }, []);
 
     React.useEffect(() => {
-        const state = { search, agingFilter, sourceFilters, motherGroupFilters, orderTypeFilters, branchFilters, supplierStatusFilters, pageSize, matrixMetric, sortConfig, specialFilter, masterFilter };
+        const state = { search, agingFilter, sourceFilters, motherGroupFilters, orderTypeFilters, branchFilters, supplierStatusFilters, anomalyFilters, pageSize, matrixMetric, sortConfig, specialFilter, masterFilter };
         localStorage.setItem('backorder_filters', JSON.stringify(state));
-    }, [search, agingFilter, sourceFilters, motherGroupFilters, orderTypeFilters, branchFilters, supplierStatusFilters, pageSize, matrixMetric, sortConfig, specialFilter, masterFilter]);
+    }, [search, agingFilter, sourceFilters, motherGroupFilters, orderTypeFilters, branchFilters, supplierStatusFilters, anomalyFilters, pageSize, matrixMetric, sortConfig, specialFilter, masterFilter]);
 
     // ── Auto-Sync Filters when Data Changes ──────────────────────────────────
     // Ensures that when switching snapshots, filters don't "stick" to values that no longer exist
@@ -352,6 +356,31 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
         ['Về tháng sau',           'due_next_month'],
     ];
 
+    // ── Per-order anomaly aggregate (memoized per SKU code+breakdown len+LT) ─
+    // Stable now reference so all rows are classified against the same instant
+    // (prevents drift when many items are processed in sequence).
+    const anomalyNow = useMemo(() => Date.now(), []);
+    const anomalyCache = useMemo(() => new Map<string, ReturnType<typeof classifyItemAnomalies>>(), [anomalyNow]);
+    const getItemAnomaly = (item: InventoryItem) => {
+        const lt = item.computed?.effectiveLT;
+        const breakdown = item.BackorderBreakdown;
+        // Cache by ItemCode + LT + breakdown length to avoid re-computing on every render.
+        const key = `${item.ItemCode}__${lt ?? 0}__${breakdown?.length ?? 0}`;
+        let cached = anomalyCache.get(key);
+        if (!cached) {
+            cached = classifyItemAnomalies(breakdown, lt, anomalyNow);
+            anomalyCache.set(key, cached);
+        }
+        return cached;
+    };
+    // Display labels for the per-order anomaly filter (Vietnamese).
+    const ANOMALY_FILTER_OPTIONS: ReadonlyArray<readonly [string, OrderAnomaly]> = [
+        ['Trễ nghiêm trọng', 'CRITICAL'],
+        ['Trễ nặng',         'HIGH'],
+        ['Trễ nhẹ',          'WARNING'],
+        ['Sắp đến hạn',      'DUE_SOON'],
+    ];
+
     const formatMatrixVal = (val: number) => {
         if (matrixMetric === 'val') {
             return Math.round(val / 1000000).toLocaleString('vi-VN');
@@ -398,9 +427,13 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
             else if (deferredMasterFilter === 'fail') matchesMaster = boQty > (totalStock + poThisMonth);
 
             const matchesSupplier = deferredSupplierStatusFilters.length === 0 || deferredSupplierStatusFilters.includes(getSupplierStatus(item));
+            const matchesAnomaly = deferredAnomalyFilters.length === 0 || (() => {
+                const agg = getItemAnomaly(item).aggregate;
+                return deferredAnomalyFilters.some(t => agg.counts[t] > 0);
+            })();
 
             const hasBO = boQty > 0;
-            return hasBO && matchesSearch && matchesSource && matchesMother && matchesAging && matchesType && matchesBranch && matchesSpecial && matchesMaster && matchesSupplier;
+            return hasBO && matchesSearch && matchesSource && matchesMother && matchesAging && matchesType && matchesBranch && matchesSpecial && matchesMaster && matchesSupplier && matchesAnomaly;
         });
 
         if (sortConfig) {
@@ -431,7 +464,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
             });
         }
         return list;
-    }, [cachedData, searchResult, deferredSourceFilters, deferredMotherGroupFilters, deferredAgingFilter, deferredOrderTypeFilters, deferredBranchFilters, deferredSupplierStatusFilters, sortConfig, deferredSpecialFilter, deferredMasterFilter, startOfThisMonth]);
+    }, [cachedData, searchResult, deferredSourceFilters, deferredMotherGroupFilters, deferredAgingFilter, deferredOrderTypeFilters, deferredBranchFilters, deferredSupplierStatusFilters, deferredAnomalyFilters, sortConfig, deferredSpecialFilter, deferredMasterFilter, startOfThisMonth, anomalyNow]);
 
     const stats = useMemo(() => {
         if (!filteredData) return { totalValue: 0, totalQty: 0, criticalCount: 0, aging: { q30: 0, q60: 0, q90: 0, qO90: 0 }, totalPOVal: 0, poCoverage: 0 };
@@ -1175,6 +1208,21 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                 icon="fa-truck-fast"
                             />
 
+                            <FilterDropdown
+                                label="Bất thường đơn"
+                                options={ANOMALY_FILTER_OPTIONS.map(([label]) => label)}
+                                selected={ANOMALY_FILTER_OPTIONS
+                                    .filter(([, code]) => anomalyFilters.includes(code))
+                                    .map(([label]) => label)}
+                                onChange={(labels: string[]) => {
+                                    const codes = ANOMALY_FILTER_OPTIONS
+                                        .filter(([label]) => labels.includes(label))
+                                        .map(([, code]) => code);
+                                    setAnomalyFilters(codes);
+                                }}
+                                icon="fa-triangle-exclamation"
+                            />
+
                             <div className="flex bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
                                 {['all', '30', '60', '90', 'over90'].map((val) => (
                                     <button
@@ -1300,14 +1348,34 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                                         </div>
                                                         {(() => {
                                                             const ss = getSupplierStatus(item);
-                                                            if (ss === 'none') return null;
-                                                            const meta = SUPPLIER_STATUS_META[ss];
+                                                            const agg = getItemAnomaly(item).aggregate;
+                                                            const showSupplier = ss !== 'none';
+                                                            const showAnomaly = agg.abnormalCount > 0;
+                                                            if (!showSupplier && !showAnomaly) return null;
                                                             return (
-                                                                <div className="mt-1">
-                                                                    <span title={meta.full} className={`inline-flex items-center gap-1 font-mono font-black text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded ring-1 ${meta.cls}`}>
-                                                                        <FaIcon className="fas fa-truck-fast text-[8px]" />
-                                                                        {meta.label}
-                                                                    </span>
+                                                                <div className="mt-1 flex flex-wrap items-center gap-1">
+                                                                    {showSupplier && (() => {
+                                                                        const meta = SUPPLIER_STATUS_META[ss];
+                                                                        return (
+                                                                            <span title={meta.full} className={`inline-flex items-center gap-1 font-mono font-black text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded ring-1 ${meta.cls}`}>
+                                                                                <FaIcon className="fas fa-truck-fast text-[8px]" />
+                                                                                {meta.label}
+                                                                            </span>
+                                                                        );
+                                                                    })()}
+                                                                    {showAnomaly && (() => {
+                                                                        const meta = ANOMALY_META[agg.worst];
+                                                                        const detail = (['CRITICAL','HIGH','WARNING'] as const)
+                                                                            .filter(t => agg.counts[t] > 0)
+                                                                            .map(t => `${agg.counts[t]} ${ANOMALY_META[t].label}`).join(' • ');
+                                                                        const tooltip = `${agg.abnormalCount} đơn bất thường — ${detail}`;
+                                                                        return (
+                                                                            <span title={tooltip} className={`inline-flex items-center gap-1 font-mono font-black text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded ring-1 ${meta.cls}`}>
+                                                                                <FaIcon className="fas fa-triangle-exclamation text-[8px]" />
+                                                                                {agg.abnormalCount} ĐƠN BẤT THƯỜNG
+                                                                            </span>
+                                                                        );
+                                                                    })()}
                                                                 </div>
                                                             );
                                                         })()}
@@ -1326,7 +1394,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                                 })()}
                                             </td>
                                             <td className="px-3 py-3 text-right">
-                                                <BackorderPopup items={item.BackorderBreakdown || []}>
+                                                <BackorderPopup items={item.BackorderBreakdown || []} effectiveLTDays={item.computed?.effectiveLT}>
                                                     <span className={`font-mono font-bold text-[13px] tabular-nums ${isCritical ? 'text-rose-600' : 'text-slate-900'} hover:text-[#635bff] transition-colors`}>
                                                         {totalBO.toLocaleString('vi-VN')}
                                                     </span>

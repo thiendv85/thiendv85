@@ -3,10 +3,13 @@ import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { BackorderDetail } from '../types/inventory';
 import { Typography } from './Typography';
+import { classifyOrderAnomaly, ANOMALY_META } from '../utils/supplierAnomaly';
 
 import { FaIcon } from './Icon';
 interface BackorderPopupProps {
     items: BackorderDetail[];
+    /** Lead time (days) of the source for this SKU. Used to classify per-order anomalies. */
+    effectiveLTDays?: number;
     children?: React.ReactNode;
 }
 
@@ -35,7 +38,7 @@ const getOrderGroup = (bo: BackorderDetail): OrderGroupKey => {
     return 'OTHER';
 };
 
-export const BackorderPopup = ({ items, children }: BackorderPopupProps) => {
+export const BackorderPopup = ({ items, effectiveLTDays, children }: BackorderPopupProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const [portalStyle, setPortalStyle] = useState<React.CSSProperties>({});
     const triggerRef = useRef<HTMLDivElement>(null);
@@ -160,6 +163,7 @@ export const BackorderPopup = ({ items, children }: BackorderPopupProps) => {
                                                 <th className="px-4 py-2 text-left"><Typography variant="label-muted">Xe / Chi nhánh</Typography></th>
                                                 <th className="px-4 py-2 text-left"><Typography variant="label-muted">Kho / SR</Typography></th>
                                                 <th className="px-4 py-2 text-center"><Typography variant="label" className="text-blue-600">Hẹn (ETA)</Typography></th>
+                                                <th className="px-4 py-2 text-center"><Typography variant="label" className="text-amber-600">Tình trạng NCC</Typography></th>
                                                 <th className="px-4 py-2 text-right"><Typography variant="label" className="text-rose-600">SL</Typography></th>
                                             </tr>
                                         </thead>
@@ -174,7 +178,7 @@ export const BackorderPopup = ({ items, children }: BackorderPopupProps) => {
                                                     <React.Fragment key={group.key}>
                                                         {/* Category Header Row */}
                                                         <tr className={`${group.color} border-y border-white/50 sticky top-[29px] z-10 shadow-sm`}>
-                                                            <td colSpan={4} className="px-4 py-1.5 flex items-center gap-2">
+                                                            <td colSpan={5} className="px-4 py-1.5 flex items-center gap-2">
                                                                 <Typography variant="label" className="!font-bold flex items-center gap-2">
                                                                     <FaIcon className={`fas ${group.icon} opacity-70`} /> {group.label}
                                                                 </Typography>
@@ -207,6 +211,22 @@ export const BackorderPopup = ({ items, children }: BackorderPopupProps) => {
                                                                     ) : (
                                                                         <Typography variant="body-sm" className="text-slate-200 font-bold">-</Typography>
                                                                     )}
+                                                                </td>
+                                                                <td className="px-4 py-2.5 text-center">
+                                                                    {(() => {
+                                                                        if (!effectiveLTDays || !d.RawDate) {
+                                                                            return <Typography variant="body-sm" className="text-slate-300">–</Typography>;
+                                                                        }
+                                                                        const r = classifyOrderAnomaly(d, effectiveLTDays);
+                                                                        const meta = ANOMALY_META[r.anomaly];
+                                                                        const tooltip = `${meta.label} • ${r.reasons.join(' • ') || 'Đúng tiến độ'} • Mở ${Math.round(r.daysOpen)}d / LT ${effectiveLTDays}d`;
+                                                                        return (
+                                                                            <span title={tooltip} className={`inline-flex items-center gap-1 font-mono font-black text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded ring-1 ${meta.cls}`}>
+                                                                                {meta.label}
+                                                                                {r.daysOverdue > 0 && <span className="font-mono">+{Math.round(r.daysOverdue)}d</span>}
+                                                                            </span>
+                                                                        );
+                                                                    })()}
                                                                 </td>
                                                                 <td className="px-4 py-2.5 text-right">
                                                                     <Typography variant="body-sm" className="font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-lg border border-rose-100 shadow-sm inline-block">{d.Qty}</Typography>
