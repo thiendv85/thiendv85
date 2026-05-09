@@ -13,7 +13,7 @@ import { BackorderPopup } from '../components/BackorderPopup';
 import { PipelinePopup } from '../components/PipelinePopup';
 import { DealerInventoryPopup } from '../components/DealerInventoryPopup';
 import { parseInventorySearch, SearchResult, matchSearch, prepareSearchCache } from '../utils/searchLogic';
-import { classifyItemAnomalies, ANOMALY_META, buildCohortStats, stockoutDaysRemaining, type OrderAnomaly } from '../utils/supplierAnomaly';
+import { classifyItemAnomalies, classifyOrderAnomaly, ANOMALY_META, buildCohortStats, stockoutDaysRemaining, type OrderAnomaly } from '../utils/supplierAnomaly';
 
 const AgingBadge = ({ days, qty }: { days: string, qty: number }) => {
     const getColor = (d: string) => {
@@ -139,25 +139,89 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
     const { t } = useLanguage();
     const handleExport = async () => {
         if (!enrichedData) return;
-        const data = filteredData.map(item => ({
-            'Mã hàng': item.ItemCode,
-            'Tên hàng': item.ItemName,
-            'Nguồn': item.SourceId,
-            'Nhóm mẹ': resolveMotherGroup(item),
-            'Tổng nợ': item.Backorder,
-            'Giá trị nợ': item.Backorder * (item.computed?.unitCost || 0),
-            'Tồn NB': item.QuantityInventory_NB,
-            'Tồn BB': item.QuantityInventory_BB,
-            'Tồn đại lý': item.DealerInventory,
-            'Nợ lâu nhất (ngày)': getOldestDebtDays(item),
-            'Hàng về (PO)': item.TotalPO,
-            'Ưu tiên': item.computed?.boAging?.qtyOver90 > 0 ? 'CRITICAL' : (item.computed?.boAging?.qty60 > 0 ? 'HIGH' : 'NORMAL')
-        }));
+        // Flatten to ONE ROW PER BO ENTRY so the export includes order-level
+        // detail (DocNo, DocDate, OrderType, Note, ETA, Region, anomaly tier, ...)
+        // plus the SKU-level context an operator needs alongside each entry.
+        // SKUs without BackorderBreakdown emit a single context-only row.
+        const dayMs = 24 * 60 * 60 * 1000;
+        const rows: Record<string, any>[] = [];
+        for (const item of filteredData) {
+            const breakdown = filterBreakdownByScope(item.BackorderBreakdown, deferredWarehouseScope);
+            const lt = item.computed?.effectiveLT;
+            const supplierStatus = getSupplierStatus(item);
+            const supplierLabel = supplierStatus === 'none' ? '' : SUPPLIER_STATUS_META[supplierStatus].label;
+            const agg = getItemAnomaly(item).aggregate;
+            const skuCtx = {
+                'Mã hàng': item.ItemCode,
+                'Tên hàng': item.ItemName,
+                'Nguồn': item.SourceId,
+                'Thương hiệu': item.BrandName,
+                'Nhóm mẹ': resolveMotherGroup(item),
+                'Loại xe': item.TypeCar || '',
+                'LOIS': item.LOISGroup || '',
+                'LT (ngày)': lt || '',
+                'Tổng nợ': item.Backorder,
+                'Tồn NB': item.QuantityInventory_NB,
+                'Tồn BB': item.QuantityInventory_BB,
+                'DC NB': item.QuantityDC_NB,
+                'DC BB': item.QuantityDC_BB,
+                'Tồn đại lý': item.DealerInventory,
+                'Hàng về (PO)': item.TotalPO,
+                'PO về tháng này': item.computed?.incomingCurrentMonth || 0,
+                'PO về tháng sau': item.computed?.incomingNextMonth || 0,
+                'Nợ lâu nhất (ngày)': item.computed?.boAging?.oldestDebtDays || 0,
+                'Cảnh báo NCC (SKU)': supplierLabel,
+                'Bất thường nhất (SKU)': agg.abnormalCount > 0 ? ANOMALY_META[agg.worst].label : '',
+                'Score bất thường tối đa': Math.round(agg.maxScore),
+                'Số đơn bất thường (SKU)': agg.abnormalCount,
+            };
+
+            if (breakdown.length === 0) {
+                rows.push({
+                    ...skuCtx,
+                    'Số đơn (DocNo)': '', 'Ngày đặt': '', 'Loại đơn': '',
+                    'SL đơn': item.Backorder || 0, 'Kho': '', 'BranchCode': '',
+                    'BranchCodeReceipt': '', 'Khu vực (NB/BB)': '', 'Chi nhánh': '',
+                    'Showroom': '', 'KhoNo': '', 'Loại xe đơn': '', 'ETA': '',
+                    'Ghi chú': '', 'Tuổi đơn (ngày)': '', 'Trễ so với LT (ngày)': '',
+                    'Mức bất thường (đơn)': '', 'Score đơn': '', 'Lý do': '',
+                });
+                continue;
+            }
+
+            for (const bo of breakdown) {
+                const cls = lt && lt > 0 ? classifyOrderAnomaly(bo, lt) : null;
+                const ts = bo.RawDate || 0;
+                const daysOpen = ts > 0 ? Math.max(0, Math.floor((Date.now() - ts) / dayMs)) : '';
+                rows.push({
+                    ...skuCtx,
+                    'Số đơn (DocNo)': bo.DocNo || '',
+                    'Ngày đặt': bo.DocDate || '',
+                    'Loại đơn': getOrderTypeName(bo).replace(/^\d+\.\s*/, ''),
+                    'SL đơn': bo.Qty,
+                    'Kho': bo.Warehouse || '',
+                    'BranchCode': bo.BranchCode || '',
+                    'BranchCodeReceipt': bo.BranchCodeReceipt || '',
+                    'Khu vực (NB/BB)': classifyBORegion(bo) === 'unknown' ? '' : classifyBORegion(bo),
+                    'Chi nhánh': bo.BranchName || '',
+                    'Showroom': bo.Showroom || '',
+                    'KhoNo': bo.KhoNo || '',
+                    'Loại xe đơn': bo.TypeCar || '',
+                    'ETA': bo.ETA || '',
+                    'Ghi chú': bo.Note || '',
+                    'Tuổi đơn (ngày)': daysOpen,
+                    'Trễ so với LT (ngày)': cls ? Math.round(cls.daysOverdue) : '',
+                    'Mức bất thường (đơn)': cls ? ANOMALY_META[cls.anomaly].label : '',
+                    'Score đơn': cls ? Math.round(cls.score) : '',
+                    'Lý do': cls ? cls.reasons.join(' | ') : '',
+                });
+            }
+        }
 
         await exportObjectsToExcel(
-            data,
-            'Backorder',
-            `Backorder_Analytics_${new Date().toISOString().slice(0, 10)}.xlsx`,
+            rows,
+            'Backorder_Detail',
+            `Backorder_Detail_${new Date().toISOString().slice(0, 10)}.xlsx`,
         );
     };
     const [search, setSearch] = useState('');
