@@ -905,9 +905,14 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
         let totalScore = 0, countScored = 0, maxDays = 0;
         let nCritical = 0, nHigh = 0, nWarning = 0, nSupplierLate = 0;
         let nTransfer = 0;
+        // Scope-aware aggregation. With NB/BB only entries from that warehouse
+        // contribute to age/over-LT/anomaly/supplier counts; with 'all' the full
+        // breakdown is used. nTransfer stays global because it represents cross-
+        // warehouse rebalance opportunity, which is meaningful regardless of which
+        // scope the operator is viewing.
         for (const item of enrichedData || []) {
             const lt = item.computed?.effectiveLT;
-            const breakdown = item.BackorderBreakdown;
+            const breakdown = filterBreakdownByScope(item.BackorderBreakdown, deferredWarehouseScope);
             if (breakdown && breakdown.length > 0) {
                 for (const bo of breakdown) {
                     const ts = bo.RawDate || 0;
@@ -918,6 +923,8 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                         if (lt && days > lt) countOverLT++;
                     }
                 }
+                // getItemAnomaly already filters its input breakdown by scope, so
+                // the per-tier counts below are scope-correct out of the box.
                 const agg = getItemAnomaly(item).aggregate;
                 if (agg.maxScore > 0) { totalScore += agg.maxScore; countScored++; }
                 if (agg.counts.CRITICAL > 0) nCritical++;
@@ -936,7 +943,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
             maxDays, countOpen, countOverLT,
             nCritical, nHigh, nWarning, nSupplierLate, nTransfer,
         };
-    }, [enrichedData, anomalyNow]);
+    }, [enrichedData, anomalyNow, deferredWarehouseScope]);
 
     // Master filter cohort counts (computed against unfiltered enrichedData so
     // the segmented control reflects the underlying volume per bucket).
