@@ -921,6 +921,14 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
     const onHighChip     = () => { setAnomalyFilters(['HIGH']);     setSupplierStatusFilters([]); sortByScore(); setCurrentPage(1); };
     const onWarningChip  = () => { setAnomalyFilters(['WARNING']);  setSupplierStatusFilters([]); sortByScore(); setCurrentPage(1); };
     const onSupplierChip = () => { setSupplierStatusFilters(['overdue']); setAnomalyFilters([]); sortByScore(); setCurrentPage(1); };
+    // Drill-down from hero "SKU NỢ" — clears every dimension filter (search, aging,
+    // dropdowns, anomaly) but keeps coverage band + warehouse scope so operators can
+    // re-inspect the full population currently in scope. Pattern: glance hero → click → audit.
+    const onResetFilters = () => {
+        setSearch(''); setAgingFilter('all'); setSourceFilters([]); setOrderTypeFilters([]);
+        setBranchFilters([]); setMotherGroupFilters([]); setSupplierStatusFilters([]); setAnomalyFilters([]);
+        setSpecialFilter('all'); setCurrentPage(1);
+    };
 
     return (
         <div className="flex flex-col h-full bg-slate-50 font-sans selection:bg-blue-100 selection:text-blue-900">
@@ -1074,22 +1082,35 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
             </div>
 
             {/* ─── ROW 3 — HERO STATS + ACTION CHIPS ─────────────────────────
-                3 hero numbers stand out as the answer to "what's the total?".
-                Action chips push to the right when actionable. */}
+                3 hero numbers answer "what's the total?". Color discipline:
+                  · SKU NỢ stays slate-900 (population count, no good/bad inherent meaning)
+                  · SỐ LƯỢNG / GIÁ TRỊ are debt magnitudes — high = bad → use slate→amber→rose
+                    threshold tone, NEVER emerald (emerald = "good" misleads).
+                Hero "SKU NỢ" is a button that clears all dimension filters — drill-down
+                pattern from kpi-dashboard-design (limit to 5–7 KPIs, enable drilldown).
+                Action chips on the right for the same chip set as before. */}
             <div className="bg-white border-b border-slate-200 shrink-0 px-6 lg:px-8 py-3 flex items-center justify-between gap-6 flex-wrap">
                 <div className="flex items-center divide-x divide-slate-200">
-                    <div className="pr-6">
-                        <div className="text-[10px] uppercase tracking-[0.25em] font-black text-slate-500">SKU NỢ</div>
+                    <button
+                        type="button"
+                        onClick={onResetFilters}
+                        title="Xóa toàn bộ filter và xem toàn bộ SKU đang nợ"
+                        aria-label="Xóa filter và xem toàn bộ danh sách nợ"
+                        className="pr-6 text-left rounded-md hover:bg-slate-50 transition-colors px-2 -mx-2 py-1 -my-1 focus-visible:ring-2 focus-visible:ring-blue-400"
+                    >
+                        <div className="text-[10px] uppercase tracking-[0.25em] font-black text-slate-500 inline-flex items-center gap-1">
+                            SKU NỢ <FaIcon className="fas fa-rotate-left text-[8px] text-slate-400" aria-hidden="true" />
+                        </div>
                         <div className="text-3xl font-black tabular-nums leading-tight text-slate-900">{filteredData.length.toLocaleString('vi-VN')}</div>
-                    </div>
+                    </button>
                     <div className="px-6">
                         <div className="text-[10px] uppercase tracking-[0.25em] font-black text-slate-500">SỐ LƯỢNG</div>
-                        <div className="text-3xl font-black tabular-nums leading-tight text-amber-600">{stats.totalQty.toLocaleString('vi-VN')}</div>
+                        <div className={`text-3xl font-black tabular-nums leading-tight ${stats.totalQty > 50000 ? 'text-rose-700' : stats.totalQty > 10000 ? 'text-amber-600' : 'text-slate-900'}`}>{stats.totalQty.toLocaleString('vi-VN')}</div>
                     </div>
                     <div className="px-6">
                         <div className="text-[10px] uppercase tracking-[0.25em] font-black text-slate-500">GIÁ TRỊ</div>
-                        <div className="text-3xl font-black tabular-nums leading-tight text-emerald-700">
-                            {Math.round(stats.totalValue / 1e6).toLocaleString('vi-VN')}<span className="text-base ml-1 font-bold text-emerald-500">Tr ₫</span>
+                        <div className={`text-3xl font-black tabular-nums leading-tight ${stats.totalValue > 5_000_000_000 ? 'text-rose-700' : stats.totalValue > 1_000_000_000 ? 'text-amber-600' : 'text-slate-900'}`}>
+                            {Math.round(stats.totalValue / 1e6).toLocaleString('vi-VN')}<span className="text-base ml-1 font-bold text-slate-500">Tr ₫</span>
                         </div>
                     </div>
                 </div>
@@ -1126,22 +1147,50 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                 )}
             </div>
 
-            {/* ─── ROW 4 — DIAGNOSTIC KPI STRIP (6 mini metrics, scrollable) ─── */}
-            <div className="bg-slate-50 border-b border-slate-200 shrink-0 px-6 lg:px-8 flex items-stretch divide-x divide-slate-200 overflow-x-auto custom-scrollbar">
-                {[
-                    { label: 'TUỔI NỢ TB',    value: `${Math.round(headerStats.avgDays)}d`,        sub: `${headerStats.countOpen.toLocaleString('vi-VN')} đơn`,      tone: 'text-slate-800' },
-                    { label: '% TRỄ LT',      value: `${headerStats.pctOverLT.toFixed(1)}%`,        sub: `${headerStats.countOverLT.toLocaleString('vi-VN')} quá LT`, tone: headerStats.pctOverLT > 50 ? 'text-rose-700' : headerStats.pctOverLT > 25 ? 'text-amber-600' : 'text-emerald-600' },
-                    { label: 'ĐƠN LÂU NHẤT',  value: `${Math.round(headerStats.maxDays)}d`,         sub: 'tối đa',                                                    tone: headerStats.maxDays > 365 ? 'text-rose-700' : 'text-amber-600' },
-                    { label: 'SCORE TB',      value: `${Math.round(headerStats.avgScore)}`,         sub: '/100',                                                      tone: headerStats.avgScore > 60 ? 'text-rose-700' : headerStats.avgScore > 40 ? 'text-amber-600' : 'text-blue-600' },
-                    { label: 'PO COVERAGE',   value: `${stats.poCoverage.toFixed(0)}%`,              sub: 'có hàng về',                                                tone: stats.poCoverage >= 80 ? 'text-emerald-600' : stats.poCoverage >= 50 ? 'text-blue-600' : 'text-rose-700' },
-                    { label: 'ĐIỀU CHUYỂN',   value: headerStats.nTransfer.toLocaleString('vi-VN'),  sub: 'cơ hội nội bộ',                                             tone: 'text-emerald-600' },
-                ].map((k) => (
-                    <div key={k.label} className="px-4 py-2 shrink-0 first:pl-0">
-                        <div className="text-[9px] uppercase tracking-[0.2em] font-black text-slate-500">{k.label}</div>
-                        <div className={`text-base font-black tabular-nums leading-tight mt-0.5 ${k.tone}`}>{k.value}</div>
-                        <div className="text-[9px] text-slate-500 font-medium leading-tight">{k.sub}</div>
+            {/* ─── ROW 4 — DIAGNOSTIC KPI STRIP (4 metrics + conditional alerts) ───
+                Per kpi-dashboard-design rule "Limit to 5–7 KPIs": dropped SCORE TB
+                (vanity — already encoded in chips by tier) and ĐIỀU CHUYỂN (already
+                visible as inline transfer button per row; surfaced as info alert when > 0).
+                Tone scale uses red=bad consistently:
+                  · TUỔI NỢ TB: > 90d rose, > 60d amber, else slate
+                  · % TRỄ LT:   > 50% rose, > 25% amber, else slate (no green — means
+                                "fewer overdue", not "good"; we don't reward debt)
+                  · ĐƠN LÂU NHẤT: > 365d rose, > 90d amber, else slate
+                  · PO COVERAGE: >= 80% emerald (here green IS good — high coverage =
+                                inbound supply secured), 50–79% slate, < 50% rose */}
+            <div className="bg-slate-50 border-b border-slate-200 shrink-0 px-6 lg:px-8 flex items-stretch flex-wrap gap-x-0 overflow-x-auto custom-scrollbar">
+                <div className="flex items-stretch divide-x divide-slate-200">
+                    {[
+                        { label: 'TUỔI NỢ TB',    value: `${Math.round(headerStats.avgDays)}d`,        sub: `${headerStats.countOpen.toLocaleString('vi-VN')} đơn`,      tone: headerStats.avgDays > 90 ? 'text-rose-700' : headerStats.avgDays > 60 ? 'text-amber-600' : 'text-slate-800' },
+                        { label: '% TRỄ LT',      value: `${headerStats.pctOverLT.toFixed(1)}%`,        sub: `${headerStats.countOverLT.toLocaleString('vi-VN')} quá LT`, tone: headerStats.pctOverLT > 50 ? 'text-rose-700' : headerStats.pctOverLT > 25 ? 'text-amber-600' : 'text-slate-800' },
+                        { label: 'ĐƠN LÂU NHẤT',  value: `${Math.round(headerStats.maxDays)}d`,         sub: 'tối đa',                                                    tone: headerStats.maxDays > 365 ? 'text-rose-700' : headerStats.maxDays > 90 ? 'text-amber-600' : 'text-slate-800' },
+                        { label: 'PO COVERAGE',   value: `${stats.poCoverage.toFixed(0)}%`,             sub: 'có hàng về',                                                tone: stats.poCoverage >= 80 ? 'text-emerald-600' : stats.poCoverage >= 50 ? 'text-slate-800' : 'text-rose-700' },
+                    ].map((k) => (
+                        <div key={k.label} className="px-4 py-2 shrink-0 first:pl-0">
+                            <div className="text-[9px] uppercase tracking-[0.2em] font-black text-slate-500">{k.label}</div>
+                            <div className={`text-base font-black tabular-nums leading-tight mt-0.5 ${k.tone}`}>{k.value}</div>
+                            <div className="text-[9px] text-slate-500 font-medium leading-tight">{k.sub}</div>
+                        </div>
+                    ))}
+                </div>
+                {/* Conditional info alerts — render only when actionable.
+                    Pattern 3 ("Recent Alerts") from kpi-dashboard-design. */}
+                {(headerStats.nTransfer > 0 || stats.poCoverage < 50) && (
+                    <div className="ml-auto flex items-center gap-2 py-2 px-2 flex-wrap">
+                        {stats.poCoverage < 50 && (
+                            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-rose-50 ring-1 ring-rose-200 text-rose-700 text-[10px] font-black uppercase tracking-wider" title="PO Coverage thấp — phần lớn SKU nợ chưa có đơn đặt mua nội bộ">
+                                <FaIcon className="fas fa-truck-ramp-box text-[9px]" aria-hidden="true" />
+                                PO COVERAGE THẤP
+                            </span>
+                        )}
+                        {headerStats.nTransfer > 0 && (
+                            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-blue-50 ring-1 ring-blue-200 text-blue-700 text-[10px] font-black uppercase tracking-wider" title="Có cơ hội điều chuyển nội bộ giữa NB/BB — xem cột Hành động trong bảng">
+                                <FaIcon className="fas fa-arrow-right-arrow-left text-[9px]" aria-hidden="true" />
+                                ĐIỀU CHUYỂN <span className="tabular-nums">{headerStats.nTransfer}</span>
+                            </span>
+                        )}
                     </div>
-                ))}
+                )}
             </div>
 
             <div className="p-6 pb-4 shrink-0">
