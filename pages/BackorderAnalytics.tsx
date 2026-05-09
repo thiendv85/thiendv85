@@ -960,7 +960,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                 <div className="relative px-6 lg:px-8 h-12 flex items-center justify-between gap-3">
                     <div className="min-w-0 flex items-baseline gap-3">
                         <h1 className="text-base md:text-lg font-black tracking-tight leading-none">Phân tích Nợ hàng</h1>
-                        <span className="text-[9px] uppercase tracking-[0.3em] font-black text-blue-400/90 leading-none hidden md:inline">Supply Chain ↳ Backorder</span>
+                        <span className="text-[9px] uppercase tracking-[0.3em] font-black text-blue-300 leading-none hidden md:inline">Supply Chain ↳ Backorder</span>
                     </div>
                     <button
                         type="button"
@@ -982,7 +982,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
             <div className="bg-slate-900 text-white border-b border-white/5 shrink-0 px-6 lg:px-8 py-2.5 flex items-center gap-4 flex-wrap">
                 {/* TỔNG QUAN */}
                 <div className="flex items-center gap-3">
-                    <span className="text-[9px] uppercase tracking-[0.25em] font-black text-slate-400 inline-flex items-center gap-1.5 shrink-0">
+                    <span className="text-[9px] uppercase tracking-[0.25em] font-black text-slate-300 inline-flex items-center gap-1.5 shrink-0">
                         <FaIcon className="fas fa-chart-pie text-[9px] text-blue-400" aria-hidden="true" /> Tổng quan
                     </span>
                     <button
@@ -994,15 +994,15 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                     >
                         <div className="pr-3 flex items-baseline gap-1.5">
                             <span className="text-xl font-black tabular-nums leading-none text-white">{filteredData.length.toLocaleString('vi-VN')}</span>
-                            <span className="text-[9px] uppercase tracking-wider font-black text-slate-400 inline-flex items-center gap-0.5">SKU <FaIcon className="fas fa-rotate-left text-[8px] text-slate-500" aria-hidden="true" /></span>
+                            <span className="text-[9px] uppercase tracking-wider font-black text-slate-300 inline-flex items-center gap-0.5">SKU <FaIcon className="fas fa-rotate-left text-[8px] text-slate-400" aria-hidden="true" /></span>
                         </div>
                         <div className="px-3 flex items-baseline gap-1.5">
                             <span className={`text-xl font-black tabular-nums leading-none ${stats.totalQty > 50000 ? 'text-rose-300' : stats.totalQty > 10000 ? 'text-amber-300' : 'text-white'}`}>{stats.totalQty.toLocaleString('vi-VN')}</span>
-                            <span className="text-[9px] uppercase tracking-wider font-black text-slate-400">SL</span>
+                            <span className="text-[9px] uppercase tracking-wider font-black text-slate-300">SL</span>
                         </div>
                         <div className="pl-3 flex items-baseline gap-1.5">
                             <span className={`text-xl font-black tabular-nums leading-none ${stats.totalValue > 5_000_000_000 ? 'text-rose-300' : stats.totalValue > 1_000_000_000 ? 'text-amber-300' : 'text-emerald-300'}`}>{Math.round(stats.totalValue / 1e6).toLocaleString('vi-VN')}</span>
-                            <span className="text-[9px] uppercase tracking-wider font-black text-slate-400">Tr ₫</span>
+                            <span className="text-[9px] uppercase tracking-wider font-black text-slate-300">Tr ₫</span>
                         </div>
                     </button>
                 </div>
@@ -1011,7 +1011,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
 
                 {/* TRẠNG THÁI — tactical health, 4 mini KPIs in line */}
                 <div className="flex items-center gap-3 flex-wrap ml-auto">
-                    <span className="text-[9px] uppercase tracking-[0.25em] font-black text-slate-400 inline-flex items-center gap-1.5 shrink-0">
+                    <span className="text-[9px] uppercase tracking-[0.25em] font-black text-slate-300 inline-flex items-center gap-1.5 shrink-0">
                         <FaIcon className="fas fa-heart-pulse text-[9px] text-blue-400" aria-hidden="true" /> Trạng thái
                     </span>
                     <div className="flex items-center divide-x divide-white/10">
@@ -1022,10 +1022,10 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                             { label: 'PO COVERAGE',  value: `${stats.poCoverage.toFixed(0)}%`,      sub: 'có hàng về',                                                tone: stats.poCoverage >= 80 ? 'text-emerald-300' : stats.poCoverage >= 50 ? 'text-white' : 'text-rose-300' },
                         ].map(k => (
                             <div key={k.label} className="px-3 first:pl-0 last:pr-0 flex flex-col leading-tight">
-                                <div className="text-[9px] uppercase tracking-wider font-black text-slate-400">{k.label}</div>
+                                <div className="text-[9px] uppercase tracking-wider font-black text-slate-300">{k.label}</div>
                                 <div className="flex items-baseline gap-1.5 mt-0.5">
                                     <span className={`text-base font-black tabular-nums leading-none ${k.tone}`}>{k.value}</span>
-                                    <span className="text-[9px] text-slate-500 font-medium tabular-nums">{k.sub}</span>
+                                    <span className="text-[9px] text-slate-400 font-medium tabular-nums">{k.sub}</span>
                                 </div>
                             </div>
                         ))}
@@ -1038,7 +1038,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                 Click handlers reuse onCriticalChip/onHighChip/onWarningChip/
                 onSupplierChip — preserves the existing click-filter behavior. */}
             <div className="bg-slate-900/90 text-white border-b border-white/5 shrink-0 px-6 lg:px-8 py-2 flex items-center gap-3 flex-wrap">
-                <span className="text-[9px] uppercase tracking-[0.25em] font-black text-slate-400 inline-flex items-center gap-1.5 shrink-0">
+                <span className="text-[9px] uppercase tracking-[0.25em] font-black text-slate-300 inline-flex items-center gap-1.5 shrink-0">
                     <FaIcon className="fas fa-tag text-[9px] text-blue-400" aria-hidden="true" /> Phân loại
                 </span>
                 <button type="button" onClick={onCriticalChip} title="Lọc các SKU có đơn ở mức TRỄ NGHIÊM TRỌNG"
@@ -1076,7 +1076,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
 
                 {/* KHO — warehouse scope NB/BB. Pushed to the right edge. */}
                 <div className="ml-auto flex items-center gap-2 shrink-0">
-                    <span className="text-[9px] uppercase tracking-[0.25em] font-black text-slate-400 inline-flex items-center gap-1.5">
+                    <span className="text-[9px] uppercase tracking-[0.25em] font-black text-slate-300 inline-flex items-center gap-1.5">
                         <FaIcon className="fas fa-warehouse text-[9px] text-blue-400" aria-hidden="true" /> Kho
                     </span>
                     <div className="inline-flex items-center bg-white/5 ring-1 ring-white/10 rounded-lg p-0.5 h-8" role="group" aria-label="Phạm vi kho NB / BB">
