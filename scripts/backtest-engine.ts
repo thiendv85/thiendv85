@@ -137,11 +137,11 @@ function predict(row: BacktestRow): number {
     const a3 = row.avg_qty_3m;
     if (a3 <= 0) return base;
 
-    if (row.cv > 1.5) {
+    if (row.cv > 1.2) {
+        // EXP5: lower threshold + 0.1/0.9 weights (lean harder on a3 for lumpy)
         const med = median(row.hist);
-        return 0.2 * med + 0.8 * a3;
+        return 0.1 * med + 0.9 * a3;
     }
-    // Smooth interpolation: alpha = max(0.1, 0.6 - 0.25 × CV)
     const alpha = Math.max(0.1, 0.65 - 0.3 * row.cv);
     return alpha * base + (1 - alpha) * a3;
 }
