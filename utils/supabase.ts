@@ -1517,7 +1517,14 @@ export async function uploadSnapshot(
       brand,
       content_hash: contentHash,
     });
-    if (metaErr) console.warn('Metadata insert failed (snapshot uploaded OK):', metaErr.message);
+    if (metaErr) {
+      // Metadata insert failed → snapshot becomes orphaned (file in Storage but
+      // not listable via listSnapshots). Clean up the orphan and surface the error.
+      // Pre-2026-05-09 silent fallback masked an RLS bug for non-admin uploaders;
+      // see migration 016.
+      await supabase.storage.from('inventory_snapshots').remove([path]).catch(() => {});
+      return { success: false, error: `Metadata insert failed: ${metaErr.message}` };
+    }
 
     // Auto-cleanup oldest snapshots (fire-and-forget)
     enforceRetentionLimit(30);
