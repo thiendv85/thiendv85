@@ -139,12 +139,25 @@ export function classifyOrderAnomaly(
 }
 
 export interface AnomalyAggregate {
-    worst: OrderAnomaly;
+    worst: OrderAnomaly;             // tier of the order with max progressRatio (max age vs LT)
+    maxDaysOpen: number;             // age (days) of the oldest still-open order
+    maxDaysOverdue: number;          // overdue days of the most-overdue order (0 if all are within LT)
+    maxProgressRatio: number;        // largest daysOpen / LT among all orders (>=0)
     counts: Record<OrderAnomaly, number>;
-    abnormalCount: number;       // = critical + high + warning (not due_soon, not normal)
-    totalQtyAbnormal: number;    // sum of Qty across abnormal orders
+    abnormalCount: number;           // = critical + high + warning (excludes due_soon and normal)
+    totalQtyAbnormal: number;        // sum of Qty across abnormal orders (critical+high+warning)
 }
 
+/**
+ * Aggregate per-order results into a SKU-level summary using MAX as the
+ * primary aggregator: the SKU's reported tier is the tier of the SINGLE
+ * order with the largest progressRatio (i.e. the worst-aged order). This
+ * matches the operator's mental model — "I care about the oldest debt
+ * for this SKU, that's the one I need to chase".
+ *
+ * maxDaysOpen / maxDaysOverdue / maxProgressRatio are surfaced so the UI
+ * can show the actual age alongside the tier label (e.g. "TRỄ NẶNG · 757d").
+ */
 export function aggregateAnomalies(
     results: Array<OrderAnomalyResult & { qty?: number }>,
 ): AnomalyAggregate {
@@ -152,15 +165,32 @@ export function aggregateAnomalies(
         CRITICAL: 0, HIGH: 0, WARNING: 0, DUE_SOON: 0, NORMAL: 0,
     };
     let totalQtyAbnormal = 0;
+    let maxDaysOpen = 0;
+    let maxDaysOverdue = 0;
+    let maxProgressRatio = 0;
+    let worst: OrderAnomaly = 'NORMAL';
     for (const r of results) {
         counts[r.anomaly]++;
+        if (r.daysOpen > maxDaysOpen) maxDaysOpen = r.daysOpen;
+        if (r.daysOverdue > maxDaysOverdue) maxDaysOverdue = r.daysOverdue;
+        if (r.progressRatio > maxProgressRatio) {
+            maxProgressRatio = r.progressRatio;
+            worst = r.anomaly; // tier of the worst-aged order drives SKU classification
+        }
         if (r.anomaly === 'CRITICAL' || r.anomaly === 'HIGH' || r.anomaly === 'WARNING') {
             totalQtyAbnormal += r.qty || 0;
         }
     }
-    const worst = ANOMALY_RANK_ORDER.find(a => counts[a] > 0) ?? 'NORMAL';
+    // If no order had a positive progressRatio (all NORMAL with progressRatio=0
+    // because dates missing), keep ANOMALY_RANK_ORDER as a tiebreaker.
+    if (maxProgressRatio === 0) {
+        worst = ANOMALY_RANK_ORDER.find(a => counts[a] > 0) ?? 'NORMAL';
+    }
     return {
         worst,
+        maxDaysOpen,
+        maxDaysOverdue,
+        maxProgressRatio,
         counts,
         abnormalCount: counts.CRITICAL + counts.HIGH + counts.WARNING,
         totalQtyAbnormal,
@@ -176,7 +206,15 @@ export function classifyItemAnomalies(
     if (!breakdown || breakdown.length === 0 || !effectiveLTDays || effectiveLTDays <= 0) {
         return {
             results: [],
-            aggregate: { worst: 'NORMAL', counts: { CRITICAL: 0, HIGH: 0, WARNING: 0, DUE_SOON: 0, NORMAL: 0 }, abnormalCount: 0, totalQtyAbnormal: 0 },
+            aggregate: {
+                worst: 'NORMAL',
+                maxDaysOpen: 0,
+                maxDaysOverdue: 0,
+                maxProgressRatio: 0,
+                counts: { CRITICAL: 0, HIGH: 0, WARNING: 0, DUE_SOON: 0, NORMAL: 0 },
+                abnormalCount: 0,
+                totalQtyAbnormal: 0,
+            },
         };
     }
     const results = breakdown.map(bo => ({

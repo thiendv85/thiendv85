@@ -1368,11 +1368,12 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                                                         const detail = (['CRITICAL','HIGH','WARNING'] as const)
                                                                             .filter(t => agg.counts[t] > 0)
                                                                             .map(t => `${agg.counts[t]} ${ANOMALY_META[t].label}`).join(' • ');
-                                                                        const tooltip = `${agg.abnormalCount} đơn bất thường — ${detail}`;
+                                                                        const maxDays = Math.round(agg.maxDaysOpen);
+                                                                        const tooltip = `${meta.label} • ${detail} • Đơn lâu nhất ${maxDays}d (trễ ${Math.round(agg.maxDaysOverdue)}d so với LT)`;
                                                                         return (
                                                                             <span title={tooltip} className={`inline-flex items-center gap-1 font-mono font-black text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded ring-1 ${meta.cls}`}>
                                                                                 <FaIcon className="fas fa-triangle-exclamation text-[8px]" />
-                                                                                {agg.abnormalCount} ĐƠN BẤT THƯỜNG
+                                                                                {meta.label} · {maxDays}D · {agg.abnormalCount} ĐƠN
                                                                             </span>
                                                                         );
                                                                     })()}
