@@ -185,19 +185,20 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
     const deferredMasterFilter = useDeferredValue(masterFilter);
 
     // ── Supplier delivery warning ─────────────────────────────────────────────
-    // Combines two data sources to classify supplier risk:
-    //   (a) Pipeline (PO đã confirm): item.computed.incomingCurrentMonth / NextMonth
-    //   (b) RawDate + effectiveLT: estimated arrival from order date + lead time
-    // Three actionable tiers (others hidden — UI shows badge only when action needed):
-    //   overdue       → BO exists, expected has passed AND no confirmed PO this month
-    //   due_this_month → confirmed PO arriving this month OR estimated arrival in this month
-    //   due_next_month → confirmed PO arriving next month OR estimated arrival in next month
-    //   none          → ok / no signal / no data → no badge
-    type SupplierStatus = 'overdue' | 'due_this_month' | 'due_next_month' | 'none';
-    const SUPPLIER_STATUS_META: Record<Exclude<SupplierStatus, 'none'>, { label: string; full: string; cls: string; rank: number }> = {
-        overdue:        { label: 'TRỄ HẸN',     full: 'NCC quá hạn — đã qua ngày dự kiến giao và chưa có PO confirm về tháng này',  cls: 'bg-rose-100 text-rose-700 ring-rose-300',    rank: 0 },
-        due_this_month: { label: 'TRONG THÁNG', full: 'Có PO confirm hoặc dự kiến giao trong tháng này',                              cls: 'bg-amber-100 text-amber-700 ring-amber-300', rank: 1 },
-        due_next_month: { label: 'THÁNG SAU',   full: 'Có PO confirm hoặc dự kiến giao tháng sau',                                     cls: 'bg-blue-50 text-blue-700 ring-blue-200',     rank: 2 },
+    // For each backorder breakdown entry: expectedDelivery = order_date + LT.
+    // Aggregate worst case per item:
+    //   overdue          → expected < start of this month (NCC trễ hẹn rồi)
+    //   due_this_month   → expected falls in current calendar month
+    //   due_next_month   → expected falls in next month
+    //   on_track         → expected later than next month, all entries
+    //   no_eta           → no BackorderBreakdown / no RawDate / no LT
+    type SupplierStatus = 'overdue' | 'due_this_month' | 'due_next_month' | 'on_track' | 'no_eta';
+    const SUPPLIER_STATUS_META: Record<SupplierStatus, { label: string; full: string; cls: string; rank: number }> = {
+        overdue:        { label: 'TRỄ',     full: 'NCC trễ hẹn — đã quá ngày dự kiến giao',   cls: 'bg-rose-100 text-rose-700 ring-rose-300',    rank: 0 },
+        due_this_month: { label: 'TRONG THÁNG', full: 'Dự kiến giao trong tháng này',            cls: 'bg-amber-100 text-amber-700 ring-amber-300', rank: 1 },
+        due_next_month: { label: 'THÁNG SAU',   full: 'Dự kiến giao tháng sau',                  cls: 'bg-blue-50 text-blue-700 ring-blue-200',     rank: 2 },
+        on_track:       { label: 'ĐÚNG HẠN',    full: 'Dự kiến giao đúng/sớm hơn dự kiến',       cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200', rank: 3 },
+        no_eta:         { label: 'NO ETA',      full: 'Không có ngày đặt — không tính được ETA', cls: 'bg-slate-100 text-slate-500 ring-slate-200', rank: 4 },
     };
     const MS_PER_DAY = 24 * 60 * 60 * 1000;
     const monthBoundaries = useMemo(() => {
@@ -208,49 +209,37 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
         return { startThisMonth, startNextMonth, startMonthAfter };
     }, []);
     const getSupplierStatus = (item: InventoryItem): SupplierStatus => {
-        const totalBO = Math.max(item.Backorder || 0, item.computed?.boAging?.totalQty || 0);
-        const incomingM0 = item.computed?.incomingCurrentMonth || 0;
-        const incomingM1 = item.computed?.incomingNextMonth || 0;
-
-        // Estimate worst expected_date from BackorderBreakdown × effectiveLT.
-        // estimatedTier: 0 = past, 1 = this month, 2 = next month, 3 = later, -1 = no data.
-        let estimatedTier = -1;
         const breakdown = item.BackorderBreakdown;
+        if (!breakdown || breakdown.length === 0) return 'no_eta';
         const ltDays = item.computed?.effectiveLT;
-        if (breakdown && breakdown.length > 0 && ltDays && ltDays > 0) {
-            for (const bo of breakdown) {
-                const orderTs = bo.RawDate;
-                if (!orderTs) continue;
-                const expected = orderTs + ltDays * MS_PER_DAY;
-                let t: number;
-                if (expected < monthBoundaries.startThisMonth) t = 0;
-                else if (expected < monthBoundaries.startNextMonth) t = 1;
-                else if (expected < monthBoundaries.startMonthAfter) t = 2;
-                else t = 3;
-                if (estimatedTier === -1 || t < estimatedTier) estimatedTier = t;
-                if (estimatedTier === 0) break;
+        if (!ltDays || ltDays <= 0) return 'no_eta';
+        let worstRank = 99;
+        let worst: SupplierStatus = 'no_eta';
+        for (const bo of breakdown) {
+            const orderTs = bo.RawDate;
+            if (!orderTs) continue;
+            const expected = orderTs + ltDays * MS_PER_DAY;
+            let s: SupplierStatus;
+            if (expected < monthBoundaries.startThisMonth) s = 'overdue';
+            else if (expected < monthBoundaries.startNextMonth) s = 'due_this_month';
+            else if (expected < monthBoundaries.startMonthAfter) s = 'due_next_month';
+            else s = 'on_track';
+            const rank = SUPPLIER_STATUS_META[s].rank;
+            if (rank < worstRank) {
+                worstRank = rank;
+                worst = s;
+                if (rank === 0) break; // overdue is worst, short-circuit
             }
         }
-
-        // 1. OVERDUE: BO present + estimated past + no confirmed PO this month.
-        //    A confirmed PO this month overrides "overdue" — supplier is delivering even if
-        //    the original LT-based estimate has passed.
-        if (totalBO > 0 && estimatedTier === 0 && incomingM0 === 0) return 'overdue';
-
-        // 2. DUE THIS MONTH: confirmed PO this month OR estimated to land in this month.
-        if (incomingM0 > 0 || estimatedTier === 1) return 'due_this_month';
-
-        // 3. DUE NEXT MONTH: confirmed PO next month OR estimated next month.
-        if (incomingM1 > 0 || estimatedTier === 2) return 'due_next_month';
-
-        // 4. No actionable signal — hide badge.
-        return 'none';
+        return worstRank === 99 ? 'no_eta' : worst;
     };
     // Vietnamese labels used by the filter dropdown so users can pick by display name.
     const SUPPLIER_STATUS_LABELS: Record<string, SupplierStatus> = {
-        'Trễ hẹn — cần đôn đốc': 'overdue',
-        'Về trong tháng': 'due_this_month',
-        'Về tháng sau': 'due_next_month',
+        'TRỄ — NCC quá hạn': 'overdue',
+        'Dự kiến trong tháng': 'due_this_month',
+        'Dự kiến tháng sau': 'due_next_month',
+        'Đúng hạn': 'on_track',
+        'Chưa có ETA': 'no_eta',
     };
     const SUPPLIER_FILTER_OPTIONS = Object.keys(SUPPLIER_STATUS_LABELS);
 
@@ -269,7 +258,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                 if (parsed.motherGroupFilters) setMotherGroupFilters(parsed.motherGroupFilters.filter((f: any) => f && f !== 'All' && f !== 'Tất cả'));
                 if (parsed.orderTypeFilters) setOrderTypeFilters(parsed.orderTypeFilters.filter((f: any) => f && f !== 'All' && f !== 'Tất cả'));
                 if (parsed.branchFilters) setBranchFilters(parsed.branchFilters.filter((f: any) => f && f !== 'All' && f !== 'Tất cả'));
-                if (parsed.supplierStatusFilters) setSupplierStatusFilters(parsed.supplierStatusFilters.filter((f: any) => f && ['overdue','due_this_month','due_next_month'].includes(f)));
+                if (parsed.supplierStatusFilters) setSupplierStatusFilters(parsed.supplierStatusFilters.filter((f: any) => f && ['overdue','due_this_month','due_next_month','on_track','no_eta'].includes(f)));
                 if (parsed.pageSize) setPageSize(Math.max(1, parsed.pageSize));
                 if (parsed.matrixMetric) setMatrixMetric(parsed.matrixMetric);
                 if (parsed.masterFilter) setMasterFilter(parsed.masterFilter);
@@ -1261,7 +1250,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                                         </div>
                                                         {(() => {
                                                             const ss = getSupplierStatus(item);
-                                                            if (ss === 'none') return null;
+                                                            if (ss === 'no_eta' || ss === 'on_track') return null;
                                                             const meta = SUPPLIER_STATUS_META[ss];
                                                             return (
                                                                 <div className="mt-1">
