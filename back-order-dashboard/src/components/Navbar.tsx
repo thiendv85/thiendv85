@@ -8,6 +8,9 @@ import { useData } from './DataProvider';
 const navItems = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/action-board', label: 'Action Board' },
+  { href: '/reminders', label: 'Reminders' },
+  { href: '/scorecard', label: 'Scorecard' },
+  { href: '/handoff', label: 'Handoff' },
   { href: '/detail', label: 'Chi tiết' },
 ];
 
