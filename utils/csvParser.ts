@@ -34,6 +34,39 @@ const detectDelimiter = (text: string): string => {
     return ',';
 };
 
+/**
+ * Parse a date string in any of the formats Vietnamese ERP exports use:
+ *   DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY      (4-digit year, day-first)
+ *   YYYY-MM-DD, YYYY/MM/DD                  (4-digit year, ISO)
+ *   DD/MM/YY                                (2-digit year — assumed 20YY for YY < 50, else 19YY)
+ * Strips a trailing "HH:MM:SS" (or "T...") time component before parsing.
+ * Returns 0 on any parse failure so callers can distinguish "no date" from "epoch".
+ */
+export const parseFlexibleDate = (str?: string | null): number => {
+    if (!str) return 0;
+    const clean = str.split(/[\sT]/)[0].trim();
+    if (!clean) return 0;
+    const parts = clean.split(/[-/.]/);
+    if (parts.length !== 3) return 0;
+    const [a, b, c] = parts.map(p => parseInt(p, 10));
+    if (!Number.isFinite(a) || !Number.isFinite(b) || !Number.isFinite(c)) return 0;
+    let day: number, month: number, year: number;
+    if (parts[0].length === 4) {
+        // YYYY-MM-DD
+        year = a; month = b; day = c;
+    } else if (parts[2].length === 4) {
+        // DD-MM-YYYY
+        day = a; month = b; year = c;
+    } else {
+        // 2-digit year — heuristic: < 50 → 20YY, else → 19YY (matches typical VN ERP convention)
+        day = a; month = b;
+        year = c < 50 ? 2000 + c : 1900 + c;
+    }
+    if (month < 1 || month > 12 || day < 1 || day > 31 || year < 1900 || year > 2100) return 0;
+    const ts = new Date(year, month - 1, day).getTime();
+    return Number.isFinite(ts) ? ts : 0;
+};
+
 // Helper: Parse line with specific delimiter handling quotes
 const parseLine = (line: string, delimiter: string): string[] => {
     const row: string[] = [];
@@ -168,17 +201,7 @@ export const parseBackorderCSV = (text: string): Record<string, BackorderDetail[
         if (itemCode && qty > 0) {
             if (!boMap[itemCode]) boMap[itemCode] = [];
             const docDateStr = idxMap.DocDate > -1 ? row[idxMap.DocDate]?.trim() : '';
-            let rawDate = 0;
-            if (docDateStr) {
-                try {
-                    const cleanDate = docDateStr.split(' ')[0];
-                    const parts = cleanDate.split(/[-/.]/); // Added dot separator support
-                    if (parts.length === 3) {
-                        if (parts[2].length === 4) rawDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])).getTime();
-                        else if (parts[0].length === 4) rawDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])).getTime();
-                    }
-                } catch (e) { }
-            }
+            const rawDate = parseFlexibleDate(docDateStr);
 
             boMap[itemCode].push({
                 ItemCode: itemCode,

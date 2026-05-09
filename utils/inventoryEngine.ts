@@ -17,6 +17,35 @@ import { getZScore } from './safetyStock';
 export const MOS_LOW_STOCK_THRESHOLD = 1.5;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
+/**
+ * Parse a Vietnamese-ERP date string into a timestamp. Mirror of
+ * csvParser.parseFlexibleDate, kept here as a private helper so the engine
+ * can recover oldestDebtDays/aging buckets for backorder entries imported
+ * by older csvParser versions (RawDate=0 because DD/MM/YY 2-digit-year
+ * wasn't matched). Returns 0 on any parse failure.
+ */
+const parseDocDateFallback = (str?: string): number => {
+    if (!str) return 0;
+    const clean = str.split(/[\sT]/)[0].trim();
+    if (!clean) return 0;
+    const parts = clean.split(/[-/.]/);
+    if (parts.length !== 3) return 0;
+    const [a, b, c] = parts.map(p => parseInt(p, 10));
+    if (!Number.isFinite(a) || !Number.isFinite(b) || !Number.isFinite(c)) return 0;
+    let day: number, month: number, year: number;
+    if (parts[0].length === 4) {
+        year = a; month = b; day = c;
+    } else if (parts[2].length === 4) {
+        day = a; month = b; year = c;
+    } else {
+        day = a; month = b;
+        year = c < 50 ? 2000 + c : 1900 + c;
+    }
+    if (month < 1 || month > 12 || day < 1 || day > 31 || year < 1900 || year > 2100) return 0;
+    const ts = new Date(year, month - 1, day).getTime();
+    return Number.isFinite(ts) ? ts : 0;
+};
+
 /** 
  * Lịch nghỉ Tết Âm lịch - Ngày bắt đầu (Dương lịch) 
  * Dùng để tính toán số ngày nghỉ trong tháng.
@@ -839,16 +868,24 @@ export function computeInventory(
         const snapshotTs = now.getTime();
         let maxDaysOld = 0;
         item.BackorderBreakdown.forEach(boItem => {
-            const docDate = boItem.RawDate || 0;
-            if (docDate > 0) {
-                const daysOld = Math.floor((snapshotTs - docDate) / MS_PER_DAY);
+            // Prefer RawDate (numeric, set by csvParser); fall back to parsing DocDate
+            // string at compute time for entries imported by older parser versions
+            // (CSV files with DD/MM/YY 2-digit-year format used to leave RawDate=0
+            // and silently bucket into qty30, dropping them from oldestDebtDays).
+            let docTs = boItem.RawDate || 0;
+            if (docTs <= 0 && boItem.DocDate) {
+                docTs = parseDocDateFallback(boItem.DocDate);
+            }
+            if (docTs > 0) {
+                const daysOld = Math.max(0, Math.floor((snapshotTs - docTs) / MS_PER_DAY));
                 if (daysOld <= 30) boAging.qty30 += boItem.Qty;
                 else if (daysOld <= 60) boAging.qty60 += boItem.Qty;
                 else if (daysOld <= 90) boAging.qty90 += boItem.Qty;
                 else boAging.qtyOver90 += boItem.Qty;
                 if (daysOld > maxDaysOld) maxDaysOld = daysOld;
             } else {
-                // If no date, put in 30d bucket by default or based on some other logic
+                // Truly no parseable date — bucket as unknown (kept in qty30 to preserve totalQty)
+                // but DO NOT contribute to maxDaysOld.
                 boAging.qty30 += boItem.Qty;
             }
             boAging.totalQty += boItem.Qty;

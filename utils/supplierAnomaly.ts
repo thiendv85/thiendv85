@@ -70,22 +70,43 @@ const isUrgentOrder = (bo: Pick<BackorderDetail, 'OrderType' | 'DocNo'>): boolea
     return t.includes('VOR') || t.includes('KHẨN') || t.includes('URGENT') || t.includes('EO') || t.includes('NHANH');
 };
 
+/** Mirror of csvParser.parseFlexibleDate to recover RawDate from DocDate strings imported by older parser versions. */
+const parseFlexibleDate = (str?: string): number => {
+    if (!str) return 0;
+    const clean = str.split(/[\sT]/)[0].trim();
+    if (!clean) return 0;
+    const parts = clean.split(/[-/.]/);
+    if (parts.length !== 3) return 0;
+    const [a, b, c] = parts.map(p => parseInt(p, 10));
+    if (!Number.isFinite(a) || !Number.isFinite(b) || !Number.isFinite(c)) return 0;
+    let day: number, month: number, year: number;
+    if (parts[0].length === 4) { year = a; month = b; day = c; }
+    else if (parts[2].length === 4) { day = a; month = b; year = c; }
+    else { day = a; month = b; year = c < 50 ? 2000 + c : 1900 + c; }
+    if (month < 1 || month > 12 || day < 1 || day > 31 || year < 1900 || year > 2100) return 0;
+    const ts = new Date(year, month - 1, day).getTime();
+    return Number.isFinite(ts) ? ts : 0;
+};
+
 export function classifyOrderAnomaly(
-    bo: Pick<BackorderDetail, 'RawDate' | 'OrderType' | 'DocNo' | 'Qty'>,
+    bo: Pick<BackorderDetail, 'RawDate' | 'DocDate' | 'OrderType' | 'DocNo' | 'Qty'>,
     effectiveLTDays: number,
     now: number = Date.now(),
 ): OrderAnomalyResult {
     const reasons: string[] = [];
     const isUrgent = isUrgentOrder(bo);
-    if (!bo.RawDate) {
+    // Recover RawDate from DocDate string if missing — handles entries imported
+    // by older csvParser versions that didn't parse DD/MM/YY format.
+    const orderTs = bo.RawDate && bo.RawDate > 0 ? bo.RawDate : parseFlexibleDate(bo.DocDate);
+    if (!orderTs) {
         return { anomaly: 'NORMAL', daysOpen: 0, daysOverdue: 0, progressRatio: 0, isUrgent, isStale: false, reasons: ['Không có ngày đặt'] };
     }
     if (!effectiveLTDays || effectiveLTDays <= 0) {
         return { anomaly: 'NORMAL', daysOpen: 0, daysOverdue: 0, progressRatio: 0, isUrgent, isStale: false, reasons: ['Không có Lead Time'] };
     }
 
-    const daysOpen = Math.max(0, (now - bo.RawDate) / DAY_MS);
-    const expectedDelivery = bo.RawDate + effectiveLTDays * DAY_MS;
+    const daysOpen = Math.max(0, (now - orderTs) / DAY_MS);
+    const expectedDelivery = orderTs + effectiveLTDays * DAY_MS;
     const daysOverdue = Math.max(0, (now - expectedDelivery) / DAY_MS);
     const progressRatio = daysOpen / effectiveLTDays;
     const isStale = daysOpen > STALE_DAYS;
