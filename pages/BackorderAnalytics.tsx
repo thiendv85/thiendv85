@@ -860,233 +860,196 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
         return filteredData.slice(start, start + pageSize);
     }, [filteredData, currentPage, pageSize]);
 
+    // ── Page-level aggregates (computed once per render) ────────────────────
+    // Pulled out of inline IIFEs so the redesigned header can render them
+    // declaratively without nested JSX expression blocks.
+    const headerStats = useMemo(() => {
+        let totalDaysOpen = 0, countOpen = 0, countOverLT = 0;
+        let totalScore = 0, countScored = 0, maxDays = 0;
+        let nCritical = 0, nHigh = 0, nWarning = 0, nSupplierLate = 0;
+        let nTransfer = 0;
+        for (const item of enrichedData || []) {
+            const lt = item.computed?.effectiveLT;
+            const breakdown = item.BackorderBreakdown;
+            if (breakdown && breakdown.length > 0) {
+                for (const bo of breakdown) {
+                    const ts = bo.RawDate || 0;
+                    if (ts > 0) {
+                        const days = (Date.now() - ts) / 86400000;
+                        totalDaysOpen += days; countOpen++;
+                        if (days > maxDays) maxDays = days;
+                        if (lt && days > lt) countOverLT++;
+                    }
+                }
+                const agg = getItemAnomaly(item).aggregate;
+                if (agg.maxScore > 0) { totalScore += agg.maxScore; countScored++; }
+                if (agg.counts.CRITICAL > 0) nCritical++;
+                else if (agg.counts.HIGH > 0) nHigh++;
+                else if (agg.counts.WARNING > 0) nWarning++;
+                if (getSupplierStatus(item) === 'overdue') nSupplierLate++;
+            }
+            const nb = (item.QuantityInventory_NB || 0) + (item.QuantityDC_NB || 0);
+            const bb = (item.QuantityInventory_BB || 0) + (item.QuantityDC_BB || 0);
+            if (((item.Backorder_NB || 0) > 0 && bb > 0) || ((item.Backorder_BB || 0) > 0 && nb > 0)) nTransfer++;
+        }
+        return {
+            avgDays: countOpen > 0 ? totalDaysOpen / countOpen : 0,
+            pctOverLT: countOpen > 0 ? (countOverLT / countOpen) * 100 : 0,
+            avgScore: countScored > 0 ? totalScore / countScored : 0,
+            maxDays, countOpen, countOverLT,
+            nCritical, nHigh, nWarning, nSupplierLate, nTransfer,
+        };
+    }, [enrichedData, anomalyNow]);
+
+    // Master filter cohort counts (computed against unfiltered enrichedData so
+    // the segmented control reflects the underlying volume per bucket).
+    const masterCounts = useMemo(() => {
+        const counts = { all: 0, stock_ok: 0, po_ok: 0, fail: 0 };
+        for (const i of enrichedData || []) {
+            const totalStock = (i.QuantityInventory_NB + i.QuantityInventory_BB + i.QuantityDC_NB + i.QuantityDC_BB);
+            const po = i.computed?.incomingCurrentMonth || 0;
+            counts.all++;
+            if (i.Backorder <= totalStock) counts.stock_ok++;
+            else if (i.Backorder <= totalStock + po) counts.po_ok++;
+            else counts.fail++;
+        }
+        return counts;
+    }, [enrichedData]);
+
+    const sortByScore = () => setSortConfig({ key: 'AnomalyScore', direction: 'desc' });
+    const onCriticalChip = () => { setAnomalyFilters(['CRITICAL']); setSupplierStatusFilters([]); sortByScore(); setCurrentPage(1); };
+    const onHighChip     = () => { setAnomalyFilters(['HIGH']);     setSupplierStatusFilters([]); sortByScore(); setCurrentPage(1); };
+    const onWarningChip  = () => { setAnomalyFilters(['WARNING']);  setSupplierStatusFilters([]); sortByScore(); setCurrentPage(1); };
+    const onSupplierChip = () => { setSupplierStatusFilters(['overdue']); setAnomalyFilters([]); sortByScore(); setCurrentPage(1); };
+
     return (
-        <div className="flex flex-col h-full bg-gradient-to-br from-slate-50 via-white to-blue-50/30 font-sans selection:bg-blue-100 selection:text-blue-900">
-            <div className="p-8 pb-4 shrink-0">
-                <div className="flex justify-between items-end mb-8">
-                    <div>
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="px-2.5 py-1 bg-[#635bff] text-white rounded-md text-[10px] font-bold uppercase tracking-widest shadow-sm">BETA v2.1</div>
-                            <Typography variant="label" className="text-[#4f566b] font-bold uppercase tracking-[0.2em] !text-[10px]">Supply Chain Intelligence</Typography>
-                        </div>
-                        <Typography variant="h1" className="text-[#1a1f36] !text-4xl !font-bold tracking-tight">Phân tích Nợ hàng <span className="text-[#635bff]">Backorder</span></Typography>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <button 
-                            onClick={handleExport}
-                            className="flex items-center gap-2 px-6 py-3 bg-[#635bff] text-white rounded-xl text-[11px] font-bold uppercase tracking-widest hover:bg-[#5851ff] hover:shadow-lg transition-all duration-300 group shadow-sm shadow-indigo-200"
-                        >
-                            <FaIcon className="fas fa-file-excel group-hover:animate-bounce" /> Xuất Excel
-                        </button>
-                        <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-200 hover:scale-110 transition-transform cursor-pointer">
-                            <FaIcon className="fas fa-ellipsis-v" />
+        <div className="flex flex-col h-full bg-slate-50 font-sans selection:bg-blue-100 selection:text-blue-900">
+            {/* ─── COMMAND BAND ──────────────────────────────────────────────
+                Dark, dense band that anchors the page. Hero metrics live here
+                inline (right of title) so the operator's eye lands on volume +
+                value before scanning anything else. */}
+            <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white relative overflow-hidden shrink-0">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_50%,rgba(99,102,241,0.18),transparent_60%)] pointer-events-none" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_120%,rgba(244,63,94,0.10),transparent_50%)] pointer-events-none" />
+                <div className="relative px-8 py-6 flex items-center justify-between gap-6 flex-wrap">
+                    <div className="flex items-center gap-6">
+                        <div>
+                            <div className="text-[10px] uppercase tracking-[0.3em] font-black text-blue-400 mb-1">SUPPLY CHAIN ↳ BACKORDER</div>
+                            <h1 className="text-3xl font-black tracking-tight leading-none">Phân tích Nợ hàng</h1>
                         </div>
                     </div>
+                    <div className="flex items-center gap-6 px-6 border-x border-white/10">
+                        <div>
+                            <div className="text-[9px] uppercase tracking-[0.2em] text-slate-400 font-bold">SKU NỢ</div>
+                            <div className="text-3xl font-black tabular-nums leading-tight">{filteredData.length.toLocaleString('vi-VN')}</div>
+                        </div>
+                        <div className="w-px h-10 bg-white/10" />
+                        <div>
+                            <div className="text-[9px] uppercase tracking-[0.2em] text-slate-400 font-bold">SỐ LƯỢNG</div>
+                            <div className="text-3xl font-black tabular-nums leading-tight text-amber-300">{stats.totalQty.toLocaleString('vi-VN')}</div>
+                        </div>
+                        <div className="w-px h-10 bg-white/10" />
+                        <div>
+                            <div className="text-[9px] uppercase tracking-[0.2em] text-slate-400 font-bold">GIÁ TRỊ</div>
+                            <div className="text-3xl font-black tabular-nums leading-tight text-emerald-300">
+                                {Math.round(stats.totalValue / 1e6).toLocaleString('vi-VN')}<span className="text-base ml-1 font-bold opacity-70">tr</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button
+                        onClick={handleExport}
+                        className="flex items-center gap-2 px-5 py-3 bg-white text-slate-900 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-100 transition-all duration-200 shadow-lg shadow-black/20"
+                    >
+                        <FaIcon className="fas fa-file-excel" /> Xuất Excel
+                    </button>
                 </div>
 
-                {/* Operational KPI tiles — diagnostic metrics computed across the
-                    full enriched dataset (not the user's current filter). Helps
-                    operators frame the day's work before drilling into filters. */}
-                {(() => {
-                    let totalDaysOpen = 0, countOpen = 0, countOverLT = 0;
-                    let totalScore = 0, countScored = 0;
-                    let maxDays = 0;
-                    let minStockoutDays = Infinity;
-                    let minStockoutSku = '';
-                    const supplierCounts: Record<string, number> = {};
-                    for (const item of enrichedData || []) {
-                        const lt = item.computed?.effectiveLT;
-                        const breakdown = item.BackorderBreakdown;
-                        if (breakdown && breakdown.length > 0) {
-                            for (const bo of breakdown) {
-                                const ts = bo.RawDate || 0;
-                                if (ts > 0) {
-                                    const daysOpen = (Date.now() - ts) / (24 * 60 * 60 * 1000);
-                                    totalDaysOpen += daysOpen;
-                                    countOpen++;
-                                    if (daysOpen > maxDays) maxDays = daysOpen;
-                                    if (lt && daysOpen > lt) countOverLT++;
-                                }
-                            }
-                            const agg = getItemAnomaly(item).aggregate;
-                            if (agg.maxScore > 0) {
-                                totalScore += agg.maxScore;
-                                countScored++;
-                            }
-                            const src = item.SourceId || 'KHÁC';
-                            supplierCounts[src] = (supplierCounts[src] || 0) + 1;
-                        }
-                        if ((item.Backorder || 0) > 0) {
-                            const sd = stockoutDaysRemaining(item);
-                            if (sd < minStockoutDays && Number.isFinite(sd)) {
-                                minStockoutDays = sd;
-                                minStockoutSku = item.ItemCode;
-                            }
-                        }
-                    }
-                    const avgDays = countOpen > 0 ? totalDaysOpen / countOpen : 0;
-                    const pctOverLT = countOpen > 0 ? (countOverLT / countOpen) * 100 : 0;
-                    const avgScore = countScored > 0 ? totalScore / countScored : 0;
-                    const tiles = [
-                        { label: 'TUỔI NỢ TB', value: `${Math.round(avgDays)}d`, sub: `${countOpen.toLocaleString('vi-VN')} đơn có ngày`, icon: 'fa-hourglass-half', cls: 'bg-slate-50 ring-slate-200 text-slate-700' },
-                        { label: '% TRỄ LT',   value: `${pctOverLT.toFixed(1)}%`, sub: `${countOverLT.toLocaleString('vi-VN')} đơn quá Lead Time`, icon: 'fa-clock', cls: pctOverLT > 50 ? 'bg-rose-50 ring-rose-200 text-rose-700' : pctOverLT > 25 ? 'bg-amber-50 ring-amber-200 text-amber-700' : 'bg-emerald-50 ring-emerald-200 text-emerald-700' },
-                        { label: 'ĐƠN LÂU NHẤT', value: `${Math.round(maxDays)}d`, sub: 'Tối đa daysOpen đơn lẻ', icon: 'fa-calendar-xmark', cls: maxDays > 365 ? 'bg-rose-50 ring-rose-200 text-rose-700' : 'bg-amber-50 ring-amber-200 text-amber-700' },
-                        { label: 'SCORE BẤT THƯỜNG TB', value: `${Math.round(avgScore)}/100`, sub: `${countScored.toLocaleString('vi-VN')} SKU có điểm`, icon: 'fa-chart-line', cls: avgScore > 60 ? 'bg-rose-50 ring-rose-200 text-rose-700' : avgScore > 40 ? 'bg-amber-50 ring-amber-200 text-amber-700' : 'bg-blue-50 ring-blue-200 text-blue-700' },
-                    ];
-                    return (
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                            {tiles.map((t, i) => (
-                                <div key={i} className={`p-4 rounded-2xl border ring-1 ${t.cls} flex items-center gap-3 shadow-sm`}>
-                                    <div className="w-10 h-10 rounded-xl bg-white/70 flex items-center justify-center">
-                                        <FaIcon className={`fas ${t.icon} text-base`} />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="text-[10px] uppercase tracking-[0.15em] font-black opacity-80 truncate">{t.label}</div>
-                                        <div className="font-black tabular-nums text-2xl leading-tight">{t.value}</div>
-                                        <div className="text-[10px] font-medium opacity-70 truncate">{t.sub}</div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    );
-                })()}
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-                    <MetricCard
-                        label="Tổng nợ (SL)"
-                        value={stats.totalQty.toLocaleString('vi-VN')}
-                        sub="Số lượng phụ tùng đang nợ"
-                        icon="fa-boxes-stacked"
-                        colorTheme="slate"
-                        isActive={masterFilter === 'all'}
-                        onClick={() => setMasterFilter('all')}
-                    />
-                    <MetricCard 
-                        label="Giá trị nợ" 
-                        value={Math.round(stats.totalValue / 1000000).toLocaleString('vi-VN')} 
-                        sub="Tổng giá trị tồn kho nợ (Tr)" 
-                        icon="fa-hand-holding-dollar" 
-                        colorTheme="emerald"
-                        isActive={matrixMetric === 'val'}
-                        onClick={() => setMatrixMetric('val')}
-                    />
-                    <MetricCard 
-                        label="Cung ứng PO" 
-                        value={`${stats.poCoverage.toFixed(1)}%`} 
-                        sub={`${formatCurrency(stats.totalPOVal)} đang về`} 
-                        icon="fa-truck-fast" 
-                        colorTheme="navy"
-                        onClick={() => setSpecialFilter(p => p === 'po' ? 'all' : 'po')}
-                        isActive={specialFilter === 'po'}
-                    />
-                    <MetricCard 
-                        label="ĐIỀU CHUYỂN" 
-                        value={enrichedData?.filter(i => {
-                            const nb = (i.QuantityInventory_NB || 0) + (i.QuantityDC_NB || 0);
-                            const bb = (i.QuantityInventory_BB || 0) + (i.QuantityDC_BB || 0);
-                            return ((i.Backorder_NB || 0) > 0 && bb > 0) || ((i.Backorder_BB || 0) > 0 && nb > 0);
-                        }).length.toLocaleString('vi-VN') || '0'} 
-                        sub="Cơ hội xử lý nội bộ" 
-                        icon="fa-right-left" 
-                        colorTheme="crimson"
-                        onClick={() => setSpecialFilter(p => p === 'transfer' ? 'all' : 'transfer')}
-                        isActive={specialFilter === 'transfer'}
-                    />
-                </div>
-
-                {/* Action banner — surfaces the most actionable counts (anomaly tiers
-                    + supplier-late) at the top so an operator opening the page sees
-                    'X critical' immediately. Each tile filters the table when clicked. */}
-                {(() => {
-                    let nCritical = 0, nHigh = 0, nWarning = 0, nSupplierLate = 0;
-                    for (const item of enrichedData || []) {
-                        const agg = getItemAnomaly(item).aggregate;
-                        if (agg.counts.CRITICAL > 0) nCritical++;
-                        else if (agg.counts.HIGH > 0) nHigh++;
-                        else if (agg.counts.WARNING > 0) nWarning++;
-                        if (getSupplierStatus(item) === 'overdue') nSupplierLate++;
-                    }
-                    if (nCritical + nHigh + nWarning + nSupplierLate === 0) return null;
-                    // Each tile: filter the table to that tier AND sort by composite
-                    // score DESC so the worst-affected SKU is at the top of the page.
-                    const sortByScore = () => setSortConfig({ key: 'AnomalyScore', direction: 'desc' });
-                    const tiles = [
-                        { id: 'critical', label: 'TRỄ NGHIÊM TRỌNG', count: nCritical, cls: 'from-rose-50 to-rose-100 ring-rose-300 text-rose-700', icon: 'fa-circle-exclamation', onClick: () => { setAnomalyFilters(['CRITICAL']); setSupplierStatusFilters([]); sortByScore(); setCurrentPage(1); } },
-                        { id: 'high',     label: 'TRỄ NẶNG',         count: nHigh,     cls: 'from-rose-50 to-amber-50 ring-rose-200 text-rose-600',  icon: 'fa-triangle-exclamation', onClick: () => { setAnomalyFilters(['HIGH']); setSupplierStatusFilters([]); sortByScore(); setCurrentPage(1); } },
-                        { id: 'warning',  label: 'TRỄ NHẸ',          count: nWarning,  cls: 'from-amber-50 to-yellow-50 ring-amber-200 text-amber-700', icon: 'fa-clock-rotate-left', onClick: () => { setAnomalyFilters(['WARNING']); setSupplierStatusFilters([]); sortByScore(); setCurrentPage(1); } },
-                        { id: 'supplier', label: 'NCC TRỄ HẸN',      count: nSupplierLate, cls: 'from-rose-50 to-rose-100 ring-rose-200 text-rose-700', icon: 'fa-truck-fast', onClick: () => { setSupplierStatusFilters(['overdue']); setAnomalyFilters([]); sortByScore(); setCurrentPage(1); } },
-                    ];
-                    return (
-                        <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {tiles.map(t => t.count > 0 && (
-                                <button key={t.id} onClick={t.onClick} className={`p-4 rounded-2xl border ring-1 bg-gradient-to-br ${t.cls} hover:scale-[1.02] transition-all shadow-sm flex items-center gap-3 text-left`}>
-                                    <FaIcon className={`fas ${t.icon} text-xl`} />
-                                    <div className="flex-1">
-                                        <div className="text-[10px] uppercase tracking-[0.15em] font-black opacity-80">{t.label}</div>
-                                        <div className="font-black tabular-nums text-2xl">{t.count.toLocaleString('vi-VN')} <span className="text-xs opacity-70">SKU</span></div>
-                                    </div>
-                                    <FaIcon className="fas fa-arrow-right text-xs opacity-60" />
-                                </button>
-                            ))}
-                        </div>
-                    );
-                })()}
-
-                <div className="mb-12 bg-white/40 backdrop-blur-3xl p-3 rounded-[3rem] border border-white/60 shadow-[0_32px_80px_-20px_rgba(0,0,0,0.1)] flex gap-3 relative z-20 group/filter-bar">
+                {/* KPI inline strip — diagnostic metrics in a single dense row,
+                    no individual card boxes. Vertical dividers create rhythm. */}
+                <div className="relative px-8 py-3 border-t border-white/10 flex items-center gap-6 overflow-x-auto custom-scrollbar bg-black/20">
                     {[
-                        { id: 'all', label: 'TỔNG NỢ', icon: 'fa-layer-group', color: 'indigo', sub: 'Toàn bộ danh mục', indicator: 'bg-indigo-500' },
-                        { id: 'stock_ok', label: 'TỒN ĐỦ TRẢ', icon: 'fa-check-double', color: 'emerald', sub: 'Hàng có sẵn giao ngay', indicator: 'bg-emerald-500' },
-                        { id: 'po_ok', label: 'PO ĐỦ TRẢ', icon: 'fa-truck-loading', color: 'amber', sub: 'Hàng về trong tháng', indicator: 'bg-amber-500' },
-                        { id: 'fail', label: 'KHÔNG ĐỦ TRẢ', icon: 'fa-circle-exclamation', color: 'rose', sub: 'Thiếu hụt nguồn cung', indicator: 'bg-rose-500' },
-                    ].map(f => {
+                        { label: 'TUỔI NỢ TB',    value: `${Math.round(headerStats.avgDays)}d`,        sub: `${headerStats.countOpen.toLocaleString('vi-VN')} đơn có ngày`,  tone: 'text-slate-200' },
+                        { label: '% TRỄ LT',      value: `${headerStats.pctOverLT.toFixed(1)}%`,        sub: `${headerStats.countOverLT.toLocaleString('vi-VN')} đơn quá LT`, tone: headerStats.pctOverLT > 50 ? 'text-rose-300' : headerStats.pctOverLT > 25 ? 'text-amber-300' : 'text-emerald-300' },
+                        { label: 'ĐƠN LÂU NHẤT',  value: `${Math.round(headerStats.maxDays)}d`,         sub: 'Tối đa daysOpen',                                                tone: headerStats.maxDays > 365 ? 'text-rose-300' : 'text-amber-300' },
+                        { label: 'SCORE TB',       value: `${Math.round(headerStats.avgScore)}/100`,    sub: 'Composite anomaly',                                              tone: headerStats.avgScore > 60 ? 'text-rose-300' : headerStats.avgScore > 40 ? 'text-amber-300' : 'text-blue-300' },
+                        { label: 'PO COVERAGE',   value: `${stats.poCoverage.toFixed(1)}%`,             sub: `${formatCurrency(stats.totalPOVal)} đang về`,                    tone: 'text-blue-300' },
+                        { label: 'ĐIỀU CHUYỂN',   value: headerStats.nTransfer.toLocaleString('vi-VN'), sub: 'Cơ hội nội bộ',                                                  tone: 'text-emerald-300' },
+                    ].map((k, i, arr) => (
+                        <React.Fragment key={k.label}>
+                            <div className="shrink-0">
+                                <div className="text-[9px] uppercase tracking-[0.2em] font-bold text-slate-500">{k.label}</div>
+                                <div className={`text-lg font-black tabular-nums leading-tight ${k.tone}`}>{k.value}</div>
+                                <div className="text-[9px] text-slate-500 font-medium leading-tight">{k.sub}</div>
+                            </div>
+                            {i < arr.length - 1 && <div className="w-px h-10 bg-white/10 shrink-0" />}
+                        </React.Fragment>
+                    ))}
+                </div>
+
+                {/* Action chips row — only visible when at least one tier has SKUs.
+                    Compact pills, semantic colors, click filters + sorts the table. */}
+                {(headerStats.nCritical + headerStats.nHigh + headerStats.nWarning + headerStats.nSupplierLate) > 0 && (
+                    <div className="relative px-8 py-2.5 border-t border-white/10 flex items-center gap-3 flex-wrap bg-black/30">
+                        <span className="text-[9px] uppercase tracking-[0.25em] font-black text-slate-400 shrink-0">CẦN XỬ LÝ</span>
+                        {headerStats.nCritical > 0 && (
+                            <button onClick={onCriticalChip} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-600/20 ring-1 ring-rose-400/40 text-rose-200 text-[11px] font-black uppercase tracking-wider hover:bg-rose-600/30 transition-colors">
+                                <FaIcon className="fas fa-circle-exclamation text-[10px]" />
+                                TRỄ NGHIÊM TRỌNG <span className="tabular-nums opacity-90">{headerStats.nCritical}</span>
+                            </button>
+                        )}
+                        {headerStats.nHigh > 0 && (
+                            <button onClick={onHighChip} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-500/15 ring-1 ring-rose-400/30 text-rose-200 text-[11px] font-black uppercase tracking-wider hover:bg-rose-500/25 transition-colors">
+                                <FaIcon className="fas fa-triangle-exclamation text-[10px]" />
+                                TRỄ NẶNG <span className="tabular-nums opacity-90">{headerStats.nHigh}</span>
+                            </button>
+                        )}
+                        {headerStats.nWarning > 0 && (
+                            <button onClick={onWarningChip} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/15 ring-1 ring-amber-400/30 text-amber-200 text-[11px] font-black uppercase tracking-wider hover:bg-amber-500/25 transition-colors">
+                                <FaIcon className="fas fa-clock-rotate-left text-[10px]" />
+                                TRỄ NHẸ <span className="tabular-nums opacity-90">{headerStats.nWarning}</span>
+                            </button>
+                        )}
+                        {headerStats.nSupplierLate > 0 && (
+                            <button onClick={onSupplierChip} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-500/15 ring-1 ring-rose-400/30 text-rose-200 text-[11px] font-black uppercase tracking-wider hover:bg-rose-500/25 transition-colors">
+                                <FaIcon className="fas fa-truck-fast text-[10px]" />
+                                NCC TRỄ HẸN <span className="tabular-nums opacity-90">{headerStats.nSupplierLate}</span>
+                            </button>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* ─── COVERAGE SEGMENTED CONTROL ────────────────────────────────
+                Replaces 4 master filter cards. One inline pill toggle so the
+                table width stays unbroken below. */}
+            <div className="px-8 py-4 bg-white border-b border-slate-200 shrink-0 flex items-center justify-between gap-4 flex-wrap">
+                <div className="inline-flex items-center bg-slate-100 rounded-xl p-1 shadow-inner">
+                    {([
+                        { id: 'all',      label: 'TỔNG NỢ',         dot: 'bg-slate-700',   count: masterCounts.all },
+                        { id: 'stock_ok', label: 'TỒN ĐỦ TRẢ',     dot: 'bg-emerald-500', count: masterCounts.stock_ok },
+                        { id: 'po_ok',    label: 'PO ĐỦ TRẢ',      dot: 'bg-amber-500',   count: masterCounts.po_ok },
+                        { id: 'fail',     label: 'KHÔNG ĐỦ TRẢ',   dot: 'bg-rose-500',    count: masterCounts.fail },
+                    ] as const).map(f => {
                         const isActive = masterFilter === f.id;
-                        const count = (enrichedData || []).filter(i => {
-                            const totalStock = (i.QuantityInventory_NB + i.QuantityInventory_BB + i.QuantityDC_NB + i.QuantityDC_BB);
-                            const po = i.computed?.incomingCurrentMonth || 0;
-                            if (f.id === 'stock_ok') return i.Backorder <= totalStock;
-                            if (f.id === 'po_ok') return i.Backorder > totalStock && i.Backorder <= (totalStock + po);
-                            if (f.id === 'fail') return i.Backorder > (totalStock + po);
-                            return true;
-                        }).length;
-
-                        const colorClasses: any = {
-                            indigo: 'text-indigo-600 bg-indigo-50',
-                            emerald: 'text-emerald-600 bg-emerald-50',
-                            amber: 'text-amber-600 bg-amber-50',
-                            rose: 'text-rose-600 bg-rose-50'
-                        };
-
                         return (
-                            <button 
+                            <button
                                 key={f.id}
-                                onClick={() => {
-                                    setMasterFilter(f.id as any);
-                                    setCurrentPage(1);
-                                }}
-                                className={`flex-1 flex items-center gap-5 p-5 rounded-[2.25rem] transition-all duration-700 relative group cursor-pointer ${isActive ? 'bg-gradient-to-br from-blue-50 to-indigo-50 ring-2 ring-blue-500/20 shadow-[0_15px_35px_-10px_rgba(59,130,246,0.15)] -translate-y-1' : 'hover:bg-white/60 text-slate-500'}`}
+                                onClick={() => { setMasterFilter(f.id); setCurrentPage(1); }}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${isActive ? 'bg-white text-slate-900 shadow-md ring-1 ring-slate-200' : 'text-slate-600 hover:text-slate-900'}`}
                             >
-                                <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center text-2xl transition-all duration-500 shadow-inner ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 scale-105 rotate-3' : `${colorClasses[f.color]} group-hover:scale-110 group-hover:rotate-3`}`}>
-                                    <FaIcon className={`fas ${f.icon}`} />
-                                </div>
-                                <div className="text-left flex-1">
-                                    <div className="flex items-center justify-between mb-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className={`w-2 h-2 rounded-full ${f.indicator} animate-pulse`}></span>
-                                            <Typography variant="label" className={`font-black uppercase tracking-[0.25em] !text-[10px] ${isActive ? 'text-blue-700' : 'text-[#1a1f36]'}`}>{f.label}</Typography>
-                                        </div>
-                                        <div className={`px-3 py-1 rounded-full text-[10px] font-black shadow-sm ${isActive ? 'bg-blue-600 text-white ring-4 ring-blue-100' : 'bg-[#1a1f36] text-white'}`}>
-                                            {count.toLocaleString('vi-VN')}
-                                        </div>
-                                    </div>
-                                    <Typography variant="label" className={`block !text-[10px] normal-case ${isActive ? 'text-blue-700' : 'text-slate-600'} font-medium tracking-tight truncate max-w-[140px]`}>{f.sub}</Typography>
-                                </div>
-                                {isActive && (
-                                    <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-blue-500 rounded-full blur-[1px] shadow-[0_0_15px_rgba(59,130,246,0.6)]"></div>
-                                )}
+                                <span className={`w-1.5 h-1.5 rounded-full ${f.dot}`} />
+                                {f.label}
+                                <span className={`tabular-nums px-1.5 py-0.5 rounded text-[9px] ${isActive ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-700'}`}>{f.count.toLocaleString('vi-VN')}</span>
                             </button>
                         );
                     })}
                 </div>
+                <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                    Hiển thị <span className="text-slate-900 tabular-nums font-black">{filteredData.length.toLocaleString('vi-VN')}</span> / {(enrichedData || []).length.toLocaleString('vi-VN')} SKU
+                </div>
+            </div>
+
+            <div className="p-6 pb-4 shrink-0">
 
                 <div className="flex flex-col gap-12 mb-20">
                     {/* Shared metric toggle: controls BOTH matrix tables. The unit it picks
