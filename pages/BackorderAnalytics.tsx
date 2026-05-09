@@ -787,165 +787,239 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                 </div>
 
                 <div className="flex flex-col gap-12 mb-20">
+                    {/* Shared metric toggle: controls BOTH matrix tables. The unit it picks
+                        (SKU count, quantity, or value-in-millions) is reflected in column headers
+                        below so users can confirm what number they're reading. */}
+                    <div className="flex items-center justify-between bg-white px-6 py-4 rounded-2xl border border-slate-100 shadow-sm">
+                        <div className="flex items-center gap-3">
+                            <FaIcon className="fas fa-table-cells-large text-[#635bff] text-base" />
+                            <Typography variant="label" className="text-slate-600 font-black uppercase tracking-[0.2em] !text-[10px]">Đơn vị hiển thị</Typography>
+                        </div>
+                        <div className="flex bg-slate-50 p-1.5 rounded-2xl border border-slate-100 shadow-inner">
+                            {[
+                                { id: 'sku', label: 'SKU', sub: 'Số mã' },
+                                { id: 'qty', label: 'SL', sub: 'Số lượng' },
+                                { id: 'val', label: 'Tr ₫', sub: 'Giá trị (Triệu VND)' },
+                            ].map(m => (
+                                <button
+                                    key={m.id}
+                                    onClick={() => setMatrixMetric(m.id as any)}
+                                    title={m.sub}
+                                    className={`px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${matrixMetric === m.id ? 'bg-white text-[#635bff] shadow-lg shadow-indigo-100 ring-1 ring-slate-100' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'}`}
+                                >
+                                    {m.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
                     <div className="bg-white p-10 rounded-[2.5rem] border border-slate-50 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] hover:shadow-[0_40px_80px_-20px_rgba(99,91,255,0.12)] transition-all duration-700 flex flex-col relative overflow-hidden group/m1">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/30 rounded-full -mr-32 -mt-32 blur-3xl group-hover/m1:bg-indigo-100/40 transition-colors duration-1000"></div>
-                        <div className="flex justify-between items-center mb-8 relative z-10">
+                        <div className="flex justify-between items-end mb-6 relative z-10">
                             <div>
                                 <Typography variant="label" className="text-[#635bff] font-black uppercase tracking-[0.3em] !text-[11px] mb-1 block">Aging Distribution</Typography>
                                 <Typography variant="h2" className="text-[#1a1f36] !font-bold tracking-tight !text-2xl">Phân bổ theo Tuổi nợ (Aging)</Typography>
                             </div>
-                            <div className="flex bg-slate-50 p-1.5 rounded-2xl border border-slate-100 shadow-inner">
-                                {[
-                                    { id: 'sku', label: 'SKU' },
-                                    { id: 'qty', label: 'SL' },
-                                    { id: 'val', label: 'Giá trị' }
-                                ].map(m => (
-                                    <button 
-                                        key={m.id}
-                                        onClick={() => setMatrixMetric(m.id as any)}
-                                        className={`px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${matrixMetric === m.id ? 'bg-white text-[#635bff] shadow-lg shadow-indigo-100 ring-1 ring-slate-100' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'}`}
-                                    >
-                                        {m.label}
-                                    </button>
-                                ))}
-                            </div>
+                            <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-slate-400">
+                                {matrixMetric === 'sku' ? 'Đếm theo số SKU' : matrixMetric === 'qty' ? 'Đếm theo số lượng' : 'Đếm theo Triệu VND'}
+                            </span>
                         </div>
-                        <div className="overflow-x-auto custom-scrollbar relative z-10">
+                        <div className="overflow-x-auto custom-scrollbar relative z-10 max-h-[640px]">
                             <table className="w-full border-collapse">
-                                <thead>
-                                    <tr className="bg-white">
-                                        <th rowSpan={2} className="py-6 px-5 text-left border-b border-slate-200 min-w-[200px]"><Typography variant="label" className="text-[#4f566b] !text-[11px] uppercase tracking-[0.2em] font-black">NHÓM MẸ / NGUỒN</Typography></th>
-                                        <th rowSpan={2} className="py-6 px-4 text-right border-b border-r border-slate-200 bg-slate-50/50"><Typography variant="label" className="text-[#1a1f36] !text-[11px] font-black uppercase tracking-wider">1. TỔNG NỢ {matrixMetric === 'val' ? '(TR)' : ''}</Typography></th>
-                                        <th colSpan={6} className="py-3 text-center border-b border-r border-slate-200 bg-slate-50/30"><Typography variant="label" className="text-[#4f566b] !text-[10px] font-black uppercase tracking-[0.2em]">2. PHÂN RÃ THEO LOẠI ĐƠN</Typography></th>
-                                        <th colSpan={4} className="py-3 text-center border-b border-slate-200 bg-slate-50/20"><Typography variant="label" className="text-[#4f566b] !text-[10px] font-black uppercase tracking-[0.2em]">3. PHÂN RÃ THEO TUỔI NỢ (AGING)</Typography></th>
+                                {/*
+                                  Header design:
+                                  - Two sticky rows. Row 1 = column groups (TỔNG / LOẠI ĐƠN / AGING).
+                                    Row 2 = leaf labels.
+                                  - Row 1 sticks at top:0; row 2 at top:38px (height of row 1).
+                                  - Single bg color per group (slate-50 muted) — drops the previous
+                                    fractional-opacity stack that rendered as visually-identical noise.
+                                */}
+                                <thead className="bg-white">
+                                    <tr>
+                                        <th rowSpan={2} className="sticky top-0 z-20 bg-white py-3 px-5 text-left border-b border-slate-200 min-w-[200px]">
+                                            <Typography variant="label" className="text-[#4f566b] !text-[11px] uppercase tracking-[0.2em] font-black">NHÓM MẸ / NGUỒN</Typography>
+                                        </th>
+                                        <th rowSpan={2} className="sticky top-0 z-20 bg-slate-50 py-3 px-4 text-right border-b border-r-2 border-slate-300">
+                                            <Typography variant="label" className="text-[#1a1f36] !text-[11px] font-black uppercase tracking-wider">TỔNG NỢ</Typography>
+                                        </th>
+                                        <th colSpan={6} className="sticky top-0 z-20 bg-slate-50 py-3 text-center border-b border-r-2 border-slate-300">
+                                            <Typography variant="label" className="text-[#4f566b] !text-[10px] font-black uppercase tracking-[0.2em]">PHÂN RÃ THEO LOẠI ĐƠN</Typography>
+                                        </th>
+                                        <th colSpan={4} className="sticky top-0 z-20 bg-slate-50 py-3 text-center border-b border-slate-200">
+                                            <Typography variant="label" className="text-[#4f566b] !text-[10px] font-black uppercase tracking-[0.2em]">PHÂN RÃ THEO TUỔI NỢ (AGING)</Typography>
+                                        </th>
                                     </tr>
-                                    <tr className="border-b border-slate-200">
-                                        {/* Group 2: Types */}
-                                        <th className="py-3 text-center px-2 min-w-[80px] bg-slate-100/5"><Typography variant="label" className="text-slate-800 !text-[10px] font-bold">VOR {matrixMetric === 'val' ? '(Tr)' : ''}</Typography></th>
-                                        <th className="py-3 text-center px-2 min-w-[80px] bg-slate-100/5"><Typography variant="label" className="text-slate-800 !text-[10px] font-bold">BH {matrixMetric === 'val' ? '(Tr)' : ''}</Typography></th>
-                                        <th className="py-3 text-center px-2 min-w-[80px] bg-slate-100/5"><Typography variant="label" className="text-slate-800 !text-[10px] font-bold">KHẨN {matrixMetric === 'val' ? '(Tr)' : ''}</Typography></th>
-                                        <th className="py-3 text-center px-2 min-w-[80px] bg-slate-100/5"><Typography variant="label" className="text-slate-800 !text-[10px] font-bold">C/DỊCH {matrixMetric === 'val' ? '(Tr)' : ''}</Typography></th>
-                                        <th className="py-3 text-center px-2 min-w-[80px] bg-slate-100/5"><Typography variant="label" className="text-slate-800 !text-[10px] font-bold">STOCK {matrixMetric === 'val' ? '(Tr)' : ''}</Typography></th>
-                                        <th className="py-3 text-center border-r border-slate-200 px-2 min-w-[80px] bg-slate-100/5"><Typography variant="label" className="text-slate-800 !text-[10px] font-bold">KHÁC {matrixMetric === 'val' ? '(Tr)' : ''}</Typography></th>
-                                        
-                                        {/* Group 3: Aging */}
-                                        <th className="py-3 text-center px-2 min-w-[90px] bg-slate-100/10"><Typography variant="label" className="text-slate-800 !text-[10px] font-bold">&lt; 30D {matrixMetric === 'val' ? '(Tr)' : ''}</Typography></th>
-                                        <th className="py-3 text-center px-2 min-w-[90px] bg-slate-100/10"><Typography variant="label" className="text-slate-800 !text-[10px] font-bold">30-60D {matrixMetric === 'val' ? '(Tr)' : ''}</Typography></th>
-                                        <th className="py-3 text-center px-2 min-w-[90px] bg-slate-100/10"><Typography variant="label" className="text-slate-800 !text-[10px] font-bold">60-90D {matrixMetric === 'val' ? '(Tr)' : ''}</Typography></th>
-                                        <th className="py-3 text-center px-2 min-w-[90px] bg-slate-100/10"><Typography variant="label" className="text-slate-800 !text-[10px] font-bold">&gt; 90D {matrixMetric === 'val' ? '(Tr)' : ''}</Typography></th>
+                                    <tr>
+                                        {[
+                                            { key: 'VOR',     min: '80px' },
+                                            { key: 'BH',      min: '80px' },
+                                            { key: 'KHẨN',    min: '80px' },
+                                            { key: 'C/DỊCH',  min: '80px' },
+                                            { key: 'STOCK',   min: '80px' },
+                                            { key: 'KHÁC',    min: '80px', last: true },
+                                        ].map(c => (
+                                            <th key={c.key} style={{ minWidth: c.min, top: 38 }} className={`sticky z-10 bg-white py-2 text-center px-2 border-b border-slate-200 ${c.last ? 'border-r-2 border-slate-300' : ''}`}>
+                                                <Typography variant="label" className="text-slate-700 !text-[10px] font-bold tracking-tight">{c.key}</Typography>
+                                            </th>
+                                        ))}
+                                        {[
+                                            { key: '< 30D' },
+                                            { key: '30-60D' },
+                                            { key: '60-90D' },
+                                            { key: '> 90D' },
+                                        ].map(c => (
+                                            <th key={c.key} style={{ minWidth: '90px', top: 38 }} className="sticky z-10 bg-white py-2 text-center px-2 border-b border-slate-200">
+                                                <Typography variant="label" className="text-slate-700 !text-[10px] font-bold tracking-tight">{c.key}</Typography>
+                                            </th>
+                                        ))}
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {matrixData.map(row => (
-                                        <tr key={row.source} className="hover:bg-blue-50/40 transition-all group/row border-b border-slate-100 last:border-0">
-                                            <td className="py-4 px-5">
+                                <tbody>
+                                    {matrixData.length === 0 && (
+                                        <tr>
+                                            <td colSpan={11} className="py-12 text-center text-slate-400 !text-[12px]">Không có dữ liệu phù hợp với bộ lọc</td>
+                                        </tr>
+                                    )}
+                                    {matrixData.map((row, idx) => (
+                                        <tr key={row.source} className={`group/row hover:bg-blue-50/50 transition-colors ${idx % 2 === 1 ? 'bg-slate-50/40' : ''}`}>
+                                            <td className="py-3 px-5 border-b border-slate-100">
                                                 <Typography variant="label" className="text-slate-900 font-black uppercase !text-[13px] group-hover/row:text-blue-700 transition-colors tracking-tight">{row.source}</Typography>
                                             </td>
-                                            <td className="py-4 text-right px-4 bg-slate-50/30 border-r border-slate-200">
-                                                <Typography variant="mono" className="!text-[14px] font-black text-slate-900">
-                                                    {matrixMetric === 'val' ? formatCurrency(row.total) : row.total.toLocaleString()}
+                                            <td className="py-3 text-right px-4 bg-slate-50/60 border-r-2 border-slate-200 border-b border-slate-100">
+                                                <Typography variant="mono" className="!text-[14px] font-black text-slate-900 tabular-nums">
+                                                    {formatMatrixVal(row.total)}
                                                 </Typography>
                                             </td>
-                                            
-                                            {/* Types breakdown */}
-                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_1. VOR (Xe nằm đường)'] > 0 ? 'text-slate-900' : 'text-slate-400'}`}>{row['type_1. VOR (Xe nằm đường)'] > 0 ? formatMatrixVal(row['type_1. VOR (Xe nằm đường)']) : '-'}</Typography></td>
-                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_2. Bảo Hành'] > 0 ? 'text-slate-900' : 'text-slate-400'}`}>{row['type_2. Bảo Hành'] > 0 ? formatMatrixVal(row['type_2. Bảo Hành']) : '-'}</Typography></td>
-                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_3. Khẩn (EO/Emergency)'] > 0 ? 'text-slate-900' : 'text-slate-400'}`}>{row['type_3. Khẩn (EO/Emergency)'] > 0 ? formatMatrixVal(row['type_3. Khẩn (EO/Emergency)']) : '-'}</Typography></td>
-                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_4. Chiến dịch'] > 0 ? 'text-slate-900' : 'text-slate-400'}`}>{row['type_4. Chiến dịch'] > 0 ? formatMatrixVal(row['type_4. Chiến dịch']) : '-'}</Typography></td>
-                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_5. Dự trữ (Stock)'] > 0 ? 'text-slate-900' : 'text-slate-400'}`}>{row['type_5. Dự trữ (Stock)'] > 0 ? formatMatrixVal(row['type_5. Dự trữ (Stock)']) : '-'}</Typography></td>
-                                            <td className="py-4 text-center px-2 bg-slate-50/5 border-r border-slate-200"><Typography variant="mono" className={`!text-[12px] font-bold ${row['type_6. Khác'] > 0 ? 'text-slate-900' : 'text-slate-400'}`}>{row['type_6. Khác'] > 0 ? formatMatrixVal(row['type_6. Khác']) : '-'}</Typography></td>
 
-                                            {/* Aging breakdown */}
-                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row.q30 > 0 ? 'text-slate-900' : 'text-slate-400'}`}>{row.q30 > 0 ? formatMatrixVal(row.q30) : '-'}</Typography></td>
-                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row.q60 > 0 ? 'text-slate-900' : 'text-slate-400'}`}>{row.q60 > 0 ? formatMatrixVal(row.q60) : '-'}</Typography></td>
-                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row.q90 > 0 ? 'text-rose-600' : 'text-slate-400'}`}>{row.q90 > 0 ? formatMatrixVal(row.q90) : '-'}</Typography></td>
-                                            <td className="py-4 text-center px-2 bg-slate-50/5"><Typography variant="mono" className={`!text-[12px] font-bold ${row.qO90 > 0 ? 'text-rose-700' : 'text-slate-400'}`}>{row.qO90 > 0 ? formatMatrixVal(row.qO90) : '-'}</Typography></td>
+                                            {/* Types breakdown */}
+                                            {[
+                                                'type_1. VOR (Xe nằm đường)',
+                                                'type_2. Bảo Hành',
+                                                'type_3. Khẩn (EO/Emergency)',
+                                                'type_4. Chiến dịch',
+                                                'type_5. Dự trữ (Stock)',
+                                                'type_6. Khác',
+                                            ].map((k, i, arr) => (
+                                                <td key={k} className={`py-3 text-center px-2 border-b border-slate-100 ${i === arr.length - 1 ? 'border-r-2 border-slate-200' : ''}`}>
+                                                    <Typography variant="mono" className={`!text-[13px] tabular-nums ${row[k] > 0 ? 'font-bold text-slate-800' : 'text-slate-300'}`}>{row[k] > 0 ? formatMatrixVal(row[k]) : '–'}</Typography>
+                                                </td>
+                                            ))}
+
+                                            {/* Aging breakdown — distinct color per bucket: amber=60-90D, rose=>90D */}
+                                            <td className="py-3 text-center px-2 border-b border-slate-100"><Typography variant="mono" className={`!text-[13px] tabular-nums ${row.q30 > 0 ? 'font-bold text-slate-800' : 'text-slate-300'}`}>{row.q30 > 0 ? formatMatrixVal(row.q30) : '–'}</Typography></td>
+                                            <td className="py-3 text-center px-2 border-b border-slate-100"><Typography variant="mono" className={`!text-[13px] tabular-nums ${row.q60 > 0 ? 'font-bold text-slate-800' : 'text-slate-300'}`}>{row.q60 > 0 ? formatMatrixVal(row.q60) : '–'}</Typography></td>
+                                            <td className="py-3 text-center px-2 border-b border-slate-100"><Typography variant="mono" className={`!text-[13px] tabular-nums ${row.q90 > 0 ? 'font-bold text-amber-600' : 'text-slate-300'}`}>{row.q90 > 0 ? formatMatrixVal(row.q90) : '–'}</Typography></td>
+                                            <td className="py-3 text-center px-2 border-b border-slate-100"><Typography variant="mono" className={`!text-[13px] tabular-nums ${row.qO90 > 0 ? 'font-black text-rose-700' : 'text-slate-300'}`}>{row.qO90 > 0 ? formatMatrixVal(row.qO90) : '–'}</Typography></td>
                                         </tr>
                                     ))}
                                 </tbody>
-                                <tfoot className="bg-slate-900/5 backdrop-blur-sm border-t-2 border-slate-300 font-bold">
-                                    <tr className="divide-x divide-slate-200">
-                                        <td className="py-6 px-5 text-slate-700 !text-[12px] uppercase font-bold tracking-[0.15em]">Tổng cộng</td>
-                                        <td className="py-5 text-right px-4 bg-slate-900/10 border-r border-slate-200">
-                                            <Typography variant="mono" className="!text-[15px] font-black text-slate-900">
-                                                {formatMatrixVal(matrixData.reduce((a, b) => a + (b.total || 0), 0))}
-                                            </Typography>
-                                        </td>
-                                        
-                                        {/* Type Totals */}
-                                        <td className="py-4 text-center px-2 bg-slate-900/5"><Typography variant="mono" className="!text-[11px] font-black text-slate-900">{formatMatrixVal(matrixData.reduce((a, b) => a + (b['type_1. VOR (Xe nằm đường)'] || 0), 0))}</Typography></td>
-                                        <td className="py-4 text-center px-2 bg-slate-900/5"><Typography variant="mono" className="!text-[11px] font-black text-slate-900">{formatMatrixVal(matrixData.reduce((a, b) => a + (b['type_2. Bảo Hành'] || 0), 0))}</Typography></td>
-                                        <td className="py-4 text-center px-2 bg-slate-900/5"><Typography variant="mono" className="!text-[11px] font-black text-slate-900">{formatMatrixVal(matrixData.reduce((a, b) => a + (b['type_3. Khẩn (EO/Emergency)'] || 0), 0))}</Typography></td>
-                                        <td className="py-4 text-center px-2 bg-slate-900/5"><Typography variant="mono" className="!text-[11px] font-black text-slate-900">{formatMatrixVal(matrixData.reduce((a, b) => a + (b['type_4. Chiến dịch'] || 0), 0))}</Typography></td>
-                                        <td className="py-4 text-center px-2 bg-slate-900/5"><Typography variant="mono" className="!text-[11px] font-black text-slate-900">{formatMatrixVal(matrixData.reduce((a, b) => a + (b['type_5. Dự trữ (Stock)'] || 0), 0))}</Typography></td>
-                                        <td className="py-4 text-center px-2 bg-slate-900/10 border-r border-slate-300"><Typography variant="mono" className="!text-[11px] font-black text-slate-900">{formatMatrixVal(matrixData.reduce((a, b) => a + (b['type_6. Khác'] || 0), 0))}</Typography></td>
-
-                                        {/* Aging Totals */}
-                                        <td className="py-4 text-center px-2 bg-slate-900/5"><Typography variant="mono" className="!text-[11px] font-black text-slate-900">{formatMatrixVal(matrixData.reduce((a, b) => a + (b.q30 || 0), 0))}</Typography></td>
-                                        <td className="py-4 text-center px-2 bg-slate-900/5"><Typography variant="mono" className="!text-[11px] font-black text-slate-900">{formatMatrixVal(matrixData.reduce((a, b) => a + (b.q60 || 0), 0))}</Typography></td>
-                                        <td className="py-4 text-center px-2 bg-slate-900/5"><Typography variant="mono" className="!text-[11px] font-black text-slate-900">{formatMatrixVal(matrixData.reduce((a, b) => a + (b.q90 || 0), 0))}</Typography></td>
-                                        <td className="py-4 text-center px-2 bg-slate-900/5"><Typography variant="mono" className="!text-[11px] font-black text-slate-900">{formatMatrixVal(matrixData.reduce((a, b) => a + (b.qO90 || 0), 0))}</Typography></td>
-                                    </tr>
-                                </tfoot>
+                                {matrixData.length > 0 && (
+                                    <tfoot className="bg-slate-100/70 border-t-2 border-slate-300">
+                                        <tr>
+                                            <td className="py-4 px-5 text-slate-700 !text-[11px] uppercase font-black tracking-[0.15em]">Tổng cộng</td>
+                                            <td className="py-4 text-right px-4 bg-slate-200/60 border-r-2 border-slate-300">
+                                                <Typography variant="mono" className="!text-[14px] font-black text-slate-900 tabular-nums">
+                                                    {formatMatrixVal(matrixData.reduce((a, b) => a + (b.total || 0), 0))}
+                                                </Typography>
+                                            </td>
+                                            {/* Type Totals */}
+                                            {[
+                                                'type_1. VOR (Xe nằm đường)',
+                                                'type_2. Bảo Hành',
+                                                'type_3. Khẩn (EO/Emergency)',
+                                                'type_4. Chiến dịch',
+                                                'type_5. Dự trữ (Stock)',
+                                                'type_6. Khác',
+                                            ].map((k, i, arr) => (
+                                                <td key={k} className={`py-4 text-center px-2 ${i === arr.length - 1 ? 'border-r-2 border-slate-300' : ''}`}>
+                                                    <Typography variant="mono" className="!text-[12px] font-black text-slate-800 tabular-nums">{formatMatrixVal(matrixData.reduce((a, b) => a + (b[k] || 0), 0))}</Typography>
+                                                </td>
+                                            ))}
+                                            {/* Aging Totals — apply same color semantics as body cells */}
+                                            <td className="py-4 text-center px-2"><Typography variant="mono" className="!text-[12px] font-black text-slate-800 tabular-nums">{formatMatrixVal(matrixData.reduce((a, b) => a + (b.q30 || 0), 0))}</Typography></td>
+                                            <td className="py-4 text-center px-2"><Typography variant="mono" className="!text-[12px] font-black text-slate-800 tabular-nums">{formatMatrixVal(matrixData.reduce((a, b) => a + (b.q60 || 0), 0))}</Typography></td>
+                                            <td className="py-4 text-center px-2"><Typography variant="mono" className="!text-[12px] font-black text-amber-600 tabular-nums">{formatMatrixVal(matrixData.reduce((a, b) => a + (b.q90 || 0), 0))}</Typography></td>
+                                            <td className="py-4 text-center px-2"><Typography variant="mono" className="!text-[12px] font-black text-rose-700 tabular-nums">{formatMatrixVal(matrixData.reduce((a, b) => a + (b.qO90 || 0), 0))}</Typography></td>
+                                        </tr>
+                                    </tfoot>
+                                )}
                             </table>
                         </div>
                     </div>
 
                     <div className="bg-white p-10 rounded-[2.5rem] border border-slate-50 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] hover:shadow-[0_40px_80px_-20px_rgba(99,91,255,0.12)] transition-all duration-700 flex flex-col relative overflow-hidden group/m2">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/30 rounded-full -mr-32 -mt-32 blur-3xl group-hover/m2:bg-indigo-100/40 transition-colors duration-1000"></div>
-                        <div className="mb-8 relative z-10">
-                            <Typography variant="label" className="text-[#635bff] font-black uppercase tracking-[0.3em] !text-[11px] mb-1 block">Line of Interest Matrix</Typography>
-                            <Typography variant="h2" className="text-[#1a1f36] !font-bold tracking-tight !text-2xl">Phân bổ nợ hàng theo LOIS</Typography>
+                        <div className="mb-6 flex justify-between items-end relative z-10">
+                            <div>
+                                <Typography variant="label" className="text-[#635bff] font-black uppercase tracking-[0.3em] !text-[11px] mb-1 block">Line of Interest Matrix</Typography>
+                                <Typography variant="h2" className="text-[#1a1f36] !font-bold tracking-tight !text-2xl">Phân bổ nợ hàng theo LOIS</Typography>
+                            </div>
+                            <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-slate-400">
+                                {matrixMetric === 'sku' ? 'Đếm theo số SKU' : matrixMetric === 'qty' ? 'Đếm theo số lượng' : 'Đếm theo Triệu VND'}
+                            </span>
                         </div>
-                        <div className="overflow-x-auto custom-scrollbar relative z-10">
+                        <div className="overflow-x-auto custom-scrollbar relative z-10 max-h-[640px]">
                             <table className="w-full border-collapse">
-                                <thead>
-                                    <tr className="bg-white border-b border-slate-200">
-                                        <th className="py-6 px-5 text-left min-w-[200px]"><Typography variant="label" className="text-[#4f566b] !text-[11px] uppercase tracking-[0.2em] font-black">NHÓM MẸ / NGUỒN</Typography></th>
-                                        <th className="py-6 px-4 text-right border-r border-slate-200 bg-slate-50/50"><Typography variant="label" className="text-[#1a1f36] !text-[11px] font-black uppercase tracking-wider">TỔNG NỢ {matrixMetric === 'val' ? '(TR)' : ''}</Typography></th>
+                                <thead className="bg-white">
+                                    <tr>
+                                        <th className="sticky top-0 z-20 bg-white py-3 px-5 text-left border-b border-slate-200 min-w-[200px]">
+                                            <Typography variant="label" className="text-[#4f566b] !text-[11px] uppercase tracking-[0.2em] font-black">NHÓM MẸ / NGUỒN</Typography>
+                                        </th>
+                                        <th className="sticky top-0 z-20 bg-slate-50 py-3 px-4 text-right border-b border-r-2 border-slate-300">
+                                            <Typography variant="label" className="text-[#1a1f36] !text-[11px] font-black uppercase tracking-wider">TỔNG NỢ</Typography>
+                                        </th>
                                         {loisList.map(lois => (
-                                            <th key={lois} className="py-6 text-center px-2 min-w-[80px] bg-slate-50/30 border-b border-slate-200"><Typography variant="label" className="text-slate-800 !text-[10px] font-black">{lois}</Typography></th>
+                                            <th key={lois} style={{ minWidth: '80px' }} className="sticky top-0 z-20 bg-white py-3 text-center px-2 border-b border-slate-200">
+                                                <Typography variant="label" className="text-slate-700 !text-[11px] font-black tracking-tight">{lois}</Typography>
+                                            </th>
                                         ))}
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {loisMatrixData.map(row => (
-                                        <tr key={row.source} className="hover:bg-blue-50/40 transition-all group/row border-b border-slate-100 last:border-0">
-                                            <td className="py-4 px-5">
+                                <tbody>
+                                    {loisMatrixData.length === 0 && (
+                                        <tr>
+                                            <td colSpan={2 + loisList.length} className="py-12 text-center text-slate-400 !text-[12px]">Không có dữ liệu phù hợp với bộ lọc</td>
+                                        </tr>
+                                    )}
+                                    {loisMatrixData.map((row, idx) => (
+                                        <tr key={row.source} className={`group/row hover:bg-blue-50/50 transition-colors ${idx % 2 === 1 ? 'bg-slate-50/40' : ''}`}>
+                                            <td className="py-3 px-5 border-b border-slate-100">
                                                 <Typography variant="label" className="text-slate-900 font-black uppercase !text-[13px] group-hover/row:text-blue-700 transition-colors tracking-tight">{row.source}</Typography>
                                             </td>
-                                            <td className="py-4 text-right px-4 bg-slate-50/30 border-r border-slate-200">
-                                                <Typography variant="mono" className="!text-[14px] font-black text-slate-900">
-                                                    {matrixMetric === 'val' ? formatCurrency(row.total) : row.total.toLocaleString()}
+                                            <td className="py-3 text-right px-4 bg-slate-50/60 border-r-2 border-slate-200 border-b border-slate-100">
+                                                <Typography variant="mono" className="!text-[14px] font-black text-slate-900 tabular-nums">
+                                                    {formatMatrixVal(row.total)}
                                                 </Typography>
                                             </td>
                                             {loisList.map(lois => (
-                                                <td key={lois} className="py-4 text-center px-2 bg-slate-50/5">
-                                                    <Typography variant="mono" className={`!text-[12px] font-bold ${row[`lois_${lois}`] > 0 ? 'text-slate-900' : 'text-slate-400'}`}>
-                                                        {row[`lois_${lois}`] > 0 ? formatMatrixVal(row[`lois_${lois}`]) : '-'}
+                                                <td key={lois} className="py-3 text-center px-2 border-b border-slate-100">
+                                                    <Typography variant="mono" className={`!text-[13px] tabular-nums ${row[`lois_${lois}`] > 0 ? 'font-bold text-slate-800' : 'text-slate-300'}`}>
+                                                        {row[`lois_${lois}`] > 0 ? formatMatrixVal(row[`lois_${lois}`]) : '–'}
                                                     </Typography>
                                                 </td>
                                             ))}
                                         </tr>
                                     ))}
                                 </tbody>
-                                <tfoot className="bg-slate-900/5 backdrop-blur-sm border-t-2 border-slate-300 font-bold">
-                                    <tr className="divide-x divide-slate-200">
-                                        <td className="py-6 px-5 text-slate-700 !text-[12px] uppercase font-bold tracking-[0.15em]">Tổng cộng</td>
-                                        <td className="py-5 text-right px-4 bg-slate-900/10 border-r border-slate-200">
-                                            <Typography variant="mono" className="!text-[15px] font-black text-slate-900">
-                                                {formatMatrixVal(loisMatrixData.reduce((a, b) => a + (b.total || 0), 0))}
-                                            </Typography>
-                                        </td>
-                                        {loisList.map(lois => (
-                                            <td key={lois} className="py-4 text-center px-2 bg-slate-900/5">
-                                                <Typography variant="mono" className="!text-[11px] font-black text-slate-900">
-                                                    {formatMatrixVal(loisMatrixData.reduce((a, b) => a + (b[`lois_${lois}`] || 0), 0))}
+                                {loisMatrixData.length > 0 && (
+                                    <tfoot className="bg-slate-100/70 border-t-2 border-slate-300">
+                                        <tr>
+                                            <td className="py-4 px-5 text-slate-700 !text-[11px] uppercase font-black tracking-[0.15em]">Tổng cộng</td>
+                                            <td className="py-4 text-right px-4 bg-slate-200/60 border-r-2 border-slate-300">
+                                                <Typography variant="mono" className="!text-[14px] font-black text-slate-900 tabular-nums">
+                                                    {formatMatrixVal(loisMatrixData.reduce((a, b) => a + (b.total || 0), 0))}
                                                 </Typography>
                                             </td>
-                                        ))}
-                                    </tr>
-                                </tfoot>
+                                            {loisList.map(lois => (
+                                                <td key={lois} className="py-4 text-center px-2">
+                                                    <Typography variant="mono" className="!text-[12px] font-black text-slate-800 tabular-nums">
+                                                        {formatMatrixVal(loisMatrixData.reduce((a, b) => a + (b[`lois_${lois}`] || 0), 0))}
+                                                    </Typography>
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    </tfoot>
+                                )}
                             </table>
                         </div>
                     </div>
