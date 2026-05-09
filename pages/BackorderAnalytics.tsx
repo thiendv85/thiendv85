@@ -69,22 +69,33 @@ const MetricCard = ({ label, value, sub, icon, colorTheme, onClick, isActive }: 
 
 const FilterDropdown = ({ label, options, selected, onChange, icon }: any) => {
     const [isOpen, setIsOpen] = useState(false);
+    // Synced with the segmented controls in the filter panel: h-8, rounded-lg,
+    // text-[10px] uppercase font-black tracking-wider. Active state uses
+    // blue-600 to mark "this dimension has an applied filter" (distinct from
+    // the slate "selected segment" of the segmented controls, since dropdowns
+    // are multi-select and need a clearer "I am narrowing the data" signal).
     return (
         <div className="relative">
-            <button 
+            <button
+                type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-[11px] font-bold uppercase tracking-wider transition shadow-sm ${selected.length > 0 ? 'bg-[#635bff] border-[#635bff] text-white' : 'bg-white border-slate-200 text-[#4f566b] hover:border-slate-300'}`}
+                aria-expanded={isOpen}
+                aria-haspopup="true"
+                className={`inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-colors shadow-sm focus-visible:ring-2 focus-visible:ring-blue-400 ${selected.length > 0 ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:text-slate-900'}`}
             >
-                <FaIcon className={`fas ${icon}`} />
-                {label} {selected.length > 0 && <span className="bg-white/20 px-1.5 py-0.5 rounded text-white ml-1 tabular-nums">{selected.length}</span>}
-                <FaIcon className={`fas fa-chevron-down text-[8px] ml-1 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                <FaIcon className={`fas ${icon} text-[10px]`} aria-hidden="true" />
+                <span>{label}</span>
+                {selected.length > 0 && (
+                    <span className="bg-white/25 px-1.5 rounded text-white tabular-nums text-[9px]" aria-label={`${selected.length} đã chọn`}>{selected.length}</span>
+                )}
+                <FaIcon className={`fas fa-chevron-down text-[8px] transition-transform ${isOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
             </button>
             {isOpen && (
                 <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} aria-hidden="true"></div>
-                    <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 z-50 animate-in fade-in zoom-in-95 origin-top-left">
-                        <div className="p-2 border-b border-slate-50 mb-1">
-                            <Typography variant="label" className="text-slate-600 !text-[11px] uppercase font-black">Lọc theo {label}</Typography>
+                    <div className="absolute top-full left-0 mt-1.5 w-64 bg-white rounded-lg shadow-2xl border border-slate-200 p-2 z-50 animate-in fade-in zoom-in-95 origin-top-left">
+                        <div className="p-2 border-b border-slate-100 mb-1">
+                            <Typography variant="label" className="text-slate-600 !text-[10px] uppercase font-black tracking-wider">Lọc theo {label}</Typography>
                         </div>
                         <div className="max-h-60 overflow-auto custom-scrollbar p-1">
                             {options.length > 0 && (
@@ -118,9 +129,9 @@ const FilterDropdown = ({ label, options, selected, onChange, icon }: any) => {
                                 </label>
                             ))}
                         </div>
-                        <div className="p-2 border-t border-slate-50 mt-1 flex justify-between">
-                            <button onClick={() => onChange([])} className="text-[11px] font-black text-rose-500 uppercase hover:underline">Xóa</button>
-                            <button onClick={() => setIsOpen(false)} className="text-[11px] font-black text-blue-600 uppercase hover:underline">Hoàn tất</button>
+                        <div className="p-2 border-t border-slate-100 mt-1 flex justify-between items-center">
+                            <button type="button" onClick={() => onChange([])} className="text-[10px] font-black text-rose-500 uppercase tracking-wider hover:underline focus-visible:ring-2 focus-visible:ring-rose-300 rounded px-1">Xóa</button>
+                            <button type="button" onClick={() => setIsOpen(false)} className="text-[10px] font-black text-blue-600 uppercase tracking-wider hover:underline focus-visible:ring-2 focus-visible:ring-blue-300 rounded px-1">Hoàn tất</button>
                         </div>
                     </div>
                 </>
@@ -951,24 +962,48 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                 </div>
             </div>
 
-            {/* ─── ROW 2 — UNIFIED FILTER PANEL (sticky, top, all controls) ────
-                Per UI/UX Pro Max recommendation: filters lead the page. All filter
-                controls consolidated into ONE sticky panel at the top, organized
-                in two compact sub-rows that stay visually unified.
-                Sub-row A: Coverage segmented + Search + Aging buckets + NB/BB scope
-                Sub-row B: 6 dropdown filters (Nhóm mẹ / Nguồn / Loại đơn / Đơn vị
-                          / Cảnh báo NCC / Bất thường đơn) — wrap as needed
-                The previous in-table sticky filter row was removed; this is now the
-                single source of filter state. */}
-            <div className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm shrink-0 px-6 lg:px-8 py-2.5">
+            {/* ─── ROW 2 — FILTER PANEL (sticky, top, dedicated surface) ────────
+                Single sticky filter panel split into two sub-rows by intent:
+                  Sub-row A "PHẠM VI"  — scope toggles (Coverage / NB-BB / Aging) + Search.
+                                         Pick which slice of the population to study.
+                  Sub-row B "DIMENSION"— multi-select dropdowns + reset + counter.
+                                         Narrow the slice further by attribute.
+                Each control shares ONE design token: h-8 shell, rounded-lg outer
+                + rounded-md inner, text-[10px] uppercase font-black tracking-wider.
+                Segmented controls use the same slate-100 inset shell with white
+                active capsule. Multi-select dropdowns use a white→blue active token.
+                The eyebrow label on the left of each sub-row identifies its purpose
+                without crowding the chips. */}
+            {(() => {
+                // Detect whether anything is filtered so we can show a "Reset all" affordance
+                // in sub-row B. We deliberately count masterFilter and warehouseScope as
+                // not-applied when on default ('all') — the Reset button only clears the
+                // dimension filters that an operator typically piles up while exploring.
+                const dimensionCount = (search ? 1 : 0)
+                    + (agingFilter !== 'all' ? 1 : 0)
+                    + sourceFilters.length + orderTypeFilters.length + branchFilters.length
+                    + motherGroupFilters.length + supplierStatusFilters.length + anomalyFilters.length;
+                const eyebrow = "shrink-0 text-[9px] uppercase tracking-[0.25em] font-black text-slate-500 inline-flex items-center gap-1.5";
+                const segShell = "inline-flex items-center bg-slate-100 rounded-lg p-0.5 h-8 shadow-inner";
+                const segBtn = (active: boolean) =>
+                    `inline-flex items-center gap-1.5 px-2.5 h-7 rounded-md text-[10px] font-black uppercase tracking-wider transition-colors focus-visible:ring-2 focus-visible:ring-blue-400 ${active ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:text-slate-900'}`;
+                return (
+            <div className="sticky top-0 z-40 bg-gradient-to-b from-white to-slate-50/60 border-b border-slate-200 shadow-[0_1px_2px_rgba(15,23,42,0.04)] shrink-0 px-6 lg:px-8 py-2.5 space-y-2">
+
+                {/* ─ Sub-row A: Phạm vi (scope) — Coverage / NB-BB / Aging / Search ─ */}
                 <div className="flex items-center gap-2.5 flex-wrap">
+                    <span className={eyebrow}>
+                        <FaIcon className="fas fa-crosshairs text-[10px] text-slate-400" aria-hidden="true" />
+                        Phạm vi
+                    </span>
+
                     {/* Coverage segmented (master filter) */}
-                    <div className="inline-flex items-center bg-slate-100 rounded-lg p-0.5 shadow-inner">
+                    <div className={segShell} role="group" aria-label="Bộ lọc phủ tồn / PO / GAP">
                         {([
-                            { id: 'all',      label: 'TỔNG',     dot: 'bg-slate-700',   count: masterCounts.all },
-                            { id: 'stock_ok', label: 'STOCK',    dot: 'bg-emerald-500', count: masterCounts.stock_ok },
-                            { id: 'po_ok',    label: 'PO',       dot: 'bg-amber-500',   count: masterCounts.po_ok },
-                            { id: 'fail',     label: 'GAP',      dot: 'bg-rose-500',    count: masterCounts.fail },
+                            { id: 'all',      label: 'TỔNG',  dot: 'bg-slate-700',   count: masterCounts.all,      tip: 'Tổng nợ — toàn bộ' },
+                            { id: 'stock_ok', label: 'STOCK', dot: 'bg-emerald-500', count: masterCounts.stock_ok, tip: 'Tồn đủ trả ngay' },
+                            { id: 'po_ok',    label: 'PO',    dot: 'bg-amber-500',   count: masterCounts.po_ok,    tip: 'PO về tháng này đủ trả' },
+                            { id: 'fail',     label: 'GAP',   dot: 'bg-rose-500',    count: masterCounts.fail,     tip: 'Không đủ trả' },
                         ] as const).map(f => {
                             const isActive = masterFilter === f.id;
                             return (
@@ -977,22 +1012,54 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                     type="button"
                                     onClick={() => { setMasterFilter(f.id); setCurrentPage(1); }}
                                     aria-pressed={isActive}
-                                    title={f.id === 'all' ? 'Tổng nợ — toàn bộ' : f.id === 'stock_ok' ? 'Tồn đủ trả ngay' : f.id === 'po_ok' ? 'PO về tháng này đủ trả' : 'Không đủ trả'}
-                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-colors focus-visible:ring-2 focus-visible:ring-blue-400 ${isActive ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:text-slate-900'}`}
+                                    title={f.tip}
+                                    className={segBtn(isActive)}
                                 >
                                     <span className={`w-1.5 h-1.5 rounded-full ${f.dot}`} aria-hidden="true" />
                                     {f.label}
-                                    <span className={`tabular-nums px-1 py-0.5 rounded text-[9px] ${isActive ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-700'}`}>{f.count.toLocaleString('vi-VN')}</span>
+                                    <span className={`tabular-nums px-1 rounded text-[9px] ${isActive ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-700'}`}>{f.count.toLocaleString('vi-VN')}</span>
                                 </button>
                             );
                         })}
                     </div>
 
-                    <div className="h-6 w-px bg-slate-200" aria-hidden="true" />
+                    {/* NB/BB warehouse scope */}
+                    <div className={segShell} role="group" aria-label="Phạm vi kho NB / BB">
+                        {([
+                            { id: 'all', label: 'Cả 2' },
+                            { id: 'NB',  label: 'NB'   },
+                            { id: 'BB',  label: 'BB'   },
+                        ] as const).map(s => (
+                            <button
+                                key={s.id}
+                                type="button"
+                                onClick={() => setWarehouseScope(s.id)}
+                                aria-pressed={warehouseScope === s.id}
+                                className={segBtn(warehouseScope === s.id)}
+                            >
+                                {s.label}
+                            </button>
+                        ))}
+                    </div>
 
-                    {/* Search */}
-                    <div className="relative w-56">
-                        <FaIcon className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs" aria-hidden="true" />
+                    {/* Aging buckets */}
+                    <div className={segShell} role="group" aria-label="Tuổi nợ">
+                        {(['all', '30', '60', '90', 'over90'] as const).map(val => (
+                            <button
+                                key={val}
+                                type="button"
+                                onClick={() => setAgingFilter(val)}
+                                aria-pressed={agingFilter === val}
+                                className={segBtn(agingFilter === val)}
+                            >
+                                {val === 'all' ? 'Tất cả' : val === 'over90' ? '>90d' : `${val}d`}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Search — same h-8, same rounded-lg, same border treatment as dropdowns */}
+                    <div className="relative ml-auto w-64">
+                        <FaIcon className="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]" aria-hidden="true" />
                         <label htmlFor="bo-search" className="sr-only">Tìm SKU theo mã hoặc tên hàng</label>
                         <input
                             id="bo-search"
@@ -1003,53 +1070,33 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                             autoComplete="off"
                             spellCheck={false}
                             inputMode="search"
-                            className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-md text-[11px] font-bold outline-none focus-visible:ring-2 focus-visible:ring-blue-200 transition-colors"
+                            className="w-full pl-7 pr-7 h-8 bg-white border border-slate-200 rounded-lg text-[11px] font-bold text-slate-800 placeholder:text-slate-400 outline-none focus-visible:ring-2 focus-visible:ring-blue-200 focus-visible:border-blue-300 transition-colors"
                         />
+                        {search && (
+                            <button
+                                type="button"
+                                onClick={() => setSearch('')}
+                                aria-label="Xoá tìm kiếm"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-500 focus-visible:ring-2 focus-visible:ring-rose-300 rounded"
+                            >
+                                <FaIcon className="fas fa-circle-xmark text-[12px]" aria-hidden="true" />
+                            </button>
+                        )}
                         {searchResult.type !== 'EMPTY' && (
                             <div className="absolute top-full left-0 right-0 mt-1.5 bg-slate-900 text-white p-2 rounded-md text-[10px] font-black z-30 shadow-xl border border-slate-700 animate-fadeIn flex justify-between items-center" role="status" aria-live="polite">
                                 <span><FaIcon className="fas fa-microchip mr-1.5 text-blue-400" aria-hidden="true" />{searchResult.modeDescription}</span>
-                                <button type="button" onClick={() => setSearch('')} aria-label="Xoá tìm kiếm" className="hover:text-rose-400 focus-visible:ring-2 focus-visible:ring-rose-400 rounded"><FaIcon className="fas fa-times" aria-hidden="true" /></button>
                             </div>
                         )}
                     </div>
+                </div>
 
-                    <div className="h-6 w-px bg-slate-200" aria-hidden="true" />
+                {/* ─ Sub-row B: Dimension — multi-select dropdowns + reset + counter ─ */}
+                <div className="flex items-center gap-2.5 flex-wrap">
+                    <span className={eyebrow}>
+                        <FaIcon className="fas fa-filter text-[10px] text-slate-400" aria-hidden="true" />
+                        Bộ lọc
+                    </span>
 
-                    {/* NB/BB scope */}
-                    <div className="inline-flex bg-slate-100 rounded-md p-0.5 shadow-inner">
-                        {([
-                            { id: 'all', label: 'Cả 2' },
-                            { id: 'NB', label: 'NB' },
-                            { id: 'BB', label: 'BB' },
-                        ] as const).map(s => (
-                            <button
-                                key={s.id}
-                                type="button"
-                                onClick={() => setWarehouseScope(s.id)}
-                                aria-pressed={warehouseScope === s.id}
-                                className={`px-2.5 py-1 rounded text-[10px] font-black uppercase transition-colors ${warehouseScope === s.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-                            >
-                                {s.label}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Aging buckets */}
-                    <div className="inline-flex bg-slate-100 rounded-md p-0.5 shadow-inner">
-                        {(['all', '30', '60', '90', 'over90'] as const).map(val => (
-                            <button
-                                key={val}
-                                type="button"
-                                onClick={() => setAgingFilter(val)}
-                                aria-pressed={agingFilter === val}
-                                className={`px-2.5 py-1 rounded text-[10px] font-black uppercase transition-colors ${agingFilter === val ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-                            >
-                                {val === 'all' ? 'Tất cả' : val === 'over90' ? '>90d' : `${val}d`}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Dropdown filters — flow to next line if needed via flex-wrap on the parent */}
                     <FilterDropdown label="Nhóm mẹ"      options={filterOptions.motherGroups} selected={motherGroupFilters} onChange={setMotherGroupFilters} icon="fa-layer-group" />
                     <FilterDropdown label="Nguồn"        options={filterOptions.sources}      selected={sourceFilters}      onChange={setSourceFilters}      icon="fa-boxes-stacked" />
                     <FilterDropdown label="Loại đơn"    options={filterOptions.types}        selected={orderTypeFilters}   onChange={setOrderTypeFilters}   icon="fa-file-invoice" />
@@ -1075,11 +1122,31 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                         icon="fa-triangle-exclamation"
                     />
 
-                    <div className="ml-auto text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                        <span className="text-slate-900 tabular-nums font-black">{filteredData.length.toLocaleString('vi-VN')}</span> / {(enrichedData || []).length.toLocaleString('vi-VN')} SKU
+                    {/* Reset button — only renders when at least one dimension filter is active. */}
+                    {dimensionCount > 0 && (
+                        <button
+                            type="button"
+                            onClick={onResetFilters}
+                            title="Xoá toàn bộ bộ lọc đang áp dụng"
+                            className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-[10px] font-black uppercase tracking-wider hover:bg-rose-100 hover:border-rose-300 transition-colors focus-visible:ring-2 focus-visible:ring-rose-300"
+                        >
+                            <FaIcon className="fas fa-eraser text-[10px]" aria-hidden="true" />
+                            Xoá lọc
+                            <span className="tabular-nums px-1 rounded bg-rose-600 text-white text-[9px]">{dimensionCount}</span>
+                        </button>
+                    )}
+
+                    <div className="ml-auto inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-slate-900 text-white text-[10px] font-black uppercase tracking-wider">
+                        <FaIcon className="fas fa-list-check text-[10px] text-blue-300" aria-hidden="true" />
+                        <span className="tabular-nums">{filteredData.length.toLocaleString('vi-VN')}</span>
+                        <span className="text-slate-400 normal-case font-bold">/</span>
+                        <span className="tabular-nums text-slate-300">{(enrichedData || []).length.toLocaleString('vi-VN')}</span>
+                        <span className="text-slate-400">SKU</span>
                     </div>
                 </div>
             </div>
+                );
+            })()}
 
             {/* ─── KPI HIERARCHY — 3 LAYERS (kpi-dashboard-design) ───────────
                 Per the skill's Dashboard Hierarchy table, KPIs split into:
