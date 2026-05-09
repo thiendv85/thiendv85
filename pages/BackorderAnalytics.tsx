@@ -25,7 +25,7 @@ const AgingBadge = ({ days, qty }: { days: string, qty: number }) => {
 
     return (
         <div className="flex flex-col items-center gap-0.5 group/aging">
-            <span className="text-[9px] font-bold text-slate-600 group-hover/aging:text-slate-900 transition-colors uppercase tracking-wider">{days === '>90' ? '> 90D' : `${days}D`}</span>
+            <span className="text-[11px] font-bold text-slate-600 group-hover/aging:text-slate-900 transition-colors uppercase tracking-wider">{days === '>90' ? '> 90D' : `${days}D`}</span>
             <div className={`px-2 py-1 rounded-md text-[11px] font-bold min-w-[42px] text-center border shadow-sm transition-all group-hover/aging:scale-110 ${getColor(days)} tabular-nums`}>
                 {qty > 0 ? qty.toLocaleString() : '-'}
             </div>
@@ -53,7 +53,7 @@ const MetricCard = ({ label, value, sub, icon, colorTheme, onClick, isActive }: 
                 <FaIcon className={`fas ${icon}`} />
             </div>
             <div className="relative z-10 flex-1">
-                <Typography variant="label" className="text-white/85 font-black uppercase tracking-[0.2em] !text-[9px] mb-1 block group-hover:text-white transition-colors">{label}</Typography>
+                <Typography variant="label" className="text-white/85 font-black uppercase tracking-[0.2em] !text-[11px] mb-1 block group-hover:text-white transition-colors">{label}</Typography>
                 <div className="flex items-baseline gap-1">
                     <Typography variant="h2" className="text-white !font-black !text-2xl tracking-tight group-hover:scale-110 origin-left transition-transform duration-500">{value}</Typography>
                     <Typography variant="label" className="text-white/80 !text-[10px] font-bold">tr</Typography>
@@ -84,7 +84,7 @@ const FilterDropdown = ({ label, options, selected, onChange, icon }: any) => {
                     <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
                     <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 z-50 animate-in fade-in zoom-in-95 origin-top-left">
                         <div className="p-2 border-b border-slate-50 mb-1">
-                            <Typography variant="label" className="text-slate-600 !text-[9px] uppercase font-black">Lọc theo {label}</Typography>
+                            <Typography variant="label" className="text-slate-600 !text-[11px] uppercase font-black">Lọc theo {label}</Typography>
                         </div>
                         <div className="max-h-60 overflow-auto custom-scrollbar p-1">
                             {options.length > 0 && (
@@ -119,8 +119,8 @@ const FilterDropdown = ({ label, options, selected, onChange, icon }: any) => {
                             ))}
                         </div>
                         <div className="p-2 border-t border-slate-50 mt-1 flex justify-between">
-                            <button onClick={() => onChange([])} className="text-[9px] font-black text-rose-500 uppercase hover:underline">Xóa</button>
-                            <button onClick={() => setIsOpen(false)} className="text-[9px] font-black text-blue-600 uppercase hover:underline">Hoàn tất</button>
+                            <button onClick={() => onChange([])} className="text-[11px] font-black text-rose-500 uppercase hover:underline">Xóa</button>
+                            <button onClick={() => setIsOpen(false)} className="text-[11px] font-black text-blue-600 uppercase hover:underline">Hoàn tất</button>
                         </div>
                     </div>
                 </>
@@ -1013,7 +1013,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                 <Typography variant="label" className="text-[#635bff] font-black uppercase tracking-[0.3em] !text-[11px] mb-1 block">Aging Distribution</Typography>
                                 <Typography variant="h2" className="text-[#1a1f36] !font-bold tracking-tight !text-2xl">Phân bổ theo Tuổi nợ (Aging)</Typography>
                             </div>
-                            <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-slate-400">
+                            <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-slate-600">
                                 {matrixMetric === 'sku' ? 'Đếm theo số SKU' : matrixMetric === 'qty' ? 'Đếm theo số lượng' : 'Đếm theo Triệu VND'}
                             </span>
                         </div>
@@ -1070,13 +1070,13 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                 <tbody>
                                     {matrixData.length === 0 && (
                                         <tr>
-                                            <td colSpan={11} className="py-12 text-center text-slate-400 !text-[12px]">Không có dữ liệu phù hợp với bộ lọc</td>
+                                            <td colSpan={11} className="py-12 text-center text-slate-600 !text-[12px]">Không có dữ liệu phù hợp với bộ lọc</td>
                                         </tr>
                                     )}
                                     {matrixData.map((row, idx) => (
                                         <tr key={row.source} className={`group/row hover:bg-blue-50/50 transition-colors ${idx % 2 === 1 ? 'bg-slate-50/40' : ''}`}>
                                             <td className="py-3 px-5 border-b border-slate-100">
-                                                <Typography variant="label" className="text-slate-900 font-black uppercase !text-[13px] group-hover/row:text-blue-700 transition-colors tracking-tight">{row.source}</Typography>
+                                                <Typography variant="label" className="text-slate-900 font-black uppercase !text-[14px] group-hover/row:text-blue-700 transition-colors tracking-tight">{row.source}</Typography>
                                             </td>
                                             <td className="py-3 text-right px-4 bg-slate-50/60 border-r-2 border-slate-200 border-b border-slate-100">
                                                 <Typography variant="mono" className="!text-[14px] font-black text-slate-900 tabular-nums">
@@ -1094,15 +1094,15 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                                 'type_6. Khác',
                                             ].map((k, i, arr) => (
                                                 <td key={k} className={`py-3 text-center px-2 border-b border-slate-100 ${i === arr.length - 1 ? 'border-r-2 border-slate-200' : ''}`}>
-                                                    <Typography variant="mono" className={`!text-[13px] tabular-nums ${row[k] > 0 ? 'font-bold text-slate-800' : 'text-slate-300'}`}>{row[k] > 0 ? formatMatrixVal(row[k]) : '–'}</Typography>
+                                                    <Typography variant="mono" className={`!text-[14px] tabular-nums ${row[k] > 0 ? 'font-bold text-slate-800' : 'text-slate-400'}`}>{row[k] > 0 ? formatMatrixVal(row[k]) : '–'}</Typography>
                                                 </td>
                                             ))}
 
                                             {/* Aging breakdown — distinct color per bucket: amber=60-90D, rose=>90D */}
-                                            <td className="py-3 text-center px-2 border-b border-slate-100"><Typography variant="mono" className={`!text-[13px] tabular-nums ${row.q30 > 0 ? 'font-bold text-slate-800' : 'text-slate-300'}`}>{row.q30 > 0 ? formatMatrixVal(row.q30) : '–'}</Typography></td>
-                                            <td className="py-3 text-center px-2 border-b border-slate-100"><Typography variant="mono" className={`!text-[13px] tabular-nums ${row.q60 > 0 ? 'font-bold text-slate-800' : 'text-slate-300'}`}>{row.q60 > 0 ? formatMatrixVal(row.q60) : '–'}</Typography></td>
-                                            <td className="py-3 text-center px-2 border-b border-slate-100"><Typography variant="mono" className={`!text-[13px] tabular-nums ${row.q90 > 0 ? 'font-bold text-amber-600' : 'text-slate-300'}`}>{row.q90 > 0 ? formatMatrixVal(row.q90) : '–'}</Typography></td>
-                                            <td className="py-3 text-center px-2 border-b border-slate-100"><Typography variant="mono" className={`!text-[13px] tabular-nums ${row.qO90 > 0 ? 'font-black text-rose-700' : 'text-slate-300'}`}>{row.qO90 > 0 ? formatMatrixVal(row.qO90) : '–'}</Typography></td>
+                                            <td className="py-3 text-center px-2 border-b border-slate-100"><Typography variant="mono" className={`!text-[14px] tabular-nums ${row.q30 > 0 ? 'font-bold text-slate-800' : 'text-slate-400'}`}>{row.q30 > 0 ? formatMatrixVal(row.q30) : '–'}</Typography></td>
+                                            <td className="py-3 text-center px-2 border-b border-slate-100"><Typography variant="mono" className={`!text-[14px] tabular-nums ${row.q60 > 0 ? 'font-bold text-slate-800' : 'text-slate-400'}`}>{row.q60 > 0 ? formatMatrixVal(row.q60) : '–'}</Typography></td>
+                                            <td className="py-3 text-center px-2 border-b border-slate-100"><Typography variant="mono" className={`!text-[14px] tabular-nums ${row.q90 > 0 ? 'font-bold text-amber-600' : 'text-slate-400'}`}>{row.q90 > 0 ? formatMatrixVal(row.q90) : '–'}</Typography></td>
+                                            <td className="py-3 text-center px-2 border-b border-slate-100"><Typography variant="mono" className={`!text-[14px] tabular-nums ${row.qO90 > 0 ? 'font-black text-rose-700' : 'text-slate-400'}`}>{row.qO90 > 0 ? formatMatrixVal(row.qO90) : '–'}</Typography></td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -1147,7 +1147,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                 <Typography variant="label" className="text-[#635bff] font-black uppercase tracking-[0.3em] !text-[11px] mb-1 block">Line of Interest Matrix</Typography>
                                 <Typography variant="h2" className="text-[#1a1f36] !font-bold tracking-tight !text-2xl">Phân bổ nợ hàng theo LOIS</Typography>
                             </div>
-                            <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-slate-400">
+                            <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-slate-600">
                                 {matrixMetric === 'sku' ? 'Đếm theo số SKU' : matrixMetric === 'qty' ? 'Đếm theo số lượng' : 'Đếm theo Triệu VND'}
                             </span>
                         </div>
@@ -1171,13 +1171,13 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                 <tbody>
                                     {loisMatrixData.length === 0 && (
                                         <tr>
-                                            <td colSpan={2 + loisList.length} className="py-12 text-center text-slate-400 !text-[12px]">Không có dữ liệu phù hợp với bộ lọc</td>
+                                            <td colSpan={2 + loisList.length} className="py-12 text-center text-slate-600 !text-[12px]">Không có dữ liệu phù hợp với bộ lọc</td>
                                         </tr>
                                     )}
                                     {loisMatrixData.map((row, idx) => (
                                         <tr key={row.source} className={`group/row hover:bg-blue-50/50 transition-colors ${idx % 2 === 1 ? 'bg-slate-50/40' : ''}`}>
                                             <td className="py-3 px-5 border-b border-slate-100">
-                                                <Typography variant="label" className="text-slate-900 font-black uppercase !text-[13px] group-hover/row:text-blue-700 transition-colors tracking-tight">{row.source}</Typography>
+                                                <Typography variant="label" className="text-slate-900 font-black uppercase !text-[14px] group-hover/row:text-blue-700 transition-colors tracking-tight">{row.source}</Typography>
                                             </td>
                                             <td className="py-3 text-right px-4 bg-slate-50/60 border-r-2 border-slate-200 border-b border-slate-100">
                                                 <Typography variant="mono" className="!text-[14px] font-black text-slate-900 tabular-nums">
@@ -1186,7 +1186,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                             </td>
                                             {loisList.map(lois => (
                                                 <td key={lois} className="py-3 text-center px-2 border-b border-slate-100">
-                                                    <Typography variant="mono" className={`!text-[13px] tabular-nums ${row[`lois_${lois}`] > 0 ? 'font-bold text-slate-800' : 'text-slate-300'}`}>
+                                                    <Typography variant="mono" className={`!text-[14px] tabular-nums ${row[`lois_${lois}`] > 0 ? 'font-bold text-slate-800' : 'text-slate-400'}`}>
                                                         {row[`lois_${lois}`] > 0 ? formatMatrixVal(row[`lois_${lois}`]) : '–'}
                                                     </Typography>
                                                 </td>
@@ -1301,7 +1301,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                     <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                         <div className="flex items-center gap-3 flex-wrap">
                             <div className="relative w-64">
-                                <FaIcon className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <FaIcon className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
                                 <input 
                                     type="text" 
                                     placeholder="Tìm mã, tên hàng (hỗ trợ dán list từ Excel)..." 
@@ -1312,7 +1312,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                     className="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-[11px] font-bold outline-none focus:ring-4 focus:ring-blue-100 transition-all shadow-sm"
                                 />
                                 {searchResult.type !== 'EMPTY' && (
-                                    <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 text-white p-2 rounded-lg text-[9px] font-black z-20 shadow-xl border border-slate-700 animate-fadeIn flex justify-between items-center">
+                                    <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 text-white p-2 rounded-lg text-[11px] font-black z-20 shadow-xl border border-slate-700 animate-fadeIn flex justify-between items-center">
                                         <span><FaIcon className="fas fa-microchip mr-2 text-blue-400" />{searchResult.modeDescription}</span>
                                         <button onClick={() => setSearch('')} className="hover:text-rose-400"><FaIcon className="fas fa-times" /></button>
                                     </div>
@@ -1408,7 +1408,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                     <button
                                         key={val}
                                         onClick={() => setAgingFilter(val as any)}
-                                        className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all ${agingFilter === val ? 'bg-slate-900 text-white shadow-md' : 'text-slate-600 hover:text-slate-900'}`}
+                                        className={`px-3 py-1.5 rounded-lg text-[11px] font-black uppercase transition-all ${agingFilter === val ? 'bg-slate-900 text-white shadow-md' : 'text-slate-600 hover:text-slate-900'}`}
                                     >
                                         {val === 'all' ? 'Tất cả' : val === 'over90' ? '> 90D' : `${val}D`}
                                     </button>
@@ -1440,7 +1440,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                             >
                                                 <div className={`flex items-center gap-2 ${align === 'center' ? 'justify-center' : align === 'right' ? 'justify-end' : ''}`}>
                                                     <Typography variant="label" className={`${isActive ? 'text-[#635bff]' : 'text-[#4f566b]'} group-hover/th:text-[#635bff] transition-colors font-bold uppercase tracking-wider`}>{label}</Typography>
-                                                    <div className={`flex flex-col text-[8px] ${isActive ? 'text-[#635bff]' : 'text-slate-400 opacity-0 group-hover/th:opacity-100'}`}>
+                                                    <div className={`flex flex-col text-[8px] ${isActive ? 'text-[#635bff]' : 'text-slate-600 opacity-0 group-hover/th:opacity-100'}`}>
                                                         <FaIcon className={`fas fa-caret-up ${isActive && sortConfig.direction === 'asc' ? 'opacity-100' : 'opacity-30'}`} />
                                                         <FaIcon className={`fas fa-caret-down ${isActive && sortConfig.direction === 'desc' ? 'opacity-100' : 'opacity-30'}`} />
                                                     </div>
@@ -1530,11 +1530,11 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                                 <div className="flex items-start gap-2.5">
                                                     <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${isCritical ? 'bg-rose-500' : isHigh ? 'bg-amber-500' : 'bg-slate-200'}`} aria-hidden />
                                                     <div className="min-w-0">
-                                                        <div className="font-mono font-bold text-slate-900 group-hover:text-[#635bff] transition-colors text-[13px] tabular-nums tracking-tight">
+                                                        <div className="font-mono font-bold text-slate-900 group-hover:text-[#635bff] transition-colors text-[14px] tabular-nums tracking-tight">
                                                             {item.ItemCode}
                                                         </div>
-                                                        <div className="text-[11px] text-slate-500 truncate max-w-[260px] mt-0.5 font-medium">{item.ItemName}</div>
-                                                        <div className="text-[10px] text-slate-400 font-medium mt-0.5 flex flex-wrap items-baseline gap-x-1">
+                                                        <div className="text-[11px] text-slate-500 truncate max-w-[260px] mt-0.5 font-bold">{item.ItemName}</div>
+                                                        <div className="text-[10px] text-slate-600 font-medium mt-0.5 flex flex-wrap items-baseline gap-x-1">
                                                             {item.SourceId && (
                                                                 <span className="font-mono font-black text-[10px] text-[#635bff] uppercase tracking-wider">{item.SourceId}</span>
                                                             )}
@@ -1552,7 +1552,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                                                     {showSupplier && (() => {
                                                                         const meta = SUPPLIER_STATUS_META[ss];
                                                                         return (
-                                                                            <span title={meta.full} className={`inline-flex items-center gap-1 font-mono font-black text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded ring-1 ${meta.cls}`}>
+                                                                            <span title={meta.full} className={`inline-flex items-center gap-1 font-mono font-black text-[11px] uppercase tracking-wider px-1.5 py-0.5 rounded ring-1 ${meta.cls}`}>
                                                                                 <FaIcon className="fas fa-truck-fast text-[8px]" />
                                                                                 {meta.label}
                                                                             </span>
@@ -1567,7 +1567,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                                                         const score = Math.round(agg.maxScore);
                                                                         const tooltip = `${meta.label} (score ${score}/100) • ${detail} • Đơn lâu nhất ${maxDays}d (trễ ${Math.round(agg.maxDaysOverdue)}d so với LT)`;
                                                                         return (
-                                                                            <span title={tooltip} className={`inline-flex items-center gap-1 font-mono font-black text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded ring-1 ${meta.cls}`}>
+                                                                            <span title={tooltip} className={`inline-flex items-center gap-1 font-mono font-black text-[11px] uppercase tracking-wider px-1.5 py-0.5 rounded ring-1 ${meta.cls}`}>
                                                                                 <FaIcon className="fas fa-triangle-exclamation text-[8px]" />
                                                                                 {meta.label} · {score}đ · {maxDays}D · {agg.abnormalCount} ĐƠN
                                                                             </span>
@@ -1592,23 +1592,23 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                             </td>
                                             <td className="px-3 py-3 text-right">
                                                 <BackorderPopup items={scopedBreakdown} effectiveLTDays={item.computed?.effectiveLT}>
-                                                    <span className={`font-mono font-bold text-[13px] tabular-nums ${isCritical ? 'text-rose-600' : 'text-slate-900'} hover:text-[#635bff] transition-colors`}>
+                                                    <span className={`font-mono font-bold text-[14px] tabular-nums ${isCritical ? 'text-rose-600' : 'text-slate-900'} hover:text-[#635bff] transition-colors`}>
                                                         {totalBO.toLocaleString('vi-VN')}
                                                     </span>
                                                 </BackorderPopup>
                                             </td>
                                             <td className="px-3 py-3 text-right">
-                                                <span className={`font-mono font-bold text-[13px] tabular-nums ${isCritical ? 'text-rose-600' : isHigh ? 'text-amber-600' : 'text-slate-700'}`}>
-                                                    {aging?.oldestDebtDays ?? 0}<span className="text-[9px] text-slate-400 font-medium ml-0.5">d</span>
+                                                <span className={`font-mono font-bold text-[14px] tabular-nums ${isCritical ? 'text-rose-600' : isHigh ? 'text-amber-600' : 'text-slate-700'}`}>
+                                                    {aging?.oldestDebtDays ?? 0}<span className="text-[11px] text-slate-600 font-medium ml-0.5">d</span>
                                                 </span>
                                             </td>
                                             <td className="px-3 py-3">
-                                                <div className="text-[13px] tabular-nums font-bold text-slate-800 max-w-[180px] leading-snug">
+                                                <div className="text-[14px] tabular-nums font-bold text-slate-800 max-w-[180px] leading-snug">
                                                     {Object.entries(boTypes).map(([type, qty], idx) => {
                                                         const meta = ORDER_TYPE_SYMBOL[type] ?? { sym: '?', full: type, color: 'text-slate-600' };
                                                         return (
                                                             <span key={type} title={meta.full}>
-                                                                {idx > 0 && <span className="text-slate-300 mx-1.5">|</span>}
+                                                                {idx > 0 && <span className="text-slate-400 mx-1.5">|</span>}
                                                                 <span>{qty}</span>
                                                                 <span className={`font-mono font-black text-[11px] ml-0.5 ${meta.color}`}>({meta.sym})</span>
                                                             </span>
@@ -1617,7 +1617,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                                 </div>
                                             </td>
                                             <td className="px-3 py-3">
-                                                <div className="flex justify-center gap-3 text-[13px] tabular-nums font-bold">
+                                                <div className="flex justify-center gap-3 text-[14px] tabular-nums font-bold">
                                                     {[
                                                         { label: '30d', val: aging?.qty30 || 0, color: 'text-slate-700' },
                                                         { label: '60d', val: aging?.qty60 || 0, color: 'text-amber-600' },
@@ -1625,54 +1625,54 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                                         { label: '>90d', val: aging?.qtyOver90 || 0, color: 'text-rose-700' },
                                                     ].map(({ label, val, color }) => (
                                                         <div key={label} className="flex flex-col items-center min-w-[34px]">
-                                                            <span className={val > 0 ? color : 'text-slate-300'}>{val > 0 ? val : '–'}</span>
-                                                            <span className="text-[9px] text-slate-400 uppercase tracking-wide font-medium">{label}</span>
+                                                            <span className={val > 0 ? color : 'text-slate-400'}>{val > 0 ? val : '–'}</span>
+                                                            <span className="text-[11px] text-slate-600 uppercase tracking-wide font-bold">{label}</span>
                                                         </div>
                                                     ))}
                                                 </div>
                                             </td>
                                             <td className="px-3 py-3 text-center">
-                                                <div className="flex justify-center gap-3 text-[13px] tabular-nums font-bold">
+                                                <div className="flex justify-center gap-3 text-[14px] tabular-nums font-bold">
                                                     <div className="flex flex-col items-center min-w-[34px]">
                                                         <span className={item.Backorder_NB > 0 ? 'text-rose-600' : 'text-slate-700'}>{nbStock}</span>
-                                                        <span className="text-[9px] text-slate-400 uppercase tracking-wide font-medium">NB</span>
+                                                        <span className="text-[11px] text-slate-600 uppercase tracking-wide font-bold">NB</span>
                                                     </div>
                                                     <div className="flex flex-col items-center min-w-[34px]">
                                                         <span className={item.Backorder_BB > 0 ? 'text-rose-600' : 'text-slate-700'}>{bbStock}</span>
-                                                        <span className="text-[9px] text-slate-400 uppercase tracking-wide font-medium">BB</span>
+                                                        <span className="text-[11px] text-slate-600 uppercase tracking-wide font-bold">BB</span>
                                                     </div>
                                                 </div>
                                                 {(canTransferToBB || canTransferToNB) && (
-                                                    <div className="text-[9px] text-emerald-600 uppercase font-bold tracking-wide mt-1">↔ Điều chuyển</div>
+                                                    <div className="text-[11px] text-emerald-600 uppercase font-bold tracking-wide mt-1">↔ Điều chuyển</div>
                                                 )}
                                             </td>
                                             <td className="px-3 py-3 text-right">
                                                 <DealerInventoryPopup items={item.DealerBreakdown || []}>
-                                                    <span className="font-mono font-bold tabular-nums text-slate-700 hover:text-blue-600 text-[13px] transition-colors">
+                                                    <span className="font-mono font-bold tabular-nums text-slate-700 hover:text-blue-600 text-[14px] transition-colors">
                                                         {item.DealerInventory.toLocaleString()}
                                                     </span>
                                                 </DealerInventoryPopup>
                                             </td>
                                             <td className="px-3 py-3">
                                                 <PipelinePopup pipeline={item.Pipeline} pipelineNB={item.Pipeline_NB} pipelineBB={item.Pipeline_BB}>
-                                                    <div className="flex justify-end gap-3 text-[13px] tabular-nums font-bold cursor-help">
+                                                    <div className="flex justify-end gap-3 text-[14px] tabular-nums font-bold cursor-help">
                                                         <div className="flex flex-col items-center min-w-[34px]">
-                                                            <span className={poM0 > 0 ? 'text-slate-900' : 'text-slate-300'}>{poM0 > 0 ? poM0 : '–'}</span>
-                                                            <span className="text-[9px] text-slate-400 uppercase tracking-wide font-medium">T.này</span>
+                                                            <span className={poM0 > 0 ? 'text-slate-900' : 'text-slate-400'}>{poM0 > 0 ? poM0 : '–'}</span>
+                                                            <span className="text-[11px] text-slate-600 uppercase tracking-wide font-bold">T.này</span>
                                                         </div>
                                                         <div className="flex flex-col items-center min-w-[34px]">
-                                                            <span className={poM1 > 0 ? 'text-slate-900' : 'text-slate-300'}>{poM1 > 0 ? poM1 : '–'}</span>
-                                                            <span className="text-[9px] text-slate-400 uppercase tracking-wide font-medium">T.sau</span>
+                                                            <span className={poM1 > 0 ? 'text-slate-900' : 'text-slate-400'}>{poM1 > 0 ? poM1 : '–'}</span>
+                                                            <span className="text-[11px] text-slate-600 uppercase tracking-wide font-bold">T.sau</span>
                                                         </div>
                                                         <div className="flex flex-col items-center min-w-[42px] border-l border-slate-200 pl-3">
-                                                            <span className={item.TotalPO > 0 ? 'text-slate-900' : 'text-slate-300'}>{item.TotalPO}</span>
-                                                            <span className="text-[9px] text-slate-400 uppercase tracking-wide font-medium">Tổng</span>
+                                                            <span className={item.TotalPO > 0 ? 'text-slate-900' : 'text-slate-400'}>{item.TotalPO}</span>
+                                                            <span className="text-[11px] text-slate-600 uppercase tracking-wide font-bold">Tổng</span>
                                                         </div>
                                                     </div>
                                                 </PipelinePopup>
                                             </td>
                                             <td className="px-4 py-3 text-right">
-                                                <span className="font-mono font-bold text-slate-900 text-[13px] tabular-nums">
+                                                <span className="font-mono font-bold text-slate-900 text-[14px] tabular-nums">
                                                     {formatCurrency(item.computed?.boAging?.totalValue || 0)}
                                                 </span>
                                             </td>
@@ -1681,7 +1681,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                 })}
                             </tbody>
                             <tfoot className="sticky bottom-0 bg-slate-900 text-white z-10 shadow-2xl">
-                                <tr className="text-[13px] tabular-nums font-bold">
+                                <tr className="text-[14px] tabular-nums font-bold">
                                     <td className="px-4 py-3 text-white/80 !text-[11px] uppercase tracking-widest">Tổng cộng trang</td>
                                     <td className="px-3 py-3 text-white/40">–</td>
                                     <td className="px-3 py-3 text-right">
@@ -1691,14 +1691,14 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                     <td className="px-3 py-3 text-white/40">–</td>
                                     <td className="px-3 py-3 text-center text-white/40">–</td>
                                     <td className="px-3 py-3 text-center">
-                                        <span className="mr-3">{pagedData.reduce((a, b) => a + (b.QuantityInventory_NB + b.QuantityDC_NB), 0).toLocaleString()}<span className="text-white/50 text-[9px] font-medium ml-0.5">NB</span></span>
-                                        <span>{pagedData.reduce((a, b) => a + (b.QuantityInventory_BB + b.QuantityDC_BB), 0).toLocaleString()}<span className="text-white/50 text-[9px] font-medium ml-0.5">BB</span></span>
+                                        <span className="mr-3">{pagedData.reduce((a, b) => a + (b.QuantityInventory_NB + b.QuantityDC_NB), 0).toLocaleString()}<span className="text-white/50 text-[11px] font-medium ml-0.5">NB</span></span>
+                                        <span>{pagedData.reduce((a, b) => a + (b.QuantityInventory_BB + b.QuantityDC_BB), 0).toLocaleString()}<span className="text-white/50 text-[11px] font-medium ml-0.5">BB</span></span>
                                     </td>
                                     <td className="px-3 py-3 text-right">
                                         {pagedData.reduce((a, b) => a + b.DealerInventory, 0).toLocaleString()}
                                     </td>
                                     <td className="px-3 py-3 text-right">
-                                        {pagedData.reduce((a, b) => a + b.TotalPO, 0).toLocaleString()}<span className="text-white/50 text-[9px] font-medium ml-0.5">tổng</span>
+                                        {pagedData.reduce((a, b) => a + b.TotalPO, 0).toLocaleString()}<span className="text-white/50 text-[11px] font-medium ml-0.5">tổng</span>
                                     </td>
                                     <td className="px-4 py-3 text-right !text-[14px]">
                                         {formatCurrency(pagedData.reduce((a, b) => a + (b.computed?.boAging?.totalValue || 0), 0))}
@@ -1710,16 +1710,16 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                         {filteredData.length === 0 && (
                             <div className="p-20 text-center">
                                 <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-dashed border-slate-200">
-                                    <FaIcon className="fas fa-search text-slate-400 text-2xl" />
+                                    <FaIcon className="fas fa-search text-slate-600 text-2xl" />
                                 </div>
-                                <Typography variant="h3" className="text-slate-400 uppercase tracking-widest">Không tìm thấy dữ liệu nợ hàng</Typography>
+                                <Typography variant="h3" className="text-slate-600 uppercase tracking-widest">Không tìm thấy dữ liệu nợ hàng</Typography>
                             </div>
                         )}
                     </div>
 
                     <div className="p-4 border-t border-slate-100 bg-white flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <Typography variant="label" className="text-slate-400 !text-[10px]">
+                            <Typography variant="label" className="text-slate-600 !text-[10px]">
                                 Đang hiển thị <span className="text-slate-900 font-black">{(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, filteredData.length)}</span> trong tổng số <span className="text-slate-900 font-black">{filteredData.length.toLocaleString()}</span> SKU nợ hàng
                             </Typography>
                             <div className="flex items-center gap-2 pl-4 border-l border-slate-200">
@@ -1740,7 +1740,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                             <button 
                                 disabled={currentPage === 1}
                                 onClick={() => setCurrentPage(prev => prev - 1)}
-                                className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 disabled:opacity-30 hover:bg-slate-50 transition-colors"
+                                className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-600 disabled:opacity-30 hover:bg-slate-50 transition-colors"
                             >
                                 <FaIcon className="fas fa-chevron-left text-xs" />
                             </button>
@@ -1762,12 +1762,12 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                         );
                                     });
                                 })()}
-                                {Math.ceil(filteredData.length / (pageSize || 25)) > 5 && <span className="text-slate-400 px-2">...</span>}
+                                {Math.ceil(filteredData.length / (pageSize || 25)) > 5 && <span className="text-slate-600 px-2">...</span>}
                             </div>
                             <button 
                                 disabled={pageSize <= 0 || currentPage === Math.ceil(filteredData.length / (pageSize || 25))}
                                 onClick={() => setCurrentPage(prev => prev + 1)}
-                                className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 disabled:opacity-30 hover:bg-slate-50 transition-colors"
+                                className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-600 disabled:opacity-30 hover:bg-slate-50 transition-colors"
                             >
                                 <FaIcon className="fas fa-chevron-right text-xs" />
                             </button>
@@ -1781,7 +1781,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                     <div className="w-10 h-10 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
                     <div>
                         <Typography variant="label" className="text-blue-600 font-black block">ĐANG TÍNH TOÁN DỮ LIỆU</Typography>
-                        <Typography variant="body-sm" className="text-slate-400">Vui lòng đợi trong giây lát...</Typography>
+                        <Typography variant="body-sm" className="text-slate-600">Vui lòng đợi trong giây lát...</Typography>
                     </div>
                 </div>
             )}
