@@ -252,8 +252,6 @@ export const Dashboard = ({ data, enrichedData, isEngineProcessing, onItemSelect
         snapshotDate: new Date().toISOString().split('T')[0],
         warehouseScope: 'All',
         costBasis: 'PP',
-        demandSource: '3M',
-        applySeasonality: false, // Default to OFF for manual control as requested
         params: initialParams || { lt: 90, sp: 30, ssp: 15 },
         sourceProfiles: appSettings?.sourceProfiles,
         loisProfiles: appSettings?.loisProfiles || [],

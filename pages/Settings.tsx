@@ -40,7 +40,6 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
     activeSourceId: 'NB',
     defaultWarehouseScope: 'All',
     defaultCostBasis: 'PP',
-    defaultDemandSource: '3M',
     currency: 'VND',
     language: 'vi',
     excessThresholdPct: 0,
@@ -1667,10 +1666,6 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                         <Field label="Cơ sở giá mặc định" sub="Đơn giá dùng để tính giá trị tồn kho">
                             <Select value={draft.defaultCostBasis} onChange={v => upd('defaultCostBasis', v as any)}
                                 options={[{ value: 'PP', label: 'PP (VND - Giá mua nội địa)' }, { value: 'FOB', label: 'FOB (EUR - Giá xuất xưởng)' }]} />
-                        </Field>
-                        <Field label="Nguồn cầu mặc định" sub="Kỳ trung bình dùng làm cơ sở tính ROP khi không có BaseForecast">
-                            <Select value={draft.defaultDemandSource} onChange={v => upd('defaultDemandSource', v as any)}
-                                options={[{ value: '3M', label: 'AVG 3 tháng gần nhất' }, { value: '6M', label: 'AVG 6 tháng gần nhất' }, { value: '12M', label: 'AVG 12 tháng gần nhất' }]} />
                         </Field>
                     </SectionCard>
 

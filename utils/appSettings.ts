@@ -10,7 +10,6 @@ export interface AppSettings {
   activeSourceId: string;
   defaultWarehouseScope: 'All' | 'NB' | 'BB';
   defaultCostBasis: 'PP' | 'FOB';
-  defaultDemandSource: '3M' | '6M' | '12M';
   currency: 'VND' | 'EUR';
   language: 'vi' | 'en';
   excessThresholdPct: number;
@@ -47,7 +46,6 @@ const DEFAULT_LITE: AppSettings = {
   activeSourceId: 'NB',
   defaultWarehouseScope: 'All',
   defaultCostBasis: 'PP',
-  defaultDemandSource: '3M',
   currency: 'VND',
   language: 'vi',
   excessThresholdPct: 0,

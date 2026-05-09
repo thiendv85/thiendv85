@@ -510,8 +510,6 @@ export interface DashboardSettings {
     snapshotDate: string;
     warehouseScope: 'All' | 'NB' | 'BB';
     costBasis: 'PP' | 'FOB';
-    demandSource: '3M' | '6M' | '12M';
-    applySeasonality: boolean; // Manual toggle to apply SeasonalityFactor
     params: {
         lt: number;
         sp: number;

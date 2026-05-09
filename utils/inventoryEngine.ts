@@ -119,8 +119,9 @@ function getDaysInMonth(m: number, y: number) {
  * 4. Higher threshold (1.5x) for B2B to avoid false positives from lumpy orders.
  */
 function calculateSSI(item: InventoryItem, params: ComputeParams): number {
-    // Note: We always calculate SSI for identification/filtering purposes, 
-    // but its application to Demand/ROP is controlled by params.applySeasonality in the main loop.
+    // Computed for SkuDetail panel display only — never applied to Demand/ROP.
+    // (Round 1 autoresearch confirmed JS SSI multiplier double-counts SQL's
+    // SeasonalityFactor pre-baked into BaseForecast.)
 
     const tuning = params.seasonalityTuning || { tetWeight: 1.2, weatherWeight: 1.1 };
     const history = item.SalesHistory || [];
@@ -224,12 +225,10 @@ export interface ComputeParams {
     lt: number;
     sp: number;
     ssp: number;
-    demandSource: '3M' | '6M' | '12M';
     warehouseScope: 'All' | 'NB' | 'BB';
     costBasis: 'PP' | 'FOB';
     snapshotYYMM: string;
     snapshotDate: string;
-    applySeasonality: boolean;
     /** Lead-time CV (σ_LT / E[LT]). Default 0.2 = 20% LT variability. */
     sigmaLT?: number;
     sourceProfiles?: SourceProfile[];
@@ -355,12 +354,8 @@ function median(arr: number[]): number {
  * Stockout asymmetry rationale (W_STOCKOUT=1.5 in metric): in a distribution
  * business with LT 2-5 months, lost-sales / expedite cost > carrying cost,
  * so the metric penalizes under-forecast 1.5× harder than over-forecast.
- *
- * The `source` and `applySeasonality` parameters are kept for backward
- * compatibility with `makeComputeParams` / Settings UI but no longer change
- * behavior. Remove in follow-up cleanup once UI is updated.
  */
-function resolveDemand(item: InventoryItem, _source: '3M' | '6M' | '12M', _applySeasonality: boolean): number {
+function resolveDemand(item: InventoryItem): number {
     let baseDemand = 0;
     if (item.BaseForecast > 0) baseDemand = item.BaseForecast;
     else if (item.AvgQty3M > 0) baseDemand = item.AvgQty3M;
@@ -511,7 +506,7 @@ export function computeInventory(
     const effectiveSP = profile?.sp ?? params.sp;
     const effectiveSSP = profile?.ssp ?? params.ssp;
 
-    const demandMonthly = resolveDemand(item, params.demandSource, params.applySeasonality);
+    const demandMonthly = resolveDemand(item);
     const isZeroDemand = demandMonthly <= 0;
     
     /**
@@ -540,7 +535,6 @@ export function computeInventory(
     // Synchronize Lead Time (Calendar) with Sales Schedule (Working Days)
     // Use pre-built cache for O(1) lookup when available (batch path), fall back to per-call computation
     const workingDaysInLT = wdCache ? (wdCache.get(effectiveLT) ?? getWorkingDaysByLeadTime(effectiveLT, now)) : getWorkingDaysByLeadTime(effectiveLT, now);
-    const workingDaysInSSP = wdCache ? (wdCache.get(effectiveSSP) ?? getWorkingDaysByLeadTime(effectiveSSP, now)) : getWorkingDaysByLeadTime(effectiveSSP, now);
     const workingDaysInSP = wdCache ? (wdCache.get(effectiveSP) ?? getWorkingDaysByLeadTime(effectiveSP, now)) : getWorkingDaysByLeadTime(effectiveSP, now);
 
     /**
@@ -558,9 +552,8 @@ export function computeInventory(
      * This compensates for the +19% bias buffer that the old double-count
      * seasonal formula was implicitly providing (see results.tsv).
      *
-     * `effectiveSSP` (legacy SSP days config) is no longer used for SS, but
-     * still feeds into the demand-during-lead-time portion of ROP via
-     * `workingDaysInSSP` for backward compatibility with UI. Drop in follow-up.
+     * `effectiveSSP` is exposed in ComputedFields for UI (SimulationLab default)
+     * but no longer participates in ROP/MAX calculation.
      */
     const sigmaD = (item as any).Sigma_eff || 0;
     const sigmaLT = params.sigmaLT ?? 0.2;
@@ -915,11 +908,10 @@ export function makeComputeParams(settings: any): ComputeParams {
     const sDate = settings.snapshotDate || new Date().toISOString().split('T')[0];
     return {
         lt: settings.params.lt, sp: settings.params.sp, ssp: settings.params.ssp,
-        demandSource: settings.demandSource, warehouseScope: settings.warehouseScope,
-        costBasis: settings.costBasis, 
+        warehouseScope: settings.warehouseScope,
+        costBasis: settings.costBasis,
         snapshotYYMM: sDate.replace(/-/g, '').substring(2, 6),
         snapshotDate: sDate,
-        applySeasonality: settings.applySeasonality || false,
         sourceProfiles: settings.sourceProfiles,
         loisProfiles: settings.loisProfiles,
         seasonalityTuning: {

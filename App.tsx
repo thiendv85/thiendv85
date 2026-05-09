@@ -138,7 +138,6 @@ const AppContent = () => {
       snapshotDate: appSettings.snapshotDate || new Date().toISOString().split('T')[0],
       warehouseScope: appSettings.defaultWarehouseScope || 'All',
       costBasis: appSettings.defaultCostBasis || 'PP',
-      demandSource: appSettings.defaultDemandSource || '3M',
       params: {
         lt: activeProfile?.lt ?? 90,
         sp: activeProfile?.sp ?? 30,
@@ -146,7 +145,6 @@ const AppContent = () => {
       },
       sourceProfiles: appSettings.sourceProfiles || [],
       loisProfiles: appSettings.loisProfiles || [],
-      applySeasonality: appSettings.seasonalityTuning?.useSPD ?? false,
       seasonalityTuning: appSettings.seasonalityTuning,
     };
   }, [appSettings]);
