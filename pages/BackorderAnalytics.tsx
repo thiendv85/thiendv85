@@ -884,12 +884,79 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                     </div>
                 </div>
 
+                {/* Operational KPI tiles — diagnostic metrics computed across the
+                    full enriched dataset (not the user's current filter). Helps
+                    operators frame the day's work before drilling into filters. */}
+                {(() => {
+                    let totalDaysOpen = 0, countOpen = 0, countOverLT = 0;
+                    let totalScore = 0, countScored = 0;
+                    let maxDays = 0;
+                    let minStockoutDays = Infinity;
+                    let minStockoutSku = '';
+                    const supplierCounts: Record<string, number> = {};
+                    for (const item of enrichedData || []) {
+                        const lt = item.computed?.effectiveLT;
+                        const breakdown = item.BackorderBreakdown;
+                        if (breakdown && breakdown.length > 0) {
+                            for (const bo of breakdown) {
+                                const ts = bo.RawDate || 0;
+                                if (ts > 0) {
+                                    const daysOpen = (Date.now() - ts) / (24 * 60 * 60 * 1000);
+                                    totalDaysOpen += daysOpen;
+                                    countOpen++;
+                                    if (daysOpen > maxDays) maxDays = daysOpen;
+                                    if (lt && daysOpen > lt) countOverLT++;
+                                }
+                            }
+                            const agg = getItemAnomaly(item).aggregate;
+                            if (agg.maxScore > 0) {
+                                totalScore += agg.maxScore;
+                                countScored++;
+                            }
+                            const src = item.SourceId || 'KHÁC';
+                            supplierCounts[src] = (supplierCounts[src] || 0) + 1;
+                        }
+                        if ((item.Backorder || 0) > 0) {
+                            const sd = stockoutDaysRemaining(item);
+                            if (sd < minStockoutDays && Number.isFinite(sd)) {
+                                minStockoutDays = sd;
+                                minStockoutSku = item.ItemCode;
+                            }
+                        }
+                    }
+                    const avgDays = countOpen > 0 ? totalDaysOpen / countOpen : 0;
+                    const pctOverLT = countOpen > 0 ? (countOverLT / countOpen) * 100 : 0;
+                    const avgScore = countScored > 0 ? totalScore / countScored : 0;
+                    const tiles = [
+                        { label: 'TUỔI NỢ TB', value: `${Math.round(avgDays)}d`, sub: `${countOpen.toLocaleString('vi-VN')} đơn có ngày`, icon: 'fa-hourglass-half', cls: 'bg-slate-50 ring-slate-200 text-slate-700' },
+                        { label: '% TRỄ LT',   value: `${pctOverLT.toFixed(1)}%`, sub: `${countOverLT.toLocaleString('vi-VN')} đơn quá Lead Time`, icon: 'fa-clock', cls: pctOverLT > 50 ? 'bg-rose-50 ring-rose-200 text-rose-700' : pctOverLT > 25 ? 'bg-amber-50 ring-amber-200 text-amber-700' : 'bg-emerald-50 ring-emerald-200 text-emerald-700' },
+                        { label: 'ĐƠN LÂU NHẤT', value: `${Math.round(maxDays)}d`, sub: 'Tối đa daysOpen đơn lẻ', icon: 'fa-calendar-xmark', cls: maxDays > 365 ? 'bg-rose-50 ring-rose-200 text-rose-700' : 'bg-amber-50 ring-amber-200 text-amber-700' },
+                        { label: 'SCORE BẤT THƯỜNG TB', value: `${Math.round(avgScore)}/100`, sub: `${countScored.toLocaleString('vi-VN')} SKU có điểm`, icon: 'fa-chart-line', cls: avgScore > 60 ? 'bg-rose-50 ring-rose-200 text-rose-700' : avgScore > 40 ? 'bg-amber-50 ring-amber-200 text-amber-700' : 'bg-blue-50 ring-blue-200 text-blue-700' },
+                    ];
+                    return (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                            {tiles.map((t, i) => (
+                                <div key={i} className={`p-4 rounded-2xl border ring-1 ${t.cls} flex items-center gap-3 shadow-sm`}>
+                                    <div className="w-10 h-10 rounded-xl bg-white/70 flex items-center justify-center">
+                                        <FaIcon className={`fas ${t.icon} text-base`} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-[10px] uppercase tracking-[0.15em] font-black opacity-80 truncate">{t.label}</div>
+                                        <div className="font-black tabular-nums text-2xl leading-tight">{t.value}</div>
+                                        <div className="text-[10px] font-medium opacity-70 truncate">{t.sub}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    );
+                })()}
+
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-                    <MetricCard 
-                        label="Tổng nợ (SL)" 
-                        value={stats.totalQty.toLocaleString('vi-VN')} 
-                        sub="Số lượng phụ tùng đang nợ" 
-                        icon="fa-boxes-stacked" 
+                    <MetricCard
+                        label="Tổng nợ (SL)"
+                        value={stats.totalQty.toLocaleString('vi-VN')}
+                        sub="Số lượng phụ tùng đang nợ"
+                        icon="fa-boxes-stacked"
                         colorTheme="slate"
                         isActive={masterFilter === 'all'}
                         onClick={() => setMasterFilter('all')}
