@@ -1351,20 +1351,6 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                 ))}
                             </div>
                         </div>
-
-                        <div className="flex items-center gap-2">
-                            <Typography variant="label" className="text-slate-600 !text-[10px] mr-2">HIỂN THỊ:</Typography>
-                            <select 
-                                value={pageSize}
-                                onChange={e => setPageSize(Number(e.target.value))}
-                                className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-[10px] font-black outline-none focus:ring-4 focus:ring-blue-100 shadow-sm"
-                            >
-                                <option value={10}>10 dòng</option>
-                                <option value={25}>25 dòng</option>
-                                <option value={50}>50 dòng</option>
-                                <option value={100}>100 dòng</option>
-                            </select>
-                        </div>
                     </div>
 
 
@@ -1672,6 +1658,19 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                             <Typography variant="label" className="text-slate-400 !text-[10px]">
                                 Đang hiển thị <span className="text-slate-900 font-black">{(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, filteredData.length)}</span> trong tổng số <span className="text-slate-900 font-black">{filteredData.length.toLocaleString()}</span> SKU nợ hàng
                             </Typography>
+                            <div className="flex items-center gap-2 pl-4 border-l border-slate-200">
+                                <Typography variant="label" className="text-slate-500 !text-[10px]">Dòng/trang:</Typography>
+                                <select
+                                    value={pageSize}
+                                    onChange={e => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+                                    className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[10px] font-black outline-none focus:ring-2 focus:ring-blue-100 shadow-sm"
+                                >
+                                    <option value={10}>10</option>
+                                    <option value={25}>25</option>
+                                    <option value={50}>50</option>
+                                    <option value={100}>100</option>
+                                </select>
+                            </div>
                         </div>
                         <div className="flex items-center gap-2">
                             <button 
