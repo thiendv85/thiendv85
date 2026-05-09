@@ -409,21 +409,29 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
         return breakdown.filter(isBBEntry);
     };
     const getScopedBOQty = (item: InventoryItem, scope: 'all' | 'NB' | 'BB'): number => {
-        if (scope === 'NB') {
-            // Prefer pre-aggregated Backorder_NB. Fall back to summing the scoped
-            // breakdown — Backorder_NB only gets populated when the inventory CSV
-            // includes a BookTotalNB column; many real uploads only carry the
-            // breakdown rows and rely on per-entry Warehouse classification.
-            const agg = item.Backorder_NB || 0;
-            if (agg > 0) return agg;
-            return (item.BackorderBreakdown ?? []).filter(isNBEntry).reduce((s, b) => s + (b.Qty || 0), 0);
+        // PARTITION INVARIANT: when breakdown rows are present, NB-sum + BB-sum +
+        // unknown-sum must equal the total breakdown sum. Earlier this function
+        // preferred the pre-aggregated Backorder_NB / Backorder_BB columns from
+        // the CSV, but those values can drift from the breakdown (different
+        // upload pipelines, mismatched cutoffs, manual edits). When the pre-agg
+        // is inflated, NB + BB exceeded 'all' — that was the reported bug.
+        // Now: when breakdown exists, ALWAYS sum from it (the single source of
+        // truth for per-entry warehouse classification). Pre-agg is only used
+        // when breakdown is missing, so legacy uploads still render.
+        const breakdown = item.BackorderBreakdown ?? [];
+        if (breakdown.length > 0) {
+            if (scope === 'NB') return breakdown.filter(isNBEntry).reduce((s, b) => s + (b.Qty || 0), 0);
+            if (scope === 'BB') return breakdown.filter(isBBEntry).reduce((s, b) => s + (b.Qty || 0), 0);
+            // 'all' — keep the existing Math.max so that if item.Backorder is
+            // larger than the breakdown sum (rare CSV/upload inconsistency) we
+            // do not silently shrink the headline number. This still gives
+            // all >= NB-sum + BB-sum.
+            return Math.max(item.Backorder || 0, item.computed?.boAging?.totalQty || 0);
         }
-        if (scope === 'BB') {
-            const agg = item.Backorder_BB || 0;
-            if (agg > 0) return agg;
-            return (item.BackorderBreakdown ?? []).filter(isBBEntry).reduce((s, b) => s + (b.Qty || 0), 0);
-        }
-        return Math.max(item.Backorder || 0, item.computed?.boAging?.totalQty || 0);
+        // Fallback: no breakdown. Use the pre-aggregated columns.
+        if (scope === 'NB') return item.Backorder_NB || 0;
+        if (scope === 'BB') return item.Backorder_BB || 0;
+        return Math.max(item.Backorder || 0, (item.Backorder_NB || 0) + (item.Backorder_BB || 0));
     };
     const getScopedStock = (item: InventoryItem, scope: 'all' | 'NB' | 'BB'): number => {
         if (scope === 'NB') return (item.QuantityInventory_NB || 0) + (item.QuantityDC_NB || 0);
