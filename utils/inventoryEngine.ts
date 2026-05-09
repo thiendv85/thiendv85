@@ -865,7 +865,14 @@ export function computeInventory(
     };
 
     if (item.BackorderBreakdown && item.BackorderBreakdown.length > 0) {
-        const snapshotTs = now.getTime();
+        // Aging is measured against TODAY (real wall clock), not the snapshot
+        // export date. Reason: an operator looking at this dashboard is asking
+        // "how old is this debt RIGHT NOW so I can chase the supplier today",
+        // not "how old was it when the file was exported". Using snapshotDate
+        // here under-reported aging when users uploaded an older snapshot —
+        // a Feb 6 debt viewed on May 9 should show 92d, not 41d (= snapshot
+        // March 19 - Feb 6).
+        const todayTs = Date.now();
         let maxDaysOld = 0;
         item.BackorderBreakdown.forEach(boItem => {
             // Prefer RawDate (numeric, set by csvParser); fall back to parsing DocDate
@@ -877,7 +884,7 @@ export function computeInventory(
                 docTs = parseDocDateFallback(boItem.DocDate);
             }
             if (docTs > 0) {
-                const daysOld = Math.max(0, Math.floor((snapshotTs - docTs) / MS_PER_DAY));
+                const daysOld = Math.max(0, Math.floor((todayTs - docTs) / MS_PER_DAY));
                 if (daysOld <= 30) boAging.qty30 += boItem.Qty;
                 else if (daysOld <= 60) boAging.qty60 += boItem.Qty;
                 else if (daysOld <= 90) boAging.qty90 += boItem.Qty;
