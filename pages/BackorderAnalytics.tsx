@@ -304,20 +304,22 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
         GAP:   { label: 'GAP',   full: 'Không đủ trả',   cls: 'bg-rose-50 text-rose-700 ring-rose-200' },
     };
     // ── Warehouse scope helpers ───────────────────────────────────────────────
-    // Per user: BO file uses BranchCodeReceipt as the primary classification
-    // column. Fall back to KhoNo and then Warehouse (which may carry "Kho MB"
-    // for north warehouse) when BranchCodeReceipt is missing.
-    //
-    // Pattern: any of these substrings (case-insensitive) signals the region.
-    //   BB / north: 'BB', 'BAC', 'BẮC', 'MB' (Miền Bắc / Kho MB)
-    //   NB / south: 'NB', 'NAM'
+    // Region mapping rule (per user): the BO file's BranchCodeReceipt column
+    // carries the receiving-branch code, and its prefix encodes the region:
+    //   A6A  → NB (Nam Bộ — Southern region)
+    //   A6C  → BB (Bắc Bộ — Northern region)
+    // Fall back to KhoNo / Warehouse string matching for older uploads or
+    // entries where BranchCodeReceipt is missing.
     type BORegion = 'NB' | 'BB' | 'unknown';
     const classifyBORegion = (bo: BackorderDetail): BORegion => {
-        const signal = `${bo.BranchCodeReceipt || ''} ${bo.KhoNo || ''} ${bo.Warehouse || ''}`.toUpperCase();
-        // Check BB first — 'MB' (Miền Bắc) would also match a stray 'NB' substring
-        // if NB came first ('NB' inside 'NBM', etc. is fine; 'MB' is the real signal).
-        if (/\b(MB|BB|BAC|BẮC)\b|MB|BB|BẮC|BAC/.test(signal)) return 'BB';
-        if (/\b(NB|NAM)\b|NB|NAM/.test(signal)) return 'NB';
+        const bcr = (bo.BranchCodeReceipt || '').toUpperCase().trim();
+        if (bcr.startsWith('A6A')) return 'NB';
+        if (bcr.startsWith('A6C')) return 'BB';
+        // Fallback for entries without BranchCodeReceipt: scan KhoNo + Warehouse
+        // for the region keywords we used before introducing the explicit prefix.
+        const signal = `${bo.KhoNo || ''} ${bo.Warehouse || ''}`.toUpperCase();
+        if (/MB|BB|BAC|BẮC/.test(signal)) return 'BB';
+        if (/NB|NAM/.test(signal)) return 'NB';
         return 'unknown';
     };
     const isNBEntry = (bo: BackorderDetail): boolean => classifyBORegion(bo) === 'NB';
