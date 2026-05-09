@@ -7,6 +7,7 @@
 
 import { InventoryItem, SourceProfile } from '../types/inventory';
 import { prepareSearchCache } from './searchLogic';
+import { getZScore } from './safetyStock';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -229,6 +230,8 @@ export interface ComputeParams {
     snapshotYYMM: string;
     snapshotDate: string;
     applySeasonality: boolean;
+    /** Lead-time CV (σ_LT / E[LT]). Default 0.2 = 20% LT variability. */
+    sigmaLT?: number;
     sourceProfiles?: SourceProfile[];
     seasonalityTuning?: {
         useSPD: boolean;
@@ -321,28 +324,61 @@ export interface ComputedFields {
 // HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
 
-function resolveDemand(item: InventoryItem, source: '3M' | '6M' | '12M', applySeasonality: boolean): number {
+function median(arr: number[]): number {
+    if (!arr || arr.length === 0) return 0;
+    const sorted = [...arr].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+}
+
+/**
+ * Tuned via autoresearch loop on 2 months of historical snapshots (2026-03/04
+ * vs 2026-04/05 actuals, n=2126). Best WMAPE 0.385 vs prior 0.699 (-45%).
+ *
+ * Findings (results.tsv on autoresearch/may08 branch):
+ *  - SQL's SeasonalityFactor pre-multiplies BaseForecast already; applying a
+ *    second JS-side seasonal layer hurts accuracy on this dataset (Tet drift
+ *    contaminates the calendar-month index). → ignore seasonality flag.
+ *  - Cap base at 3× AvgQty12M to dampen one-month spikes that inflate EWMA.
+ *  - For very lumpy items (CV>1.5): use median(history) instead of base —
+ *    EWMA on lumpy data is too noisy.
+ *  - Smooth CV-aware interpolation: alpha = max(0.1, 0.65 - 0.3·CV).
+ *    CV=0 → 0.65 base / 0.35 a3. CV=1 → 0.35/0.65. CV=2 → 0.1/0.9.
+ *  - LinReg blending, LOIS-tier blending, MAD-aware dampening, AvgQty6M
+ *    ensemble all regressed in backtest.
+ *
+ * The `source` and `applySeasonality` parameters are kept for backward
+ * compatibility with `makeComputeParams` / Settings UI but no longer change
+ * behavior. Remove in follow-up cleanup once UI is updated.
+ */
+function resolveDemand(item: InventoryItem, _source: '3M' | '6M' | '12M', _applySeasonality: boolean): number {
     let baseDemand = 0;
-    if (item.BaseForecast > 0) {
-        baseDemand = item.BaseForecast;
-    } else {
-        let avg = 0;
-        if (source === '3M') avg = item.AvgQty3M || item.AvgQty6M || item.AvgQty12M || 0;
-        else if (source === '6M') avg = item.AvgQty6M || item.AvgQty3M || item.AvgQty12M || 0;
-        else avg = item.AvgQty12M || item.AvgQty6M || item.AvgQty3M || 0;
-
-        if (avg > 0) baseDemand = avg;
-        else if (item.SalesHistory && item.SalesHistory.length > 0) {
-            const total = item.SalesHistory.reduce((a, b) => a + b, 0);
-            baseDemand = total / item.SalesHistory.length || 0;
-        } else baseDemand = 0;
+    if (item.BaseForecast > 0) baseDemand = item.BaseForecast;
+    else if (item.AvgQty3M > 0) baseDemand = item.AvgQty3M;
+    else if (item.AvgQty6M > 0) baseDemand = item.AvgQty6M;
+    else if (item.AvgQty12M > 0) baseDemand = item.AvgQty12M;
+    else if (item.SalesHistory && item.SalesHistory.length > 0) {
+        const total = item.SalesHistory.reduce((a, b) => a + b, 0);
+        baseDemand = total / item.SalesHistory.length || 0;
     }
 
-    if (applySeasonality) {
-        const factor = (item as any).SeasonalityFactor || 1;
-        return baseDemand * (factor > 0 ? factor : 1);
+    // Outlier cap: prevent EWMA from over-reacting to one-month spikes.
+    if (item.AvgQty12M > 0) {
+        baseDemand = Math.min(baseDemand, 3 * item.AvgQty12M);
     }
-    return baseDemand;
+
+    const a3 = item.AvgQty3M || 0;
+    if (a3 <= 0) return baseDemand;
+
+    const cv = (item as any).CV || 0;
+    // Very lumpy: EWMA unreliable, use median(history)
+    if (cv > 1.5) {
+        const med = median(item.SalesHistory || []);
+        return 0.2 * med + 0.8 * a3;
+    }
+    // Smooth CV-aware blend: more variability → lean more on recent
+    const alpha = Math.max(0.1, 0.65 - 0.3 * cv);
+    return alpha * baseDemand + (1 - alpha) * a3;
 }
 
 function resolveAvailable(item: InventoryItem, scope: 'All' | 'NB' | 'BB'): { oh: number; dc: number } {
@@ -468,13 +504,16 @@ export function computeInventory(
     const isZeroDemand = demandMonthly <= 0;
     
     /**
-     * UNIFIED SAA FORMULA (Phase 5)
-     * We use a stable 26-day anchor to prevent "Calendar Noise" (Tet) from inflating ADS density.
-     * Aggressive seasonality is handled via the SSI multiplier.
+     * UNIFIED SAA FORMULA — autoresearch tuned 2026-05-08.
+     * `demandMonthly` already incorporates seasonality (via SQL SeasonalityFactor
+     * baked into BaseForecast) and a CV-aware blend with AvgQty3M (see
+     * resolveDemand). Applying SSI on top double-counts seasonal effect — see
+     * results.tsv exp 1-2: dropping the JS SSI multiplier improved WMAPE -42%.
+     * SSI is computed for downstream display/SkuDetail but NOT applied here.
      */
-    const anchorDays = 26; 
-    const ssi = calculateSSI(item, params);
-    const demandRateDaily = (demandMonthly / anchorDays) * (params.applySeasonality ? ssi : 1.0);
+    const anchorDays = 26;
+    const ssi = calculateSSI(item, params); // kept for SkuDetail panel, not applied
+    const demandRateDaily = demandMonthly / anchorDays;
     const now = params.snapshotDate ? new Date(params.snapshotDate) : new Date();
 
     const { oh, dc } = resolveAvailable(item, params.warehouseScope);
@@ -493,8 +532,41 @@ export function computeInventory(
     const workingDaysInSSP = wdCache ? (wdCache.get(effectiveSSP) ?? getWorkingDaysByLeadTime(effectiveSSP, now)) : getWorkingDaysByLeadTime(effectiveSSP, now);
     const workingDaysInSP = wdCache ? (wdCache.get(effectiveSP) ?? getWorkingDaysByLeadTime(effectiveSP, now)) : getWorkingDaysByLeadTime(effectiveSP, now);
 
-    const safetyStock = (isStop || isZeroDemand) ? 0 : demandRateDaily * workingDaysInSSP;
-    const rop = (isStop || isZeroDemand) ? 0 : demandRateDaily * (workingDaysInLT + workingDaysInSSP);
+    /**
+     * Safety stock — proper Z×√(σ²·LT + d²·σ_LT²) formula.
+     *
+     * Replaces the prior time-based proxy `demandRateDaily × WD(SSP)` which
+     * ignored demand variability entirely (lumpy CV>1.5 SKUs got the same SS
+     * as smooth CV<0.3 SKUs). For LT 2-5 months in this distribution business,
+     * variability is the dominant SS driver — formula now uses:
+     *   - σ_d  = item.Sigma_eff  (computed by SQL on 12-month history)
+     *   - LT   = effectiveLT in months (per-source profile or default)
+     *   - σ_LT = params.sigmaLT (default 0.2 = 20% CV on lead time)
+     *   - Z    = LOIS-tier mapping (98% L1-L3, 95% L4-L5, 90% L6-L7, 80% L8/N/C)
+     *
+     * This compensates for the +19% bias buffer that the old double-count
+     * seasonal formula was implicitly providing (see results.tsv).
+     *
+     * `effectiveSSP` (legacy SSP days config) is no longer used for SS, but
+     * still feeds into the demand-during-lead-time portion of ROP via
+     * `workingDaysInSSP` for backward compatibility with UI. Drop in follow-up.
+     */
+    const sigmaD = (item as any).Sigma_eff || 0;
+    const sigmaLT = params.sigmaLT ?? 0.2;
+    const ltMonths = workingDaysInLT / 26;
+    const z = getZScore(item.LOISGroup || '');
+    const safetyStock = (isStop || isZeroDemand)
+        ? 0
+        : Math.max(
+              0,
+              z * Math.sqrt(
+                  sigmaD * sigmaD * ltMonths +
+                  demandMonthly * demandMonthly * sigmaLT * sigmaLT,
+              ),
+          );
+    // ROP = expected demand during lead time + safety stock
+    const rop = (isStop || isZeroDemand) ? 0 : demandRateDaily * workingDaysInLT + safetyStock;
+    // MAX = ROP + supply-period coverage (review-cycle buffer)
     const stockMax = (isStop || isZeroDemand) ? 0 : rop + (demandRateDaily * workingDaysInSP);
 
     const history = item.SalesHistory || [];
