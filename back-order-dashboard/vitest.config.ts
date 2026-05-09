@@ -17,7 +17,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
       thresholds: { lines: 80, functions: 80, branches: 80, statements: 80 },
-      exclude: ['**/*.config.*', '**/node_modules/**', '**/.next/**', '**/tests/fixtures/**', '**/*.d.ts'],
+      exclude: ['**/*.config.*', '**/node_modules/**', '**/.next/**', '**/tests/**', '**/*.d.ts'],
     },
   },
 });
