@@ -192,7 +192,7 @@ Conflict resolution: UUID collision → `created_at` mới hơn thắng. Cùng g
 
 ### 3.6 Cảnh báo "chưa export"
 
-Banner sticky khi `unsavedReminderCount > 0` hoặc 4h không export. Click banner → mở Wizard export.
+Banner sticky khi `unsavedReminderCount > 0` HOẶC `now − lastExportAt ≥ 4h` (kể cả không có reminder mới — vẫn nhắc user định kỳ). `lastExportAt` lưu trong `localStorage`, set mỗi lần Export thành công. Click banner → mở Wizard export.
 
 ## 4. UI
 
@@ -211,6 +211,14 @@ Filter: loại đơn, NCC, aging bucket, search free-text.
 - **Tab Template** — chọn 1 trong 3 mức, preview tiếng Việt, 2 nút `[Copy email]` `[Copy Zalo]`.
 - **Tab Lịch sử** — `ReminderHistoryTable` cho đơn này.
 - **Footer** — `[Đã gửi, ghi log]` mở `ReminderLogModal`.
+
+**Mức template được auto-suggest theo state đơn (user vẫn override được):**
+
+| Mức | Trigger gợi ý |
+|---|---|
+| `first-nudge` | `reminder_count === 0` (chưa nhắc lần nào) |
+| `overdue` | `reminder_count ≥ 1` và (`EstimatedDate1 < today` hoặc `eta_promised_new < today`) |
+| `escalation` | `reminder_count ≥ 3` hoặc `ncc_response_status === 'silent'` ở 2 reminder gần nhất |
 
 ### 4.3 ReminderLogModal
 
@@ -365,7 +373,20 @@ Diff > 0.2% → CI fail.
 2. **Reliability score formula** — chốt khi có data thật để calibrate. Tạm thời dùng heuristic: `0.4 × %committed - 0.3 × normalized(avg_slip) - 0.3 × %silent`.
 3. **Templates tiếng Việt** — 3 mức (first-nudge / overdue / escalation), nội dung cụ thể chốt khi viết template.
 
-## 8. Out of Scope (giai đoạn 2 nếu cần)
+## 8. Implementation Phasing
+
+Design này sẽ chia thành 4 phase implementation (chốt cụ thể ở `writing-plans` phase):
+
+| Phase | Phạm vi | Có demo gì |
+|---|---|---|
+| **P1: Storage & data model** | `lib/persist.ts`, `reminder.ts`, `priority.ts`; mở rộng `DataProvider`; round-trip CSV+JSON | Upload + Export + Import hoạt động, chưa có UI reminder |
+| **P2: Reminder workflow** | `/reminders` route, `ReminderQueue`, `ReminderActionPanel`, `TemplateGenerator`, `ReminderLogModal`, `templates.ts` | User log được reminder hoàn chỉnh |
+| **P3: History & scorecard** | `/scorecard`, `SupplierScorecard`, `ReminderHistoryTable`, `scorecard.ts` | KPI NCC + drill-down |
+| **P4: Handoff polish** | `/handoff`, `HandoffModal`, banner cảnh báo, beforeunload, currentUser modal | Multi-NV handoff hoạt động end-to-end |
+
+Mỗi phase có CI gates riêng (Section 6.8). User test phase trước khi sang phase sau.
+
+## 9. Out of Scope (giai đoạn 2 nếu cần)
 
 - Tự động gửi email/Zalo qua API.
 - Real-time sync giữa nhiều NV (cần backend).
