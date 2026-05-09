@@ -649,11 +649,17 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
         let poCoverageCount = 0;
         let totalPOVal = 0;
         const aging = { q30: 0, q60: 0, q90: 0, qO90: 0 };
+        const dayMs = 24 * 60 * 60 * 1000;
+        // Scope-aware totals. With 'all' we use the engine's pre-aggregated
+        // boAging; with NB/BB we use the warehouse-filtered helpers and
+        // re-bucket aging from the scoped breakdown. Without this scoping,
+        // NB total + BB total > Cả 2 total because items that have backorder
+        // entries in BOTH warehouses get their full Backorder double-counted
+        // in the per-warehouse views — that was the reported bug.
 
         filteredData.forEach(item => {
-            const b = item.computed?.boAging;
-            const boQty = Math.max(item.Backorder || 0, b?.totalQty || 0);
             const cost = item.computed?.unitCost || 0;
+            const boQty = getScopedBOQty(item, deferredWarehouseScope);
             const val = boQty * cost;
 
             totalQty += boQty;
@@ -661,17 +667,37 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
             if (item.TotalPO > 0) poCoverageCount += boQty;
             totalPOVal += item.TotalPO * cost;
 
-            if (b) {
-                aging.q30 += b.qty30;
-                aging.q60 += b.qty60;
-                aging.q90 += b.qty90;
-                aging.qO90 += b.qtyOver90;
-                if (b.qtyOver90 > 0 || b.qty90 > 0) criticalCount++;
+            if (deferredWarehouseScope === 'all') {
+                const b = item.computed?.boAging;
+                if (b) {
+                    aging.q30 += b.qty30;
+                    aging.q60 += b.qty60;
+                    aging.q90 += b.qty90;
+                    aging.qO90 += b.qtyOver90;
+                    if (b.qtyOver90 > 0 || b.qty90 > 0) criticalCount++;
+                }
+            } else {
+                let q30 = 0, q60 = 0, q90 = 0, qO90 = 0;
+                const scopedBd = filterBreakdownByScope(item.BackorderBreakdown, deferredWarehouseScope);
+                for (const bo of scopedBd) {
+                    const ts = bo.RawDate || 0;
+                    if (ts <= 0) { q30 += bo.Qty; continue; }
+                    const d = Math.max(0, Math.floor((anomalyNow - ts) / dayMs));
+                    if (d <= 30) q30 += bo.Qty;
+                    else if (d <= 60) q60 += bo.Qty;
+                    else if (d <= 90) q90 += bo.Qty;
+                    else qO90 += bo.Qty;
+                }
+                aging.q30 += q30;
+                aging.q60 += q60;
+                aging.q90 += q90;
+                aging.qO90 += qO90;
+                if (qO90 > 0 || q90 > 0) criticalCount++;
             }
         });
 
         return { totalValue, totalQty, criticalCount, aging, totalPOVal, poCoverage: totalQty > 0 ? (poCoverageCount / totalQty) * 100 : 0 };
-    }, [filteredData]);
+    }, [filteredData, deferredWarehouseScope, anomalyNow]);
 
 
     const matrixData = useMemo(() => {
