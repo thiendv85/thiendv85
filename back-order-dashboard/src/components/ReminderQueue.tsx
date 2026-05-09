@@ -4,7 +4,6 @@ import { useData } from './DataProvider';
 import { sortByPriority } from '@/lib/priority';
 import { compositeKey } from '@/lib/types';
 import EmptyState from './EmptyState';
-import { AlertTriangle } from 'lucide-react';
 import ReminderActionPanel from './ReminderActionPanel';
 import type { TransformedBOData } from '@/lib/transform';
 
@@ -17,7 +16,7 @@ const CATEGORY_COLOR: Record<string, string> = {
 const DEFAULT_COLOR = 'bg-slate-300 text-slate-900';
 
 export default function ReminderQueue() {
-  const { data, annotations, archive, lastExportAt } = useData();
+  const { data, annotations } = useData();
   const [openItem, setOpenItem] = useState<TransformedBOData | null>(null);
 
   const sorted = useMemo(
@@ -27,21 +26,8 @@ export default function ReminderQueue() {
 
   if (data.length === 0) return <div className="p-6"><EmptyState /></div>;
 
-  const lastTs = lastExportAt ? new Date(lastExportAt).getTime() : 0;
-  const unsavedReminderCount = archive.filter(r => new Date(r.created_at).getTime() > lastTs).length;
-
   return (
     <div className="p-4 space-y-3 max-w-5xl mx-auto">
-      {unsavedReminderCount > 0 && (
-        <div
-          className="sticky top-0 z-10 bg-amber-100 border border-amber-300 text-amber-900 px-4 py-2 rounded flex items-center gap-2"
-          data-testid="banner-unsaved"
-        >
-          <AlertTriangle size={16} />
-          <span>Bạn có {unsavedReminderCount} reminder chưa export.</span>
-        </div>
-      )}
-
       {sorted.map((row, idx) => {
         const key = compositeKey(row.DocNo, row.ItemCode, row.RowId);
         const ann = annotations.get(key);

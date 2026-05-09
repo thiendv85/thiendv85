@@ -4,6 +4,8 @@ import "./globals.css";
 import { DataProvider } from "@/components/DataProvider";
 import Navbar from "@/components/Navbar";
 import CurrentUserGuard from "@/components/CurrentUserGuard";
+import UnsavedGuard from "@/components/UnsavedGuard";
+import ExportBanner from "@/components/ExportBanner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,8 +24,10 @@ export default function RootLayout({
       <body className={`${inter.className} bg-slate-50 text-slate-900 antialiased`}>
         <DataProvider>
           <CurrentUserGuard>
+            <UnsavedGuard />
             <div className="flex flex-col min-h-screen">
               <Navbar />
+              <ExportBanner />
               <main className="flex-1 overflow-auto">
                 {children}
               </main>
