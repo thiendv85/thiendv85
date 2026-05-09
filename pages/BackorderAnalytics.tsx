@@ -164,6 +164,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
     const [sourceFilters, setSourceFilters] = useState<string[]>([]);
     const [orderTypeFilters, setOrderTypeFilters] = useState<string[]>([]);
     const [branchFilters, setBranchFilters] = useState<string[]>([]);
+    const [supplierStatusFilters, setSupplierStatusFilters] = useState<string[]>([]);
     const [pageSize, setPageSize] = useState(25);
     const [currentPage, setCurrentPage] = useState(1);
     const [matrixMetric, setMatrixMetric] = useState<'sku' | 'qty' | 'val'>('sku');
@@ -179,6 +180,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
     const deferredMotherGroupFilters = useDeferredValue(motherGroupFilters);
     const deferredOrderTypeFilters = useDeferredValue(orderTypeFilters);
     const deferredBranchFilters = useDeferredValue(branchFilters);
+    const deferredSupplierStatusFilters = useDeferredValue(supplierStatusFilters);
     const deferredSpecialFilter = useDeferredValue(specialFilter);
     const deferredMasterFilter = useDeferredValue(masterFilter);
 
@@ -197,6 +199,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                 if (parsed.motherGroupFilters) setMotherGroupFilters(parsed.motherGroupFilters.filter((f: any) => f && f !== 'All' && f !== 'Tất cả'));
                 if (parsed.orderTypeFilters) setOrderTypeFilters(parsed.orderTypeFilters.filter((f: any) => f && f !== 'All' && f !== 'Tất cả'));
                 if (parsed.branchFilters) setBranchFilters(parsed.branchFilters.filter((f: any) => f && f !== 'All' && f !== 'Tất cả'));
+                if (Array.isArray(parsed.supplierStatusFilters)) setSupplierStatusFilters(parsed.supplierStatusFilters.filter((f: any) => f && ['overdue','due_this_month','due_next_month'].includes(f)));
                 if (parsed.pageSize) setPageSize(Math.max(1, parsed.pageSize));
                 if (parsed.matrixMetric) setMatrixMetric(parsed.matrixMetric);
                 if (parsed.masterFilter) setMasterFilter(parsed.masterFilter);
@@ -205,9 +208,9 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
     }, []);
 
     React.useEffect(() => {
-        const state = { search, agingFilter, sourceFilters, motherGroupFilters, orderTypeFilters, branchFilters, pageSize, matrixMetric, sortConfig, specialFilter, masterFilter };
+        const state = { search, agingFilter, sourceFilters, motherGroupFilters, orderTypeFilters, branchFilters, supplierStatusFilters, pageSize, matrixMetric, sortConfig, specialFilter, masterFilter };
         localStorage.setItem('backorder_filters', JSON.stringify(state));
-    }, [search, agingFilter, sourceFilters, motherGroupFilters, orderTypeFilters, branchFilters, pageSize, matrixMetric, sortConfig, specialFilter, masterFilter]);
+    }, [search, agingFilter, sourceFilters, motherGroupFilters, orderTypeFilters, branchFilters, supplierStatusFilters, pageSize, matrixMetric, sortConfig, specialFilter, masterFilter]);
 
     // ── Auto-Sync Filters when Data Changes ──────────────────────────────────
     // Ensures that when switching snapshots, filters don't "stick" to values that no longer exist
@@ -309,6 +312,46 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
     // a 141d debt shows here but lands in a lower bucket because of date mismatch.
     const getOldestDebtDays = (item: InventoryItem) => item.computed?.boAging?.oldestDebtDays || 0;
 
+    // ── Supplier delivery warning ─────────────────────────────────────────────
+    // Pipeline is the source of truth for "TRONG THÁNG" / "THÁNG SAU" labels.
+    // RawDate + effectiveLT only used to detect overdue suppliers.
+    type SupplierStatus = 'overdue' | 'due_this_month' | 'due_next_month' | 'none';
+    const SUPPLIER_STATUS_META: Record<Exclude<SupplierStatus, 'none'>, { label: string; full: string; cls: string }> = {
+        overdue:        { label: 'TRỄ HẸN',     full: 'NCC quá hạn — RawDate+LT đã qua, không có PO confirm tháng này',  cls: 'bg-rose-100 text-rose-700 ring-rose-300' },
+        due_this_month: { label: 'TRONG THÁNG', full: 'Có PO confirm về tháng này (Pipeline)',                            cls: 'bg-amber-100 text-amber-700 ring-amber-300' },
+        due_next_month: { label: 'THÁNG SAU',   full: 'Có PO confirm về tháng sau (Pipeline)',                              cls: 'bg-blue-50 text-blue-700 ring-blue-200' },
+    };
+    const SUPPLIER_DAY_MS = 24 * 60 * 60 * 1000;
+    const startOfThisMonth = useMemo(() => {
+        const d = new Date();
+        return new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+    }, []);
+    const getSupplierStatus = (item: InventoryItem): SupplierStatus => {
+        const totalBO = Math.max(item.Backorder || 0, item.computed?.boAging?.totalQty || 0);
+        const incomingM0 = item.computed?.incomingCurrentMonth || 0;
+        const incomingM1 = item.computed?.incomingNextMonth || 0;
+        // OVERDUE: BO + LT-based estimate has passed + no PO confirm this month
+        if (totalBO > 0 && incomingM0 === 0) {
+            const breakdown = item.BackorderBreakdown;
+            const ltDays = item.computed?.effectiveLT;
+            if (breakdown && breakdown.length > 0 && ltDays && ltDays > 0) {
+                for (const bo of breakdown) {
+                    const ts = bo.RawDate;
+                    if (ts && ts + ltDays * SUPPLIER_DAY_MS < startOfThisMonth) return 'overdue';
+                }
+            }
+        }
+        if (incomingM0 > 0) return 'due_this_month';
+        if (incomingM1 > 0) return 'due_next_month';
+        return 'none';
+    };
+    // Display labels for the filter dropdown — keep keys stable; we map to internal codes on change.
+    const SUPPLIER_FILTER_OPTIONS: ReadonlyArray<readonly [string, Exclude<SupplierStatus, 'none'>]> = [
+        ['Trễ hẹn — cần đôn đốc', 'overdue'],
+        ['Về trong tháng',         'due_this_month'],
+        ['Về tháng sau',           'due_next_month'],
+    ];
+
     const formatMatrixVal = (val: number) => {
         if (matrixMetric === 'val') {
             return Math.round(val / 1000000).toLocaleString('vi-VN');
@@ -354,8 +397,10 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
             else if (deferredMasterFilter === 'po_ok') matchesMaster = boQty > totalStock && boQty <= (totalStock + poThisMonth);
             else if (deferredMasterFilter === 'fail') matchesMaster = boQty > (totalStock + poThisMonth);
 
+            const matchesSupplier = deferredSupplierStatusFilters.length === 0 || deferredSupplierStatusFilters.includes(getSupplierStatus(item));
+
             const hasBO = boQty > 0;
-            return hasBO && matchesSearch && matchesSource && matchesMother && matchesAging && matchesType && matchesBranch && matchesSpecial && matchesMaster;
+            return hasBO && matchesSearch && matchesSource && matchesMother && matchesAging && matchesType && matchesBranch && matchesSpecial && matchesMaster && matchesSupplier;
         });
 
         if (sortConfig) {
@@ -386,7 +431,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
             });
         }
         return list;
-    }, [cachedData, searchResult, deferredSourceFilters, deferredMotherGroupFilters, deferredAgingFilter, deferredOrderTypeFilters, deferredBranchFilters, sortConfig, deferredSpecialFilter, deferredMasterFilter]);
+    }, [cachedData, searchResult, deferredSourceFilters, deferredMotherGroupFilters, deferredAgingFilter, deferredOrderTypeFilters, deferredBranchFilters, deferredSupplierStatusFilters, sortConfig, deferredSpecialFilter, deferredMasterFilter, startOfThisMonth]);
 
     const stats = useMemo(() => {
         if (!filteredData) return { totalValue: 0, totalQty: 0, criticalCount: 0, aging: { q30: 0, q60: 0, q90: 0, qO90: 0 }, totalPOVal: 0, poCoverage: 0 };
@@ -1033,12 +1078,27 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                 icon="fa-file-invoice" 
                             />
 
-                            <FilterDropdown 
-                                label="Đơn vị" 
-                                options={filterOptions.branches} 
-                                selected={branchFilters} 
-                                onChange={setBranchFilters} 
-                                icon="fa-building" 
+                            <FilterDropdown
+                                label="Đơn vị"
+                                options={filterOptions.branches}
+                                selected={branchFilters}
+                                onChange={setBranchFilters}
+                                icon="fa-building"
+                            />
+
+                            <FilterDropdown
+                                label="Cảnh báo NCC"
+                                options={SUPPLIER_FILTER_OPTIONS.map(([label]) => label)}
+                                selected={SUPPLIER_FILTER_OPTIONS
+                                    .filter(([, code]) => supplierStatusFilters.includes(code))
+                                    .map(([label]) => label)}
+                                onChange={(labels: string[]) => {
+                                    const codes = SUPPLIER_FILTER_OPTIONS
+                                        .filter(([label]) => labels.includes(label))
+                                        .map(([, code]) => code);
+                                    setSupplierStatusFilters(codes);
+                                }}
+                                icon="fa-truck-fast"
                             />
 
                             <div className="flex bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
@@ -1164,6 +1224,19 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                                             <span className="text-slate-600 font-bold">· {item.BrandName}</span>
                                                             {item.TypeCar && <span>· {item.TypeCar}</span>}
                                                         </div>
+                                                        {(() => {
+                                                            const ss = getSupplierStatus(item);
+                                                            if (ss === 'none') return null;
+                                                            const meta = SUPPLIER_STATUS_META[ss];
+                                                            return (
+                                                                <div className="mt-1">
+                                                                    <span title={meta.full} className={`inline-flex items-center gap-1 font-mono font-black text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded ring-1 ${meta.cls}`}>
+                                                                        <FaIcon className="fas fa-truck-fast text-[8px]" />
+                                                                        {meta.label}
+                                                                    </span>
+                                                                </div>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 </div>
                                             </td>
