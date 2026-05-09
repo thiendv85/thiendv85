@@ -185,65 +185,59 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
     const deferredMasterFilter = useDeferredValue(masterFilter);
 
     // ── Supplier delivery warning ─────────────────────────────────────────────
-    // Combines two data sources to classify supplier risk:
-    //   (a) Pipeline (PO đã confirm): item.computed.incomingCurrentMonth / NextMonth
-    //   (b) RawDate + effectiveLT: estimated arrival from order date + lead time
-    // Three actionable tiers (others hidden — UI shows badge only when action needed):
-    //   overdue       → BO exists, expected has passed AND no confirmed PO this month
-    //   due_this_month → confirmed PO arriving this month OR estimated arrival in this month
-    //   due_next_month → confirmed PO arriving next month OR estimated arrival in next month
-    //   none          → ok / no signal / no data → no badge
+    // Two-tier source-of-truth model:
+    //   • Pipeline (incomingCurrentMonth / incomingNextMonth) is the AUTHORITATIVE
+    //     "supplier confirmed" arrival date. Only Pipeline drives the
+    //     "TRONG THÁNG" / "THÁNG SAU" labels — those imply a known ETA.
+    //   • RawDate + effectiveLT is an ESTIMATE used solely to detect overdue:
+    //     when the item is on backorder and the LT-based expected date has
+    //     already passed and the supplier hasn't confirmed a new arrival in
+    //     Pipeline this month, the supplier is late.
+    // Items in the normal LT window without Pipeline data show no badge —
+    // we don't speculate "next month" without supplier confirmation.
     type SupplierStatus = 'overdue' | 'due_this_month' | 'due_next_month' | 'none';
     const SUPPLIER_STATUS_META: Record<Exclude<SupplierStatus, 'none'>, { label: string; full: string; cls: string; rank: number }> = {
-        overdue:        { label: 'TRỄ HẸN',     full: 'NCC quá hạn — đã qua ngày dự kiến giao và chưa có PO confirm về tháng này',  cls: 'bg-rose-100 text-rose-700 ring-rose-300',    rank: 0 },
-        due_this_month: { label: 'TRONG THÁNG', full: 'Có PO confirm hoặc dự kiến giao trong tháng này',                              cls: 'bg-amber-100 text-amber-700 ring-amber-300', rank: 1 },
-        due_next_month: { label: 'THÁNG SAU',   full: 'Có PO confirm hoặc dự kiến giao tháng sau',                                     cls: 'bg-blue-50 text-blue-700 ring-blue-200',     rank: 2 },
+        overdue:        { label: 'TRỄ HẸN',     full: 'NCC quá hạn — RawDate+LT đã qua và không có PO confirm về tháng này', cls: 'bg-rose-100 text-rose-700 ring-rose-300',    rank: 0 },
+        due_this_month: { label: 'TRONG THÁNG', full: 'Có PO confirm về trong tháng này (Pipeline)',                          cls: 'bg-amber-100 text-amber-700 ring-amber-300', rank: 1 },
+        due_next_month: { label: 'THÁNG SAU',   full: 'Có PO confirm về tháng sau (Pipeline)',                                  cls: 'bg-blue-50 text-blue-700 ring-blue-200',     rank: 2 },
     };
     const MS_PER_DAY = 24 * 60 * 60 * 1000;
     const monthBoundaries = useMemo(() => {
         const now = new Date();
         const startThisMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-        const startNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime();
-        const startMonthAfter = new Date(now.getFullYear(), now.getMonth() + 2, 1).getTime();
-        return { startThisMonth, startNextMonth, startMonthAfter };
+        return { startThisMonth };
     }, []);
     const getSupplierStatus = (item: InventoryItem): SupplierStatus => {
         const totalBO = Math.max(item.Backorder || 0, item.computed?.boAging?.totalQty || 0);
         const incomingM0 = item.computed?.incomingCurrentMonth || 0;
         const incomingM1 = item.computed?.incomingNextMonth || 0;
 
-        // Estimate worst expected_date from BackorderBreakdown × effectiveLT.
-        // estimatedTier: 0 = past, 1 = this month, 2 = next month, 3 = later, -1 = no data.
-        let estimatedTier = -1;
-        const breakdown = item.BackorderBreakdown;
-        const ltDays = item.computed?.effectiveLT;
-        if (breakdown && breakdown.length > 0 && ltDays && ltDays > 0) {
-            for (const bo of breakdown) {
-                const orderTs = bo.RawDate;
-                if (!orderTs) continue;
-                const expected = orderTs + ltDays * MS_PER_DAY;
-                let t: number;
-                if (expected < monthBoundaries.startThisMonth) t = 0;
-                else if (expected < monthBoundaries.startNextMonth) t = 1;
-                else if (expected < monthBoundaries.startMonthAfter) t = 2;
-                else t = 3;
-                if (estimatedTier === -1 || t < estimatedTier) estimatedTier = t;
-                if (estimatedTier === 0) break;
+        // OVERDUE detection only: estimate (RawDate + LT) is allowed to flag
+        // late suppliers, but never to predict a future month.
+        let estimatedExpired = false;
+        if (totalBO > 0 && incomingM0 === 0) {
+            const breakdown = item.BackorderBreakdown;
+            const ltDays = item.computed?.effectiveLT;
+            if (breakdown && breakdown.length > 0 && ltDays && ltDays > 0) {
+                for (const bo of breakdown) {
+                    const orderTs = bo.RawDate;
+                    if (!orderTs) continue;
+                    if (orderTs + ltDays * MS_PER_DAY < monthBoundaries.startThisMonth) {
+                        estimatedExpired = true;
+                        break;
+                    }
+                }
             }
         }
 
-        // 1. OVERDUE: BO present + estimated past + no confirmed PO this month.
-        //    A confirmed PO this month overrides "overdue" — supplier is delivering even if
-        //    the original LT-based estimate has passed.
-        if (totalBO > 0 && estimatedTier === 0 && incomingM0 === 0) return 'overdue';
+        // 1. OVERDUE: late supplier — estimate past, no confirmed PO this month.
+        if (estimatedExpired) return 'overdue';
 
-        // 2. DUE THIS MONTH: confirmed PO this month OR estimated to land in this month.
-        if (incomingM0 > 0 || estimatedTier === 1) return 'due_this_month';
+        // 2/3. Pipeline-confirmed arrivals only. We never label by estimate.
+        if (incomingM0 > 0) return 'due_this_month';
+        if (incomingM1 > 0) return 'due_next_month';
 
-        // 3. DUE NEXT MONTH: confirmed PO next month OR estimated next month.
-        if (incomingM1 > 0 || estimatedTier === 2) return 'due_next_month';
-
-        // 4. No actionable signal — hide badge.
+        // 4. No confirmed signal — hide badge.
         return 'none';
     };
     // Vietnamese labels used by the filter dropdown so users can pick by display name.
