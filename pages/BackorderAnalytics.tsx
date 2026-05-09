@@ -1081,15 +1081,22 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                 </div>
             </div>
 
-            {/* ─── ROW 3 — HERO STATS + ACTION CHIPS ─────────────────────────
-                3 hero numbers answer "what's the total?". Color discipline:
-                  · SKU NỢ stays slate-900 (population count, no good/bad inherent meaning)
-                  · SỐ LƯỢNG / GIÁ TRỊ are debt magnitudes — high = bad → use slate→amber→rose
-                    threshold tone, NEVER emerald (emerald = "good" misleads).
-                Hero "SKU NỢ" is a button that clears all dimension filters — drill-down
-                pattern from kpi-dashboard-design (limit to 5–7 KPIs, enable drilldown).
-                Action chips on the right for the same chip set as before. */}
-            <div className="bg-white border-b border-slate-200 shrink-0 px-6 lg:px-8 py-3 flex items-center justify-between gap-6 flex-wrap">
+            {/* ─── KPI HIERARCHY — 3 LAYERS (kpi-dashboard-design) ───────────
+                Per the skill's Dashboard Hierarchy table, KPIs split into:
+                  · Strategic   → headline scale, glance answers
+                  · Tactical    → health diagnostics, trend signals
+                  · Operational → today's task list, real-time alerts
+                Each row carries a left-edge layer pill so the operator can
+                read the page top-to-bottom: "what's the damage" → "is it
+                getting worse" → "what should I do now". The pill colors
+                (slate / blue / rose) reinforce the layer ladder. */}
+
+            {/* ─── ROW 3 — LAYER 1: TỔNG QUAN (Strategic — current scale) ─── */}
+            <div className="bg-white border-b border-slate-200 shrink-0 px-6 lg:px-8 py-3 flex items-center gap-5 flex-wrap">
+                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-900 text-white text-[9px] font-black uppercase tracking-[0.25em] shrink-0" aria-hidden="true">
+                    <FaIcon className="fas fa-chart-pie text-[9px]" />
+                    Tổng quan
+                </span>
                 <div className="flex items-center divide-x divide-slate-200">
                     <button
                         type="button"
@@ -1114,51 +1121,14 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                         </div>
                     </div>
                 </div>
-                {(headerStats.nCritical + headerStats.nHigh + headerStats.nWarning + headerStats.nSupplierLate) > 0 && (
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[10px] uppercase tracking-[0.25em] font-black text-rose-700 inline-flex items-center gap-1.5">
-                            <FaIcon className="fas fa-bell text-[10px]" aria-hidden="true" /> CẦN XỬ LÝ
-                        </span>
-                        {headerStats.nCritical > 0 && (
-                            <button type="button" onClick={onCriticalChip} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-600 text-white text-[10px] font-black uppercase tracking-wider hover:bg-rose-700 transition-colors shadow-sm focus-visible:ring-2 focus-visible:ring-rose-400">
-                                <FaIcon className="fas fa-circle-exclamation text-[9px]" aria-hidden="true" />
-                                TRỄ N.TRỌNG <span className="tabular-nums">{headerStats.nCritical}</span>
-                            </button>
-                        )}
-                        {headerStats.nHigh > 0 && (
-                            <button type="button" onClick={onHighChip} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-100 ring-1 ring-rose-300 text-rose-700 text-[10px] font-black uppercase tracking-wider hover:bg-rose-200 transition-colors focus-visible:ring-2 focus-visible:ring-rose-400">
-                                <FaIcon className="fas fa-triangle-exclamation text-[9px]" aria-hidden="true" />
-                                TRỄ NẶNG <span className="tabular-nums">{headerStats.nHigh}</span>
-                            </button>
-                        )}
-                        {headerStats.nWarning > 0 && (
-                            <button type="button" onClick={onWarningChip} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-100 ring-1 ring-amber-300 text-amber-700 text-[10px] font-black uppercase tracking-wider hover:bg-amber-200 transition-colors focus-visible:ring-2 focus-visible:ring-amber-400">
-                                <FaIcon className="fas fa-clock-rotate-left text-[9px]" aria-hidden="true" />
-                                TRỄ NHẸ <span className="tabular-nums">{headerStats.nWarning}</span>
-                            </button>
-                        )}
-                        {headerStats.nSupplierLate > 0 && (
-                            <button type="button" onClick={onSupplierChip} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-100 ring-1 ring-rose-300 text-rose-700 text-[10px] font-black uppercase tracking-wider hover:bg-rose-200 transition-colors focus-visible:ring-2 focus-visible:ring-rose-400">
-                                <FaIcon className="fas fa-truck-fast text-[9px]" aria-hidden="true" />
-                                NCC TRỄ <span className="tabular-nums">{headerStats.nSupplierLate}</span>
-                            </button>
-                        )}
-                    </div>
-                )}
             </div>
 
-            {/* ─── ROW 4 — DIAGNOSTIC KPI STRIP (4 metrics + conditional alerts) ───
-                Per kpi-dashboard-design rule "Limit to 5–7 KPIs": dropped SCORE TB
-                (vanity — already encoded in chips by tier) and ĐIỀU CHUYỂN (already
-                visible as inline transfer button per row; surfaced as info alert when > 0).
-                Tone scale uses red=bad consistently:
-                  · TUỔI NỢ TB: > 90d rose, > 60d amber, else slate
-                  · % TRỄ LT:   > 50% rose, > 25% amber, else slate (no green — means
-                                "fewer overdue", not "good"; we don't reward debt)
-                  · ĐƠN LÂU NHẤT: > 365d rose, > 90d amber, else slate
-                  · PO COVERAGE: >= 80% emerald (here green IS good — high coverage =
-                                inbound supply secured), 50–79% slate, < 50% rose */}
-            <div className="bg-slate-50 border-b border-slate-200 shrink-0 px-6 lg:px-8 flex items-stretch flex-wrap gap-x-0 overflow-x-auto custom-scrollbar">
+            {/* ─── ROW 4 — LAYER 2: TRẠNG THÁI (Tactical — health diagnostics) ─── */}
+            <div className="bg-slate-50 border-b border-slate-200 shrink-0 px-6 lg:px-8 py-2 flex items-center gap-5 flex-wrap overflow-x-auto custom-scrollbar">
+                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-blue-600 text-white text-[9px] font-black uppercase tracking-[0.25em] shrink-0" aria-hidden="true">
+                    <FaIcon className="fas fa-heart-pulse text-[9px]" />
+                    Trạng thái
+                </span>
                 <div className="flex items-stretch divide-x divide-slate-200">
                     {[
                         { label: 'TUỔI NỢ TB',    value: `${Math.round(headerStats.avgDays)}d`,        sub: `${headerStats.countOpen.toLocaleString('vi-VN')} đơn`,      tone: headerStats.avgDays > 90 ? 'text-rose-700' : headerStats.avgDays > 60 ? 'text-amber-600' : 'text-slate-800' },
@@ -1166,17 +1136,54 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                         { label: 'ĐƠN LÂU NHẤT',  value: `${Math.round(headerStats.maxDays)}d`,         sub: 'tối đa',                                                    tone: headerStats.maxDays > 365 ? 'text-rose-700' : headerStats.maxDays > 90 ? 'text-amber-600' : 'text-slate-800' },
                         { label: 'PO COVERAGE',   value: `${stats.poCoverage.toFixed(0)}%`,             sub: 'có hàng về',                                                tone: stats.poCoverage >= 80 ? 'text-emerald-600' : stats.poCoverage >= 50 ? 'text-slate-800' : 'text-rose-700' },
                     ].map((k) => (
-                        <div key={k.label} className="px-4 py-2 shrink-0 first:pl-0">
+                        <div key={k.label} className="px-4 py-1 shrink-0 first:pl-0">
                             <div className="text-[9px] uppercase tracking-[0.2em] font-black text-slate-500">{k.label}</div>
                             <div className={`text-base font-black tabular-nums leading-tight mt-0.5 ${k.tone}`}>{k.value}</div>
                             <div className="text-[9px] text-slate-500 font-medium leading-tight">{k.sub}</div>
                         </div>
                     ))}
                 </div>
-                {/* Conditional info alerts — render only when actionable.
-                    Pattern 3 ("Recent Alerts") from kpi-dashboard-design. */}
-                {(headerStats.nTransfer > 0 || stats.poCoverage < 50) && (
-                    <div className="ml-auto flex items-center gap-2 py-2 px-2 flex-wrap">
+            </div>
+
+            {/* ─── ROW 5 — LAYER 3: CẦN XỬ LÝ (Operational — today's actions)
+                Renders only when at least one chip or alert is active. The
+                whole row collapses on a clean board so the header doesn't
+                add empty noise. */}
+            {(headerStats.nCritical + headerStats.nHigh + headerStats.nWarning + headerStats.nSupplierLate > 0
+              || headerStats.nTransfer > 0
+              || stats.poCoverage < 50) && (
+                <div className="bg-rose-50/40 border-b border-rose-100 shrink-0 px-6 lg:px-8 py-2 flex items-center gap-3 flex-wrap">
+                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-rose-600 text-white text-[9px] font-black uppercase tracking-[0.25em] shrink-0" aria-hidden="true">
+                        <FaIcon className="fas fa-bell text-[9px]" />
+                        Cần xử lý
+                    </span>
+                    {/* Anomaly tier chips — clickable, set the matching anomaly filter + sort. */}
+                    {headerStats.nCritical > 0 && (
+                        <button type="button" onClick={onCriticalChip} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-600 text-white text-[10px] font-black uppercase tracking-wider hover:bg-rose-700 transition-colors shadow-sm focus-visible:ring-2 focus-visible:ring-rose-400">
+                            <FaIcon className="fas fa-circle-exclamation text-[9px]" aria-hidden="true" />
+                            TRỄ N.TRỌNG <span className="tabular-nums">{headerStats.nCritical}</span>
+                        </button>
+                    )}
+                    {headerStats.nHigh > 0 && (
+                        <button type="button" onClick={onHighChip} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-100 ring-1 ring-rose-300 text-rose-700 text-[10px] font-black uppercase tracking-wider hover:bg-rose-200 transition-colors focus-visible:ring-2 focus-visible:ring-rose-400">
+                            <FaIcon className="fas fa-triangle-exclamation text-[9px]" aria-hidden="true" />
+                            TRỄ NẶNG <span className="tabular-nums">{headerStats.nHigh}</span>
+                        </button>
+                    )}
+                    {headerStats.nWarning > 0 && (
+                        <button type="button" onClick={onWarningChip} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-100 ring-1 ring-amber-300 text-amber-700 text-[10px] font-black uppercase tracking-wider hover:bg-amber-200 transition-colors focus-visible:ring-2 focus-visible:ring-amber-400">
+                            <FaIcon className="fas fa-clock-rotate-left text-[9px]" aria-hidden="true" />
+                            TRỄ NHẸ <span className="tabular-nums">{headerStats.nWarning}</span>
+                        </button>
+                    )}
+                    {headerStats.nSupplierLate > 0 && (
+                        <button type="button" onClick={onSupplierChip} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-100 ring-1 ring-rose-300 text-rose-700 text-[10px] font-black uppercase tracking-wider hover:bg-rose-200 transition-colors focus-visible:ring-2 focus-visible:ring-rose-400">
+                            <FaIcon className="fas fa-truck-fast text-[9px]" aria-hidden="true" />
+                            NCC TRỄ <span className="tabular-nums">{headerStats.nSupplierLate}</span>
+                        </button>
+                    )}
+                    {/* Spacer pushes info alerts to the right edge. */}
+                    {(stats.poCoverage < 50 || headerStats.nTransfer > 0) && <div className="ml-auto flex items-center gap-2 flex-wrap">
                         {stats.poCoverage < 50 && (
                             <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-rose-50 ring-1 ring-rose-200 text-rose-700 text-[10px] font-black uppercase tracking-wider" title="PO Coverage thấp — phần lớn SKU nợ chưa có đơn đặt mua nội bộ">
                                 <FaIcon className="fas fa-truck-ramp-box text-[9px]" aria-hidden="true" />
@@ -1189,9 +1196,9 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                 ĐIỀU CHUYỂN <span className="tabular-nums">{headerStats.nTransfer}</span>
                             </span>
                         )}
-                    </div>
-                )}
-            </div>
+                    </div>}
+                </div>
+            )}
 
             <div className="p-6 pb-4 shrink-0">
 
