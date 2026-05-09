@@ -8,9 +8,15 @@
  *     month that snapshot N predicted.
  *   - Caches dataset to scripts/backtest-data.json on first run.
  *
- * Metric:
- *   WMAPE = Σ|pred - actual| / Σ actual
- *   Lower is better.
+ * Multi-objective metric (lower is better):
+ *   WMAPE          = Σ|pred - actual| / Σ actual                (accuracy)
+ *   |bias|         = |Σ(pred - actual) / Σ actual|              (systematic skew)
+ *   stockout_rate  = Σ max(0, actual - pred) / Σ actual         (under-forecast severity)
+ *   composite      = WMAPE + W_BIAS·|bias| + W_STOCKOUT·stockout_rate
+ *
+ * Asymmetry: stockout (under-forecast) is heavier weighted than excess
+ * (over-forecast) because in distribution business with LT 2-5 months,
+ * lost sales / expedite cost > carrying cost.
  *
  * Usage:
  *   tsx scripts/backtest-engine.ts
@@ -126,66 +132,97 @@ function predict(row: BacktestRow): number {
     // V15 — Smooth CV-aware interpolation instead of step thresholds.
     // alpha = weight on base. CV=0 → 0.6 base. CV=2 → 0.1 base. Clamped.
     let base = resolveDemand_v0(row, false);
-    if (row.avg_qty_12m > 0) base = Math.min(base, 3 * row.avg_qty_12m);
+    // EXP7: tighter cap 3x → 2.5x avg_qty_12m
+    if (row.avg_qty_12m > 0) base = Math.min(base, 2.5 * row.avg_qty_12m);
 
     const a3 = row.avg_qty_3m;
     if (a3 <= 0) return base;
 
-    if (row.cv > 1.5) {
+    if (row.cv > 1.2) {
+        // EXP5: lower threshold + 0.1/0.9 weights (lean harder on a3 for lumpy)
         const med = median(row.hist);
-        return 0.2 * med + 0.8 * a3;
+        return 0.1 * med + 0.9 * a3;
     }
-    // Smooth interpolation: alpha = max(0.1, 0.6 - 0.25 × CV)
     const alpha = Math.max(0.1, 0.65 - 0.3 * row.cv);
     return alpha * base + (1 - alpha) * a3;
 }
 
 // ─── Metric computation ─────────────────────────────────────────────────────
-function computeWMAPE(rows: BacktestRow[]): {
+const W_BIAS = 1.0;
+const W_STOCKOUT = 1.5;
+
+interface MetricResult {
     wmape: number;
     bias: number;
+    absBias: number;
+    stockoutRate: number;
+    excessRate: number;
+    composite: number;
     n: number;
     actualSum: number;
     predSum: number;
     avgError: number;
-} {
+    skuStockoutPct: number;
+}
+
+function computeMetrics(rows: BacktestRow[]): MetricResult {
     let sumAbsErr = 0;
     let sumActual = 0;
     let sumPred = 0;
     let sumSignedErr = 0;
+    let sumUnderErr = 0;  // Σ max(0, actual - pred) — stockout severity
+    let sumOverErr = 0;   // Σ max(0, pred - actual) — excess severity
     let n = 0;
+    let nStockout = 0;    // SKUs where under-prediction > 20% of actual (stockout-prone)
     for (const r of rows) {
         const pred = predict(r);
         if (!Number.isFinite(pred)) continue;
         const actual = r.actual_next;
-        sumAbsErr += Math.abs(pred - actual);
-        sumSignedErr += pred - actual;
+        const diff = pred - actual;
+        sumAbsErr += Math.abs(diff);
+        sumSignedErr += diff;
+        if (diff < 0) sumUnderErr += -diff;
+        else sumOverErr += diff;
         sumActual += actual;
         sumPred += pred;
+        if (actual > 0 && pred < 0.8 * actual) nStockout++;
         n++;
     }
     const wmape = sumActual > 0 ? sumAbsErr / sumActual : 0;
     const bias = sumActual > 0 ? sumSignedErr / sumActual : 0;
+    const absBias = Math.abs(bias);
+    const stockoutRate = sumActual > 0 ? sumUnderErr / sumActual : 0;
+    const excessRate = sumActual > 0 ? sumOverErr / sumActual : 0;
+    const composite = wmape + W_BIAS * absBias + W_STOCKOUT * stockoutRate;
     return {
         wmape,
         bias,
+        absBias,
+        stockoutRate,
+        excessRate,
+        composite,
         n,
         actualSum: sumActual,
         predSum: sumPred,
         avgError: n > 0 ? sumAbsErr / n : 0,
+        skuStockoutPct: n > 0 ? nStockout / n : 0,
     };
 }
 
 // ─── Main ──────────────────────────────────────────────────────────────────
 async function main() {
     const rows = loadBacktest();
-    const m = computeWMAPE(rows);
+    const m = computeMetrics(rows);
     console.log(`N: ${m.n}`);
     console.log(`Actual sum: ${m.actualSum.toFixed(0)}`);
     console.log(`Pred sum: ${m.predSum.toFixed(0)}`);
     console.log(`Avg abs err per SKU: ${m.avgError.toFixed(2)}`);
     console.log(`Bias: ${m.bias.toFixed(4)}`);
     console.log(`WMAPE: ${m.wmape.toFixed(6)}`);
+    console.log(`Stockout rate (Σ under / Σ actual): ${m.stockoutRate.toFixed(6)}`);
+    console.log(`Excess rate   (Σ over  / Σ actual): ${m.excessRate.toFixed(6)}`);
+    console.log(`SKU stockout % (pred<0.8·actual):   ${(m.skuStockoutPct * 100).toFixed(2)}%`);
+    console.log(`COMPOSITE (W_BIAS=${W_BIAS}, W_STOCKOUT=${W_STOCKOUT}): ${m.composite.toFixed(6)}`);
 }
 
 main().catch(err => {
