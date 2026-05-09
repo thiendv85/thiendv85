@@ -13,7 +13,7 @@ import { BackorderPopup } from '../components/BackorderPopup';
 import { PipelinePopup } from '../components/PipelinePopup';
 import { DealerInventoryPopup } from '../components/DealerInventoryPopup';
 import { parseInventorySearch, SearchResult, matchSearch, prepareSearchCache } from '../utils/searchLogic';
-import { classifyItemAnomalies, ANOMALY_META, type OrderAnomaly } from '../utils/supplierAnomaly';
+import { classifyItemAnomalies, ANOMALY_META, buildCohortStats, stockoutDaysRemaining, type OrderAnomaly } from '../utils/supplierAnomaly';
 
 const AgingBadge = ({ days, qty }: { days: string, qty: number }) => {
     const getColor = (d: string) => {
@@ -360,15 +360,26 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
     // Stable now reference so all rows are classified against the same instant
     // (prevents drift when many items are processed in sequence).
     const anomalyNow = useMemo(() => Date.now(), []);
-    const anomalyCache = useMemo(() => new Map<string, ReturnType<typeof classifyItemAnomalies>>(), [anomalyNow]);
+    // Build per-source cohort stats once over all enriched items so each SKU
+    // classifier can compare its order daysOpen against its supplier baseline.
+    const cohortStats = useMemo(
+        () => buildCohortStats(enrichedData ?? [], anomalyNow),
+        [enrichedData, anomalyNow],
+    );
+    const anomalyCache = useMemo(() => new Map<string, ReturnType<typeof classifyItemAnomalies>>(), [anomalyNow, cohortStats]);
     const getItemAnomaly = (item: InventoryItem) => {
         const lt = item.computed?.effectiveLT;
         const breakdown = item.BackorderBreakdown;
-        // Cache by ItemCode + LT + breakdown length to avoid re-computing on every render.
         const key = `${item.ItemCode}__${lt ?? 0}__${breakdown?.length ?? 0}`;
         let cached = anomalyCache.get(key);
         if (!cached) {
-            cached = classifyItemAnomalies(breakdown, lt, anomalyNow);
+            const sourceKey = (item.SourceId || 'KHÁC').toString().trim().toUpperCase() || 'KHÁC';
+            const cohort = cohortStats.get(sourceKey);
+            cached = classifyItemAnomalies(breakdown, lt, anomalyNow, {
+                cohortP50: cohort?.p50,
+                cohortP90: cohort?.p90,
+                stockoutDaysRemaining: stockoutDaysRemaining(item),
+            });
             anomalyCache.set(key, cached);
         }
         return cached;
@@ -1369,11 +1380,12 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                                                             .filter(t => agg.counts[t] > 0)
                                                                             .map(t => `${agg.counts[t]} ${ANOMALY_META[t].label}`).join(' • ');
                                                                         const maxDays = Math.round(agg.maxDaysOpen);
-                                                                        const tooltip = `${meta.label} • ${detail} • Đơn lâu nhất ${maxDays}d (trễ ${Math.round(agg.maxDaysOverdue)}d so với LT)`;
+                                                                        const score = Math.round(agg.maxScore);
+                                                                        const tooltip = `${meta.label} (score ${score}/100) • ${detail} • Đơn lâu nhất ${maxDays}d (trễ ${Math.round(agg.maxDaysOverdue)}d so với LT)`;
                                                                         return (
                                                                             <span title={tooltip} className={`inline-flex items-center gap-1 font-mono font-black text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded ring-1 ${meta.cls}`}>
                                                                                 <FaIcon className="fas fa-triangle-exclamation text-[8px]" />
-                                                                                {meta.label} · {maxDays}D · {agg.abnormalCount} ĐƠN
+                                                                                {meta.label} · {score}đ · {maxDays}D · {agg.abnormalCount} ĐƠN
                                                                             </span>
                                                                         );
                                                                     })()}

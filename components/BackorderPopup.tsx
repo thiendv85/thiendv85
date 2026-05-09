@@ -214,12 +214,12 @@ export const BackorderPopup = ({ items, effectiveLTDays, children }: BackorderPo
                                                                 </td>
                                                                 <td className="px-4 py-2.5 text-center">
                                                                     {(() => {
-                                                                        if (!effectiveLTDays || !d.RawDate) {
+                                                                        if (!effectiveLTDays) {
                                                                             return <Typography variant="body-sm" className="text-slate-300">–</Typography>;
                                                                         }
                                                                         const r = classifyOrderAnomaly(d, effectiveLTDays);
                                                                         const meta = ANOMALY_META[r.anomaly];
-                                                                        const tooltip = `${meta.label} • ${r.reasons.join(' • ') || 'Đúng tiến độ'} • Mở ${Math.round(r.daysOpen)}d / LT ${effectiveLTDays}d`;
+                                                                        const tooltip = `${meta.label} (score ${Math.round(r.score)}/100)\n${r.reasons.join(' • ') || 'Đúng tiến độ'}\nMở ${Math.round(r.daysOpen)}d / LT ${effectiveLTDays}d`;
                                                                         return (
                                                                             <span title={tooltip} className={`inline-flex items-center gap-1 font-mono font-black text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded ring-1 ${meta.cls}`}>
                                                                                 {meta.label}
