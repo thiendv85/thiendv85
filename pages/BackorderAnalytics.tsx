@@ -167,6 +167,11 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
     const [branchFilters, setBranchFilters] = useState<string[]>([]);
     const [supplierStatusFilters, setSupplierStatusFilters] = useState<string[]>([]);
     const [anomalyFilters, setAnomalyFilters] = useState<OrderAnomaly[]>([]);
+    // Warehouse scope filter: 'all' shows everything (current behavior).
+    // 'NB' / 'BB' filters the SKU list to that warehouse and switches all
+    // displayed BO/stock/aging/anomaly aggregates to use only that warehouse's
+    // entries. DealerInventory stays as-is — it cannot be split per warehouse.
+    const [warehouseScope, setWarehouseScope] = useState<'all' | 'NB' | 'BB'>('all');
     const [pageSize, setPageSize] = useState(25);
     const [currentPage, setCurrentPage] = useState(1);
     const [matrixMetric, setMatrixMetric] = useState<'sku' | 'qty' | 'val'>('sku');
@@ -184,6 +189,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
     const deferredBranchFilters = useDeferredValue(branchFilters);
     const deferredSupplierStatusFilters = useDeferredValue(supplierStatusFilters);
     const deferredAnomalyFilters = useDeferredValue(anomalyFilters);
+    const deferredWarehouseScope = useDeferredValue(warehouseScope);
     const deferredSpecialFilter = useDeferredValue(specialFilter);
     const deferredMasterFilter = useDeferredValue(masterFilter);
 
@@ -204,6 +210,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                 if (parsed.branchFilters) setBranchFilters(parsed.branchFilters.filter((f: any) => f && f !== 'All' && f !== 'Tất cả'));
                 if (Array.isArray(parsed.supplierStatusFilters)) setSupplierStatusFilters(parsed.supplierStatusFilters.filter((f: any) => f && ['overdue','due_this_month','due_next_month'].includes(f)));
                 if (Array.isArray(parsed.anomalyFilters)) setAnomalyFilters(parsed.anomalyFilters.filter((f: any) => f && ['CRITICAL','HIGH','WARNING','DUE_SOON'].includes(f)));
+                if (parsed.warehouseScope && ['all','NB','BB'].includes(parsed.warehouseScope)) setWarehouseScope(parsed.warehouseScope);
                 if (parsed.pageSize) setPageSize(Math.max(1, parsed.pageSize));
                 if (parsed.matrixMetric) setMatrixMetric(parsed.matrixMetric);
                 if (parsed.masterFilter) setMasterFilter(parsed.masterFilter);
@@ -212,9 +219,9 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
     }, []);
 
     React.useEffect(() => {
-        const state = { search, agingFilter, sourceFilters, motherGroupFilters, orderTypeFilters, branchFilters, supplierStatusFilters, anomalyFilters, pageSize, matrixMetric, sortConfig, specialFilter, masterFilter };
+        const state = { search, agingFilter, sourceFilters, motherGroupFilters, orderTypeFilters, branchFilters, supplierStatusFilters, anomalyFilters, warehouseScope, pageSize, matrixMetric, sortConfig, specialFilter, masterFilter };
         localStorage.setItem('backorder_filters', JSON.stringify(state));
-    }, [search, agingFilter, sourceFilters, motherGroupFilters, orderTypeFilters, branchFilters, supplierStatusFilters, anomalyFilters, pageSize, matrixMetric, sortConfig, specialFilter, masterFilter]);
+    }, [search, agingFilter, sourceFilters, motherGroupFilters, orderTypeFilters, branchFilters, supplierStatusFilters, anomalyFilters, warehouseScope, pageSize, matrixMetric, sortConfig, specialFilter, masterFilter]);
 
     // ── Auto-Sync Filters when Data Changes ──────────────────────────────────
     // Ensures that when switching snapshots, filters don't "stick" to values that no longer exist
@@ -296,11 +303,42 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
         PO:    { label: 'PO',    full: 'PO đủ trả',      cls: 'bg-blue-50 text-blue-700 ring-blue-200' },
         GAP:   { label: 'GAP',   full: 'Không đủ trả',   cls: 'bg-rose-50 text-rose-700 ring-rose-200' },
     };
-    const getCoverageStatus = (item: InventoryItem): CoverageStatus => {
-        const totalStock = (item.QuantityInventory_NB || 0) + (item.QuantityInventory_BB || 0)
-                         + (item.QuantityDC_NB || 0) + (item.QuantityDC_BB || 0);
+    // ── Warehouse scope helpers ───────────────────────────────────────────────
+    // Classify a BackorderDetail entry by its Warehouse string. Pattern matches
+    // existing usage in pages/SkuDetail.tsx and pages/FileUpload.tsx.
+    const isNBEntry = (bo: BackorderDetail): boolean => {
+        const w = bo.Warehouse || '';
+        return w.includes('NB') || w.includes('Nam');
+    };
+    const isBBEntry = (bo: BackorderDetail): boolean => {
+        const w = bo.Warehouse || '';
+        return w.includes('BB') || w.includes('Bắc');
+    };
+    const filterBreakdownByScope = (
+        breakdown: BackorderDetail[] | undefined,
+        scope: 'all' | 'NB' | 'BB',
+    ): BackorderDetail[] => {
+        if (!breakdown || breakdown.length === 0) return [];
+        if (scope === 'all') return breakdown;
+        if (scope === 'NB') return breakdown.filter(isNBEntry);
+        return breakdown.filter(isBBEntry);
+    };
+    const getScopedBOQty = (item: InventoryItem, scope: 'all' | 'NB' | 'BB'): number => {
+        if (scope === 'NB') return item.Backorder_NB || 0;
+        if (scope === 'BB') return item.Backorder_BB || 0;
+        return Math.max(item.Backorder || 0, item.computed?.boAging?.totalQty || 0);
+    };
+    const getScopedStock = (item: InventoryItem, scope: 'all' | 'NB' | 'BB'): number => {
+        if (scope === 'NB') return (item.QuantityInventory_NB || 0) + (item.QuantityDC_NB || 0);
+        if (scope === 'BB') return (item.QuantityInventory_BB || 0) + (item.QuantityDC_BB || 0);
+        return (item.QuantityInventory_NB || 0) + (item.QuantityInventory_BB || 0)
+             + (item.QuantityDC_NB || 0) + (item.QuantityDC_BB || 0);
+    };
+
+    const getCoverageStatus = (item: InventoryItem, scope: 'all' | 'NB' | 'BB' = 'all'): CoverageStatus => {
+        const totalStock = getScopedStock(item, scope);
         const poThisMonth = item.computed?.incomingCurrentMonth || 0;
-        const boQty = Math.max(item.Backorder || 0, item.computed?.boAging?.totalQty || 0);
+        const boQty = getScopedBOQty(item, scope);
         if (boQty <= totalStock) return 'STOCK';
         if (boQty <= totalStock + poThisMonth) return 'PO';
         return 'GAP';
@@ -366,11 +404,13 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
         () => buildCohortStats(enrichedData ?? [], anomalyNow),
         [enrichedData, anomalyNow],
     );
-    const anomalyCache = useMemo(() => new Map<string, ReturnType<typeof classifyItemAnomalies>>(), [anomalyNow, cohortStats]);
+    const anomalyCache = useMemo(() => new Map<string, ReturnType<typeof classifyItemAnomalies>>(), [anomalyNow, cohortStats, deferredWarehouseScope]);
     const getItemAnomaly = (item: InventoryItem) => {
         const lt = item.computed?.effectiveLT;
-        const breakdown = item.BackorderBreakdown;
-        const key = `${item.ItemCode}__${lt ?? 0}__${breakdown?.length ?? 0}`;
+        // When a warehouse scope is selected, anomaly is computed only over BO
+        // entries belonging to that warehouse. Aging totals match the visible row.
+        const breakdown = filterBreakdownByScope(item.BackorderBreakdown, deferredWarehouseScope);
+        const key = `${item.ItemCode}__${lt ?? 0}__${breakdown.length}__${deferredWarehouseScope}`;
         let cached = anomalyCache.get(key);
         if (!cached) {
             const sourceKey = (item.SourceId || 'KHÁC').toString().trim().toUpperCase() || 'KHÁC';
@@ -406,18 +446,39 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
             // Enhanced robustness for multi-select filters
             const matchesSource = deferredSourceFilters.length === 0 || deferredSourceFilters.includes(item.SourceId);
             const matchesMother = deferredMotherGroupFilters.length === 0 || deferredMotherGroupFilters.includes(resolveMotherGroup(item));
-            
-            const b = item.computed?.boAging;
-            let matchesAging = true;
-            if (deferredAgingFilter === '30') matchesAging = (b?.qty30 || 0) > 0;
-            else if (deferredAgingFilter === '60') matchesAging = (b?.qty60 || 0) > 0;
-            else if (deferredAgingFilter === '90') matchesAging = (b?.qty90 || 0) > 0;
-            else if (deferredAgingFilter === 'over90') matchesAging = (b?.qtyOver90 || 0) > 0;
 
-            const matchesType = deferredOrderTypeFilters.length === 0 || item.BackorderBreakdown?.some(bo => deferredOrderTypeFilters.includes(getOrderTypeName(bo)));
-            const matchesBranch = deferredBranchFilters.length === 0 || item.BackorderBreakdown?.some(bo => deferredBranchFilters.includes(bo.Showroom || bo.BranchName || 'Khác'));
+            // Aging predicate: with a warehouse scope, recompute buckets from the
+            // scoped breakdown so the aging filter matches what's actually shown.
+            // Without scope, fall back to the engine's cached boAging (faster).
+            const scopedBreakdown = filterBreakdownByScope(item.BackorderBreakdown, deferredWarehouseScope);
+            let matchesAging = true;
+            if (deferredAgingFilter !== 'all') {
+                if (deferredWarehouseScope === 'all') {
+                    const b = item.computed?.boAging;
+                    if (deferredAgingFilter === '30') matchesAging = (b?.qty30 || 0) > 0;
+                    else if (deferredAgingFilter === '60') matchesAging = (b?.qty60 || 0) > 0;
+                    else if (deferredAgingFilter === '90') matchesAging = (b?.qty90 || 0) > 0;
+                    else if (deferredAgingFilter === 'over90') matchesAging = (b?.qtyOver90 || 0) > 0;
+                } else {
+                    // Scoped: check filtered breakdown for entries matching the bucket
+                    matchesAging = scopedBreakdown.some(bo => {
+                        const ts = bo.RawDate || 0;
+                        if (ts <= 0) return false;
+                        const days = (anomalyNow - ts) / (24 * 60 * 60 * 1000);
+                        if (deferredAgingFilter === '30') return days <= 30;
+                        if (deferredAgingFilter === '60') return days > 30 && days <= 60;
+                        if (deferredAgingFilter === '90') return days > 60 && days <= 90;
+                        if (deferredAgingFilter === 'over90') return days > 90;
+                        return false;
+                    });
+                }
+            }
+
+            const matchesType = deferredOrderTypeFilters.length === 0 || scopedBreakdown.some(bo => deferredOrderTypeFilters.includes(getOrderTypeName(bo)));
+            const matchesBranch = deferredBranchFilters.length === 0 || scopedBreakdown.some(bo => deferredBranchFilters.includes(bo.Showroom || bo.BranchName || 'Khác'));
 
             let matchesSpecial = true;
+            const b = item.computed?.boAging;
             if (deferredSpecialFilter === 'critical') matchesSpecial = (b?.qtyOver90 || 0) > 0 || (b?.qty90 || 0) > 0;
             else if (deferredSpecialFilter === 'transfer') {
                 const nbStock = (item.QuantityInventory_NB || 0) + (item.QuantityDC_NB || 0);
@@ -426,16 +487,16 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
             }
             else if (deferredSpecialFilter === 'po') matchesSpecial = (item.TotalPO || 0) > 0;
 
+            // Master filter (STOCK/PO/GAP) uses the scoped stock + scoped BO too,
+            // so the cards above the table line up with the rendered list.
             let matchesMaster = true;
-            const totalStock = (item.QuantityInventory_NB + item.QuantityInventory_BB + item.QuantityDC_NB + item.QuantityDC_BB);
+            const scopedStock = getScopedStock(item, deferredWarehouseScope);
             const poThisMonth = item.computed?.incomingCurrentMonth || 0;
-            
-            // Backorder fallback: use computed aging total if main Backorder field is missing/zero
-            const boQty = Math.max(item.Backorder || 0, b?.totalQty || 0);
+            const boQty = getScopedBOQty(item, deferredWarehouseScope);
 
-            if (deferredMasterFilter === 'stock_ok') matchesMaster = boQty <= totalStock;
-            else if (deferredMasterFilter === 'po_ok') matchesMaster = boQty > totalStock && boQty <= (totalStock + poThisMonth);
-            else if (deferredMasterFilter === 'fail') matchesMaster = boQty > (totalStock + poThisMonth);
+            if (deferredMasterFilter === 'stock_ok') matchesMaster = boQty <= scopedStock;
+            else if (deferredMasterFilter === 'po_ok') matchesMaster = boQty > scopedStock && boQty <= (scopedStock + poThisMonth);
+            else if (deferredMasterFilter === 'fail') matchesMaster = boQty > (scopedStock + poThisMonth);
 
             const matchesSupplier = deferredSupplierStatusFilters.length === 0 || deferredSupplierStatusFilters.includes(getSupplierStatus(item));
             const matchesAnomaly = deferredAnomalyFilters.length === 0 || (() => {
@@ -443,6 +504,8 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                 return deferredAnomalyFilters.some(t => agg.counts[t] > 0);
             })();
 
+            // Warehouse scope predicate: when scope ≠ 'all', the SKU only counts
+            // if it has BO in that warehouse.
             const hasBO = boQty > 0;
             return hasBO && matchesSearch && matchesSource && matchesMother && matchesAging && matchesType && matchesBranch && matchesSpecial && matchesMaster && matchesSupplier && matchesAnomaly;
         });
@@ -475,7 +538,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
             });
         }
         return list;
-    }, [cachedData, searchResult, deferredSourceFilters, deferredMotherGroupFilters, deferredAgingFilter, deferredOrderTypeFilters, deferredBranchFilters, deferredSupplierStatusFilters, deferredAnomalyFilters, sortConfig, deferredSpecialFilter, deferredMasterFilter, startOfThisMonth, anomalyNow]);
+    }, [cachedData, searchResult, deferredSourceFilters, deferredMotherGroupFilters, deferredAgingFilter, deferredOrderTypeFilters, deferredBranchFilters, deferredSupplierStatusFilters, deferredAnomalyFilters, deferredWarehouseScope, sortConfig, deferredSpecialFilter, deferredMasterFilter, startOfThisMonth, anomalyNow]);
 
     const stats = useMemo(() => {
         if (!filteredData) return { totalValue: 0, totalQty: 0, criticalCount: 0, aging: { q30: 0, q60: 0, q90: 0, qO90: 0 }, totalPOVal: 0, poCoverage: 0 };
@@ -1234,6 +1297,26 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                 icon="fa-triangle-exclamation"
                             />
 
+                            {/* Warehouse scope toggle: All / NB / BB. Filters the SKU list and
+                                switches all displayed BO/stock/aging/anomaly aggregates to that
+                                warehouse. DealerInventory column always shows the unscoped value
+                                because it cannot be split per warehouse. */}
+                            <div className="flex bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
+                                {([
+                                    { id: 'all', label: 'Cả 2 kho' },
+                                    { id: 'NB', label: 'NB' },
+                                    { id: 'BB', label: 'BB' },
+                                ] as const).map(s => (
+                                    <button
+                                        key={s.id}
+                                        onClick={() => setWarehouseScope(s.id)}
+                                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${warehouseScope === s.id ? 'bg-slate-900 text-white shadow-md' : 'text-slate-600 hover:text-slate-900'}`}
+                                    >
+                                        {s.label}
+                                    </button>
+                                ))}
+                            </div>
+
                             <div className="flex bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
                                 {['all', '30', '60', '90', 'over90'].map((val) => (
                                     <button
@@ -1314,10 +1397,35 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                 {pagedData.map(item => {
                                     const nbStock = item.QuantityInventory_NB + item.QuantityDC_NB;
                                     const bbStock = item.QuantityInventory_BB + item.QuantityDC_BB;
-                                    const aging = item.computed?.boAging;
-                                    
+
+                                    // When a warehouse scope is selected, aging buckets and order-type
+                                    // breakdown for the row are recomputed from the scoped subset of
+                                    // BackorderBreakdown so what the operator sees lines up with what
+                                    // the filter and totals say. With scope='all' we use the engine's
+                                    // pre-computed aging (faster, identical result).
+                                    const rowBreakdown = filterBreakdownByScope(item.BackorderBreakdown, deferredWarehouseScope);
+                                    let aging = item.computed?.boAging;
+                                    if (deferredWarehouseScope !== 'all') {
+                                        const a = { qty30: 0, qty60: 0, qty90: 0, qtyOver90: 0, totalQty: 0, totalValue: 0, oldestDebtDays: 0 };
+                                        const dayMs = 24 * 60 * 60 * 1000;
+                                        let maxDays = 0;
+                                        for (const bo of rowBreakdown) {
+                                            const ts = bo.RawDate || 0;
+                                            a.totalQty += bo.Qty;
+                                            if (ts <= 0) { a.qty30 += bo.Qty; continue; }
+                                            const d = Math.max(0, Math.floor((anomalyNow - ts) / dayMs));
+                                            if (d <= 30) a.qty30 += bo.Qty;
+                                            else if (d <= 60) a.qty60 += bo.Qty;
+                                            else if (d <= 90) a.qty90 += bo.Qty;
+                                            else a.qtyOver90 += bo.Qty;
+                                            if (d > maxDays) maxDays = d;
+                                        }
+                                        a.oldestDebtDays = maxDays;
+                                        aging = a;
+                                    }
+
                                     const boTypes: Record<string, number> = {};
-                                    item.BackorderBreakdown?.forEach(b => {
+                                    rowBreakdown.forEach(b => {
                                         const t = getOrderTypeName(b);
                                         boTypes[t] = (boTypes[t] || 0) + b.Qty;
                                     });
@@ -1338,7 +1446,11 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                     // mono numbers throughout, no decorative pills/badges. Padding tightened.
                                     const isCritical = priority === 'CRITICAL';
                                     const isHigh = priority === 'HIGH';
-                                    const totalBO = Math.max(item.Backorder || 0, item.computed?.boAging?.totalQty || 0);
+                                    // Total BO and breakdown shown in popup respect the active warehouse scope.
+                                    const scopedBreakdown = filterBreakdownByScope(item.BackorderBreakdown, deferredWarehouseScope);
+                                    const totalBO = deferredWarehouseScope === 'all'
+                                        ? Math.max(item.Backorder || 0, item.computed?.boAging?.totalQty || 0)
+                                        : getScopedBOQty(item, deferredWarehouseScope);
                                     // Unified sizing: data = 13px mono, labels = 9px slate-400, single semantic color.
                                     return (
                                         <tr key={item.ItemCode} className={`hover:bg-blue-50/40 transition-colors group cursor-pointer border-b border-slate-100 last:border-0 ${isCritical ? 'bg-rose-50/30' : ''}`} onClick={() => onSkuSelect(item)}>
@@ -1397,7 +1509,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                             </td>
                                             <td className="px-3 py-3">
                                                 {(() => {
-                                                    const cs = getCoverageStatus(item);
+                                                    const cs = getCoverageStatus(item, deferredWarehouseScope);
                                                     const meta = COVERAGE_META[cs];
                                                     return (
                                                         <span title={meta.full} className={`inline-flex font-mono font-black text-[10px] uppercase tracking-wider px-2 py-1 rounded-md ring-1 ${meta.cls}`}>
@@ -1407,7 +1519,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                                 })()}
                                             </td>
                                             <td className="px-3 py-3 text-right">
-                                                <BackorderPopup items={item.BackorderBreakdown || []} effectiveLTDays={item.computed?.effectiveLT}>
+                                                <BackorderPopup items={scopedBreakdown} effectiveLTDays={item.computed?.effectiveLT}>
                                                     <span className={`font-mono font-bold text-[13px] tabular-nums ${isCritical ? 'text-rose-600' : 'text-slate-900'} hover:text-[#635bff] transition-colors`}>
                                                         {totalBO.toLocaleString('vi-VN')}
                                                     </span>
@@ -1415,7 +1527,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                             </td>
                                             <td className="px-3 py-3 text-right">
                                                 <span className={`font-mono font-bold text-[13px] tabular-nums ${isCritical ? 'text-rose-600' : isHigh ? 'text-amber-600' : 'text-slate-700'}`}>
-                                                    {getOldestDebtDays(item)}<span className="text-[9px] text-slate-400 font-medium ml-0.5">d</span>
+                                                    {aging?.oldestDebtDays ?? 0}<span className="text-[9px] text-slate-400 font-medium ml-0.5">d</span>
                                                 </span>
                                             </td>
                                             <td className="px-3 py-3">
