@@ -617,6 +617,10 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                         aVal = getOldestDebtDays(a);
                         bVal = getOldestDebtDays(b);
                         break;
+                    case 'AnomalyScore':
+                        aVal = getItemAnomaly(a).aggregate.maxScore;
+                        bVal = getItemAnomaly(b).aggregate.maxScore;
+                        break;
                 }
                 if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
                 if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
@@ -922,6 +926,44 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                         isActive={specialFilter === 'transfer'}
                     />
                 </div>
+
+                {/* Action banner — surfaces the most actionable counts (anomaly tiers
+                    + supplier-late) at the top so an operator opening the page sees
+                    'X critical' immediately. Each tile filters the table when clicked. */}
+                {(() => {
+                    let nCritical = 0, nHigh = 0, nWarning = 0, nSupplierLate = 0;
+                    for (const item of enrichedData || []) {
+                        const agg = getItemAnomaly(item).aggregate;
+                        if (agg.counts.CRITICAL > 0) nCritical++;
+                        else if (agg.counts.HIGH > 0) nHigh++;
+                        else if (agg.counts.WARNING > 0) nWarning++;
+                        if (getSupplierStatus(item) === 'overdue') nSupplierLate++;
+                    }
+                    if (nCritical + nHigh + nWarning + nSupplierLate === 0) return null;
+                    // Each tile: filter the table to that tier AND sort by composite
+                    // score DESC so the worst-affected SKU is at the top of the page.
+                    const sortByScore = () => setSortConfig({ key: 'AnomalyScore', direction: 'desc' });
+                    const tiles = [
+                        { id: 'critical', label: 'TRỄ NGHIÊM TRỌNG', count: nCritical, cls: 'from-rose-50 to-rose-100 ring-rose-300 text-rose-700', icon: 'fa-circle-exclamation', onClick: () => { setAnomalyFilters(['CRITICAL']); setSupplierStatusFilters([]); sortByScore(); setCurrentPage(1); } },
+                        { id: 'high',     label: 'TRỄ NẶNG',         count: nHigh,     cls: 'from-rose-50 to-amber-50 ring-rose-200 text-rose-600',  icon: 'fa-triangle-exclamation', onClick: () => { setAnomalyFilters(['HIGH']); setSupplierStatusFilters([]); sortByScore(); setCurrentPage(1); } },
+                        { id: 'warning',  label: 'TRỄ NHẸ',          count: nWarning,  cls: 'from-amber-50 to-yellow-50 ring-amber-200 text-amber-700', icon: 'fa-clock-rotate-left', onClick: () => { setAnomalyFilters(['WARNING']); setSupplierStatusFilters([]); sortByScore(); setCurrentPage(1); } },
+                        { id: 'supplier', label: 'NCC TRỄ HẸN',      count: nSupplierLate, cls: 'from-rose-50 to-rose-100 ring-rose-200 text-rose-700', icon: 'fa-truck-fast', onClick: () => { setSupplierStatusFilters(['overdue']); setAnomalyFilters([]); sortByScore(); setCurrentPage(1); } },
+                    ];
+                    return (
+                        <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {tiles.map(t => t.count > 0 && (
+                                <button key={t.id} onClick={t.onClick} className={`p-4 rounded-2xl border ring-1 bg-gradient-to-br ${t.cls} hover:scale-[1.02] transition-all shadow-sm flex items-center gap-3 text-left`}>
+                                    <FaIcon className={`fas ${t.icon} text-xl`} />
+                                    <div className="flex-1">
+                                        <div className="text-[10px] uppercase tracking-[0.15em] font-black opacity-80">{t.label}</div>
+                                        <div className="font-black tabular-nums text-2xl">{t.count.toLocaleString('vi-VN')} <span className="text-xs opacity-70">SKU</span></div>
+                                    </div>
+                                    <FaIcon className="fas fa-arrow-right text-xs opacity-60" />
+                                </button>
+                            ))}
+                        </div>
+                    );
+                })()}
 
                 <div className="mb-12 bg-white/40 backdrop-blur-3xl p-3 rounded-[3rem] border border-white/60 shadow-[0_32px_80px_-20px_rgba(0,0,0,0.1)] flex gap-3 relative z-20 group/filter-bar">
                     {[
@@ -1298,7 +1340,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
 
             <div className="flex-1 overflow-hidden flex flex-col p-6 pt-0">
                 <div className="bg-white rounded-[2.5rem] border border-slate-50 shadow-[0_30px_60px_-12px_rgba(0,0,0,0.1)] flex flex-col flex-1 overflow-hidden">
-                    <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                    <div className="sticky top-0 z-30 p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/95 backdrop-blur-md">
                         <div className="flex items-center gap-3 flex-wrap">
                             <div className="relative w-64">
                                 <FaIcon className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
