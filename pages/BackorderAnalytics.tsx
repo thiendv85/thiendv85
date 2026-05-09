@@ -164,6 +164,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
     const [sourceFilters, setSourceFilters] = useState<string[]>([]);
     const [orderTypeFilters, setOrderTypeFilters] = useState<string[]>([]);
     const [branchFilters, setBranchFilters] = useState<string[]>([]);
+    const [supplierStatusFilters, setSupplierStatusFilters] = useState<string[]>([]);
     const [pageSize, setPageSize] = useState(25);
     const [currentPage, setCurrentPage] = useState(1);
     const [matrixMetric, setMatrixMetric] = useState<'sku' | 'qty' | 'val'>('sku');
@@ -179,8 +180,68 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
     const deferredMotherGroupFilters = useDeferredValue(motherGroupFilters);
     const deferredOrderTypeFilters = useDeferredValue(orderTypeFilters);
     const deferredBranchFilters = useDeferredValue(branchFilters);
+    const deferredSupplierStatusFilters = useDeferredValue(supplierStatusFilters);
     const deferredSpecialFilter = useDeferredValue(specialFilter);
     const deferredMasterFilter = useDeferredValue(masterFilter);
+
+    // ── Supplier delivery warning ─────────────────────────────────────────────
+    // For each backorder breakdown entry: expectedDelivery = order_date + LT.
+    // Aggregate worst case per item:
+    //   overdue          → expected < start of this month (NCC trễ hẹn rồi)
+    //   due_this_month   → expected falls in current calendar month
+    //   due_next_month   → expected falls in next month
+    //   on_track         → expected later than next month, all entries
+    //   no_eta           → no BackorderBreakdown / no RawDate / no LT
+    type SupplierStatus = 'overdue' | 'due_this_month' | 'due_next_month' | 'on_track' | 'no_eta';
+    const SUPPLIER_STATUS_META: Record<SupplierStatus, { label: string; full: string; cls: string; rank: number }> = {
+        overdue:        { label: 'TRỄ',     full: 'NCC trễ hẹn — đã quá ngày dự kiến giao',   cls: 'bg-rose-100 text-rose-700 ring-rose-300',    rank: 0 },
+        due_this_month: { label: 'TRONG THÁNG', full: 'Dự kiến giao trong tháng này',            cls: 'bg-amber-100 text-amber-700 ring-amber-300', rank: 1 },
+        due_next_month: { label: 'THÁNG SAU',   full: 'Dự kiến giao tháng sau',                  cls: 'bg-blue-50 text-blue-700 ring-blue-200',     rank: 2 },
+        on_track:       { label: 'ĐÚNG HẠN',    full: 'Dự kiến giao đúng/sớm hơn dự kiến',       cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200', rank: 3 },
+        no_eta:         { label: 'NO ETA',      full: 'Không có ngày đặt — không tính được ETA', cls: 'bg-slate-100 text-slate-500 ring-slate-200', rank: 4 },
+    };
+    const MS_PER_DAY = 24 * 60 * 60 * 1000;
+    const monthBoundaries = useMemo(() => {
+        const now = new Date();
+        const startThisMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+        const startNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime();
+        const startMonthAfter = new Date(now.getFullYear(), now.getMonth() + 2, 1).getTime();
+        return { startThisMonth, startNextMonth, startMonthAfter };
+    }, []);
+    const getSupplierStatus = (item: InventoryItem): SupplierStatus => {
+        const breakdown = item.BackorderBreakdown;
+        if (!breakdown || breakdown.length === 0) return 'no_eta';
+        const ltDays = item.computed?.effectiveLT;
+        if (!ltDays || ltDays <= 0) return 'no_eta';
+        let worstRank = 99;
+        let worst: SupplierStatus = 'no_eta';
+        for (const bo of breakdown) {
+            const orderTs = bo.RawDate;
+            if (!orderTs) continue;
+            const expected = orderTs + ltDays * MS_PER_DAY;
+            let s: SupplierStatus;
+            if (expected < monthBoundaries.startThisMonth) s = 'overdue';
+            else if (expected < monthBoundaries.startNextMonth) s = 'due_this_month';
+            else if (expected < monthBoundaries.startMonthAfter) s = 'due_next_month';
+            else s = 'on_track';
+            const rank = SUPPLIER_STATUS_META[s].rank;
+            if (rank < worstRank) {
+                worstRank = rank;
+                worst = s;
+                if (rank === 0) break; // overdue is worst, short-circuit
+            }
+        }
+        return worstRank === 99 ? 'no_eta' : worst;
+    };
+    // Vietnamese labels used by the filter dropdown so users can pick by display name.
+    const SUPPLIER_STATUS_LABELS: Record<string, SupplierStatus> = {
+        'TRỄ — NCC quá hạn': 'overdue',
+        'Dự kiến trong tháng': 'due_this_month',
+        'Dự kiến tháng sau': 'due_next_month',
+        'Đúng hạn': 'on_track',
+        'Chưa có ETA': 'no_eta',
+    };
+    const SUPPLIER_FILTER_OPTIONS = Object.keys(SUPPLIER_STATUS_LABELS);
 
     const searchResult = useMemo(() => parseInventorySearch(deferredSearch), [deferredSearch]);
 
@@ -197,6 +258,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                 if (parsed.motherGroupFilters) setMotherGroupFilters(parsed.motherGroupFilters.filter((f: any) => f && f !== 'All' && f !== 'Tất cả'));
                 if (parsed.orderTypeFilters) setOrderTypeFilters(parsed.orderTypeFilters.filter((f: any) => f && f !== 'All' && f !== 'Tất cả'));
                 if (parsed.branchFilters) setBranchFilters(parsed.branchFilters.filter((f: any) => f && f !== 'All' && f !== 'Tất cả'));
+                if (parsed.supplierStatusFilters) setSupplierStatusFilters(parsed.supplierStatusFilters.filter((f: any) => f && ['overdue','due_this_month','due_next_month','on_track','no_eta'].includes(f)));
                 if (parsed.pageSize) setPageSize(Math.max(1, parsed.pageSize));
                 if (parsed.matrixMetric) setMatrixMetric(parsed.matrixMetric);
                 if (parsed.masterFilter) setMasterFilter(parsed.masterFilter);
@@ -205,24 +267,25 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
     }, []);
 
     React.useEffect(() => {
-        const state = { search, agingFilter, sourceFilters, motherGroupFilters, orderTypeFilters, branchFilters, pageSize, matrixMetric, sortConfig, specialFilter, masterFilter };
+        const state = { search, agingFilter, sourceFilters, motherGroupFilters, orderTypeFilters, branchFilters, supplierStatusFilters, pageSize, matrixMetric, sortConfig, specialFilter, masterFilter };
         localStorage.setItem('backorder_filters', JSON.stringify(state));
-    }, [search, agingFilter, sourceFilters, motherGroupFilters, orderTypeFilters, branchFilters, pageSize, matrixMetric, sortConfig, specialFilter, masterFilter]);
+    }, [search, agingFilter, sourceFilters, motherGroupFilters, orderTypeFilters, branchFilters, supplierStatusFilters, pageSize, matrixMetric, sortConfig, specialFilter, masterFilter]);
 
     // ── Auto-Sync Filters when Data Changes ──────────────────────────────────
     // Ensures that when switching snapshots, filters don't "stick" to values that no longer exist
     React.useEffect(() => {
         if (!enrichedData || enrichedData.length === 0) return;
-        
-        const availableSources = new Set(enrichedData.map(i => i.SourceId));
+
+        // Match the same normalization used by filterOptions/filter predicate so that
+        // persisted filters survive snapshot reloads.
+        const availableSources = new Set(enrichedData.map(i => normSrc(i.SourceId)));
         const availableMothers = new Set(enrichedData.map(i => resolveMotherGroup(i)));
 
-        // If current filters are entirely invalid for the new data, clear them
         setSourceFilters(prev => {
-            const valid = prev.filter(f => availableSources.has(f));
-            return valid.length === prev.length ? prev : valid;
+            const valid = prev.map(normSrc).filter(f => availableSources.has(f));
+            return valid.length === prev.length && valid.every((v, i) => v === prev[i]) ? prev : valid;
         });
-        
+
         setMotherGroupFilters(prev => {
             const valid = prev.filter(f => availableMothers.has(f));
             return valid.length === prev.length ? prev : valid;
@@ -316,14 +379,19 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
         return val.toLocaleString('vi-VN');
     };
 
+    // Normalize: trim + uppercase. Used by both filterOptions (population) and
+    // matchesSource (predicate) so casing/whitespace can never silently break matching.
+    const normSrc = (s: any) => (s ?? '').toString().trim().toUpperCase();
+    const normBranch = (s: any) => (s ?? '').toString().trim();
+
     const filteredData = useMemo(() => {
         if (!cachedData) return [];
         let list = cachedData.filter(item => {
             const matchesSearch = matchSearch(item, searchResult);
-            // Enhanced robustness for multi-select filters
-            const matchesSource = deferredSourceFilters.length === 0 || deferredSourceFilters.includes(item.SourceId);
+            // Robust source/branch matching: normalize both sides.
+            const matchesSource = deferredSourceFilters.length === 0 || deferredSourceFilters.includes(normSrc(item.SourceId));
             const matchesMother = deferredMotherGroupFilters.length === 0 || deferredMotherGroupFilters.includes(resolveMotherGroup(item));
-            
+
             const b = item.computed?.boAging;
             let matchesAging = true;
             if (deferredAgingFilter === '30') matchesAging = (b?.qty30 || 0) > 0;
@@ -331,8 +399,9 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
             else if (deferredAgingFilter === '90') matchesAging = (b?.qty90 || 0) > 0;
             else if (deferredAgingFilter === 'over90') matchesAging = (b?.qtyOver90 || 0) > 0;
 
-            const matchesType = deferredOrderTypeFilters.length === 0 || item.BackorderBreakdown?.some(bo => deferredOrderTypeFilters.includes(getOrderTypeName(bo)));
-            const matchesBranch = deferredBranchFilters.length === 0 || item.BackorderBreakdown?.some(bo => deferredBranchFilters.includes(bo.Showroom || bo.BranchName || 'Khác'));
+            const matchesType = deferredOrderTypeFilters.length === 0 || (item.BackorderBreakdown ?? []).some(bo => deferredOrderTypeFilters.includes(getOrderTypeName(bo)));
+            const matchesBranch = deferredBranchFilters.length === 0 || (item.BackorderBreakdown ?? []).some(bo => deferredBranchFilters.includes(normBranch(bo.Showroom || bo.BranchName || 'Khác')));
+            const matchesSupplier = deferredSupplierStatusFilters.length === 0 || deferredSupplierStatusFilters.includes(getSupplierStatus(item));
 
             let matchesSpecial = true;
             if (deferredSpecialFilter === 'critical') matchesSpecial = (b?.qtyOver90 || 0) > 0 || (b?.qty90 || 0) > 0;
@@ -355,7 +424,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
             else if (deferredMasterFilter === 'fail') matchesMaster = boQty > (totalStock + poThisMonth);
 
             const hasBO = boQty > 0;
-            return hasBO && matchesSearch && matchesSource && matchesMother && matchesAging && matchesType && matchesBranch && matchesSpecial && matchesMaster;
+            return hasBO && matchesSearch && matchesSource && matchesMother && matchesAging && matchesType && matchesBranch && matchesSupplier && matchesSpecial && matchesMaster;
         });
 
         if (sortConfig) {
@@ -386,7 +455,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
             });
         }
         return list;
-    }, [cachedData, searchResult, deferredSourceFilters, deferredMotherGroupFilters, deferredAgingFilter, deferredOrderTypeFilters, deferredBranchFilters, sortConfig, deferredSpecialFilter, deferredMasterFilter]);
+    }, [cachedData, searchResult, deferredSourceFilters, deferredMotherGroupFilters, deferredAgingFilter, deferredOrderTypeFilters, deferredBranchFilters, deferredSupplierStatusFilters, sortConfig, deferredSpecialFilter, deferredMasterFilter, monthBoundaries]);
 
     const stats = useMemo(() => {
         if (!filteredData) return { totalValue: 0, totalQty: 0, criticalCount: 0, aging: { q30: 0, q60: 0, q90: 0, qO90: 0 }, totalPOVal: 0, poCoverage: 0 };
@@ -595,13 +664,16 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
         const types = new Set<string>();
         const branches = new Set<string>();
         const motherGroups = new Set<string>();
-        
+
         enrichedData?.forEach(item => {
-            sources.add(item.SourceId);
-            motherGroups.add(resolveMotherGroup(item));
+            const sid = normSrc(item.SourceId);
+            if (sid) sources.add(sid);
+            const mg = resolveMotherGroup(item);
+            if (mg) motherGroups.add(mg);
             item.BackorderBreakdown?.forEach(bo => {
                 types.add(getOrderTypeName(bo));
-                branches.add(bo.Showroom || bo.BranchName || 'Khác');
+                const br = normBranch(bo.Showroom || bo.BranchName || 'Khác');
+                if (br) branches.add(br);
             });
         });
 
@@ -1033,12 +1105,24 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                 icon="fa-file-invoice" 
                             />
 
-                            <FilterDropdown 
-                                label="Đơn vị" 
-                                options={filterOptions.branches} 
-                                selected={branchFilters} 
-                                onChange={setBranchFilters} 
-                                icon="fa-building" 
+                            <FilterDropdown
+                                label="Đơn vị"
+                                options={filterOptions.branches}
+                                selected={branchFilters}
+                                onChange={setBranchFilters}
+                                icon="fa-building"
+                            />
+
+                            <FilterDropdown
+                                label="Cảnh báo NCC"
+                                options={SUPPLIER_FILTER_OPTIONS}
+                                selected={supplierStatusFilters
+                                    .map(s => Object.entries(SUPPLIER_STATUS_LABELS).find(([, v]) => v === s)?.[0])
+                                    .filter(Boolean) as string[]}
+                                onChange={(labels: string[]) =>
+                                    setSupplierStatusFilters(labels.map(l => SUPPLIER_STATUS_LABELS[l]).filter(Boolean) as string[])
+                                }
+                                icon="fa-truck-fast"
                             />
 
                             <div className="flex bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
@@ -1164,6 +1248,19 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                                             <span className="text-slate-600 font-bold">· {item.BrandName}</span>
                                                             {item.TypeCar && <span>· {item.TypeCar}</span>}
                                                         </div>
+                                                        {(() => {
+                                                            const ss = getSupplierStatus(item);
+                                                            if (ss === 'no_eta' || ss === 'on_track') return null;
+                                                            const meta = SUPPLIER_STATUS_META[ss];
+                                                            return (
+                                                                <div className="mt-1">
+                                                                    <span title={meta.full} className={`inline-flex items-center gap-1 font-mono font-black text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded ring-1 ${meta.cls}`}>
+                                                                        <FaIcon className="fas fa-truck-fast text-[8px]" />
+                                                                        {meta.label}
+                                                                    </span>
+                                                                </div>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 </div>
                                             </td>
