@@ -137,6 +137,9 @@ export interface BackorderDetail {
     Warehouse: string;
     BranchCode?: string;
     BranchName?: string;
+    /** Receiving branch code from BO file. Used to classify the order's
+     *  destination warehouse (NB/BB) when KhoNo or Warehouse alone is unclear. */
+    BranchCodeReceipt?: string;
     OrderType?: string;
     TypeCar?: string;
     RowId?: string;

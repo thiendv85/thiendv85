@@ -304,16 +304,24 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
         GAP:   { label: 'GAP',   full: 'Không đủ trả',   cls: 'bg-rose-50 text-rose-700 ring-rose-200' },
     };
     // ── Warehouse scope helpers ───────────────────────────────────────────────
-    // Classify a BackorderDetail entry by its Warehouse string. Pattern matches
-    // existing usage in pages/SkuDetail.tsx and pages/FileUpload.tsx.
-    const isNBEntry = (bo: BackorderDetail): boolean => {
-        const w = bo.Warehouse || '';
-        return w.includes('NB') || w.includes('Nam');
+    // Per user: BO file uses BranchCodeReceipt as the primary classification
+    // column. Fall back to KhoNo and then Warehouse (which may carry "Kho MB"
+    // for north warehouse) when BranchCodeReceipt is missing.
+    //
+    // Pattern: any of these substrings (case-insensitive) signals the region.
+    //   BB / north: 'BB', 'BAC', 'BẮC', 'MB' (Miền Bắc / Kho MB)
+    //   NB / south: 'NB', 'NAM'
+    type BORegion = 'NB' | 'BB' | 'unknown';
+    const classifyBORegion = (bo: BackorderDetail): BORegion => {
+        const signal = `${bo.BranchCodeReceipt || ''} ${bo.KhoNo || ''} ${bo.Warehouse || ''}`.toUpperCase();
+        // Check BB first — 'MB' (Miền Bắc) would also match a stray 'NB' substring
+        // if NB came first ('NB' inside 'NBM', etc. is fine; 'MB' is the real signal).
+        if (/\b(MB|BB|BAC|BẮC)\b|MB|BB|BẮC|BAC/.test(signal)) return 'BB';
+        if (/\b(NB|NAM)\b|NB|NAM/.test(signal)) return 'NB';
+        return 'unknown';
     };
-    const isBBEntry = (bo: BackorderDetail): boolean => {
-        const w = bo.Warehouse || '';
-        return w.includes('BB') || w.includes('Bắc');
-    };
+    const isNBEntry = (bo: BackorderDetail): boolean => classifyBORegion(bo) === 'NB';
+    const isBBEntry = (bo: BackorderDetail): boolean => classifyBORegion(bo) === 'BB';
     const filterBreakdownByScope = (
         breakdown: BackorderDetail[] | undefined,
         scope: 'all' | 'NB' | 'BB',
@@ -324,8 +332,20 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
         return breakdown.filter(isBBEntry);
     };
     const getScopedBOQty = (item: InventoryItem, scope: 'all' | 'NB' | 'BB'): number => {
-        if (scope === 'NB') return item.Backorder_NB || 0;
-        if (scope === 'BB') return item.Backorder_BB || 0;
+        if (scope === 'NB') {
+            // Prefer pre-aggregated Backorder_NB. Fall back to summing the scoped
+            // breakdown — Backorder_NB only gets populated when the inventory CSV
+            // includes a BookTotalNB column; many real uploads only carry the
+            // breakdown rows and rely on per-entry Warehouse classification.
+            const agg = item.Backorder_NB || 0;
+            if (agg > 0) return agg;
+            return (item.BackorderBreakdown ?? []).filter(isNBEntry).reduce((s, b) => s + (b.Qty || 0), 0);
+        }
+        if (scope === 'BB') {
+            const agg = item.Backorder_BB || 0;
+            if (agg > 0) return agg;
+            return (item.BackorderBreakdown ?? []).filter(isBBEntry).reduce((s, b) => s + (b.Qty || 0), 0);
+        }
         return Math.max(item.Backorder || 0, item.computed?.boAging?.totalQty || 0);
     };
     const getScopedStock = (item: InventoryItem, scope: 'all' | 'NB' | 'BB'): number => {
