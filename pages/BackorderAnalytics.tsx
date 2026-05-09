@@ -924,114 +924,106 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
 
     return (
         <div className="flex flex-col h-full bg-slate-50 font-sans selection:bg-blue-100 selection:text-blue-900">
-            {/* ─── ZONE 1: HEADER RIBBON ─────────────────────────────────────
-                Slim dark band — just identity + primary action. No metrics
-                here so the eye flows straight to the stats card below. */}
+            {/* ─── ROW 1 — DARK HERO RIBBON ─────────────────────────────────
+                Title (left) + 3 hero stats inline (center) + Export (right).
+                One dense band, no card boxes. Eye lands on the big numbers. */}
             <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white relative overflow-hidden shrink-0">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_50%,rgba(99,102,241,0.20),transparent_55%)] pointer-events-none" aria-hidden="true" />
-                <div className="relative px-8 py-5 flex items-center justify-between gap-6">
-                    <div>
-                        <div className="text-[10px] uppercase tracking-[0.3em] font-black text-blue-400 mb-1">SUPPLY CHAIN ↳ BACKORDER</div>
-                        <h1 className="text-2xl md:text-3xl font-black tracking-tight leading-none">Phân tích Nợ hàng</h1>
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_50%,rgba(99,102,241,0.22),transparent_55%)] pointer-events-none" aria-hidden="true" />
+                <div className="relative px-6 lg:px-8 py-4 flex items-center justify-between gap-6 flex-wrap">
+                    <div className="flex items-center gap-6 min-w-0">
+                        <div className="shrink-0">
+                            <div className="text-[9px] uppercase tracking-[0.3em] font-black text-blue-400 leading-none mb-1">SUPPLY CHAIN ↳ BACKORDER</div>
+                            <h1 className="text-2xl font-black tracking-tight leading-none">Phân tích Nợ hàng</h1>
+                        </div>
+                        <div className="hidden lg:flex items-center gap-5 pl-6 border-l border-white/15">
+                            <div>
+                                <div className="text-[9px] uppercase tracking-[0.2em] text-slate-400 font-bold">SKU NỢ</div>
+                                <div className="text-2xl font-black tabular-nums leading-tight">{filteredData.length.toLocaleString('vi-VN')}</div>
+                            </div>
+                            <div className="w-px h-9 bg-white/10" />
+                            <div>
+                                <div className="text-[9px] uppercase tracking-[0.2em] text-slate-400 font-bold">SỐ LƯỢNG</div>
+                                <div className="text-2xl font-black tabular-nums leading-tight text-amber-300">{stats.totalQty.toLocaleString('vi-VN')}</div>
+                            </div>
+                            <div className="w-px h-9 bg-white/10" />
+                            <div>
+                                <div className="text-[9px] uppercase tracking-[0.2em] text-slate-400 font-bold">GIÁ TRỊ</div>
+                                <div className="text-2xl font-black tabular-nums leading-tight text-emerald-300">
+                                    {Math.round(stats.totalValue / 1e6).toLocaleString('vi-VN')}<span className="text-xs ml-0.5 font-bold opacity-70">tr</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <button
                         type="button"
                         onClick={handleExport}
                         aria-label="Xuất Excel danh sách nợ chi tiết theo từng đơn"
-                        className="inline-flex items-center gap-2 px-5 py-3 bg-white text-slate-900 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-100 transition-colors duration-200 shadow-lg shadow-black/20 focus-visible:ring-4 focus-visible:ring-blue-400/40"
+                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-slate-900 rounded-lg text-[11px] font-black uppercase tracking-widest hover:bg-blue-100 transition-colors duration-200 shadow-md focus-visible:ring-4 focus-visible:ring-blue-400/40"
                     >
                         <FaIcon className="fas fa-file-excel" aria-hidden="true" /> Xuất Excel
                     </button>
                 </div>
             </div>
 
-            {/* ─── ZONE 2: STATS CARD (3 hero + 6 diagnostic) ────────────────
-                One light card so all numbers read as one cohesive view.
-                Top: 3 hero stats (large). Bottom: 6 mini diagnostics. */}
-            <div className="px-8 -mt-px shrink-0">
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-[0_8px_24px_-12px_rgba(15,23,42,0.15)] overflow-hidden -translate-y-4">
-                    {/* Hero row */}
-                    <div className="grid grid-cols-3 divide-x divide-slate-200">
-                        <div className="px-6 py-5">
-                            <div className="text-[10px] uppercase tracking-[0.25em] font-black text-slate-500">SKU NỢ</div>
-                            <div className="text-3xl md:text-4xl font-black tabular-nums leading-tight text-slate-900 mt-1">
-                                {filteredData.length.toLocaleString('vi-VN')}
-                            </div>
-                            <div className="text-[10px] text-slate-500 font-medium mt-0.5">trong {(enrichedData || []).length.toLocaleString('vi-VN')} SKU đang theo dõi</div>
+            {/* ─── ROW 2 — DIAGNOSTIC STRIP + ACTION CHIPS ───────────────────
+                Light strip with 6 mini KPIs (left, scrollable) and the action
+                chips pushed to the right. Both live on the same row. */}
+            <div className="bg-white border-b border-slate-200 shrink-0 px-6 lg:px-8 flex items-stretch flex-wrap">
+                <div className="flex items-stretch flex-1 min-w-0 divide-x divide-slate-200 overflow-x-auto custom-scrollbar">
+                    {[
+                        { label: 'TUỔI NỢ TB',    value: `${Math.round(headerStats.avgDays)}d`,        sub: `${headerStats.countOpen.toLocaleString('vi-VN')} đơn`,      tone: 'text-slate-800' },
+                        { label: '% TRỄ LT',      value: `${headerStats.pctOverLT.toFixed(1)}%`,        sub: `${headerStats.countOverLT.toLocaleString('vi-VN')} quá LT`, tone: headerStats.pctOverLT > 50 ? 'text-rose-700' : headerStats.pctOverLT > 25 ? 'text-amber-600' : 'text-emerald-600' },
+                        { label: 'ĐƠN LÂU NHẤT',  value: `${Math.round(headerStats.maxDays)}d`,         sub: 'tối đa',                                                    tone: headerStats.maxDays > 365 ? 'text-rose-700' : 'text-amber-600' },
+                        { label: 'SCORE TB',      value: `${Math.round(headerStats.avgScore)}`,         sub: '/100',                                                      tone: headerStats.avgScore > 60 ? 'text-rose-700' : headerStats.avgScore > 40 ? 'text-amber-600' : 'text-blue-600' },
+                        { label: 'PO COVERAGE',   value: `${stats.poCoverage.toFixed(0)}%`,              sub: 'có hàng về',                                                tone: stats.poCoverage >= 80 ? 'text-emerald-600' : stats.poCoverage >= 50 ? 'text-blue-600' : 'text-rose-700' },
+                        { label: 'ĐIỀU CHUYỂN',   value: headerStats.nTransfer.toLocaleString('vi-VN'),  sub: 'cơ hội nội bộ',                                             tone: 'text-emerald-600' },
+                    ].map((k) => (
+                        <div key={k.label} className="px-4 py-2.5 shrink-0 first:pl-0">
+                            <div className="text-[9px] uppercase tracking-[0.2em] font-black text-slate-500">{k.label}</div>
+                            <div className={`text-base font-black tabular-nums leading-tight mt-0.5 ${k.tone}`}>{k.value}</div>
+                            <div className="text-[9px] text-slate-500 font-medium leading-tight">{k.sub}</div>
                         </div>
-                        <div className="px-6 py-5">
-                            <div className="text-[10px] uppercase tracking-[0.25em] font-black text-slate-500">SỐ LƯỢNG NỢ</div>
-                            <div className="text-3xl md:text-4xl font-black tabular-nums leading-tight text-amber-600 mt-1">
-                                {stats.totalQty.toLocaleString('vi-VN')}
-                            </div>
-                            <div className="text-[10px] text-slate-500 font-medium mt-0.5">tổng đơn vị phụ tùng</div>
-                        </div>
-                        <div className="px-6 py-5">
-                            <div className="text-[10px] uppercase tracking-[0.25em] font-black text-slate-500">GIÁ TRỊ NỢ</div>
-                            <div className="text-3xl md:text-4xl font-black tabular-nums leading-tight text-emerald-700 mt-1">
-                                {Math.round(stats.totalValue / 1e6).toLocaleString('vi-VN')}<span className="text-base ml-1 font-bold text-emerald-500">Tr ₫</span>
-                            </div>
-                            <div className="text-[10px] text-slate-500 font-medium mt-0.5">{formatCurrency(stats.totalPOVal)} đang về (PO)</div>
-                        </div>
-                    </div>
-                    {/* Diagnostic row */}
-                    <div className="grid grid-cols-2 md:grid-cols-6 divide-x divide-slate-200 border-t border-slate-200 bg-slate-50/50">
-                        {[
-                            { label: 'TUỔI NỢ TB',    value: `${Math.round(headerStats.avgDays)}d`,        sub: `${headerStats.countOpen.toLocaleString('vi-VN')} đơn`,    tone: 'text-slate-700' },
-                            { label: '% TRỄ LT',      value: `${headerStats.pctOverLT.toFixed(1)}%`,        sub: `${headerStats.countOverLT.toLocaleString('vi-VN')} quá LT`, tone: headerStats.pctOverLT > 50 ? 'text-rose-700' : headerStats.pctOverLT > 25 ? 'text-amber-600' : 'text-emerald-600' },
-                            { label: 'ĐƠN LÂU NHẤT',  value: `${Math.round(headerStats.maxDays)}d`,         sub: 'tối đa',                                                  tone: headerStats.maxDays > 365 ? 'text-rose-700' : 'text-amber-600' },
-                            { label: 'SCORE TB',      value: `${Math.round(headerStats.avgScore)}`,         sub: '/100',                                                    tone: headerStats.avgScore > 60 ? 'text-rose-700' : headerStats.avgScore > 40 ? 'text-amber-600' : 'text-blue-600' },
-                            { label: 'PO COVERAGE',   value: `${stats.poCoverage.toFixed(0)}%`,              sub: 'có hàng về',                                              tone: stats.poCoverage >= 80 ? 'text-emerald-600' : stats.poCoverage >= 50 ? 'text-blue-600' : 'text-rose-700' },
-                            { label: 'ĐIỀU CHUYỂN',   value: headerStats.nTransfer.toLocaleString('vi-VN'),  sub: 'cơ hội nội bộ',                                           tone: 'text-emerald-600' },
-                        ].map((k) => (
-                            <div key={k.label} className="px-4 py-3">
-                                <div className="text-[9px] uppercase tracking-[0.2em] font-black text-slate-500">{k.label}</div>
-                                <div className={`text-base font-black tabular-nums leading-tight mt-0.5 ${k.tone}`}>{k.value}</div>
-                                <div className="text-[9px] text-slate-500 font-medium leading-tight">{k.sub}</div>
-                            </div>
-                        ))}
-                    </div>
+                    ))}
                 </div>
-            </div>
-
-            {/* ─── ZONE 3: ACTION CHIPS (light card, only when actionable) ──── */}
-            {(headerStats.nCritical + headerStats.nHigh + headerStats.nWarning + headerStats.nSupplierLate) > 0 && (
-                <div className="px-8 shrink-0">
-                    <div className="flex items-center gap-3 flex-wrap bg-rose-50/50 border border-rose-100 rounded-xl px-4 py-2.5 mb-4 shadow-sm">
-                        <span className="text-[10px] uppercase tracking-[0.25em] font-black text-rose-700 shrink-0 inline-flex items-center gap-1.5">
-                            <FaIcon className="fas fa-bell" aria-hidden="true" /> CẦN XỬ LÝ
+                {(headerStats.nCritical + headerStats.nHigh + headerStats.nWarning + headerStats.nSupplierLate) > 0 && (
+                    <div className="flex items-center gap-2 flex-wrap pl-4 ml-auto py-2 border-l border-slate-200">
+                        <span className="text-[9px] uppercase tracking-[0.2em] font-black text-rose-700 shrink-0 inline-flex items-center gap-1">
+                            <FaIcon className="fas fa-bell text-[9px]" aria-hidden="true" /> XỬ LÝ
                         </span>
                         {headerStats.nCritical > 0 && (
-                            <button type="button" onClick={onCriticalChip} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-600 text-white text-[11px] font-black uppercase tracking-wider hover:bg-rose-700 transition-colors shadow-sm focus-visible:ring-2 focus-visible:ring-rose-400">
-                                <FaIcon className="fas fa-circle-exclamation text-[10px]" aria-hidden="true" />
-                                TRỄ NGHIÊM TRỌNG <span className="tabular-nums">{headerStats.nCritical}</span>
+                            <button type="button" onClick={onCriticalChip} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-rose-600 text-white text-[10px] font-black uppercase tracking-wider hover:bg-rose-700 transition-colors shadow-sm focus-visible:ring-2 focus-visible:ring-rose-400">
+                                <FaIcon className="fas fa-circle-exclamation text-[9px]" aria-hidden="true" />
+                                TRỄ N.TRỌNG <span className="tabular-nums">{headerStats.nCritical}</span>
                             </button>
                         )}
                         {headerStats.nHigh > 0 && (
-                            <button type="button" onClick={onHighChip} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-100 ring-1 ring-rose-300 text-rose-700 text-[11px] font-black uppercase tracking-wider hover:bg-rose-200 transition-colors focus-visible:ring-2 focus-visible:ring-rose-400">
-                                <FaIcon className="fas fa-triangle-exclamation text-[10px]" aria-hidden="true" />
+                            <button type="button" onClick={onHighChip} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-rose-100 ring-1 ring-rose-300 text-rose-700 text-[10px] font-black uppercase tracking-wider hover:bg-rose-200 transition-colors focus-visible:ring-2 focus-visible:ring-rose-400">
+                                <FaIcon className="fas fa-triangle-exclamation text-[9px]" aria-hidden="true" />
                                 TRỄ NẶNG <span className="tabular-nums">{headerStats.nHigh}</span>
                             </button>
                         )}
                         {headerStats.nWarning > 0 && (
-                            <button type="button" onClick={onWarningChip} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-100 ring-1 ring-amber-300 text-amber-700 text-[11px] font-black uppercase tracking-wider hover:bg-amber-200 transition-colors focus-visible:ring-2 focus-visible:ring-amber-400">
-                                <FaIcon className="fas fa-clock-rotate-left text-[10px]" aria-hidden="true" />
+                            <button type="button" onClick={onWarningChip} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-100 ring-1 ring-amber-300 text-amber-700 text-[10px] font-black uppercase tracking-wider hover:bg-amber-200 transition-colors focus-visible:ring-2 focus-visible:ring-amber-400">
+                                <FaIcon className="fas fa-clock-rotate-left text-[9px]" aria-hidden="true" />
                                 TRỄ NHẸ <span className="tabular-nums">{headerStats.nWarning}</span>
                             </button>
                         )}
                         {headerStats.nSupplierLate > 0 && (
-                            <button type="button" onClick={onSupplierChip} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-100 ring-1 ring-rose-300 text-rose-700 text-[11px] font-black uppercase tracking-wider hover:bg-rose-200 transition-colors focus-visible:ring-2 focus-visible:ring-rose-400">
-                                <FaIcon className="fas fa-truck-fast text-[10px]" aria-hidden="true" />
-                                NCC TRỄ HẸN <span className="tabular-nums">{headerStats.nSupplierLate}</span>
+                            <button type="button" onClick={onSupplierChip} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-rose-100 ring-1 ring-rose-300 text-rose-700 text-[10px] font-black uppercase tracking-wider hover:bg-rose-200 transition-colors focus-visible:ring-2 focus-visible:ring-rose-400">
+                                <FaIcon className="fas fa-truck-fast text-[9px]" aria-hidden="true" />
+                                NCC TRỄ <span className="tabular-nums">{headerStats.nSupplierLate}</span>
                             </button>
                         )}
                     </div>
-                </div>
-            )}
+                )}
+            </div>
 
-            {/* ─── ZONE 4: COVERAGE SEGMENTED CONTROL ──────────────────────── */}
-            <div className="px-8 py-3 bg-white border-y border-slate-200 shrink-0 flex items-center justify-between gap-4 flex-wrap">
-                <div className="inline-flex items-center bg-slate-100 rounded-xl p-1 shadow-inner">
+            {/* ─── ROW 3 — UNIFIED COMMAND BAR ────────────────────────────────
+                Coverage segmented + display counter on row 3a; search + filter
+                dropdowns + scope + aging on row 3b inside the table card sticky.
+                The two halves stack on smaller screens. */}
+            <div className="bg-white border-b border-slate-200 shrink-0 px-6 lg:px-8 py-2 flex items-center justify-between gap-4 flex-wrap">
+                <div className="inline-flex items-center bg-slate-100 rounded-lg p-0.5 shadow-inner">
                     {([
                         { id: 'all',      label: 'TỔNG NỢ',         dot: 'bg-slate-700',   count: masterCounts.all },
                         { id: 'stock_ok', label: 'TỒN ĐỦ TRẢ',     dot: 'bg-emerald-500', count: masterCounts.stock_ok },
@@ -1045,11 +1037,11 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                 type="button"
                                 onClick={() => { setMasterFilter(f.id); setCurrentPage(1); }}
                                 aria-pressed={isActive}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors focus-visible:ring-2 focus-visible:ring-blue-400 ${isActive ? 'bg-white text-slate-900 shadow-md ring-1 ring-slate-200' : 'text-slate-600 hover:text-slate-900'}`}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-colors focus-visible:ring-2 focus-visible:ring-blue-400 ${isActive ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:text-slate-900'}`}
                             >
                                 <span className={`w-1.5 h-1.5 rounded-full ${f.dot}`} aria-hidden="true" />
                                 {f.label}
-                                <span className={`tabular-nums px-1.5 py-0.5 rounded text-[9px] ${isActive ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-700'}`}>{f.count.toLocaleString('vi-VN')}</span>
+                                <span className={`tabular-nums px-1 py-0.5 rounded text-[9px] ${isActive ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-700'}`}>{f.count.toLocaleString('vi-VN')}</span>
                             </button>
                         );
                     })}
