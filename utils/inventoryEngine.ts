@@ -332,20 +332,29 @@ function median(arr: number[]): number {
 }
 
 /**
- * Tuned via autoresearch loop on 2 months of historical snapshots (2026-03/04
- * vs 2026-04/05 actuals, n=2126). Best WMAPE 0.385 vs prior 0.699 (-45%).
+ * Tuned via two autoresearch rounds on 2 months of historical snapshots
+ * (2026-03/04 vs 2026-04/05 actuals, n=2126).
  *
- * Findings (results.tsv on autoresearch/may08 branch):
- *  - SQL's SeasonalityFactor pre-multiplies BaseForecast already; applying a
- *    second JS-side seasonal layer hurts accuracy on this dataset (Tet drift
- *    contaminates the calendar-month index). → ignore seasonality flag.
- *  - Cap base at 3× AvgQty12M to dampen one-month spikes that inflate EWMA.
- *  - For very lumpy items (CV>1.5): use median(history) instead of base —
- *    EWMA on lumpy data is too noisy.
+ * Round 1 (single-objective WMAPE): 0.699 → 0.385 (-45%).
+ * Round 2 (multi-objective composite = WMAPE + |bias| + 1.5·stockout_rate):
+ *   v17 baseline 0.682 → v18 winner 0.678 (-0.5%).
+ *   - WMAPE: 0.385 → 0.383
+ *   - |bias|: 0.037 → 0.036
+ *   - stockout_rate: 0.174 → 0.173
+ *
+ * Findings (results-multi.tsv on autoresearch/may08):
+ *  - SQL's SeasonalityFactor pre-multiplies BaseForecast already; second
+ *    JS-side seasonal layer hurts accuracy. → ignore seasonality flag.
+ *  - Outlier cap 2.5× AvgQty12M (round 2 tightened from 3×).
+ *  - Lumpy threshold cv>1.2 with 0.1/0.9 median/a3 blend (round 2 lowered
+ *    from 1.5 / 0.2/0.8 — leans harder on recent for lumpy).
  *  - Smooth CV-aware interpolation: alpha = max(0.1, 0.65 - 0.3·CV).
- *    CV=0 → 0.65 base / 0.35 a3. CV=1 → 0.35/0.65. CV=2 → 0.1/0.9.
- *  - LinReg blending, LOIS-tier blending, MAD-aware dampening, AvgQty6M
- *    ensemble all regressed in backtest.
+ *  - Stockout buffer (×(1+0.1·cv)), trend slope, P75, alpha shifts —
+ *    all regressed under multi-objective scoring.
+ *
+ * Stockout asymmetry rationale (W_STOCKOUT=1.5 in metric): in a distribution
+ * business with LT 2-5 months, lost-sales / expedite cost > carrying cost,
+ * so the metric penalizes under-forecast 1.5× harder than over-forecast.
  *
  * The `source` and `applySeasonality` parameters are kept for backward
  * compatibility with `makeComputeParams` / Settings UI but no longer change
@@ -363,18 +372,20 @@ function resolveDemand(item: InventoryItem, _source: '3M' | '6M' | '12M', _apply
     }
 
     // Outlier cap: prevent EWMA from over-reacting to one-month spikes.
+    // Tightened 3x → 2.5x via multi-objective autoresearch (composite -0.5%).
     if (item.AvgQty12M > 0) {
-        baseDemand = Math.min(baseDemand, 3 * item.AvgQty12M);
+        baseDemand = Math.min(baseDemand, 2.5 * item.AvgQty12M);
     }
 
     const a3 = item.AvgQty3M || 0;
     if (a3 <= 0) return baseDemand;
 
     const cv = (item as any).CV || 0;
-    // Very lumpy: EWMA unreliable, use median(history)
-    if (cv > 1.5) {
+    // Lumpy items: lower threshold cv>1.2 (was 1.5) + 0.1/0.9 (was 0.2/0.8).
+    // Multi-objective autoresearch tuning — leans harder on recent for lumpy.
+    if (cv > 1.2) {
         const med = median(item.SalesHistory || []);
-        return 0.2 * med + 0.8 * a3;
+        return 0.1 * med + 0.9 * a3;
     }
     // Smooth CV-aware blend: more variability → lean more on recent
     const alpha = Math.max(0.1, 0.65 - 0.3 * cv);
