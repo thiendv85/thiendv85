@@ -31,7 +31,7 @@ export function computeScorecard(archive: ReminderEntry[], opts: Opts = {}): Sup
   }
 
   const out: SupplierStats[] = [];
-  for (const [supplier, rs] of bySupplier) {
+  Array.from(bySupplier.entries()).forEach(([supplier, rs]) => {
     const orders = new Set(rs.map(r => `${r.doc_no}|${r.item_code}|${r.row_id ?? ''}`));
     const committed = rs.filter(r => r.ncc_response_status === 'committed').length;
     const silent = rs.filter(r => r.ncc_response_status === 'silent').length;
@@ -46,7 +46,7 @@ export function computeScorecard(archive: ReminderEntry[], opts: Opts = {}): Sup
       avgEtaSlipDays: 0,
       avgResponseTimeHours: 0,
     });
-  }
+  });
   out.sort((a, b) => b.totalReminders - a.totalReminders);
   return out;
 }

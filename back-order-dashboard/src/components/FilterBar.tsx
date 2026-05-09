@@ -7,7 +7,7 @@ interface FilterBarProps {
     dealer: string;
     type: string;
   };
-  setFilters: (f: any) => void;
+  setFilters: (f: { region: string; dealer: string; type: string }) => void;
 }
 
 export default function FilterBar({ filters, setFilters }: FilterBarProps) {

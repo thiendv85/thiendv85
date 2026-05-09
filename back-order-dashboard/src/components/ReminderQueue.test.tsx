@@ -18,11 +18,11 @@ describe('ReminderQueue', () => {
       const { setRows } = useData();
       useEffect(() => {
         setRows([
-          { DocDate: '01/01/2026', DocNo: 'D5', OPropertyName: 'Chiến dịch', ItemCode: 'I5', ItemName: 'X', QuantityRemainClose: '1', KhoNo: 'K', 'SR-ĐL2': 'S' } as any,
-          { DocDate: '01/01/2026', DocNo: 'D2', OPropertyName: 'Bảo hành',  ItemCode: 'I2', ItemName: 'X', QuantityRemainClose: '1', KhoNo: 'K', 'SR-ĐL2': 'S' } as any,
-          { DocDate: '01/01/2026', DocNo: 'D1', OPropertyName: 'Khẩn VOR',  ItemCode: 'I1', ItemName: 'X', QuantityRemainClose: '1', KhoNo: 'K', 'SR-ĐL2': 'S' } as any,
-          { DocDate: '01/01/2026', DocNo: 'D4', OPropertyName: 'Dự trữ',    ItemCode: 'I4', ItemName: 'X', QuantityRemainClose: '1', KhoNo: 'K', 'SR-ĐL2': 'S' } as any,
-          { DocDate: '01/01/2026', DocNo: 'D3', OPropertyName: 'Khẩn',      ItemCode: 'I3', ItemName: 'X', QuantityRemainClose: '1', KhoNo: 'K', 'SR-ĐL2': 'S' } as any,
+          { DocDate: '01/01/2026', DocNo: 'D5', OPropertyName: 'Chiến dịch', ItemCode: 'I5', ItemName: 'X', QuantityRemainClose: '1', KhoNo: 'K', 'SR-ĐL2': 'S' } as unknown as import('@/lib/transform').RawBOData,
+          { DocDate: '01/01/2026', DocNo: 'D2', OPropertyName: 'Bảo hành',  ItemCode: 'I2', ItemName: 'X', QuantityRemainClose: '1', KhoNo: 'K', 'SR-ĐL2': 'S' } as unknown as import('@/lib/transform').RawBOData,
+          { DocDate: '01/01/2026', DocNo: 'D1', OPropertyName: 'Khẩn VOR',  ItemCode: 'I1', ItemName: 'X', QuantityRemainClose: '1', KhoNo: 'K', 'SR-ĐL2': 'S' } as unknown as import('@/lib/transform').RawBOData,
+          { DocDate: '01/01/2026', DocNo: 'D4', OPropertyName: 'Dự trữ',    ItemCode: 'I4', ItemName: 'X', QuantityRemainClose: '1', KhoNo: 'K', 'SR-ĐL2': 'S' } as unknown as import('@/lib/transform').RawBOData,
+          { DocDate: '01/01/2026', DocNo: 'D3', OPropertyName: 'Khẩn',      ItemCode: 'I3', ItemName: 'X', QuantityRemainClose: '1', KhoNo: 'K', 'SR-ĐL2': 'S' } as unknown as import('@/lib/transform').RawBOData,
         ]);
       }, []);
       return null;

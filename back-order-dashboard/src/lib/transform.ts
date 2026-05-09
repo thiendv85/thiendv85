@@ -41,9 +41,9 @@ function parseDDMMYYYY(dateStr: string): Date | null {
   return isNaN(date.getTime()) ? null : date;
 }
 
-function cleanBOM(data: any[]): any[] {
+function cleanBOM(data: Record<string, unknown>[]): Record<string, unknown>[] {
   return data.map(row => {
-    const newRow: any = {};
+    const newRow: Record<string, unknown> = {};
     for (const key in row) {
       const cleanKey = key.replace(/^\uFEFF/, "");
       newRow[cleanKey] = row[key];
@@ -55,9 +55,9 @@ function cleanBOM(data: any[]): any[] {
 export function transformData(raw: RawBOData[]): TransformedBOData[] {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
-  const cleanedRaw = cleanBOM(raw);
-  
+
+  const cleanedRaw = cleanBOM(raw as unknown as Record<string, unknown>[]) as unknown as RawBOData[];
+
   return cleanedRaw.map(row => {
     const docDate = parseDDMMYYYY(row.DocDate) || new Date();
     const qty = typeof row.QuantityRemainClose === 'string' ? parseInt(row.QuantityRemainClose, 10) || 0 : row.QuantityRemainClose;

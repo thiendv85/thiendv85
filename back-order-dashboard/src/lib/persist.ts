@@ -76,8 +76,12 @@ export function parseAnnotatedCsv(csv: string): ParseResult {
       });
     }
 
-    const { last_reminded_at, reminder_count, ncc_response_status, eta_promised_new,
-      updated_by, reminder_uuid_last, ...orig } = cleaned;
+    const orig: Record<string, string> = {};
+    for (const k in cleaned) {
+      if (!(ANNOTATION_COLUMNS as readonly string[]).includes(k)) {
+        orig[k] = cleaned[k];
+      }
+    }
     rows.push(orig as unknown as RawBOData);
   }
 
@@ -127,7 +131,9 @@ export function parseArchive(json: string): ParseArchiveResult {
   const warnings: string[] = [];
   const reminders: ReminderEntry[] = [];
 
-  for (const [i, r] of (f.reminders as unknown[]).entries()) {
+  const list = f.reminders as unknown[];
+  for (let i = 0; i < list.length; i++) {
+    const r = list[i];
     if (typeof r !== 'object' || r === null) {
       warnings.push(`Reminder #${i} is not object — skipped`);
       continue;

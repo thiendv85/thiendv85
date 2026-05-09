@@ -17,7 +17,7 @@ describe('transformData', () => {
   });
 
   it('parses qty as number when input is already numeric', () => {
-    const out = transformData([row({ QuantityRemainClose: 7 as any })]);
+    const out = transformData([row({ QuantityRemainClose: 7 as unknown as string })]);
     expect(out[0].Quantity).toBe(7);
   });
 

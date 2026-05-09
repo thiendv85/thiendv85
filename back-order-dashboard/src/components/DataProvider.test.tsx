@@ -45,7 +45,7 @@ describe('DataProvider extended state', () => {
         DocDate: '01/01/2026', DocNo: 'P', OPropertyName: 'Khẩn',
         ItemCode: 'I', ItemName: 'X', QuantityRemainClose: '1',
         KhoNo: 'K', 'SR-ĐL2': 'S',
-      } as any,
+      } as unknown as import('@/lib/transform').RawBOData,
     ]));
     let out: { csv: Blob; json: Blob } | null = null;
     act(() => { out = result.current.exportSnapshot(); });

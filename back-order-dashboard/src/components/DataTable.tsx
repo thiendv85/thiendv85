@@ -21,7 +21,7 @@ export default function DataTable({ data }: DataTableProps) {
   const itemsPerPage = 50;
 
   const sortedData = useMemo(() => {
-    let sortableItems = [...data];
+    const sortableItems = [...data];
     if (sortConfig.key !== null) {
       sortableItems.sort((a, b) => {
         const aVal = a[sortConfig.key!] ?? "";
@@ -94,10 +94,10 @@ export default function DataTable({ data }: DataTableProps) {
                 <th 
                   key={col.key} 
                   className="px-4 py-3 cursor-pointer hover:text-slate-900 transition-colors whitespace-nowrap"
-                  onClick={() => requestSort(col.key as any)}
+                  onClick={() => requestSort(col.key as keyof import('@/lib/transform').TransformedBOData)}
                 >
                   <div className="flex items-center gap-1">
-                    {col.label} <SortIcon col={col.key as any} />
+                    {col.label} <SortIcon col={col.key as keyof import('@/lib/transform').TransformedBOData} />
                   </div>
                 </th>
               ))}

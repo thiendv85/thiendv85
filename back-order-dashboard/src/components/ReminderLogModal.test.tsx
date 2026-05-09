@@ -24,7 +24,7 @@ describe('ReminderLogModal', () => {
   it('disables Save until kênh + status selected', () => {
     render(
       <DataProvider>
-        <ReminderLogModal row={sampleRow} level="first-nudge" channel={'' as any} onClose={() => {}} onSaved={() => {}} />
+        <ReminderLogModal row={sampleRow} level="first-nudge" channel={'' as unknown as 'email'} onClose={() => {}} onSaved={() => {}} />
       </DataProvider>
     );
     const save = screen.getByRole('button', { name: /^Lưu$/i });
