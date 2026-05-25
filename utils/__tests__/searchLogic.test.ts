@@ -61,7 +61,7 @@ describe('matchSearch', () => {
     BrandName: 'Kia',
     SourceId: '',
     BackorderBreakdown: [],
-  });
+  } as any);
 
   test('EMPTY search matches everything', () => {
     const item = makeItem('KIA001', 'Brake Pad');

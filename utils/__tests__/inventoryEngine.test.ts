@@ -78,15 +78,16 @@ describe('buildWorkingDaysCache', () => {
 // ── computeInventory (integration-level) ────────────────────────────────────
 
 describe('computeInventory', () => {
-  const baseItem: Partial<InventoryItem> = {
+  // Use 'as any' for fields merged from MonthlyData at runtime (CV, Sigma_eff)
+  const baseItem: Record<string, any> = {
     ItemCode: 'TEST-001',
     ItemName: 'Test Part',
     BrandName: 'Kia',
     TotalInventory: 100,
-    OH_NB: 60,
-    OH_BB: 40,
-    DC_NB: 0,
-    DC_BB: 0,
+    QuantityInventory_NB: 60,
+    QuantityInventory_BB: 40,
+    QuantityDC_NB: 0,
+    QuantityDC_BB: 0,
     Backorder: 5,
     TotalPO: 20,
     UnitCost_PP: 50000,
