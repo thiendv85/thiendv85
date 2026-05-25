@@ -1,17 +1,19 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLanguage } from '../utils/i18n';
-import { saveToCloudStorage, loadFromCloudStorage, verifyAdminPin, saveMonthlyData, loadLatestMonthlyData, listMonthlyDataSnapshots, listProfiles, updateProfileRole, toggleUserActive, listWorkflows, createWorkflow, updateWorkflow, createUserByAdmin, adminResetPassword, listSnapshots, deleteSnapshot, getStorageUsage, SnapshotMetadataRow, deleteMonthlyData } from '../utils/supabase';
+import { saveToCloudStorage, loadFromCloudStorage, verifyAdminPin, saveMonthlyData, loadLatestMonthlyData, listMonthlyDataSnapshots, deleteMonthlyData } from '../utils/supabase';
 import { supabase } from '../utils/supabase';
 import { parseMonthlyCSV } from '../utils/csvParser';
 import { Typography } from '../components/Typography';
 import { GlossaryTab } from '../components/GlossaryTab';
 import { clearAllAppCache } from '../utils/db';
-import { Brand, SourceProfile, AVAILABLE_BRANDS, DEFAULT_SOURCE_PROFILES, ApprovalWorkflow, WorkflowLevel, LoisProfile } from '../types/inventory';
+import { Brand, SourceProfile, AVAILABLE_BRANDS, DEFAULT_SOURCE_PROFILES, LoisProfile } from '../types/inventory';
 import { useAuth } from '../utils/authContext';
-import { UserProfile, UserRole } from '../utils/authContext';
 import { loadAppSettings, saveAppSettings, type AppSettings } from '../utils/appSettings';
 
 import { FaIcon } from '../components/Icon';
+import { SectionCard, Field, NumberInput, Select, Toggle, ColCheckbox } from './settings/SettingsUI';
+import { UserManagementTab } from './settings/UserManagementTab';
+import { SnapshotManagerTab } from './settings/SnapshotManagerTab';
 // Re-export so legacy imports of `from './pages/Settings'` keep working until callers migrate.
 export { loadAppSettings, saveAppSettings };
 export type { AppSettings };
@@ -55,13 +57,57 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
     exportColumns: {
         itemCode: true, itemName: true, typeCar: true, loisGroup: true, trendFlag: true,
         status: true, backorder: true, backorderNB: false, backorderBB: false,
-        stockNB: true, stockBB: true, totalInventory: true, totalPO: true, poThisMonth: true,
+        stockNB: true, stockBB: true, dcNB: false, dcBB: false,
+        totalInventory: true, totalPO: true, totalPO_NB: false, totalPO_BB: false,
+        poThisMonth: true, poNextMonth: false,
         debtPriority: true, debtStatus: true, baseForecast: true,
-        avgQty3M: true, avgQty6M: false, avgQty12M: false, mos: true,
+        forecastNB: false, forecastBB: false,
+        avgQty3M: true, avgQty6M: false, avgQty12M: false, avgQty24M: false, mos: true,
         rop: false, stockMax: false, safetyStock: false,
         unitCostPP: true, unitCostFOB: false, stockValue: true,
         excessQty: false, excessValue: false, dealerInventory: true,
-        note: false, snp: false,
+        note: false, snp: false, sourceId: false, brandName: false,
+        // Computed fields
+        demandRateDaily: false, demandMonthly: false, available: false, netAvailable: false,
+        cst: false, stockTurnRatio: false, fillRate: false, capitalEfficiency: false,
+        gapOrExcess: false, stockoutRiskFlag: false, stockoutGapQty: false, stockoutGapValue: false,
+        priorityBucket: false, priorityScore: false,
+        // Statistical Intelligence
+        cv: false, slope: false, forecastLinReg: false, ssi: false,
+        // BO Aging breakdown
+        boAgingQty30: false, boAgingQty60: false, boAgingQty90: false, boAgingQtyOver90: false,
+        boAgingOldestDays: false, boAgingTotalValue: false,
+        // Transfer / DRP
+        transferNBtoBB: false, transferBBtoNB: false,
+        suggestedOrderNB: false, suggestedOrderBB: false,
+        mosNB: false, mosBB: false,
+        // Suggested BO
+        suggestedBO: false, isBOCritical: false,
+        isStopBiz: false, netDemand: false, totalSupply: false,
+    },
+    backorderExportColumns: {
+        // SKU-level
+        itemCode: true, itemName: true, sourceId: true, brandName: true,
+        motherGroup: true, typeCar: true, loisGroup: true, lt: true,
+        totalBO: true, stockNB: true, stockBB: true, dcNB: true, dcBB: true,
+        dealerInventory: true, totalPO: true, poThisMonth: true, poNextMonth: true,
+        boAgingOldestDays: true, supplierWarning: true, worstAnomaly: true,
+        maxAnomalyScore: true, abnormalOrderCount: true,
+        // Extra computed
+        mos: false, cst: false, rop: false, stockMax: false, safetyStock: false,
+        avgQty3M: false, avgQty6M: false, baseForecast: false,
+        unitCostPP: false, unitCostFOB: false, stockValue: false,
+        demandRateDaily: false, priorityBucket: false,
+        cv: false, slope: false, ssi: false,
+        boAgingQty30: false, boAgingQty60: false, boAgingQty90: false, boAgingQtyOver90: false,
+        boAgingTotalValue: false, suggestedBO: false, netDemand: false, totalSupply: false,
+        // Order-level (always included per row)
+        docNo: true, docDate: true, orderType: true, orderQty: true,
+        warehouse: true, branchCode: true, branchCodeReceipt: true,
+        region: true, branchName: true, showroom: true, khoNo: true,
+        typeCar_order: true, eta: true, note: true,
+        daysOpen: true, daysOverdueLT: true, orderAnomaly: true,
+        orderScore: true, orderReasons: true,
     },
     orderDraftColumns: {
         itemCode: true, itemName: true, status: false, typeCar: false,
@@ -92,851 +138,11 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
 const STORAGE_KEY = 'atp_app_settings';
 // loadAppSettings / saveAppSettings live in utils/appSettings.ts and are re-exported above.
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-const SectionCard = ({ title, icon, badge, children }: { title: string; icon: string; badge?: string; children: React.ReactNode }) => (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
-                <FaIcon className={`fas ${icon} text-blue-600 text-sm`}  />
-            </div>
-            <Typography variant="label" className="text-slate-900">{title}</Typography>
-            {badge && <span className="ml-auto text-xs font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">{badge}</span>}
-        </div>
-        <div className="p-6">{children}</div>
-    </div>
-);
+// ─── User Management Tab → pages/settings/UserManagementTab.tsx
+// ─── Snapshot Manager Tab → pages/settings/SnapshotManagerTab.tsx
+// ─── UI Primitives → pages/settings/SettingsUI.tsx
 
-const Field = ({ label, sub, children }: { label: string; sub?: string; children: React.ReactNode }) => (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 py-3 border-b border-slate-50 last:border-0">
-        <div className="sm:w-56 shrink-0">
-            <Typography variant="body" className="text-slate-700 font-bold">{label}</Typography>
-            {sub && <Typography variant="label" className="text-slate-400 !font-medium normal-case block mt-0.5">{sub}</Typography>}
-        </div>
-        <div className="flex-1">{children}</div>
-    </div>
-);
-
-const NumberInput = ({ value, onChange, min, max, step, unit }: { value: number; onChange: (v: number) => void; min?: number; max?: number; step?: number; unit?: string }) => (
-    <div className="flex items-center gap-2">
-        <input
-            type="number" value={value} min={min} max={max} step={step || 1}
-            onChange={e => onChange(parseFloat(e.target.value) || 0)}
-            className="w-24 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 transition-all"
-        />
-        {unit && <span className="text-xs font-bold text-slate-400 uppercase">{unit}</span>}
-    </div>
-);
-
-const Select = ({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) => (
-    <select
-        value={value} onChange={e => onChange(e.target.value)}
-        className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 transition-all cursor-pointer"
-    >
-        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-    </select>
-);
-
-const Toggle = ({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label?: string }) => (
-    <div className="flex items-center gap-2">
-        <button
-            onClick={() => onChange(!value)}
-            className={`relative w-10 h-5 rounded-full transition-all ${value ? 'bg-blue-600' : 'bg-slate-200'}`}
-        >
-            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${value ? 'left-5' : 'left-0.5'}`} />
-        </button>
-        {label && <span className="text-sm font-bold text-slate-600">{label}</span>}
-    </div>
-);
-
-const ColCheckbox = ({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void; key?: React.Key }) => (
-    <label className="flex items-center gap-2 py-1 px-2 rounded-lg hover:bg-slate-50 cursor-pointer group">
-        <div
-            onClick={() => onChange(!value)}
-            className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all ${value ? 'bg-blue-600 border-blue-600' : 'border-slate-300 group-hover:border-blue-400'}`}
-        >
-            {value && <FaIcon className="fas fa-check text-white" style={{ fontSize: '9px' }}  />}
-        </div>
-        <span className="text-xs font-bold text-slate-600 select-none">{label}</span>
-    </label>
-);
-
-// ─── User Management Tab ─────────────────────────────────────────────────────
-
-const ROLE_LABELS: Record<UserRole, string> = {
-    admin: 'Admin',
-    planner: 'Planner',
-    approver: 'Approver',
-    viewer: 'Viewer',
-};
-
-const UserManagementTab = () => {
-    const { user, profile } = useAuth();
-    const isAdmin = profile?.role === 'admin';
-    const [users, setUsers] = useState<UserProfile[]>([]);
-    const [workflows, setWorkflowList] = useState<ApprovalWorkflow[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [newWfName, setNewWfName] = useState('');
-    const [newWfBrand, setNewWfBrand] = useState<string>('');
-    const [newWfProposers, setNewWfProposers] = useState<string[]>([]);
-    const [newWfLevels, setNewWfLevels] = useState<WorkflowLevel[]>([{ level: 1, approver_ids: [], require_all: false }]);
-    const [showNewWfForm, setShowNewWfForm] = useState(false);
-    const [editingWf, setEditingWf] = useState<ApprovalWorkflow | null>(null);
-
-    // Create user form
-    const [showCreateUser, setShowCreateUser] = useState(false);
-    const [newEmail, setNewEmail] = useState('');
-    const [newPassword, setNewPassword] = useState('');
-    const [newFullName, setNewFullName] = useState('');
-    const [newRole, setNewRole] = useState<UserRole>('viewer');
-    const [createError, setCreateError] = useState('');
-    const [isCreating, setIsCreating] = useState(false);
-
-    // Change password (own)
-    const [showChangePw, setShowChangePw] = useState(false);
-    const [newPw, setNewPw] = useState('');
-    const [confirmPw, setConfirmPw] = useState('');
-    const [pwMsg, setPwMsg] = useState('');
-    const [isChangingPw, setIsChangingPw] = useState(false);
-
-    // Admin reset password for another user
-    const [resetTarget, setResetTarget] = useState<UserProfile | null>(null);
-    const [resetPw, setResetPw] = useState('');
-    const [resetMsg, setResetMsg] = useState('');
-    const [isResetting, setIsResetting] = useState(false);
-
-    const load = useCallback(async () => {
-        setIsLoading(true);
-        const [u, w] = await Promise.all([listProfiles(), listWorkflows()]);
-        setUsers(u);
-        setWorkflowList(w);
-        setIsLoading(false);
-    }, []);
-
-    useEffect(() => { load(); }, [load]);
-
-    const handleRoleChange = async (userId: string, role: UserRole) => {
-        await updateProfileRole(userId, role);
-        setUsers(prev => prev.map(u => u.id === userId ? { ...u, role } : u));
-    };
-
-    const handleBrandChange = async (userId: string, brand: string | null) => {
-        await supabase.from('profiles').update({ department: brand }).eq('id', userId);
-        setUsers(prev => prev.map(u => u.id === userId ? { ...u, department: brand } : u));
-    };
-
-    const handleToggleActive = async (userId: string, active: boolean) => {
-        await toggleUserActive(userId, !active);
-        setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_active: !active } : u));
-    };
-
-    const handleCreateUser = async () => {
-        if (!newEmail.trim() || !newPassword.trim()) return;
-        setIsCreating(true);
-        setCreateError('');
-        const { error } = await createUserByAdmin(newEmail.trim(), newPassword, newFullName.trim(), newRole);
-        setIsCreating(false);
-        if (error) { setCreateError(error); return; }
-        setNewEmail(''); setNewPassword(''); setNewFullName(''); setNewRole('viewer');
-        setShowCreateUser(false);
-        load();
-    };
-
-    const handleChangePassword = async () => {
-        if (newPw.length < 6) { setPwMsg('Mật khẩu phải ít nhất 6 ký tự.'); return; }
-        if (newPw !== confirmPw) { setPwMsg('Mật khẩu không khớp.'); return; }
-        setIsChangingPw(true);
-        const { error } = await supabase.auth.updateUser({ password: newPw });
-        setIsChangingPw(false);
-        if (error) { setPwMsg(error.message); return; }
-        setPwMsg('✓ Đã đổi mật khẩu thành công!');
-        setNewPw(''); setConfirmPw('');
-        setTimeout(() => { setPwMsg(''); setShowChangePw(false); }, 2000);
-    };
-
-    const handleOpenEditWf = (wf: ApprovalWorkflow) => {
-        setEditingWf(wf);
-        setNewWfName(wf.name);
-        setNewWfBrand(wf.brand || '');
-        setNewWfProposers(wf.proposer_ids ?? []);
-        setNewWfLevels(wf.levels.length > 0 ? wf.levels : [{ level: 1, approver_ids: [], require_all: false }]);
-        setShowNewWfForm(true);
-    };
-
-    const handleSaveWf = async () => {
-        if (!newWfName.trim() || !user) return;
-        if (editingWf) {
-            await updateWorkflow(editingWf.id, {
-                name: newWfName.trim(),
-                brand: newWfBrand || null,
-                levels: newWfLevels,
-                proposer_ids: newWfProposers,
-            });
-        } else {
-            await createWorkflow({
-                name: newWfName.trim(),
-                brand: newWfBrand || null,
-                levels: newWfLevels,
-                proposer_ids: newWfProposers,
-                is_active: true,
-                created_by: user.id,
-            });
-        }
-        setEditingWf(null); setNewWfName(''); setNewWfBrand(''); setNewWfProposers([]);
-        setNewWfLevels([{ level: 1, approver_ids: [], require_all: false }]);
-        setShowNewWfForm(false);
-        load();
-    };
-
-    const handleAdminResetPassword = async () => {
-        if (!resetTarget || resetPw.length < 6) { setResetMsg('Mật khẩu phải ít nhất 6 ký tự.'); return; }
-        setIsResetting(true); setResetMsg('');
-        const { error } = await adminResetPassword(resetTarget.id, resetPw);
-        setIsResetting(false);
-        if (error) { setResetMsg(error); return; }
-        setResetMsg('✓ Đã đổi mật khẩu!');
-        setTimeout(() => { setResetTarget(null); setResetPw(''); setResetMsg(''); }, 1500);
-    };
-
-
-    const handleToggleWorkflow = async (wf: ApprovalWorkflow) => {
-        await updateWorkflow(wf.id, { is_active: !wf.is_active });
-        load();
-    };
-
-    if (isLoading) return (
-        <div className="flex items-center justify-center py-16 text-slate-400">
-            <FaIcon className="fas fa-circle-notch fa-spin text-2xl"  />
-        </div>
-    );
-
-    return (
-        <div className="space-y-6 animate-fadeIn pb-24">
-            {/* Users Table */}
-            <SectionCard title="Danh sách người dùng" icon="fa-users">
-                <div className="overflow-auto rounded-xl border border-slate-200">
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-widest border-b border-slate-200">
-                                <th className="px-4 py-3 text-left font-black">Họ tên</th>
-                                <th className="px-4 py-3 text-left font-black">Email</th>
-                                <th className="px-4 py-3 text-left font-black">Role</th>
-                                <th className="px-4 py-3 text-left font-black">Brand</th>
-                                <th className="px-4 py-3 text-center font-black">Trạng thái</th>
-                                <th className="px-4 py-3 text-right font-black">Hành động</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {users.map(u => (
-                                <tr key={u.id} className="border-t border-slate-100 hover:bg-slate-50">
-                                    <td className="px-4 py-3 font-bold text-slate-800">{u.full_name || <span className="text-slate-400 italic">Chưa đặt tên</span>}</td>
-                                    <td className="px-4 py-3 text-xs text-slate-500">{u.email || <span className="text-slate-400 italic">Không có</span>}</td>
-                                    <td className="px-4 py-3">
-                                        <select
-                                            value={u.role}
-                                            onChange={e => handleRoleChange(u.id, e.target.value as UserRole)}
-                                            className="border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold bg-white outline-none focus:border-blue-400"
-                                        >
-                                            {(Object.keys(ROLE_LABELS) as UserRole[]).map(r => (
-                                                <option key={r} value={r}>{ROLE_LABELS[r]}</option>
-                                            ))}
-                                        </select>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <select
-                                            value={u.department || ''}
-                                            onChange={e => handleBrandChange(u.id, e.target.value || null)}
-                                            className="border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold bg-white outline-none focus:border-blue-400"
-                                        >
-                                            <option value="">Tất cả</option>
-                                            {AVAILABLE_BRANDS.map(b => (
-                                                <option key={b} value={b}>{b}</option>
-                                            ))}
-                                        </select>
-                                    </td>
-                                    <td className="px-4 py-3 text-center">
-                                        <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-lg border ${u.is_active ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
-                                            <FaIcon className={`fas ${u.is_active ? 'fa-circle-check' : 'fa-circle-xmark'} text-[8px]`}  />
-                                            {u.is_active ? 'Active' : 'Inactive'}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-3 text-right">
-                                        <div className="flex items-center justify-end gap-2">
-                                            <button
-                                                onClick={() => { setResetTarget(u); setResetPw(''); setResetMsg(''); }}
-                                                className="text-xs font-black px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all"
-                                            >
-                                                <FaIcon className="fas fa-key mr-1"  />Đổi mật khẩu
-                                            </button>
-                                            <button
-                                                onClick={() => handleToggleActive(u.id, u.is_active)}
-                                                className={`text-xs font-black px-3 py-1.5 rounded-lg border transition-all ${u.is_active ? 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100' : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}
-                                            >
-                                                {u.is_active ? 'Vô hiệu hoá' : 'Kích hoạt'}
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-                {/* Admin Reset Password Modal */}
-                {resetTarget && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setResetTarget(null)}>
-                        <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4 space-y-4" onClick={e => e.stopPropagation()}>
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                                    <FaIcon className="fas fa-key text-blue-600"  />
-                                </div>
-                                <div>
-                                    <p className="font-black text-slate-800 text-sm">Đổi mật khẩu</p>
-                                    <p className="text-xs text-slate-500">{resetTarget.full_name || 'Người dùng'}</p>
-                                </div>
-                            </div>
-                            {resetMsg && (
-                                <p className={`text-xs px-3 py-2 rounded-lg border ${resetMsg.startsWith('✓') ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-rose-50 border-rose-200 text-rose-600'}`}>{resetMsg}</p>
-                            )}
-                            <div>
-                                <label className="block text-xs font-black text-slate-500 mb-1">Mật khẩu mới</label>
-                                <input
-                                    type="password"
-                                    value={resetPw}
-                                    onChange={e => setResetPw(e.target.value)}
-                                    onKeyDown={e => e.key === 'Enter' && handleAdminResetPassword()}
-                                    placeholder="Ít nhất 6 ký tự"
-                                    autoFocus
-                                    className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-400 font-medium"
-                                />
-                            </div>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={handleAdminResetPassword}
-                                    disabled={isResetting || resetPw.length < 6}
-                                    className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-black py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 transition-all"
-                                >
-                                    {isResetting ? <><FaIcon className="fas fa-circle-notch fa-spin"  /> Đang lưu...</> : <><FaIcon className="fas fa-check"  /> Xác nhận</>}
-                                </button>
-                                <button
-                                    onClick={() => setResetTarget(null)}
-                                    className="px-4 py-2.5 rounded-xl text-sm font-black border border-slate-200 text-slate-500 hover:bg-slate-50 transition-all"
-                                >
-                                    Hủy
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Create User Form */}
-                {showCreateUser ? (
-                    <div className="mt-4 p-4 border border-blue-200 bg-blue-50 rounded-xl space-y-3">
-                        <Typography variant="label" className="text-blue-700 font-black uppercase tracking-widest block">Tạo tài khoản mới</Typography>
-                        {createError && <p className="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{createError}</p>}
-                        <div className="grid grid-cols-2 gap-2">
-                            <div>
-                                <label className="block text-xs font-black text-slate-500 mb-1">Họ tên</label>
-                                <input value={newFullName} onChange={e => setNewFullName(e.target.value)} placeholder="Nguyễn Văn A" className="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-blue-400" />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-black text-slate-500 mb-1">Role</label>
-                                <select value={newRole} onChange={e => setNewRole(e.target.value as UserRole)} className="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm bg-white outline-none focus:border-blue-400">
-                                    {(Object.keys(ROLE_LABELS) as UserRole[]).map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-black text-slate-500 mb-1">Email</label>
-                                <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="user@company.com" className="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-blue-400" />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-black text-slate-500 mb-1">Mật khẩu</label>
-                                <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Ít nhất 6 ký tự" className="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-blue-400" />
-                            </div>
-                        </div>
-                        <div className="flex gap-2">
-                            <button onClick={handleCreateUser} disabled={isCreating || !newEmail || !newPassword} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-xs font-black flex items-center gap-2">
-                                {isCreating ? <><FaIcon className="fas fa-circle-notch fa-spin"  /> Đang tạo...</> : <><FaIcon className="fas fa-user-plus"  /> Tạo tài khoản</>}
-                            </button>
-                            <button onClick={() => { setShowCreateUser(false); setCreateError(''); }} className="px-4 py-2 rounded-lg text-xs font-black border border-slate-200 text-slate-500 hover:bg-slate-50">Hủy</button>
-                        </div>
-                    </div>
-                ) : (
-                    <button onClick={() => setShowCreateUser(true)} className="mt-3 flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-black">
-                        <FaIcon className="fas fa-user-plus"  /> Tạo tài khoản mới
-                    </button>
-                )}
-            </SectionCard>
-
-            {/* Workflows */}
-            <SectionCard title="Cấu hình Workflow Phê duyệt" icon="fa-sitemap">
-                <div className="space-y-2">
-                    {workflows.map(wf => {
-                        const getName = (id: string) => users.find(u => u.id === id)?.full_name || id.slice(0, 8);
-                        return (
-                        <div key={wf.id} className="border border-slate-200 rounded-xl overflow-hidden">
-                            {/* Header */}
-                            <div className="flex items-center justify-between px-4 py-3 bg-slate-50">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="font-bold text-slate-800 text-sm">{wf.name}</span>
-                                    {wf.brand && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">{wf.brand}</span>}
-                                    <span className="text-xs text-slate-400">{wf.levels.length} cấp phê duyệt</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <button onClick={() => handleOpenEditWf(wf)}
-                                        className="text-xs font-black px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 transition-all">
-                                        <FaIcon className="fas fa-pen mr-1"  />Sửa
-                                    </button>
-                                    <button onClick={() => handleToggleWorkflow(wf)}
-                                        className={`text-xs font-black px-3 py-1.5 rounded-lg border transition-all ${wf.is_active ? 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100' : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}>
-                                        {wf.is_active ? 'Tắt' : 'Bật'}
-                                    </button>
-                                </div>
-                            </div>
-                            {/* Detail rows */}
-                            <div className="divide-y divide-slate-100 px-4 py-2 space-y-1">
-                                {/* Proposers */}
-                                <div className="flex items-start gap-3 py-1.5">
-                                    <span className="text-xs font-black text-violet-600 w-36 shrink-0 flex items-center gap-1"><FaIcon className="fas fa-user-pen"  /> Người đề xuất</span>
-                                    <div className="flex flex-wrap gap-1">
-                                        {(wf.proposer_ids ?? []).length === 0
-                                            ? <span className="text-xs text-slate-400 italic">Tất cả planner</span>
-                                            : (wf.proposer_ids ?? []).map(id => (
-                                                <span key={id} className="text-xs bg-violet-50 text-violet-700 border border-violet-200 px-2 py-0.5 rounded-full font-bold">{getName(id)}</span>
-                                            ))}
-                                    </div>
-                                </div>
-                                {/* Each level */}
-                                {wf.levels.map(lvl => (
-                                    <div key={lvl.level} className="flex items-start gap-3 py-1.5">
-                                        <span className="text-xs font-black text-blue-600 w-36 shrink-0 flex items-center gap-1">
-                                            <FaIcon className="fas fa-check-circle"  /> Cấp {lvl.level} {lvl.require_all && <span className="text-[10px] text-slate-400">(tất cả)</span>}
-                                        </span>
-                                        <div className="flex flex-wrap gap-1">
-                                            {lvl.approver_ids.length === 0
-                                                ? <span className="text-xs text-slate-400 italic">Chưa chọn người duyệt</span>
-                                                : lvl.approver_ids.map(id => (
-                                                    <span key={id} className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full font-bold">{getName(id)}</span>
-                                                ))}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                        );
-                    })}
-                    {workflows.length === 0 && <p className="text-sm text-slate-400 py-4 text-center">Chưa có workflow nào.</p>}
-                </div>
-                {showNewWfForm ? (
-                    <div className="mt-4 border border-blue-200 bg-blue-50/50 rounded-2xl p-4 space-y-4">
-                        <p className="text-xs font-black text-blue-700 uppercase tracking-widest">{editingWf ? `Chỉnh sửa: ${editingWf.name}` : 'Tạo workflow mới'}</p>
-
-                        {/* Name + Brand */}
-                        <div className="flex gap-3">
-                            <div className="flex-1">
-                                <label className="block text-xs font-black text-slate-500 mb-1">Tên workflow</label>
-                                <input
-                                    value={newWfName}
-                                    onChange={e => setNewWfName(e.target.value)}
-                                    placeholder="VD: Phê duyệt đặt hàng BMW"
-                                    className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-blue-400 bg-white"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-black text-slate-500 mb-1">Thương hiệu</label>
-                                <select
-                                    value={newWfBrand}
-                                    onChange={e => setNewWfBrand(e.target.value)}
-                                    className="border border-slate-300 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-blue-400 bg-white"
-                                >
-                                    <option value="">Tất cả</option>
-                                    {AVAILABLE_BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
-                                </select>
-                            </div>
-                        </div>
-
-                        {/* Proposers */}
-                        <div>
-                            <label className="block text-xs font-black text-slate-500 mb-2">NGƯỜI ĐỀ XUẤT</label>
-                            <div className="flex flex-wrap gap-2">
-                                {users.filter(u => u.role === 'planner' || u.role === 'admin').map(u => (
-                                    <label key={u.id} className={`flex items-center gap-1.5 cursor-pointer px-2.5 py-1 rounded-lg border text-xs font-bold transition-all ${newWfProposers.includes(u.id) ? 'bg-violet-100 border-violet-300 text-violet-700' : 'border-slate-200 text-slate-500 hover:border-violet-200'}`}>
-                                        <input
-                                            type="checkbox"
-                                            checked={newWfProposers.includes(u.id)}
-                                            onChange={e => setNewWfProposers(prev => e.target.checked ? [...prev, u.id] : prev.filter(id => id !== u.id))}
-                                            className="sr-only"
-                                        />
-                                        <FaIcon className="fas fa-user text-[10px]"  /> {u.full_name || u.id.slice(0, 8)}
-                                    </label>
-                                ))}
-                                {users.filter(u => u.role === 'planner' || u.role === 'admin').length === 0 && (
-                                    <span className="text-xs text-slate-400 italic">Chưa có người dùng role planner/admin</span>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Levels builder */}
-                        <div>
-                            <div className="flex items-center justify-between mb-2">
-                                <label className="text-xs font-black text-slate-500">CẤP PHÊ DUYỆT</label>
-                                <button
-                                    type="button"
-                                    onClick={() => setNewWfLevels(prev => [...prev, { level: prev.length + 1, approver_ids: [], require_all: false }])}
-                                    className="text-xs font-black text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                                >
-                                    <FaIcon className="fas fa-plus"  /> Thêm cấp
-                                </button>
-                            </div>
-                            <div className="space-y-3">
-                                {newWfLevels.map((lvl, idx) => (
-                                    <div key={idx} className="bg-white border border-slate-200 rounded-xl p-3 space-y-2">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xs font-black text-slate-600">Cấp {lvl.level}</span>
-                                            <div className="flex items-center gap-3">
-                                                <label className="flex items-center gap-1.5 cursor-pointer">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={lvl.require_all}
-                                                        onChange={e => setNewWfLevels(prev => prev.map((l, i) => i === idx ? { ...l, require_all: e.target.checked } : l))}
-                                                        className="w-3.5 h-3.5 rounded accent-blue-600"
-                                                    />
-                                                    <span className="text-xs text-slate-500 font-bold">Yêu cầu tất cả duyệt</span>
-                                                </label>
-                                                {newWfLevels.length > 1 && isAdmin && (
-                                                    <button type="button" onClick={() => setNewWfLevels(prev => prev.filter((_, i) => i !== idx).map((l, i) => ({ ...l, level: i + 1 })))}
-                                                        className="text-rose-400 hover:text-rose-600 text-xs">
-                                                        <FaIcon className="fas fa-trash"  />
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                        {/* Approver checkboxes */}
-                                        <div className="flex flex-wrap gap-2">
-                                            {users.filter(u => u.role === 'approver' || u.role === 'admin').map(u => (
-                                                <label key={u.id} className={`flex items-center gap-1.5 cursor-pointer px-2.5 py-1 rounded-lg border text-xs font-bold transition-all ${lvl.approver_ids.includes(u.id) ? 'bg-blue-100 border-blue-300 text-blue-700' : 'border-slate-200 text-slate-500 hover:border-blue-200'}`}>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={lvl.approver_ids.includes(u.id)}
-                                                        onChange={e => setNewWfLevels(prev => prev.map((l, i) => i === idx ? {
-                                                            ...l,
-                                                            approver_ids: e.target.checked ? [...l.approver_ids, u.id] : l.approver_ids.filter(id => id !== u.id)
-                                                        } : l))}
-                                                        className="sr-only"
-                                                    />
-                                                    {u.full_name || u.id.slice(0, 8)}
-                                                </label>
-                                            ))}
-                                            {users.filter(u => u.role === 'approver' || u.role === 'admin').length === 0 && (
-                                                <span className="text-xs text-slate-400 italic">Chưa có người dùng role approver/admin</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="flex gap-2 pt-1">
-                            <button onClick={handleSaveWf} disabled={!newWfName.trim()} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-2 rounded-xl text-sm font-black flex items-center gap-2">
-                                <FaIcon className="fas fa-check"  /> {editingWf ? 'Lưu thay đổi' : 'Tạo workflow'}
-                            </button>
-                            <button onClick={() => { setShowNewWfForm(false); setEditingWf(null); setNewWfName(''); setNewWfBrand(''); setNewWfProposers([]); setNewWfLevels([{ level: 1, approver_ids: [], require_all: false }]); }}
-                                className="px-4 py-2 rounded-xl text-sm font-black border border-slate-200 text-slate-500 hover:bg-slate-50">
-                                Hủy
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <button onClick={() => setShowNewWfForm(true)} className="mt-3 flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-black">
-                        <FaIcon className="fas fa-plus"  /> Thêm workflow mới
-                    </button>
-                )}
-            </SectionCard>
-
-            {/* Change Password */}
-            <SectionCard title="Đổi mật khẩu" icon="fa-lock">
-                {!showChangePw ? (
-                    <button onClick={() => setShowChangePw(true)} className="flex items-center gap-2 text-slate-600 hover:text-blue-600 text-sm font-black border border-slate-200 px-4 py-2 rounded-xl hover:border-blue-300 transition-all">
-                        <FaIcon className="fas fa-key"  /> Đổi mật khẩu của tôi
-                    </button>
-                ) : (
-                    <div className="space-y-3 max-w-sm">
-                        {pwMsg && <p className={`text-xs px-3 py-2 rounded-lg border ${pwMsg.startsWith('✓') ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-rose-50 border-rose-200 text-rose-600'}`}>{pwMsg}</p>}
-                        <div>
-                            <label className="block text-xs font-black text-slate-500 mb-1">Mật khẩu mới</label>
-                            <input type="password" value={newPw} onChange={e => setNewPw(e.target.value)} placeholder="Ít nhất 6 ký tự" className="w-full border border-slate-300 rounded-xl px-4 py-2 text-sm outline-none focus:border-blue-400" />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-black text-slate-500 mb-1">Xác nhận mật khẩu</label>
-                            <input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} placeholder="Nhập lại mật khẩu mới" className="w-full border border-slate-300 rounded-xl px-4 py-2 text-sm outline-none focus:border-blue-400" onKeyDown={e => e.key === 'Enter' && handleChangePassword()} />
-                        </div>
-                        <div className="flex gap-2">
-                            <button onClick={handleChangePassword} disabled={isChangingPw || !newPw || !confirmPw} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2">
-                                {isChangingPw ? <><FaIcon className="fas fa-circle-notch fa-spin"  /> Đang lưu...</> : <><FaIcon className="fas fa-check"  /> Xác nhận</>}
-                            </button>
-                            <button onClick={() => { setShowChangePw(false); setNewPw(''); setConfirmPw(''); setPwMsg(''); }} className="px-4 py-2 rounded-xl text-xs font-black border border-slate-200 text-slate-500 hover:bg-slate-50">Hủy</button>
-                        </div>
-                    </div>
-                )}
-            </SectionCard>
-        </div>
-    );
-};
-
-interface SnapshotManagerTabProps {
-    monthlyHistory: { id: string; updated_at: string }[];
-    handleDeleteMonthly: (snapshotMonth: string) => Promise<void>;
-}
-
-const SnapshotManagerTab = ({ monthlyHistory, handleDeleteMonthly }: SnapshotManagerTabProps) => {
-    const [snapshots, setSnapshots] = useState<SnapshotMetadataRow[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [deletingId, setDeletingId] = useState<string | null>(null);
-    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-    const [storageInfo, setStorageInfo] = useState({ usedBytes: 0, count: 0 });
-    const [brandFilter, setBrandFilter] = useState<string>('');
-
-    useEffect(() => { fetchAll(); }, [brandFilter]);
-
-    const fetchAll = async () => {
-        setIsLoading(true);
-        const [data, usage] = await Promise.all([
-            listSnapshots(200, brandFilter || null),
-            getStorageUsage()
-        ]);
-        setSnapshots(data);
-        setStorageInfo(usage);
-        setIsLoading(false);
-    };
-
-    const handleDelete = async (snap: SnapshotMetadataRow) => {
-        if (!confirm(`Xóa snapshot "${snap.filename}"?\nDữ liệu sẽ bị xóa vĩnh viễn khỏi Cloud.`)) return;
-        setDeletingId(snap.id);
-        const result = await deleteSnapshot(snap.id, snap.storage_path);
-        if (result.success) {
-            setSnapshots(prev => prev.filter(s => s.id !== snap.id));
-            setStorageInfo(prev => ({ ...prev, count: prev.count - 1, usedBytes: prev.usedBytes - (snap.file_size_bytes || 0) }));
-        } else {
-            alert(`❌ Lỗi khi xóa: ${result.error || 'Không xác định'}`);
-        }
-        setDeletingId(null);
-    };
-
-    const handleDeleteSelected = async () => {
-        const count = selectedIds.size;
-        if (count === 0) return;
-        if (!confirm(`Xóa ${count} snapshots đã chọn?\nDữ liệu sẽ bị xóa vĩnh viễn.`)) return;
-        
-        setIsLoading(true);
-        let successCount = 0;
-        let lastError = '';
-
-        for (const id of selectedIds) {
-            const snap = snapshots.find(s => s.id === id);
-            if (snap) {
-                const result = await deleteSnapshot(snap.id, snap.storage_path);
-                if (result.success) successCount++;
-                else lastError = result.error || 'Lỗi không xác định';
-            }
-        }
-        
-        setSelectedIds(new Set());
-        await fetchAll();
-        
-        if (successCount < count) {
-            alert(`Đã xóa ${successCount}/${count} file. Lỗi cuối: ${lastError}`);
-        } else {
-            alert(`✅ Đã xóa thành công ${successCount} file.`);
-        }
-        setIsLoading(false);
-    };
-
-    const toggleSelect = (id: string) => {
-        setSelectedIds(prev => {
-            const next = new Set(prev);
-            if (next.has(id)) next.delete(id); else next.add(id);
-            return next;
-        });
-    };
-
-    const toggleSelectAll = () => {
-        if (selectedIds.size === snapshots.length) setSelectedIds(new Set());
-        else setSelectedIds(new Set(snapshots.map(s => s.id)));
-    };
-
-    const formatBytes = (bytes: number | null) => {
-        if (!bytes) return '—';
-        if (bytes < 1024) return `${bytes} B`;
-        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-    };
-
-    const formatDate = (dateStr: string) => {
-        const d = new Date(dateStr);
-        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-    };
-
-    const totalSize = snapshots.reduce((sum, s) => sum + (s.file_size_bytes || 0), 0);
-
-    return (
-        <div className="space-y-6 animate-fadeIn">
-            <SectionCard icon="fa-cloud" title="Quản lý Snapshot Cloud" badge={`${snapshots.length} files • ${formatBytes(totalSize)}`}>
-                {/* Storage Progress Bar */}
-                {storageInfo.usedBytes > 0 && (
-                    <div className="mb-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
-                        <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-xs font-black text-slate-600">Dung lượng Cloud</span>
-                            <span className="text-xs font-bold text-slate-500">{formatBytes(storageInfo.usedBytes)} / 1 GB</span>
-                        </div>
-                        <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                            <div
-                                className={`h-full rounded-full transition-all ${storageInfo.usedBytes > 800 * 1024 * 1024 ? 'bg-rose-500' : storageInfo.usedBytes > 500 * 1024 * 1024 ? 'bg-amber-500' : 'bg-blue-500'}`}
-                                style={{ width: `${Math.min((storageInfo.usedBytes / (1024 * 1024 * 1024)) * 100, 100)}%` }}
-                            />
-                        </div>
-                        <div className="text-[10px] font-bold text-slate-400 mt-1">
-                            Supabase Free Tier: 1 GB Storage • Auto-cleanup giữ tối đa 30 snapshots
-                        </div>
-                    </div>
-                )}
-
-                {/* Toolbar */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-                    <div className="flex items-center flex-wrap gap-3">
-                        <button onClick={fetchAll} disabled={isLoading} className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-100 bg-blue-50/30">
-                            <FaIcon className={`fas fa-sync ${isLoading ? 'fa-spin' : ''}`}  /> Làm mới
-                        </button>
-
-                        <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-black text-slate-400 uppercase">Thương hiệu:</span>
-                            <select
-                                value={brandFilter}
-                                onChange={e => setBrandFilter(e.target.value)}
-                                className="text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-200 bg-white outline-none focus:border-blue-400 transition-all cursor-pointer"
-                            >
-                                <option value="">Tất cả Brand</option>
-                                {AVAILABLE_BRANDS.map(b => (
-                                    <option key={b} value={b}>{b}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {selectedIds.size > 0 && (
-                            <button onClick={handleDeleteSelected} className="text-xs font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1.5 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-200">
-                                <FaIcon className="fas fa-trash"  /> Xóa {selectedIds.size} đã chọn
-                            </button>
-                        )}
-                    </div>
-                    <div className="text-[10px] font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
-                        Supabase Free: 1GB Storage
-                    </div>
-                </div>
-
-                {/* Table */}
-                {isLoading ? (
-                    <div className="flex items-center justify-center py-16 text-slate-400">
-                        <FaIcon className="fas fa-circle-notch fa-spin text-2xl"  />
-                    </div>
-                ) : snapshots.length === 0 ? (
-                    <div className="text-center py-16 text-slate-400">
-                        <FaIcon className="fas fa-cloud text-4xl mb-3 opacity-30"  />
-                        <p className="text-sm font-bold">Chưa có snapshot nào</p>
-                    </div>
-                ) : (
-                    <div className="border border-slate-200 rounded-xl overflow-hidden">
-                        <table className="w-full text-xs">
-                            <thead>
-                                <tr className="bg-slate-50 border-b border-slate-200">
-                                    <th className="w-10 p-3 text-center">
-                                        <input type="checkbox" checked={selectedIds.size === snapshots.length && snapshots.length > 0} onChange={toggleSelectAll} className="rounded border-slate-300" />
-                                    </th>
-                                    <th className="p-3 text-left font-black text-slate-600 uppercase tracking-wider">Ngày tải</th>
-                                    <th className="p-3 text-left font-black text-slate-600 uppercase tracking-wider">Brand</th>
-                                    <th className="p-3 text-left font-black text-slate-600 uppercase tracking-wider">Tên file</th>
-                                    <th className="p-3 text-left font-black text-slate-600 uppercase tracking-wider">Người tải</th>
-                                    <th className="p-3 text-right font-black text-slate-600 uppercase tracking-wider">SKUs</th>
-                                    <th className="p-3 text-right font-black text-slate-600 uppercase tracking-wider">Dung lượng</th>
-                                    <th className="p-3 text-center font-black text-slate-600 uppercase tracking-wider">Thao tác</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {snapshots.map(snap => (
-                                    <tr key={snap.id} className={`border-b border-slate-100 hover:bg-blue-50/50 transition-colors ${selectedIds.has(snap.id) ? 'bg-blue-50' : ''}`}>
-                                        <td className="p-3 text-center">
-                                            <input type="checkbox" checked={selectedIds.has(snap.id)} onChange={() => toggleSelect(snap.id)} className="rounded border-slate-300" />
-                                        </td>
-                                        <td className="p-3 font-bold text-slate-700">{formatDate(snap.upload_date)}</td>
-                                        <td className="p-3">
-                                            {snap.brand ? (
-                                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase border ${
-                                                    snap.brand === 'BMW' ? 'bg-slate-900 text-white border-slate-800' :
-                                                    snap.brand === 'Kia' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                                                    snap.brand === 'Mazda' ? 'bg-rose-100 text-rose-700 border-rose-200' :
-                                                    'bg-slate-100 text-slate-600 border-slate-200'
-                                                }`}>
-                                                    {snap.brand}
-                                                </span>
-                                            ) : (
-                                                <span className="text-slate-300 italic text-[10px]">None</span>
-                                            )}
-                                        </td>
-                                        <td className="p-3 font-bold text-slate-900 max-w-[200px] truncate" title={snap.filename}>{snap.filename}</td>
-                                        <td className="p-3 text-slate-500 font-medium">{snap.uploader_name || '—'}</td>
-                                        <td className="p-3 text-right font-bold text-slate-700">{snap.row_count?.toLocaleString()}</td>
-                                        <td className="p-3 text-right font-medium text-slate-500">{formatBytes(snap.file_size_bytes)}</td>
-                                        <td className="p-3 text-center">
-                                            <button
-                                                onClick={() => handleDelete(snap)}
-                                                disabled={deletingId === snap.id}
-                                                className="px-3 py-1.5 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-all disabled:opacity-50"
-                                            >
-                                                {deletingId === snap.id ? <FaIcon className="fas fa-circle-notch fa-spin"  /> : <><FaIcon className="fas fa-trash mr-1"  />Xóa</>}
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </SectionCard>
-
-            {/* Monthly Data History Manager (Admin Only) */}
-            <SectionCard title="Quản lý Dữ liệu Tháng" icon="fa-calendar-days" badge={`${monthlyHistory.length} versions`}>
-                <div className="text-xs text-slate-500 font-bold mb-4">
-                    <FaIcon className="fas fa-info-circle mr-1.5 text-blue-400"  />
-                    Quản lý các bản ghi Monthly SKU Data (File B) trên Cloud. Xóa dữ liệu cũ để dọn dẹp Database.
-                </div>
-                {monthlyHistory.length === 0 ? (
-                    <div className="text-center py-8 text-slate-400 italic text-xs">Chưa có dữ liệu tháng nào được upload</div>
-                ) : (
-                    <div className="space-y-2">
-                        {monthlyHistory.map(h => {
-                            const vName = h.id.replace('monthly_data_', '');
-                            return (
-                                <div key={h.id} className="flex items-center gap-3 px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 group hover:border-blue-200 transition-all">
-                                    <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600">
-                                        <FaIcon className="fas fa-calendar-check"  />
-                                    </div>
-                                    <div>
-                                        <div className="font-black text-slate-800 text-sm">{vName}</div>
-                                        <div className="text-[10px] text-slate-400 font-bold">Ngày lưu: {new Date(h.updated_at).toLocaleString('vi-VN')}</div>
-                                    </div>
-                                    <div className="ml-auto flex items-center gap-2">
-                                        <button 
-                                            onClick={() => handleDeleteMonthly(vName)}
-                                            className="px-3 py-1.5 rounded-lg text-xs font-black bg-rose-50 text-rose-600 border border-rose-100 hover:bg-rose-100 transition-all flex items-center gap-1.5"
-                                        >
-                                            <FaIcon className="fas fa-trash"  /> Xóa bản ghi
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
-            </SectionCard>
-        </div>
-    );
-};
+// (extracted components removed — see imports above)
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 interface SettingsPageProps {
@@ -1096,6 +302,10 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
         setDraft(prev => ({ ...prev, orderDraftColumns: { ...prev.orderDraftColumns, [col]: val } }));
     }, []);
 
+    const updBOCol = useCallback((col: keyof AppSettings['backorderExportColumns'], val: boolean) => {
+        setDraft(prev => ({ ...prev, backorderExportColumns: { ...prev.backorderExportColumns, [col]: val } }));
+    }, []);
+
     const handleSave = () => {
         onSave(draft);
         saveAppSettings(draft);
@@ -1161,39 +371,76 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                 { key: 'typeCar', label: 'TypeCar' }, { key: 'loisGroup', label: 'LOIS Group' },
                 { key: 'trendFlag', label: 'Trend Flag' }, { key: 'status', label: 'Status' },
                 { key: 'note', label: 'Ghi chú' }, { key: 'snp', label: 'SNP (Pack)' },
+                { key: 'sourceId', label: 'Nguồn hàng' }, { key: 'brandName', label: 'Thương hiệu' },
             ]
         },
         {
             label: 'Tồn kho & Backorder', cols: [
-                { key: 'stockNB', label: 'Tồn NB (OH+DC)' }, { key: 'stockBB', label: 'Tồn BB (OH+DC)' },
+                { key: 'stockNB', label: 'Tồn NB' }, { key: 'stockBB', label: 'Tồn BB' },
+                { key: 'dcNB', label: 'DC NB' }, { key: 'dcBB', label: 'DC BB' },
                 { key: 'totalInventory', label: 'Tổng tồn kho' }, { key: 'dealerInventory', label: 'Tồn đại lý' },
                 { key: 'backorder', label: 'Nợ BO (Tổng)' }, { key: 'backorderNB', label: 'Nợ BO NB' },
                 { key: 'backorderBB', label: 'Nợ BO BB' },
+                { key: 'netDemand', label: 'Net Demand' }, { key: 'totalSupply', label: 'Total Supply' },
             ]
         },
         {
             label: 'Pipeline & Đặt hàng', cols: [
-                { key: 'totalPO', label: 'Tổng PO' }, { key: 'poThisMonth', label: 'PO về tháng này' },
+                { key: 'totalPO', label: 'Tổng PO' }, { key: 'totalPO_NB', label: 'PO NB' },
+                { key: 'totalPO_BB', label: 'PO BB' },
+                { key: 'poThisMonth', label: 'PO về tháng này' }, { key: 'poNextMonth', label: 'PO về tháng sau' },
                 { key: 'debtPriority', label: 'Mức ưu tiên' }, { key: 'debtStatus', label: 'Trạng thái nợ' },
             ]
         },
         {
             label: 'Dự báo & Bán hàng', cols: [
-                { key: 'baseForecast', label: 'Base Forecast' }, { key: 'avgQty3M', label: 'AVG 3M' },
-                { key: 'avgQty6M', label: 'AVG 6M' }, { key: 'avgQty12M', label: 'AVG 12M' },
+                { key: 'baseForecast', label: 'Base Forecast' },
+                { key: 'forecastNB', label: 'Forecast NB' }, { key: 'forecastBB', label: 'Forecast BB' },
+                { key: 'avgQty3M', label: 'AVG 3M' }, { key: 'avgQty6M', label: 'AVG 6M' },
+                { key: 'avgQty12M', label: 'AVG 12M' }, { key: 'avgQty24M', label: 'AVG 24M' },
+                { key: 'demandRateDaily', label: 'Demand/ngày' }, { key: 'demandMonthly', label: 'Demand/tháng' },
             ]
         },
         {
             label: 'Chỉ số kho', cols: [
-                { key: 'mos', label: 'MOS (tháng)' }, { key: 'rop', label: 'ROP' },
-                { key: 'stockMax', label: 'Stock Max' }, { key: 'safetyStock', label: 'Safety Stock' },
+                { key: 'mos', label: 'MOS (tháng)' }, { key: 'cst', label: 'CST' },
+                { key: 'rop', label: 'ROP' }, { key: 'stockMax', label: 'Stock Max' },
+                { key: 'safetyStock', label: 'Safety Stock' },
+                { key: 'available', label: 'Available' }, { key: 'netAvailable', label: 'Net Available' },
                 { key: 'excessQty', label: 'SL dư thừa' }, { key: 'excessValue', label: 'Giá trị dư' },
+                { key: 'stockTurnRatio', label: 'Stock Turn Ratio' }, { key: 'fillRate', label: 'Fill Rate' },
+                { key: 'capitalEfficiency', label: 'Capital Efficiency' }, { key: 'gapOrExcess', label: 'Gap / Excess' },
+                { key: 'stockoutRiskFlag', label: 'Stockout Risk' },
+                { key: 'stockoutGapQty', label: 'Stockout Gap Qty' }, { key: 'stockoutGapValue', label: 'Stockout Gap Value' },
+                { key: 'priorityBucket', label: 'Priority Bucket' }, { key: 'priorityScore', label: 'Priority Score' },
+                { key: 'isStopBiz', label: 'Stop Biz' },
             ]
         },
         {
             label: 'Giá & Giá trị', cols: [
                 { key: 'unitCostPP', label: 'Đơn giá PP (VND)' }, { key: 'unitCostFOB', label: 'Đơn giá FOB (EUR)' },
                 { key: 'stockValue', label: 'Giá trị tồn kho' },
+            ]
+        },
+        {
+            label: 'Thống kê & Dự báo nâng cao', cols: [
+                { key: 'cv', label: 'CV (Hệ số biến thiên)' }, { key: 'slope', label: 'Slope (Xu hướng)' },
+                { key: 'forecastLinReg', label: 'Forecast LinReg' }, { key: 'ssi', label: 'SSI (Mùa vụ)' },
+            ]
+        },
+        {
+            label: 'BO Aging', cols: [
+                { key: 'boAgingQty30', label: 'Nợ ≤30 ngày' }, { key: 'boAgingQty60', label: 'Nợ 31-60 ngày' },
+                { key: 'boAgingQty90', label: 'Nợ 61-90 ngày' }, { key: 'boAgingQtyOver90', label: 'Nợ >90 ngày' },
+                { key: 'boAgingOldestDays', label: 'Nợ lâu nhất (ngày)' }, { key: 'boAgingTotalValue', label: 'Giá trị nợ tổng' },
+            ]
+        },
+        {
+            label: 'Transfer / DRP', cols: [
+                { key: 'transferNBtoBB', label: 'Transfer NB→BB' }, { key: 'transferBBtoNB', label: 'Transfer BB→NB' },
+                { key: 'suggestedOrderNB', label: 'Gợi ý đặt NB' }, { key: 'suggestedOrderBB', label: 'Gợi ý đặt BB' },
+                { key: 'mosNB', label: 'MOS NB' }, { key: 'mosBB', label: 'MOS BB' },
+                { key: 'suggestedBO', label: 'Suggested BO' }, { key: 'isBOCritical', label: 'BO Critical' },
             ]
         },
     ];
@@ -1841,6 +1088,111 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                             label={col.label}
                                             value={draft.orderDraftColumns[col.key]}
                                             onChange={v => updOrderCol(col.key, v)}
+                                        />
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+                    </SectionCard>
+
+                    <SectionCard title="Cột xuất Hàng nợ (Backorder)" icon="fa-triangle-exclamation">
+                        <div className="mb-3 text-xs text-slate-500 font-bold flex items-center gap-2">
+                            <FaIcon className="fas fa-info-circle text-orange-500"  />
+                            Chọn các cột sẽ có mặt trong file Excel khi xuất từ trang <span className="text-orange-700 bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100">Hàng nợ</span>
+                        </div>
+                        <div className="mb-4 flex items-center gap-3">
+                            <button onClick={() => setDraft(prev => ({ ...prev, backorderExportColumns: Object.fromEntries(Object.keys(prev.backorderExportColumns).map(k => [k, true])) as any }))}
+                                className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-black uppercase hover:bg-blue-700 transition-all">
+                                <FaIcon className="fas fa-check-double mr-1"  /> Chọn tất cả
+                            </button>
+                            <button onClick={() => setDraft(prev => ({ ...prev, backorderExportColumns: Object.fromEntries(Object.keys(prev.backorderExportColumns).map(k => [k, false])) as any }))}
+                                className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-black uppercase hover:bg-slate-200 transition-all border border-slate-200">
+                                <FaIcon className="fas fa-xmark mr-1"  /> Bỏ tất cả
+                            </button>
+                            <span className="text-xs font-bold text-slate-400">
+                                {Object.values(draft.backorderExportColumns).filter(Boolean).length}/{Object.keys(draft.backorderExportColumns).length} cột được chọn
+                            </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {([
+                                {
+                                    label: 'SKU — Cơ bản', cols: [
+                                        { key: 'itemCode', label: 'Mã hàng' }, { key: 'itemName', label: 'Tên hàng' },
+                                        { key: 'sourceId', label: 'Nguồn' }, { key: 'brandName', label: 'Thương hiệu' },
+                                        { key: 'motherGroup', label: 'Nhóm mẹ' }, { key: 'typeCar', label: 'Loại xe' },
+                                        { key: 'loisGroup', label: 'LOIS' }, { key: 'lt', label: 'LT (ngày)' },
+                                    ]
+                                },
+                                {
+                                    label: 'SKU — Tồn & Nợ', cols: [
+                                        { key: 'totalBO', label: 'Tổng nợ' },
+                                        { key: 'stockNB', label: 'Tồn NB' }, { key: 'stockBB', label: 'Tồn BB' },
+                                        { key: 'dcNB', label: 'DC NB' }, { key: 'dcBB', label: 'DC BB' },
+                                        { key: 'dealerInventory', label: 'Tồn đại lý' },
+                                        { key: 'totalPO', label: 'Tổng PO' },
+                                        { key: 'poThisMonth', label: 'PO tháng này' }, { key: 'poNextMonth', label: 'PO tháng sau' },
+                                        { key: 'netDemand', label: 'Net Demand' }, { key: 'totalSupply', label: 'Total Supply' },
+                                    ]
+                                },
+                                {
+                                    label: 'SKU — Bất thường & Aging', cols: [
+                                        { key: 'boAgingOldestDays', label: 'Nợ lâu nhất' },
+                                        { key: 'supplierWarning', label: 'Cảnh báo NCC' },
+                                        { key: 'worstAnomaly', label: 'Bất thường nhất' },
+                                        { key: 'maxAnomalyScore', label: 'Score tối đa' },
+                                        { key: 'abnormalOrderCount', label: 'SL đơn bất thường' },
+                                        { key: 'boAgingQty30', label: 'Nợ ≤30 ngày' },
+                                        { key: 'boAgingQty60', label: 'Nợ 31-60 ngày' },
+                                        { key: 'boAgingQty90', label: 'Nợ 61-90 ngày' },
+                                        { key: 'boAgingQtyOver90', label: 'Nợ >90 ngày' },
+                                        { key: 'boAgingTotalValue', label: 'Giá trị nợ tổng' },
+                                    ]
+                                },
+                                {
+                                    label: 'SKU — Chỉ số nâng cao', cols: [
+                                        { key: 'mos', label: 'MOS' }, { key: 'cst', label: 'CST' },
+                                        { key: 'rop', label: 'ROP' }, { key: 'stockMax', label: 'Stock Max' },
+                                        { key: 'safetyStock', label: 'Safety Stock' },
+                                        { key: 'avgQty3M', label: 'AVG 3M' }, { key: 'avgQty6M', label: 'AVG 6M' },
+                                        { key: 'baseForecast', label: 'Base Forecast' },
+                                        { key: 'unitCostPP', label: 'Đơn giá PP' }, { key: 'unitCostFOB', label: 'Đơn giá FOB' },
+                                        { key: 'stockValue', label: 'Giá trị tồn' },
+                                        { key: 'demandRateDaily', label: 'Demand/ngày' },
+                                        { key: 'priorityBucket', label: 'Priority' },
+                                        { key: 'cv', label: 'CV' }, { key: 'slope', label: 'Slope' },
+                                        { key: 'ssi', label: 'SSI' }, { key: 'suggestedBO', label: 'Suggested BO' },
+                                    ]
+                                },
+                                {
+                                    label: 'Đơn hàng — Chi tiết', cols: [
+                                        { key: 'docNo', label: 'Số đơn (DocNo)' }, { key: 'docDate', label: 'Ngày đặt' },
+                                        { key: 'orderType', label: 'Loại đơn' }, { key: 'orderQty', label: 'SL đơn' },
+                                        { key: 'warehouse', label: 'Kho' }, { key: 'branchCode', label: 'BranchCode' },
+                                        { key: 'branchCodeReceipt', label: 'BranchCodeReceipt' },
+                                        { key: 'region', label: 'Khu vực NB/BB' }, { key: 'branchName', label: 'Chi nhánh' },
+                                        { key: 'showroom', label: 'Showroom' }, { key: 'khoNo', label: 'KhoNo' },
+                                        { key: 'typeCar_order', label: 'Loại xe đơn' },
+                                        { key: 'eta', label: 'ETA' }, { key: 'note', label: 'Ghi chú' },
+                                    ]
+                                },
+                                {
+                                    label: 'Đơn hàng — Phân tích', cols: [
+                                        { key: 'daysOpen', label: 'Tuổi đơn (ngày)' },
+                                        { key: 'daysOverdueLT', label: 'Trễ so LT (ngày)' },
+                                        { key: 'orderAnomaly', label: 'Mức bất thường' },
+                                        { key: 'orderScore', label: 'Score đơn' },
+                                        { key: 'orderReasons', label: 'Lý do' },
+                                    ]
+                                },
+                            ] as { label: string; cols: { key: keyof AppSettings['backorderExportColumns']; label: string }[] }[]).map(group => (
+                                <div key={group.label} className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                    <div className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 pb-2 border-b border-slate-200">{group.label}</div>
+                                    {group.cols.map((col, ci) => (
+                                        <ColCheckbox
+                                            key={ci}
+                                            label={col.label}
+                                            value={draft.backorderExportColumns[col.key]}
+                                            onChange={v => updBOCol(col.key, v)}
                                         />
                                     ))}
                                 </div>
