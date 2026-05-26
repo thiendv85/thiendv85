@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useTransition, useMemo } from 'react';
+import React, { useCallback, useEffect, useState, useTransition, useMemo } from 'react';
 import type { InventoryItem, KittingDefinition, MonthlyData, ApprovalRequest } from './types/inventory';
 import { FileUpload } from './pages/FileUpload';
 import { LoginScreen } from './pages/LoginScreen';
@@ -207,6 +207,10 @@ const AppContent = () => {
         saveAppSettings(s);
     };
 
+    const handleOpenDataModal = useCallback(() => {
+        startTransition(() => setIsDataModalOpen(true));
+    }, [startTransition]);
+
     const onSelectView = (v: View) => {
         if (v !== 'ordering') setActiveApprovalRequest(null);
         startTransition(() => setView(v));
@@ -247,7 +251,7 @@ const AppContent = () => {
             language={language}
             setLanguage={setLanguage}
             onSelectView={onSelectView}
-            onOpenDataModal={() => setIsDataModalOpen(true)}
+            onOpenDataModal={handleOpenDataModal}
             onSignOut={() => {
                 handleExit();
                 signOut();
