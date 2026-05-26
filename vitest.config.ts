@@ -6,6 +6,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['**/*.test.ts'],
+    exclude: ['**/node_modules/**', '**/dist/**', '**/.claude/**', '**/back-order-dashboard/**'],
     coverage: {
       provider: 'v8',
       include: ['utils/**', 'hooks/**'],
