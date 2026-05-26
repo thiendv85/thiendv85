@@ -1,9 +1,9 @@
 /**
  * useInventoryWorker — React hook for off-main-thread inventory computation.
- * 
+ *
  * Delegates computeInventoryBatch to a Web Worker so the main thread stays free.
  * Falls back to synchronous computation if Workers are unavailable.
- * 
+ *
  * Returns:
  *   enrichedData: InventoryItem[] — the computed result
  *   isProcessing: boolean — true while worker is computing
@@ -23,7 +23,7 @@ interface WorkerInput {
 export function useInventoryWorker(
     items: InventoryItem[] = [],
     settings: any,
-    draftData?: any
+    draftData?: any,
 ): { enrichedData: InventoryItem[]; isProcessing: boolean } {
     const [enrichedData, setEnrichedData] = useState<InventoryItem[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -52,9 +52,7 @@ export function useInventoryWorker(
                 }
             };
 
-            workerRef.current.onerror = (err) => {
-                console.error('[InventoryWorker] Error:', err);
-                // Fallback to synchronous
+            workerRef.current.onerror = () => {
                 setIsProcessing(false);
                 isBusyRef.current = false;
             };
@@ -86,8 +84,8 @@ export function useInventoryWorker(
             payload: {
                 items: input.items,
                 settings: input.settings,
-                draftData: input.draftData
-            }
+                draftData: input.draftData,
+            },
         });
     }, []);
 

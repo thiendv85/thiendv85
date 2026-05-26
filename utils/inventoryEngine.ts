@@ -8,6 +8,14 @@
 import { InventoryItem, SourceProfile } from '../types/inventory';
 import { prepareSearchCache } from './searchLogic';
 import { getZScore } from './safetyStock';
+import { TET_DATES, PUBLIC_HOLIDAYS, getDaysInMonth } from './calendar';
+import { getVietnameseWorkingDays, getWorkingDaysByLeadTime, buildWorkingDaysCache } from './calendar';
+
+// Re-export imported bindings (gộp để tránh Rollup "is not exported" do duplicate
+// re-export pattern khi cùng name vừa import vừa export from cùng module).
+export { getVietnameseWorkingDays, getWorkingDaysByLeadTime, buildWorkingDaysCache };
+export type { ComputeParams, SimulatedFields, ComputedFields } from './inventoryEngine.types';
+import type { ComputeParams, ComputedFields, SimulatedFields } from './inventoryEngine.types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -34,11 +42,16 @@ const parseDocDateFallback = (str?: string): number => {
     if (!Number.isFinite(a) || !Number.isFinite(b) || !Number.isFinite(c)) return 0;
     let day: number, month: number, year: number;
     if (m[1].length === 4) {
-        year = a; month = b; day = c;
+        year = a;
+        month = b;
+        day = c;
     } else if (m[3].length === 4) {
-        day = a; month = b; year = c;
+        day = a;
+        month = b;
+        year = c;
     } else {
-        day = a; month = b;
+        day = a;
+        month = b;
         year = c < 50 ? 2000 + c : 1900 + c;
     }
     if (month < 1 || month > 12 || day < 1 || day > 31 || year < 1900 || year > 2100) return 0;
@@ -46,104 +59,16 @@ const parseDocDateFallback = (str?: string): number => {
     return Number.isFinite(ts) ? ts : 0;
 };
 
-/** 
- * Lịch nghỉ Tết Âm lịch - Ngày bắt đầu (Dương lịch) 
- * Dùng để tính toán số ngày nghỉ trong tháng.
- */
-const TET_DATES: Record<number, { month: number, day: number, length: number }> = {
-    2024: { month: 1, day: 8, length: 7 },  // Feb 8
-    2025: { month: 0, day: 26, length: 7 }, // Jan 26
-    2026: { month: 1, day: 16, length: 7 }, // Feb 16
-    2027: { month: 1, day: 5, length: 7 }   // Feb 5
-};
-
-/** Các ngày lễ Dương lịch cố định tại VN */
-const PUBLIC_HOLIDAYS = [
-    { m: 0, d: 1 },  // Tết Dương lịch
-    { m: 3, d: 30 }, // Giải phóng Miền Nam
-    { m: 4, d: 1 },  // Quốc tế Lao động
-    { m: 8, d: 2 }   // Quốc khánh
-];
-
-/**
- * Tính số ngày làm việc thực tế tại VN cho một tháng cụ thể.
- * Loại trừ Chủ nhật và các ngày lễ/Tết.
- */
-export function getVietnameseWorkingDays(month: number, year: number): number {
-    const totalDays = new Date(year, month + 1, 0).getDate();
-    let workingDays = 0;
-
-    for (let day = 1; day <= totalDays; day++) {
-        const date = new Date(year, month, day);
-        const dayOfWeek = date.getDay(); // 0 is Sunday
-
-        // 1. Loại trừ Chủ nhật
-        if (dayOfWeek === 0) continue;
-
-        // 2. Loại trừ Lễ Dương lịch
-        const isPublicHoliday = PUBLIC_HOLIDAYS.some(h => h.m === month && h.d === day);
-        if (isPublicHoliday) continue;
-
-        // 3. Loại trừ Tết Âm lịch (Lookup)
-        const tet = TET_DATES[year];
-        if (tet) {
-            const dateTs = date.getTime();
-            const tetStartTs = new Date(year, tet.month, tet.day).getTime();
-            const tetEndTs = tetStartTs + (tet.length * MS_PER_DAY);
-            if (dateTs >= tetStartTs && dateTs < tetEndTs) continue;
-        }
-
-        workingDays++;
-    }
-
-    return workingDays || 26; // Fallback
-}
-
-/**
- * Tính số ngày làm việc (Mon-Sat, không lễ) trong một khoảng thời gian Lịch (Calendar Days).
- * Giúp khớp giữa Lead Time của NCC (Dương lịch) và Lịch bán hàng (Thứ 2 - Thứ 7).
- */
-export function getWorkingDaysByLeadTime(calendarDays: number, startDate: Date): number {
-    let workingDays = 0;
-    
-    for (let i = 0; i < calendarDays; i++) {
-        const d = new Date(startDate.getTime() + (i * MS_PER_DAY));
-        const month = d.getMonth();
-        const year = d.getFullYear();
-        const mDay = d.getDate();
-        const dayOfWeek = d.getDay();
-
-        // 1. Chỉ tính Thứ 2 - Thứ 7
-        if (dayOfWeek === 0) continue;
-
-        // 2. Loại trừ Lễ Dương lịch
-        if (PUBLIC_HOLIDAYS.some(h => h.m === month && h.d === mDay)) continue;
-
-        // 3. Loại trừ Tết
-        const tet = TET_DATES[year];
-        if (tet) {
-            const dateTs = d.getTime();
-            const tetStartTs = new Date(year, tet.month, tet.day).getTime();
-            const tetEndTs = tetStartTs + (tet.length * MS_PER_DAY);
-            if (dateTs >= tetStartTs && dateTs < tetEndTs) continue;
-        }
-
-        workingDays++;
-    }
-    return workingDays;
-}
-
-function getDaysInMonth(m: number, y: number) {
-    return new Date(y, m + 1, 0).getDate();
-}
+// Calendar functions imported from ./calendar.ts
+// Working days cache imported from ./calendar.ts
 
 /**
  * PHASE 5b: Data-Driven SSI (Standardized Seasonal Index)
- * 
+ *
  * Design Principles (B2B context - Dealer pre-stocking):
  * 1. MA3 cluster is the SOLE automatic driver — let the data speak.
  * 2. NO hardcoded month ranges. Tet proximity uses actual TET_DATES registry.
- * 3. Causal weights (Tet/Weather sliders) are OPTIONAL manual boosters 
+ * 3. Causal weights (Tet/Weather sliders) are OPTIONAL manual boosters
  *    that amplify an already-detected peak, never trigger on their own.
  * 4. Higher threshold (1.5x) for B2B to avoid false positives from lumpy orders.
  */
@@ -199,12 +124,14 @@ function calculateSSI(item: InventoryItem, params: ComputeParams): number {
     return Math.min(2.5, ssi);
 }
 
-
 /**
  * Thử phân giải chuỗi ngày từ tiêu đề OO (vd: "25/05", "OO 03/26") thành Timestamp
  */
 function parsePipelineDate(key: string, snapshotYYMM: string): number | null {
-    const clean = key.toLowerCase().replace(/[^0-9/]/g, '').trim();
+    const clean = key
+        .toLowerCase()
+        .replace(/[^0-9/]/g, '')
+        .trim();
     if (!clean) return null;
 
     const snapMM = parseInt(snapshotYYMM.slice(2, 4));
@@ -218,7 +145,7 @@ function parsePipelineDate(key: string, snapshotYYMM: string): number | null {
         } else {
             const [d, m] = parts.map(n => parseInt(n));
             if (!isNaN(d) && !isNaN(m)) {
-                const year = (m < snapMM) ? snapYYYY + 1 : snapYYYY;
+                const year = m < snapMM ? snapYYYY + 1 : snapYYYY;
                 return new Date(year, m - 1, d).getTime();
             }
         }
@@ -246,107 +173,353 @@ function parsePipelineDate(key: string, snapshotYYMM: string): number | null {
     return null;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TYPES
-// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Tổng qty Pipeline entries có arrival date trong vòng `days` ngày tới.
+ * Floor mềm: entries trong quá khứ ≤30d (vd month-key day=1 trễ vài ngày) coi như sắp về.
+ */
+function computePoArrivingWithinDays(
+    pipeline: Record<string, number> | undefined,
+    days: number,
+    now: Date,
+    snapshotYYMM: string,
+): number {
+    if (!pipeline) return 0;
+    const cutoff = now.getTime() + days * MS_PER_DAY;
+    const floor = now.getTime() - 30 * MS_PER_DAY;
+    let total = 0;
+    for (const [k, v] of Object.entries(pipeline)) {
+        const ts = parsePipelineDate(k, snapshotYYMM);
+        if (ts == null) continue;
+        if (ts >= floor && ts <= cutoff) total += v;
+    }
+    return total;
+}
 
-export interface ComputeParams {
-    lt: number;
-    sp: number;
-    ssp: number;
-    warehouseScope: 'All' | 'NB' | 'BB';
-    costBasis: 'PP' | 'FOB';
+/**
+ * Build mảng arrival schedule: [{day, qty}] sorted theo day.
+ * Month-key past (day=1 trong tháng cũ ≤30d) → snap to day 0 (coi như có sẵn).
+ * Entries quá cũ (>30d quá khứ) → bỏ qua (probably stale data).
+ */
+function buildArrivalSchedule(
+    pipeline: Record<string, number> | undefined,
+    now: Date,
+    snapshotYYMM: string,
+): Array<{ day: number; qty: number }> {
+    if (!pipeline) return [];
+    const nowTs = now.getTime();
+    const entries: Array<{ day: number; qty: number }> = [];
+    for (const [k, v] of Object.entries(pipeline)) {
+        const ts = parsePipelineDate(k, snapshotYYMM);
+        if (ts == null) continue;
+        let day = (ts - nowTs) / MS_PER_DAY;
+        if (day < -30) continue; // quá cũ
+        if (day < 0) day = 0; // snap past → arrived today
+        entries.push({ day, qty: v });
+    }
+    entries.sort((a, b) => a.day - b.day);
+    return entries;
+}
+
+/**
+ * OPTIMAL ORDER — cost-aware (Air = 2× Sea), multi-cycle aware.
+ *
+ * REASSESS 2026-05-21 (qua thảo luận user):
+ *   - Cap Air = max(1 tháng demand, BO_qty) — ưu tiên trả BO, 1m fallback
+ *   - Cap Sea = không cap tháng — fill tới stockMax (vì stockout cost 2-5× Air)
+ *   - Phân loại SKU theo airNeed: healthy / strained / critical
+ *   - Multi-cycle: chấp nhận partial fix, badge cảnh báo critical
+ *   - Stockout cost > Air → flag prominent khi cap-limited
+ *
+ * Bài toán: min cost = 2·a + 1·s, ràng buộc I(t) ≥ 0 ∀ t ∈ [0, LT_sea]
+ *   Air = cầm cự [LT_air, LT_sea]. Sea = fill stockMax tại LT_sea.
+ *
+ * Time-phased: I(t) = available + poBy(t) - bo - demand_d × t
+ *   + a contributes from t ≥ LT_air
+ *   + s contributes from t ≥ LT_sea
+ *
+ * Closed-form (grid scan ngày):
+ *   stockoutFlag = (min I(t) over [0, LT_air) < 0)
+ *   a* = min(airNeed, capAir) where airNeed = -min I(t) over [LT_air, LT_sea]
+ *        capAir = max(demandMonthly, bo)
+ *   s* = max(0, stockMax - (I(LT_sea) + a))  — no monthly cap
+ *
+ * Classification (badge color):
+ *   critical = airNeed > 3 × demandMonthly
+ *   strained = airNeed > demandMonthly
+ *   healthy  = otherwise
+ */
+function computeOptimalOrder(params: {
+    available: number;
+    onOrder: number;
+    bo: number;
+    pipeline: Record<string, number> | undefined;
     snapshotYYMM: string;
-    snapshotDate: string;
-    /** Lead-time CV (σ_LT / E[LT]). Default 0.2 = 20% LT variability. */
-    sigmaLT?: number;
-    sourceProfiles?: SourceProfile[];
-    seasonalityTuning?: {
-        useSPD: boolean;
-        tetWeight: number;
-        weatherWeight: number;
-        normalizationMethod?: 'Dynamic' | 'Fixed';
-        workingDayFallback?: number;
-    };
-    loisProfiles?: import('../types/inventory').LoisProfile[];
-}
-
-export interface SimulatedFields {
-    totalStock: number;
-    stockAtDelivery: number;
-    stockoutRiskFlag: boolean;
-    excessQty: number;
-    excessValue: number;
-    stockValue: number;
-    stockoutGapQty: number;
-    draftQty: number;
-    pipelineQty: number;
-    boQty: number;
-    boValue: number;
-    totalIncomingValue: number;
-}
-
-export interface ComputedFields {
+    now: Date;
+    brandName: string;
     effectiveLT: number;
-    effectiveSP: number;
-    effectiveSSP: number;
     demandRateDaily: number;
     demandMonthly: number;
-    available: number;
-    netAvailable: number;
-    dcQuantity: number;
-    unitCost: number;
-    safetyStock: number;
-    rop: number;
+    annualSales: number;
     stockMax: number;
-    stockoutRiskFlag: boolean;
-    isStopBiz: boolean;
-    excessQty: number;
-    excessValue: number;
-    stockValue: number;
-    stockoutGapQty: number;
-    stockoutGapValue: number;
-    mos: number;
-    cst: number;
-    incomingCurrentMonth: number;
-    incomingNextMonth: number;
-    priorityBucket: 'P1' | 'P2' | 'P3';
-    priorityScore: number;
-    stockTurnRatio: number;
-    fillRate: number;
-    capitalEfficiency: number;
-    gapOrExcess: number;
-    suggestedBO: number;
-    isBOCritical: boolean;
     snp: number;
-    ssi: number;
-    simulated?: SimulatedFields;
-    transfer?: {
-        maxNB: number;
-        maxBB: number;
-        physicalNB: number;
-        physicalBB: number;
-        incomingNB: number;
-        incomingBB: number;
-        mosNB: number;
-        mosBB: number;
-        incomingNB_Month: number;
-        incomingBB_Month: number;
-        transferNBtoBB: number;
-        transferBBtoNB: number;
-        suggestedOrderNB: number;
-        suggestedOrderBB: number;
+}): {
+    airQty: number;
+    seaQty: number;
+    stockoutFlag: boolean;
+    stockoutQty: number;
+    capLimited: boolean;
+    classification: 'healthy' | 'strained' | 'critical' | 'slow' | 'dead';
+    ltAir: number;
+    ltSea: number;
+    urgentTrigger: 'bridge_to_sea' | 'stockout_unavoidable' | 'none';
+    reserveTrigger: 'below_stockmax' | 'none';
+    urgentReason: string;
+    reserveReason: string;
+} {
+    const {
+        available,
+        onOrder,
+        bo,
+        pipeline,
+        snapshotYYMM,
+        now,
+        brandName,
+        effectiveLT,
+        demandRateDaily,
+        demandMonthly,
+        annualSales,
+        stockMax,
+        snp,
+    } = params;
+    const roundUp = (x: number) => (snp > 0 ? Math.ceil(x / snp) * snp : Math.ceil(x));
+    const isBMW = (brandName || '').toUpperCase().includes('BMW');
+    const ltAir = isBMW ? 22 : 35;
+    const ltSea = Math.max(effectiveLT || 75, ltAir + 1);
+    const demand_d = Math.max(demandRateDaily, 0);
+
+    // ── Velocity gating: slow/dead movers KHÔNG dùng Air (đắt 4-10×, vô lý cho hàng khó bán) ──
+    // Chuẩn ngành FSN. dead: 12 tháng không bán (annualSales=0).
+    // slow: TSB demandMonthly < 1/tháng — dùng TSB (đã smooth intermittent) thay raw count.
+    const SLOW_MONTHLY_THRESHOLD = 1;
+    const isDead = annualSales <= 0;
+    const isSlow = !isDead && demandMonthly < SLOW_MONTHLY_THRESHOLD;
+    if (isDead || isSlow) {
+        // Air = 0 (Air freight không kinh tế). Sea cover tới stockMax (tiny cho slow mover).
+        const invPosition = available + onOrder - bo;
+        const seaNeedRaw = Math.max(0, stockMax - invPosition);
+        const seaQty = seaNeedRaw > 0 ? roundUp(seaNeedRaw) : 0;
+        const classification: 'slow' | 'dead' = isDead ? 'dead' : 'slow';
+        return {
+            airQty: 0,
+            seaQty,
+            stockoutFlag: false,
+            stockoutQty: 0,
+            capLimited: false,
+            classification,
+            ltAir,
+            ltSea,
+            urgentTrigger: 'none',
+            reserveTrigger: seaQty > 0 ? 'below_stockmax' : 'none',
+            urgentReason: isDead
+                ? `Hàng chết (12 tháng không bán) — không Air, review thủ công`
+                : `Slow-mover (TSB ${demandMonthly.toFixed(2)}/tháng < ${SLOW_MONTHLY_THRESHOLD}) — Air không kinh tế, chỉ Sea`,
+            reserveReason:
+                seaQty > 0
+                    ? `${isDead ? 'Dead' : 'Slow'}: inv.position ${Math.round(invPosition)} < MAX ${Math.round(stockMax)} → Sea ${seaQty}`
+                    : `${isDead ? 'Dead' : 'Slow'}: inv.position ${Math.round(invPosition)} ≥ MAX, không cần đặt`,
+        };
+    }
+
+    const schedule = buildArrivalSchedule(pipeline, now, snapshotYYMM);
+
+    // Grid scan ngày 0..ltSea — tìm min I(t) trong 2 cửa sổ
+    let cumPo = 0,
+        idx = 0;
+    let minPreAir = Infinity;
+    let minPostAir = Infinity;
+    let preAirArgmin = 0,
+        postAirArgmin = 0;
+    const horizonEnd = Math.ceil(ltSea);
+    for (let t = 0; t <= horizonEnd; t++) {
+        while (idx < schedule.length && schedule[idx].day <= t) {
+            cumPo += schedule[idx].qty;
+            idx++;
+        }
+        const I = available + cumPo - bo - demand_d * t;
+        if (t < ltAir) {
+            if (I < minPreAir) {
+                minPreAir = I;
+                preAirArgmin = t;
+            }
+        } else {
+            if (I < minPostAir) {
+                minPostAir = I;
+                postAirArgmin = t;
+            }
+        }
+    }
+
+    const stockoutFlag = minPreAir < 0;
+    const stockoutQty = stockoutFlag ? Math.ceil(-minPreAir) : 0;
+
+    // Air cap = max(1m demand, BO_qty) — ưu tiên trả BO, 1m fallback
+    const airNeed = Math.max(0, -minPostAir);
+    const capAir = Math.max(demandMonthly, bo);
+    const airRaw = Math.min(airNeed, capAir);
+    const airQty = airRaw > 0 ? roundUp(airRaw) : 0;
+    const capLimited = airNeed > capAir + 0.01;
+
+    // Phân loại SKU
+    const classification: 'healthy' | 'strained' | 'critical' =
+        airNeed > 3 * demandMonthly ? 'critical' : airNeed > demandMonthly ? 'strained' : 'healthy';
+
+    let urgentTrigger: 'bridge_to_sea' | 'stockout_unavoidable' | 'none' = 'none';
+    let urgentReason = '';
+    if (stockoutFlag && airQty === 0) {
+        urgentTrigger = 'stockout_unavoidable';
+        urgentReason = `⚠ Stockout ngày ${Math.round(preAirArgmin)} (trước LT_air ${ltAir}d) — Air không kịp. Thiếu ${stockoutQty}`;
+    } else if (airQty > 0) {
+        urgentTrigger = stockoutFlag ? 'stockout_unavoidable' : 'bridge_to_sea';
+        const reasonParts = [
+            `Min I(t) tại ngày ${Math.round(postAirArgmin)} = ${Math.round(minPostAir)}`,
+            `Air cần ${Math.round(airNeed)}, cap max(1m=${Math.round(demandMonthly)}, BO=${Math.round(bo)}) = ${Math.round(capAir)} → đặt ${airQty}`,
+        ];
+        if (capLimited)
+            reasonParts.push(`⚠ Cap-limited [${classification}]: thiếu ${Math.round(airNeed - capAir)} (multi-cycle)`);
+        if (stockoutFlag) reasonParts.unshift(`⚠ Stockout trước LT_air: thiếu ${stockoutQty} (Air không cứu kịp)`);
+        urgentReason = reasonParts.join(' | ');
+    } else {
+        urgentReason = `Min I(t) [${ltAir}d..${ltSea}d] = ${Math.round(minPostAir)} ≥ 0, không khẩn`;
+    }
+
+    // Sea = order-up-to-stockMax. Classic inventory position = available + onOrder - bo + air.
+    // KHÔNG trừ demand: stockMax (order-up-to level) đã chứa demand-leadtime → trừ nữa = double-count.
+    const invPosition = available + onOrder - bo + airQty;
+    const seaNeedRaw = Math.max(0, stockMax - invPosition);
+    const seaQty = seaNeedRaw > 0 ? roundUp(seaNeedRaw) : 0;
+    const reserveTrigger: 'below_stockmax' | 'none' = seaQty > 0 ? 'below_stockmax' : 'none';
+    const reserveReason =
+        seaQty > 0
+            ? `Inv.position ${Math.round(invPosition)} (tồn ${Math.round(available)} + PO ${Math.round(onOrder)} - BO ${Math.round(bo)} + Air ${airQty}) < MAX ${Math.round(stockMax)} → cần ${Math.round(seaNeedRaw)}`
+            : `Inv.position ${Math.round(invPosition)} ≥ MAX ${Math.round(stockMax)}, không cần Sea`;
+
+    return {
+        airQty,
+        seaQty,
+        stockoutFlag,
+        stockoutQty,
+        capLimited,
+        classification,
+        ltAir,
+        ltSea,
+        urgentTrigger,
+        reserveTrigger,
+        urgentReason,
+        reserveReason,
     };
-    cv: number;
-    slope: number;
-    forecastLinReg: number;
-    warnings: {
-        type: 'Critical' | 'Warning' | 'Info';
-        code: string;
-        message: string;
-    }[];
-    boAging?: import('../types/inventory').BackorderAging;
 }
+
+/**
+ * Khẩn (Air) — đặt nhanh chỉ để CẦM CỰ tới khi Sea về. KHÔNG xây buffer.
+ *
+ * Triết lý: Air đắt → bù đúng phần âm. Restock dài hạn (fill stockMax) là Sea.
+ *
+ * FIX 2026-05-17:
+ *   FIX 1: proj30d TRỪ demand 30d — so với 0 (0 không chứa demand).
+ *   FIX 2: BỎ buffer — Air = deficit trần. Anti-thrash do Air về nhanh.
+ *   FIX 3: Trig2 size tới max(SS, 1m demand), KHÔNG ROP.
+ *   Quy tắc: so 0/target tuyệt đối → trừ demand; so ROP (đã chứa) → không trừ.
+ */
+function computeUrgentQty(params: {
+    available: number;
+    bo: number;
+    poIn30d: number;
+    safetyStock: number;
+    snp: number;
+    demandMonthly: number;
+}): { qty: number; trigger: 'backorder_uncovered' | 'stockout_imminent' | 'none'; reason: string } {
+    const { available, bo, poIn30d, safetyStock, snp, demandMonthly } = params;
+    const roundUp = (x: number) => (snp > 0 ? Math.ceil(x / snp) * snp : Math.ceil(x));
+    const realStock = available - bo;
+    const demand30d = demandMonthly;
+    const proj30d = available + poIn30d - bo - demand30d;
+
+    // Trigger 1: BO + demand vượt tồn + PO30d. deficit trần, KHÔNG buffer.
+    if (bo > 0 && proj30d < 0) {
+        const deficit = -proj30d;
+        return {
+            qty: roundUp(deficit),
+            trigger: 'backorder_uncovered',
+            reason: `BO ${bo}: tồn ${Math.round(available)} + PO30d ${Math.round(poIn30d)} - demand 1m ${Math.round(demand30d)} = thiếu ${Math.round(deficit)} (cầm cự, Sea fill MAX)`,
+        };
+    }
+
+    // Trigger 2: sắp stockout, không PO30d cứu. target lean = max(SS, 1m).
+    const target = Math.max(safetyStock, demandMonthly);
+    if (bo === 0 && realStock < target && poIn30d <= 0) {
+        const need = target - realStock;
+        return {
+            qty: roundUp(need),
+            trigger: 'stockout_imminent',
+            reason: `Tồn ${Math.round(realStock)} < target ${Math.round(target)} (max[SS ${Math.round(safetyStock)}, 1m ${Math.round(demandMonthly)}]), không PO30d cứu`,
+        };
+    }
+
+    return {
+        qty: 0,
+        trigger: 'none',
+        reason:
+            bo > 0
+                ? `BO ${bo} được cover: tồn ${Math.round(available)} + PO30d ${Math.round(poIn30d)} - demand 1m ${Math.round(demand30d)} >= 0`
+                : `Tồn ${Math.round(realStock)} >= target ${Math.round(Math.max(safetyStock, demandMonthly))}, không khẩn`,
+    };
+}
+
+/**
+ * Dự trữ (Sea) — fill tới stockMax. Baseline NetDemand + urgentQty (future state).
+ * Anti-double-count: KHÔNG cộng lại bo (đã trừ trong NetDemand) / urgent đã tính.
+ */
+function computeReserveQty(params: {
+    netDemand: number;
+    urgentQty: number;
+    stockMax: number;
+    snp: number;
+    demandMonthly: number;
+    maxOrderMonths?: number;
+}): { qty: number; trigger: 'below_stockmax' | 'none'; reason: string } {
+    const { netDemand, urgentQty, stockMax, snp, demandMonthly, maxOrderMonths = 4 } = params;
+    const roundUp = (x: number) => (snp > 0 ? Math.ceil(x / snp) * snp : Math.ceil(x));
+    const futureStock = netDemand + urgentQty;
+    const cap = demandMonthly * maxOrderMonths;
+
+    if (futureStock >= stockMax) {
+        return {
+            qty: 0,
+            trigger: 'none',
+            reason: `Future stock ${Math.round(futureStock)} >= MAX ${Math.round(stockMax)}, không cần dự trữ`,
+        };
+    }
+
+    const need = stockMax - futureStock;
+    const capped = Math.min(need, cap);
+    return {
+        qty: roundUp(capped),
+        trigger: 'below_stockmax',
+        reason: `Future stock ${Math.round(futureStock)} < MAX ${Math.round(stockMax)}, cần thêm ${Math.round(Math.min(need, cap))}`,
+    };
+}
+
+function classifyOrderPriority(
+    urgentQty: number,
+    reserveQty: number,
+): 'urgent_only' | 'reserve_only' | 'both' | 'none' {
+    if (urgentQty > 0 && reserveQty > 0) return 'both';
+    if (urgentQty > 0) return 'urgent_only';
+    if (reserveQty > 0) return 'reserve_only';
+    return 'none';
+}
+
+// Types exported from ./inventoryEngine.types.ts
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -425,7 +598,10 @@ function resolveAvailable(item: InventoryItem, scope: 'All' | 'NB' | 'BB'): { oh
     };
 }
 
-function checkIsStop(item: InventoryItem, loisProfiles?: import('../types/inventory').LoisProfile[]): { isStop: boolean; alertType?: string } {
+function checkIsStop(
+    item: InventoryItem,
+    loisProfiles?: import('../types/inventory').LoisProfile[],
+): { isStop: boolean; alertType?: string } {
     // 1. Manual check from note or status
     const manualStop = (item.Note || '').toLowerCase().includes('không đặt') || item.Status === 'Dead Stock';
     if (manualStop) return { isStop: true, alertType: 'critical' };
@@ -442,7 +618,14 @@ function checkIsStop(item: InventoryItem, loisProfiles?: import('../types/invent
     return { isStop: false };
 }
 
-function resolvePriority(available: number, onOrder: number, bo: number, rop: number, demandMonthly: number, isStop: boolean): 'P1' | 'P2' | 'P3' {
+function resolvePriority(
+    available: number,
+    onOrder: number,
+    bo: number,
+    rop: number,
+    demandMonthly: number,
+    isStop: boolean,
+): 'P1' | 'P2' | 'P3' {
     if (isStop) return 'P3';
     const netReserve = available + onOrder - bo;
     const nrMos = demandMonthly > 0 ? netReserve / demandMonthly : 0;
@@ -463,59 +646,21 @@ function calculateCV(history: number[]): number {
 function calculateLinReg(history: number[]): { slope: number; forecast: number } {
     if (!history || history.length < 2) return { slope: 0, forecast: 0 };
     const n = history.length;
-    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+    let sumX = 0,
+        sumY = 0,
+        sumXY = 0,
+        sumX2 = 0;
     for (let i = 0; i < n; i++) {
-        sumX += i; sumY += history[i]; sumXY += i * history[i]; sumX2 += i * i;
+        sumX += i;
+        sumY += history[i];
+        sumXY += i * history[i];
+        sumX2 += i * i;
     }
-    const den = (n * sumX2 - sumX * sumX);
+    const den = n * sumX2 - sumX * sumX;
     if (den === 0) return { slope: 0, forecast: sumY / n };
     const slope = (n * sumXY - sumX * sumY) / den;
     const intercept = (sumY - slope * sumX) / n;
     return { slope, forecast: Math.max(0, intercept + slope * n) };
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// WORKING DAYS CACHE — eliminates millions of Date object allocations
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Pre-computes working days for calendar day lengths 0..maxDays from a given start date.
- * Called ONCE per batch, then provides O(1) lookups instead of O(calendarDays) per SKU.
- * With 50K SKUs × 3 lookups (LT, SSP, SP) × ~90 Date objects each, this eliminates
- * ~13.5 million Date allocations per render cycle.
- */
-export function buildWorkingDaysCache(startDate: Date, maxDays = 180): Map<number, number> {
-    const cache = new Map<number, number>();
-    cache.set(0, 0);
-    let runningWorkingDays = 0;
-
-    for (let i = 0; i < maxDays; i++) {
-        const d = new Date(startDate.getTime() + (i * MS_PER_DAY));
-        const month = d.getMonth();
-        const year = d.getFullYear();
-        const mDay = d.getDate();
-        const dayOfWeek = d.getDay();
-
-        let isWorking = true;
-        // 1. Exclude Sundays
-        if (dayOfWeek === 0) isWorking = false;
-        // 2. Exclude public holidays
-        else if (PUBLIC_HOLIDAYS.some(h => h.m === month && h.d === mDay)) isWorking = false;
-        // 3. Exclude Tet
-        else {
-            const tet = TET_DATES[year];
-            if (tet) {
-                const dateTs = d.getTime();
-                const tetStartTs = new Date(year, tet.month, tet.day).getTime();
-                const tetEndTs = tetStartTs + (tet.length * MS_PER_DAY);
-                if (dateTs >= tetStartTs && dateTs < tetEndTs) isWorking = false;
-            }
-        }
-
-        if (isWorking) runningWorkingDays++;
-        cache.set(i + 1, runningWorkingDays);
-    }
-    return cache;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -527,7 +672,7 @@ export function computeInventory(
     params: ComputeParams,
     draftData: { air: number; sea: number } = { air: 0, sea: 0 },
     itemProfileResult?: { profile?: SourceProfile; isFallback?: boolean; fallbackReason?: string },
-    wdCache?: Map<number, number>
+    wdCache?: Map<number, number>,
 ): ComputedFields {
     const draftQty = draftData.air + draftData.sea;
     const profile = itemProfileResult?.profile;
@@ -537,7 +682,7 @@ export function computeInventory(
 
     const demandMonthly = resolveDemand(item);
     const isZeroDemand = demandMonthly <= 0;
-    
+
     /**
      * UNIFIED SAA FORMULA — autoresearch tuned 2026-05-08.
      * `demandMonthly` already incorporates seasonality (via SQL SeasonalityFactor
@@ -563,8 +708,12 @@ export function computeInventory(
 
     // Synchronize Lead Time (Calendar) with Sales Schedule (Working Days)
     // Use pre-built cache for O(1) lookup when available (batch path), fall back to per-call computation
-    const workingDaysInLT = wdCache ? (wdCache.get(effectiveLT) ?? getWorkingDaysByLeadTime(effectiveLT, now)) : getWorkingDaysByLeadTime(effectiveLT, now);
-    const workingDaysInSP = wdCache ? (wdCache.get(effectiveSP) ?? getWorkingDaysByLeadTime(effectiveSP, now)) : getWorkingDaysByLeadTime(effectiveSP, now);
+    const workingDaysInLT = wdCache
+        ? (wdCache.get(effectiveLT) ?? getWorkingDaysByLeadTime(effectiveLT, now))
+        : getWorkingDaysByLeadTime(effectiveLT, now);
+    const workingDaysInSP = wdCache
+        ? (wdCache.get(effectiveSP) ?? getWorkingDaysByLeadTime(effectiveSP, now))
+        : getWorkingDaysByLeadTime(effectiveSP, now);
 
     /**
      * Safety stock — proper Z×√(σ²·LT + d²·σ_LT²) formula.
@@ -588,49 +737,49 @@ export function computeInventory(
     const sigmaLT = params.sigmaLT ?? 0.2;
     const ltMonths = workingDaysInLT / 26;
     const z = getZScore(item.LOISGroup || '');
-    const safetyStock = (isStop || isZeroDemand)
-        ? 0
-        : Math.max(
-              0,
-              z * Math.sqrt(
-                  sigmaD * sigmaD * ltMonths +
-                  demandMonthly * demandMonthly * sigmaLT * sigmaLT,
-              ),
-          );
+    const safetyStock =
+        isStop || isZeroDemand
+            ? 0
+            : Math.max(
+                  0,
+                  z * Math.sqrt(sigmaD * sigmaD * ltMonths + demandMonthly * demandMonthly * sigmaLT * sigmaLT),
+              );
     // ROP = expected demand during lead time + safety stock
-    const rop = (isStop || isZeroDemand) ? 0 : demandRateDaily * workingDaysInLT + safetyStock;
+    const rop = isStop || isZeroDemand ? 0 : demandRateDaily * workingDaysInLT + safetyStock;
     // MAX = ROP + supply-period coverage (review-cycle buffer)
-    const stockMax = (isStop || isZeroDemand) ? 0 : rop + (demandRateDaily * workingDaysInSP);
+    const stockMax = isStop || isZeroDemand ? 0 : rop + demandRateDaily * workingDaysInSP;
 
     const history = item.SalesHistory || [];
     const cv = calculateCV(history);
     const { slope, forecast } = calculateLinReg(history);
 
     const warnings: any[] = [];
-    if (bo > 0 && onOrder === 0) warnings.push({ type: 'Critical', code: 'BO_NO_SUPPLY', message: 'Nợ hàng – Không có PO sắp về' });
-    if (itemProfileResult?.isFallback) warnings.push({ type: 'Warning', code: 'SOURCE_FALLBACK', message: itemProfileResult.fallbackReason });
-    
+    if (bo > 0 && onOrder === 0)
+        warnings.push({ type: 'Critical', code: 'BO_NO_SUPPLY', message: 'Nợ hàng – Không có PO sắp về' });
+    if (itemProfileResult?.isFallback)
+        warnings.push({ type: 'Warning', code: 'SOURCE_FALLBACK', message: itemProfileResult.fallbackReason });
+
     // LOIS-based alert
     if (alertType && alertType !== 'none') {
         const typeMap: Record<string, 'Critical' | 'Warning' | 'Info'> = {
-            'critical': 'Critical',
-            'warning': 'Warning',
-            'info': 'Info'
+            critical: 'Critical',
+            warning: 'Warning',
+            info: 'Info',
         };
         const id = (item.LOISGroup || '').trim().toUpperCase().substring(0, 2);
         const desc = params.loisProfiles?.find(p => p.id.toUpperCase() === id || p.id === item.LOISGroup)?.name;
-        warnings.push({ 
-            type: typeMap[alertType] || 'Info', 
-            code: 'LOIS_ALERT', 
-            message: `Cảnh báo theo nhóm LOIS (${item.LOISGroup})${desc ? ' - ' + desc : ''}` 
+        warnings.push({
+            type: typeMap[alertType] || 'Info',
+            code: 'LOIS_ALERT',
+            message: `Cảnh báo theo nhóm LOIS (${item.LOISGroup})${desc ? ' - ' + desc : ''}`,
         });
     }
-    
+
     // Seasonality Tuning Logic
     if (history.length >= 12) {
         const now = new Date();
         now.setDate(1);
-        const startMonthIndex = ((now.getMonth() - 1) - (history.length - 1)) % 12;
+        const startMonthIndex = (now.getMonth() - 1 - (history.length - 1)) % 12;
         const normalizedStartMonth = (startMonthIndex + 12) % 12;
 
         const useSPD = params.seasonalityTuning?.useSPD !== false;
@@ -652,8 +801,8 @@ export function computeInventory(
             spdCount[actualMonth]++;
         });
 
-        const overallMeanSPD = (spdAvg.reduce((a, b) => a + b, 0) / history.length) || 0.001;
-        const getSPD = (m: number) => (spdAvg[m] / (spdCount[m] || 1));
+        const overallMeanSPD = spdAvg.reduce((a, b) => a + b, 0) / history.length || 0.001;
+        const getSPD = (m: number) => spdAvg[m] / (spdCount[m] || 1);
         const ma3Relative = new Array(12).fill(0).map((_, i) => {
             const clusterSPD = (getSPD((i + 11) % 12) + getSPD(i) + getSPD((i + 1) % 12)) / 3;
             return clusterSPD / overallMeanSPD;
@@ -676,11 +825,11 @@ export function computeInventory(
             const yearOfPeak = peakMonth < currentMonth ? now.getFullYear() + 1 : now.getFullYear();
             const daysInPeak = getVietnameseWorkingDays(peakMonth, yearOfPeak);
             const holidayContext = daysInPeak < 22 ? ` (Số ngày làm việc ít: ${daysInPeak})` : '';
-            
-            warnings.push({ 
-                type: 'Warning', 
-                code: 'SEASONAL_UPCOMING', 
-                message: `Sắp đến cụm cao điểm (Tháng ${peakMonth + 1})${holidayContext} – Cần đặt trước ${Math.ceil(effectiveLT/30)+1} tháng` 
+
+            warnings.push({
+                type: 'Warning',
+                code: 'SEASONAL_UPCOMING',
+                message: `Sắp đến cụm cao điểm (Tháng ${peakMonth + 1})${holidayContext} – Cần đặt trước ${Math.ceil(effectiveLT / 30) + 1} tháng`,
             });
         }
     }
@@ -708,7 +857,7 @@ export function computeInventory(
         const ts = parsePipelineDate(k, params.snapshotYYMM);
         if (!ts) return false;
         const d = new Date(ts);
-        if ((d.getMonth() + 1) !== currMM) return false;
+        if (d.getMonth() + 1 !== currMM) return false;
         const yy = d.getFullYear() % 100;
         return Math.abs(yy - currYY) <= 1;
     };
@@ -717,29 +866,69 @@ export function computeInventory(
         const ts = parsePipelineDate(k, params.snapshotYYMM);
         if (!ts) return false;
         const d = new Date(ts);
-        if ((d.getMonth() + 1) !== nextMM) return false;
+        if (d.getMonth() + 1 !== nextMM) return false;
         const yy = d.getFullYear() % 100;
         return Math.abs(yy - nextYY) <= 1;
     };
 
-    const incomingCurrentMonth = item.Pipeline ? Object.entries(item.Pipeline).reduce((sum, [k, v]) => isMatchCurr(k) ? sum + v : sum, 0) : 0;
-    const incomingNextMonth = item.Pipeline ? Object.entries(item.Pipeline).reduce((sum, [k, v]) => isMatchNext(k) ? sum + v : sum, 0) : 0;
+    const incomingCurrentMonth = item.Pipeline
+        ? Object.entries(item.Pipeline).reduce((sum, [k, v]) => (isMatchCurr(k) ? sum + v : sum), 0)
+        : 0;
+    const incomingNextMonth = item.Pipeline
+        ? Object.entries(item.Pipeline).reduce((sum, [k, v]) => (isMatchNext(k) ? sum + v : sum), 0)
+        : 0;
     const priorityBucket = resolvePriority(available, onOrder, bo, rop, demandMonthly, isStop);
 
-    let gapOrExcess = 0;
-    let suggestedBO = 0;
+    // === Optimal ordering: cost-aware (Air = 2× Sea), time-phased grid scan ===
+    const poIn30d = computePoArrivingWithinDays(item.Pipeline, 30, today, params.snapshotYYMM);
+    let urgentQty = 0,
+        reserveQty = 0;
+    let urgentTrigger: 'bridge_to_sea' | 'stockout_unavoidable' | 'none' = 'none';
+    let reserveTrigger: 'below_stockmax' | 'none' = 'none';
+    let urgentReason = '',
+        reserveReason = '';
+    let stockoutFlag = false,
+        stockoutQty = 0,
+        capLimited = false;
+    let classification: 'healthy' | 'strained' | 'critical' | 'slow' | 'dead' = 'healthy';
+    let ltAir = 35,
+        ltSea = effectiveLT;
+
     if (!isStop && !isZeroDemand) {
-        const target = Math.max(stockMax, bo);
-        if (reserve < target) gapOrExcess = Math.ceil((target - reserve) / snp) * snp;
-        // Max Order Cap — đồng bộ với SQL @MaxMonthsCap = 4
-        const MAX_ORDER_MONTHS = 4;
-        const maxOrderCap = demandMonthly * MAX_ORDER_MONTHS;
-        if (gapOrExcess > maxOrderCap && maxOrderCap > 0) {
-            gapOrExcess = Math.ceil(maxOrderCap / snp) * snp;
-        }
-        const boGap = bo - reserve;
-        if (boGap > 0) suggestedBO = Math.ceil((boGap - (gapOrExcess > 0 ? Math.min(gapOrExcess, boGap) : 0)) / snp) * snp;
+        const annualSales = (item.SalesHistory || []).reduce((a, b) => a + b, 0);
+        const optimal = computeOptimalOrder({
+            available,
+            onOrder,
+            bo,
+            pipeline: item.Pipeline,
+            snapshotYYMM: params.snapshotYYMM,
+            now: today,
+            brandName: item.BrandName || '',
+            effectiveLT,
+            demandRateDaily,
+            demandMonthly,
+            annualSales,
+            stockMax,
+            snp,
+        });
+        urgentQty = optimal.airQty;
+        reserveQty = optimal.seaQty;
+        urgentTrigger = optimal.urgentTrigger;
+        reserveTrigger = optimal.reserveTrigger;
+        urgentReason = optimal.urgentReason;
+        reserveReason = optimal.reserveReason;
+        stockoutFlag = optimal.stockoutFlag;
+        stockoutQty = optimal.stockoutQty;
+        capLimited = optimal.capLimited;
+        classification = optimal.classification;
+        ltAir = optimal.ltAir;
+        ltSea = optimal.ltSea;
     }
+
+    const orderPriority = classifyOrderPriority(urgentQty, reserveQty);
+    // Backward-compat: code cũ chưa migrate vẫn đọc suggestedBO/gapOrExcess
+    const suggestedBO = urgentQty;
+    const gapOrExcess = reserveQty;
 
     // DRP / Transfer NB-BB
     let transferProps;
@@ -750,8 +939,12 @@ export function computeInventory(
     const ratioBB = totalFC > 0 ? fcBB / totalFC : 0.5;
     const physicalNB = (item.QuantityInventory_NB || 0) + (item.QuantityDC_NB || 0) - (item.Backorder_NB || 0);
     const physicalBB = (item.QuantityInventory_BB || 0) + (item.QuantityDC_BB || 0) - (item.Backorder_BB || 0);
-    const incomingNB_Month = item.Pipeline_NB ? Object.entries(item.Pipeline_NB).reduce((sum, [k, v]) => isMatchCurr(k) ? sum + v : sum, 0) : 0;
-    const incomingBB_Month = item.Pipeline_BB ? Object.entries(item.Pipeline_BB).reduce((sum, [k, v]) => isMatchCurr(k) ? sum + v : sum, 0) : 0;
+    const incomingNB_Month = item.Pipeline_NB
+        ? Object.entries(item.Pipeline_NB).reduce((sum, [k, v]) => (isMatchCurr(k) ? sum + v : sum), 0)
+        : 0;
+    const incomingBB_Month = item.Pipeline_BB
+        ? Object.entries(item.Pipeline_BB).reduce((sum, [k, v]) => (isMatchCurr(k) ? sum + v : sum), 0)
+        : 0;
 
     // ── DRP Multi-Echelon Allocation Algorithm ──────────────────────────
     // Step 1: Target stock per warehouse (demand-weighted)
@@ -763,8 +956,8 @@ export function computeInventory(
     const poBB = item.TotalPO_BB || 0;
     const boNB = item.Backorder_NB || 0;
     const boBB = item.Backorder_BB || 0;
-    const reserveNB = physicalNB + poNB;  // physicalNB already subtracted boNB
-    const reserveBB = physicalBB + poBB;  // physicalBB already subtracted boBB
+    const reserveNB = physicalNB + poNB; // physicalNB already subtracted boNB
+    const reserveBB = physicalBB + poBB; // physicalBB already subtracted boBB
 
     // Step 3: Gap per warehouse (how much each needs to reach target)
     const rawGapNB = Math.max(0, maxNB - reserveNB);
@@ -824,17 +1017,24 @@ export function computeInventory(
         }
     }
 
-    const mosNB = (demandRateDaily * ratioNB) > 0 ? physicalNB / (demandRateDaily * ratioNB * 30) : 99;
-    const mosBB = (demandRateDaily * ratioBB) > 0 ? physicalBB / (demandRateDaily * ratioBB * 30) : 99;
+    const mosNB = demandRateDaily * ratioNB > 0 ? physicalNB / (demandRateDaily * ratioNB * 30) : 99;
+    const mosBB = demandRateDaily * ratioBB > 0 ? physicalBB / (demandRateDaily * ratioBB * 30) : 99;
 
     transferProps = {
-        maxNB, maxBB,
-        physicalNB, physicalBB,
-        incomingNB: poNB, incomingBB: poBB,
-        mosNB, mosBB,
-        incomingNB_Month, incomingBB_Month,
-        transferNBtoBB, transferBBtoNB,
-        suggestedOrderNB: sugOrderNB, suggestedOrderBB: sugOrderBB
+        maxNB,
+        maxBB,
+        physicalNB,
+        physicalBB,
+        incomingNB: poNB,
+        incomingBB: poBB,
+        mosNB,
+        mosBB,
+        incomingNB_Month,
+        incomingBB_Month,
+        transferNBtoBB,
+        transferBBtoNB,
+        suggestedOrderNB: sugOrderNB,
+        suggestedOrderBB: sugOrderBB,
     };
 
     const simTotalStock = available + onOrder + draftQty;
@@ -855,13 +1055,18 @@ export function computeInventory(
         pipelineQty: onOrder,
         boQty: simBOQty,
         boValue: simBOValue,
-        totalIncomingValue: (onOrder + draftQty) * unitCost
+        totalIncomingValue: (onOrder + draftQty) * unitCost,
     };
 
     // Aging Calculation (New)
     const boAging: import('../types/inventory').BackorderAging = {
-        qty30: 0, qty60: 0, qty90: 0, qtyOver90: 0,
-        totalQty: 0, totalValue: 0, oldestDebtDays: 0
+        qty30: 0,
+        qty60: 0,
+        qty90: 0,
+        qtyOver90: 0,
+        totalQty: 0,
+        totalValue: 0,
+        oldestDebtDays: 0,
     };
 
     if (item.BackorderBreakdown && item.BackorderBreakdown.length > 0) {
@@ -877,7 +1082,7 @@ export function computeInventory(
             // the CSV — parse it fresh every time. Only fall back to RawDate when
             // DocDate is empty or unparseable.
             const reparsed = parseDocDateFallback(boItem.DocDate);
-            const docTs = reparsed > 0 ? reparsed : (boItem.RawDate || 0);
+            const docTs = reparsed > 0 ? reparsed : boItem.RawDate || 0;
             if (docTs > 0) {
                 const daysOld = Math.max(0, Math.floor((todayTs - docTs) / MS_PER_DAY));
                 if (daysOld <= 30) boAging.qty30 += boItem.Qty;
@@ -897,21 +1102,68 @@ export function computeInventory(
     }
 
     return {
-        effectiveLT, effectiveSP, effectiveSSP, demandRateDaily, demandMonthly,
-        available, netAvailable, dcQuantity: dc, unitCost, safetyStock, rop, stockMax,
-        stockoutRiskFlag, isStopBiz: isStop, excessQty, excessValue: excessQty * unitCost,
-        stockValue: available * unitCost, stockoutGapQty: stockoutRiskFlag ? Math.max(0, rop - reserve) : 0,
+        effectiveLT,
+        effectiveSP,
+        effectiveSSP,
+        demandRateDaily,
+        demandMonthly,
+        available,
+        netAvailable,
+        dcQuantity: dc,
+        unitCost,
+        safetyStock,
+        rop,
+        stockMax,
+        stockoutRiskFlag,
+        isStopBiz: isStop,
+        excessQty,
+        excessValue: excessQty * unitCost,
+        stockValue: available * unitCost,
+        stockoutGapQty: stockoutRiskFlag ? Math.max(0, rop - reserve) : 0,
         stockoutGapValue: (stockoutRiskFlag ? Math.max(0, rop - reserve) : 0) * unitCost,
-        mos, cst, incomingCurrentMonth, incomingNextMonth,
-        priorityBucket, priorityScore: 0, stockTurnRatio: 0, fillRate: 0, capitalEfficiency: 0,
-        gapOrExcess, suggestedBO, isBOCritical: bo > reserve, snp, ssi,
+        mos,
+        cst,
+        incomingCurrentMonth,
+        incomingNextMonth,
+        priorityBucket,
+        priorityScore: 0,
+        stockTurnRatio: 0,
+        fillRate: 0,
+        capitalEfficiency: 0,
+        gapOrExcess,
+        suggestedBO,
+        isBOCritical: bo > reserve,
+        snp,
+        ssi,
+        // === Optimal ordering fields (cost-aware Air=2×Sea, time-phased) ===
+        poIn30d,
+        urgentQty,
+        reserveQty,
+        urgentTrigger,
+        reserveTrigger,
+        urgentReason,
+        reserveReason,
+        orderPriority,
+        stockoutFlag,
+        stockoutQty,
+        capLimited,
+        classification,
+        ltAir,
+        ltSea,
         boAging, // Include aging in computed fields
-        transfer: transferProps, cv, slope, forecastLinReg: forecast, warnings,
-        simulated
+        transfer: transferProps,
+        cv,
+        slope,
+        forecastLinReg: forecast,
+        warnings,
+        simulated,
     };
 }
 
-export function resolveItemProfile(item: InventoryItem, sourceProfiles?: SourceProfile[]): { profile?: SourceProfile; isFallback?: boolean; fallbackReason?: string } {
+export function resolveItemProfile(
+    item: InventoryItem,
+    sourceProfiles?: SourceProfile[],
+): { profile?: SourceProfile; isFallback?: boolean; fallbackReason?: string } {
     if (!sourceProfiles || sourceProfiles.length === 0) return {};
     const sId = (item.SourceId || '').toLowerCase();
     const brand = (item.BrandName || '').toLowerCase();
@@ -925,19 +1177,36 @@ export function resolveItemProfile(item: InventoryItem, sourceProfiles?: SourceP
     if (sameBrandProfiles.length > 0) {
         // Pick the profile with the highest Lead Time as a conservative fallback for that brand (User requirement)
         const brandFallback = sameBrandProfiles.reduce((max, p) => (p.lt > max.lt ? p : max), sameBrandProfiles[0]);
-        return { profile: brandFallback, isFallback: true, fallbackReason: `Dùng LT cao nhất của ${item.BrandName || 'thương hiệu'}` };
+        return {
+            profile: brandFallback,
+            isFallback: true,
+            fallbackReason: `Dùng LT cao nhất của ${item.BrandName || 'thương hiệu'}`,
+        };
     }
 
     // 3. Absolute Fallback: Default to General profile (GEN) or first profile if Brand is completely unknown
     const generalProfile = sourceProfiles.find(p => p.id.toUpperCase() === 'GEN') || sourceProfiles[0];
-    return { profile: generalProfile, isFallback: true, fallbackReason: brand ? `Không tìm thấy profile cho ${brand}` : 'Dùng profile chung' };
+    return {
+        profile: generalProfile,
+        isFallback: true,
+        fallbackReason: brand ? `Không tìm thấy profile cho ${brand}` : 'Dùng profile chung',
+    };
 }
 
 export function computeInventoryBatch(items: InventoryItem[], params: ComputeParams, draftData?: any): InventoryItem[] {
     // Build working days cache ONCE for entire batch — anchored to snapshot date
     const wdCache = buildWorkingDaysCache(params.snapshotDate ? new Date(params.snapshotDate) : new Date());
-    const computed = items.map(item => ({ ...item, computed: computeInventory(item, params, draftData?.[item.ItemCode], resolveItemProfile(item, params.sourceProfiles), wdCache) }));
-    
+    const computed = items.map(item => ({
+        ...item,
+        computed: computeInventory(
+            item,
+            params,
+            draftData?.[item.ItemCode],
+            resolveItemProfile(item, params.sourceProfiles),
+            wdCache,
+        ),
+    }));
+
     // PHASE 6: Prepare Search Cache off-main-thread (Worker)
     // This offloads ~300-600ms of string processing from the UI thread for 50K items.
     return prepareSearchCache(computed) as InventoryItem[];
@@ -946,7 +1215,9 @@ export function computeInventoryBatch(items: InventoryItem[], params: ComputePar
 export function makeComputeParams(settings: any): ComputeParams {
     const sDate = settings.snapshotDate || new Date().toISOString().split('T')[0];
     return {
-        lt: settings.params.lt, sp: settings.params.sp, ssp: settings.params.ssp,
+        lt: settings.params.lt,
+        sp: settings.params.sp,
+        ssp: settings.params.ssp,
         warehouseScope: settings.warehouseScope,
         costBasis: settings.costBasis,
         snapshotYYMM: sDate.replace(/-/g, '').substring(2, 6),
@@ -958,7 +1229,7 @@ export function makeComputeParams(settings: any): ComputeParams {
             tetWeight: settings.seasonalityTuning?.tetWeight ?? 1.2,
             weatherWeight: settings.seasonalityTuning?.weatherWeight ?? 1.1,
             normalizationMethod: settings.seasonalityTuning?.normalizationMethod ?? 'Fixed',
-            workingDayFallback: settings.seasonalityTuning?.workingDayFallback ?? 26
-        }
+            workingDayFallback: settings.seasonalityTuning?.workingDayFallback ?? 26,
+        },
     };
 }

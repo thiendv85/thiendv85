@@ -1,0 +1,8 @@
+dist/
+node_modules/
+back-order-dashboard/
+scratch/
+streamlit_apps/
+*.md
+pnpm-lock.yaml
+package-lock.json

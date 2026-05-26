@@ -118,7 +118,7 @@ const Sparkline = ({ values, group }: { values: number[]; group: IntelGroup }) =
     const color = colorMap[group];
 
     return (
-        <svg width={width} height={height} className="overflow-visible">
+        <svg width={width} height={height} className="overflow-visible" role="img" aria-label="Biểu đồ xu hướng">
             <polyline points={points} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             <circle cx={getX(values.length - 1)} cy={getY(values[values.length - 1])} r={2.5} fill={color} />
         </svg>
@@ -629,12 +629,13 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                 <div className="px-6 py-3 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center bg-white sticky top-0 z-40 gap-3 shadow-sm">
                     <div className="flex flex-wrap items-center gap-3">
                         {/* Group filter tabs */}
-                        <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200">
+                        <div className="lg-segmented">
                             {(['ALL', 'STOCKOUT', 'RISK', 'SEASONAL', 'SPIKE', 'OVERSTOCK', 'DECLINING'] as const).map(f => (
                                 <button
                                     key={f}
                                     onClick={() => { setGroupFilter(f); setCurrentPage(1); }}
-                                    className={`px-3 py-1 text-[10px] font-black rounded-lg transition-all uppercase ${groupFilter === f ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                    aria-pressed={groupFilter === f}
+                                    className={groupFilter === f ? 'lg-active' : ''}
                                 >
                                     {f === 'ALL' ? 'Tất cả' : GROUP_CONFIG[f].label}
                                     {f !== 'ALL' && (
@@ -647,9 +648,9 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                         </div>
 
                         {/* Sort */}
-                        <div className="flex items-center gap-2 px-3 py-1 bg-slate-50 border border-slate-200 rounded-xl">
-                            <FaIcon className="fas fa-sort-amount-down text-slate-400 text-[10px]" />
-                            <select value={sortKey} onChange={(e) => setSortKey(e.target.value)} className="bg-transparent text-[10px] font-black text-slate-700 outline-none cursor-pointer uppercase">
+                        <div className="flex items-center gap-2">
+                            <FaIcon className="fas fa-sort-amount-down text-[10px]" style={{ color: 'rgba(15,17,22,0.4)' }} />
+                            <select value={sortKey} onChange={(e) => setSortKey(e.target.value)} className="lg-select cursor-pointer text-[10px]">
                                 <option value="group">Nhóm hành động</option>
                                 <option value="mos_asc">MOS (Thấp nhất)</option>
                                 <option value="mos_desc">MOS (Cao nhất)</option>
@@ -665,6 +666,8 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                             <FaIcon className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs" />
                             <input
                                 type="text"
+                                name="demand-search"
+                                aria-label="Tìm kiếm nhu cầu"
                                 placeholder={t('common_search')}
                                 value={searchText}
                                 onChange={e => handleSearchChange(e.target.value)}

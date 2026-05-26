@@ -31,11 +31,7 @@ export function useApprovalNotifications(): ApprovalNotifications {
         setIsLoading(true);
         try {
             const tasks: Promise<any>[] = [];
-            tasks.push(
-                hasApprovalRole
-                    ? fetchPendingForApprover(user.id, allowedLevels)
-                    : Promise.resolve([])
-            );
+            tasks.push(hasApprovalRole ? fetchPendingForApprover(user.id, allowedLevels) : Promise.resolve([]));
             tasks.push(canSubmit ? fetchMyRequests(user.id) : Promise.resolve([]));
 
             const [pending, mine] = await Promise.all(tasks);
@@ -47,11 +43,9 @@ export function useApprovalNotifications(): ApprovalNotifications {
 
             const cutoff = Date.now() - REJECTED_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
             setRejectedRecent(
-                mineList.filter(r => r.status === 'rejected' && new Date(r.submitted_at).getTime() >= cutoff)
+                mineList.filter(r => r.status === 'rejected' && new Date(r.submitted_at).getTime() >= cutoff),
             );
-        } catch (e) {
-            console.error('[notifications] refetch failed', e);
-        } finally {
+        } catch { /* fetch failed — silently retry on next interval */ } finally {
             inFlightRef.current = false;
             setIsLoading(false);
         }

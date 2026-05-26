@@ -249,9 +249,9 @@ export const SimulationLab = ({ item }: SimulationLabProps) => {
                     >
                         <FaIcon className="fas fa-copy text-xs" />
                     </button>
-                    <div className="flex bg-slate-100/50 backdrop-blur-sm p-1 rounded-xl border border-slate-200 shadow-inner scale-90 origin-right ml-1">
-                        <button onClick={() => setMode('BASIC')} className={`px-4 py-1.5 text-2xs font-bold rounded-lg uppercase tracking-wider transition-all ${mode === 'BASIC' ? 'bg-white shadow-soft text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}>{t('sim_basic') || 'CƠ BẢN'}</button>
-                        <button onClick={() => setMode('SCENARIO')} className={`px-4 py-1.5 text-2xs font-bold rounded-lg uppercase tracking-wider transition-all ${mode === 'SCENARIO' ? 'bg-white shadow-soft text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>{t('sim_scenario') || 'KỊCH BẢN'}</button>
+                    <div className="lg-segmented scale-90 origin-right ml-1">
+                        <button onClick={() => setMode('BASIC')} aria-pressed={mode === 'BASIC'} className={mode === 'BASIC' ? 'lg-active' : ''}>{t('sim_basic') || 'CƠ BẢN'}</button>
+                        <button onClick={() => setMode('SCENARIO')} aria-pressed={mode === 'SCENARIO'} className={mode === 'SCENARIO' ? 'lg-active' : ''}>{t('sim_scenario') || 'KỊCH BẢN'}</button>
                     </div>
                 </div>
             </div>

@@ -3,6 +3,9 @@ import { InventoryItem, KittingDefinition, OrderingDraft } from '../types/invent
 import { parseKittingCSV } from '../utils/csvParser';
 import { useLanguage } from '../utils/i18n';
 import { saveToCloudStorage, loadFromCloudStorage, verifyAdminPin } from '../utils/supabase';
+import { SampleCSVButton } from './SampleCSVButton';
+import { PartAffinityAdmin } from '../pages/PartAffinityAdmin';
+import { KittingManageView } from './KittingManageView';
 
 import { FaIcon } from './Icon';
 // Inline: RepairPackageMetrics
@@ -51,7 +54,7 @@ interface RepairPackageOptimizerProps {
     onKittingDefsChange: (defs: KittingDefinition[]) => void;
 }
 
-type ViewMode = 'OPTIMIZER' | 'SIMILARITY';
+type ViewMode = 'OPTIMIZER' | 'SIMILARITY' | 'AFFINITY' | 'MANAGE';
 
 // --- NEW COMPONENT: COMPARISON MATRIX FOR 2-3 PACKAGES ---
 const ComparisonMatrix = ({ selectedSets, onItemSelect }: { selectedSets: any[], onItemSelect: (i: InventoryItem) => void }) => {
@@ -412,12 +415,30 @@ export const RepairPackageOptimizer = ({
 
     if (!kittingDefs || kittingDefs.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[400px] bg-white rounded-2xl border-2 border-dashed border-slate-300 p-8 text-center animate-fadeIn">
-                <div className="w-20 h-20 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-6"><FaIcon className="fas fa-boxes-packing text-3xl" /></div>
-                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-2">Chưa có dữ liệu Gói phụ tùng</h3>
-                <p className="text-slate-500 max-w-md mb-8 text-base">Vui lòng tải lên file định nghĩa (CSV) để hệ thống tính toán khả năng sẵn sàng của các bộ linh kiện sửa chữa.</p>
-                <input type="file" ref={fileInputRef} className="hidden" accept=".csv" onChange={handleFileUpload} />
-                <button onClick={() => fileInputRef.current?.click()} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-blue-200 transition-all flex items-center gap-3"><FaIcon className="fas fa-upload" /> {t('kit_upload_btn')}</button>
+            <div className="space-y-4 animate-fadeIn">
+                {/* Tab nav — cho phép vào "Mã liên quan" / "Khai báo gói" kể cả khi chưa có Kitting data */}
+                <div className="flex bg-slate-900 border border-white/10 p-1 rounded-xl w-fit">
+                    <button onClick={() => setViewMode('OPTIMIZER')} className={`px-4 py-1.5 text-[10px] font-black rounded-lg transition-all uppercase ${viewMode === 'OPTIMIZER' ? 'bg-white text-slate-900 shadow-sm' : 'text-white/40 hover:text-white'}`}>Refill Optimizer</button>
+                    <button onClick={() => setViewMode('MANAGE')} className={`px-4 py-1.5 text-[10px] font-black rounded-lg transition-all uppercase ${viewMode === 'MANAGE' ? 'bg-white text-slate-900 shadow-sm' : 'text-white/40 hover:text-white'}`}>Khai báo gói</button>
+                    <button onClick={() => setViewMode('AFFINITY')} className={`px-4 py-1.5 text-[10px] font-black rounded-lg transition-all uppercase ${viewMode === 'AFFINITY' ? 'bg-white text-slate-900 shadow-sm' : 'text-white/40 hover:text-white'}`}>Mã liên quan</button>
+                </div>
+
+                {viewMode === 'AFFINITY' ? (
+                    <PartAffinityAdmin embedded />
+                ) : viewMode === 'MANAGE' ? (
+                    <KittingManageView kittingDefs={kittingDefs} onChange={onKittingDefsChange} />
+                ) : (
+                    <div className="flex flex-col items-center justify-center min-h-[400px] bg-white rounded-2xl border-2 border-dashed border-slate-300 p-8 text-center">
+                        <div className="w-20 h-20 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-6"><FaIcon className="fas fa-boxes-packing text-3xl" /></div>
+                        <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-2">Chưa có dữ liệu Gói phụ tùng</h3>
+                        <p className="text-slate-500 max-w-md mb-8 text-base">Vui lòng tải lên file định nghĩa (CSV) để hệ thống tính toán khả năng sẵn sàng của các bộ linh kiện sửa chữa.</p>
+                        <input type="file" ref={fileInputRef} className="hidden" accept=".csv" onChange={handleFileUpload} />
+                        <div className="flex items-center gap-3">
+                            <button onClick={() => fileInputRef.current?.click()} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-blue-200 transition-all flex items-center gap-3"><FaIcon className="fas fa-upload" /> {t('kit_upload_btn')}</button>
+                            <SampleCSVButton sampleKey="kitting" label="Tải mẫu CSV" />
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
@@ -471,6 +492,8 @@ export const RepairPackageOptimizer = ({
                         <div className="flex bg-slate-900 border border-white/10 p-1 rounded-xl">
                             <button onClick={() => setViewMode('OPTIMIZER')} className={`px-4 py-1.5 text-[10px] font-black rounded-lg transition-all uppercase ${viewMode === 'OPTIMIZER' ? 'bg-white text-slate-900 shadow-sm' : 'text-white/40 hover:text-white'}`}>Refill Optimizer</button>
                             <button onClick={() => setViewMode('SIMILARITY')} className={`px-4 py-1.5 text-[10px] font-black rounded-lg transition-all uppercase ${viewMode === 'SIMILARITY' ? 'bg-white text-slate-900 shadow-sm' : 'text-white/40 hover:text-white'}`}>Similarity</button>
+                            <button onClick={() => setViewMode('MANAGE')} className={`px-4 py-1.5 text-[10px] font-black rounded-lg transition-all uppercase ${viewMode === 'MANAGE' ? 'bg-white text-slate-900 shadow-sm' : 'text-white/40 hover:text-white'}`}>Khai báo gói</button>
+                            <button onClick={() => setViewMode('AFFINITY')} className={`px-4 py-1.5 text-[10px] font-black rounded-lg transition-all uppercase ${viewMode === 'AFFINITY' ? 'bg-white text-slate-900 shadow-sm' : 'text-white/40 hover:text-white'}`}>Mã liên quan</button>
                         </div>
                         <div className="relative group w-56">
                             <FaIcon className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs" />
@@ -485,7 +508,15 @@ export const RepairPackageOptimizer = ({
                 <RepairPackageMetrics sets={calculatedSets} />
             )}
 
-            {viewMode === 'OPTIMIZER' ? (
+            {viewMode === 'AFFINITY' ? (
+                <div className="animate-fadeIn">
+                    <PartAffinityAdmin embedded />
+                </div>
+            ) : viewMode === 'MANAGE' ? (
+                <div className="animate-fadeIn">
+                    <KittingManageView kittingDefs={kittingDefs} onChange={onKittingDefsChange} />
+                </div>
+            ) : viewMode === 'OPTIMIZER' ? (
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 animate-fadeIn">
                     {filteredSets.map((set: any) => {
                         const currentInputNB = orderInputs[set.setCode]?.nb || 0;

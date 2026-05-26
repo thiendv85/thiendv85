@@ -1,8 +1,15 @@
-
 import React, { useState, useEffect } from 'react';
 import { X, Cloud, Database, Calendar, Download, RefreshCw, AlertCircle, Trash2 } from 'lucide-react';
 import { Typography } from './Typography';
-import { SnapshotMetadataRow, listSnapshots, loadSnapshot, listMonthlyDataSnapshots, loadSpecificMonthlyData, deleteSnapshot, normalizeBrand } from '../utils/supabase';
+import {
+    SnapshotMetadataRow,
+    listSnapshots,
+    loadSnapshot,
+    listMonthlyDataSnapshots,
+    loadSpecificMonthlyData,
+    deleteSnapshot,
+    normalizeBrand,
+} from '../utils/supabase';
 import { InventoryItem, SourceProfile } from '../types/inventory';
 
 // Removed local extractBrandFromDepartment in favor of shared normalizeBrand from supabase.ts
@@ -28,7 +35,7 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
     userRole,
     userDepartment,
     sourceProfiles,
-    activeSourceId
+    activeSourceId,
 }) => {
     const [tab, setTab] = useState<'inventory' | 'monthly'>('inventory');
     const [snapshots, setSnapshots] = useState<SnapshotMetadataRow[]>([]);
@@ -49,14 +56,14 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
                 const userBrand = isAdmin ? null : normalizeBrand(userDepartment);
 
                 const fetchLimit = selectedBrand && selectedBrand !== 'ALL' ? 50 : 100;
-                
+
                 // SEPARATION OF LOGIC:
                 // Admins can use the UI filter. Non-admins are strictly locked to their extracted brand.
                 let brandFilter: string | null = null;
                 if (!isAdmin) {
                     brandFilter = userBrand;
                 } else {
-                    brandFilter = (selectedBrand && selectedBrand !== 'ALL') ? selectedBrand : null;
+                    brandFilter = selectedBrand && selectedBrand !== 'ALL' ? selectedBrand : null;
                 }
 
                 const list = await listSnapshots(fetchLimit, brandFilter);
@@ -112,7 +119,7 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
 
     const handleDeleteSnapshot = async (snap: SnapshotMetadataRow) => {
         if (!window.confirm(`Xóa bản sao lưu "${snap.filename}"?\nDữ liệu sẽ bị xóa vĩnh viễn khỏi Cloud.`)) return;
-        
+
         setLoadingId(snap.id);
         setError(null);
         try {
@@ -124,7 +131,6 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
             }
         } catch (err: any) {
             setError(`Lỗi khi xóa dữ liệu: ${err?.message || 'Lỗi hệ thống'}`);
-            console.error('[UI] Cloud deletion error:', err);
         } finally {
             setLoadingId(null);
         }
@@ -156,7 +162,6 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
     return (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
             <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col border border-white/20">
-                
                 {/* Header */}
                 <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50/50">
                     <div className="flex items-center gap-3">
@@ -165,7 +170,9 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
                         </div>
                         <div>
                             <Typography variant="h2">Truy xuất Dữ liệu Cloud</Typography>
-                            <Typography variant="label" className="mt-0.5">Chọn bản sao lưu hoặc dữ liệu tháng để làm việc</Typography>
+                            <Typography variant="label" className="mt-0.5">
+                                Chọn bản sao lưu hoặc dữ liệu tháng để làm việc
+                            </Typography>
                         </div>
                     </div>
                     <button
@@ -206,7 +213,9 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
                 {tab === 'inventory' && availableBrands.length > 1 && (
                     <div className="px-6 mt-4">
                         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1 shrink-0">Lọc hãng:</span>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1 shrink-0">
+                                Lọc hãng:
+                            </span>
                             {availableBrands.map(brand => {
                                 const isAll = brand === 'ALL';
                                 const isActive = isAll ? selectedBrand === null : selectedBrand === brand;
@@ -229,7 +238,9 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
                 )}
 
                 {/* Content */}
-                <div className={`p-6 ${tab === 'inventory' && availableBrands.length > 1 ? 'pt-2' : ''} h-[400px] overflow-hidden flex flex-col`}>
+                <div
+                    className={`p-6 ${tab === 'inventory' && availableBrands.length > 1 ? 'pt-2' : ''} h-[400px] overflow-hidden flex flex-col`}
+                >
                     {error && (
                         <div className="mb-4 flex gap-3 items-center text-sm font-bold text-rose-600 bg-rose-50 p-4 rounded-2xl border border-rose-100 animate-shake">
                             <AlertCircle size={20} className="shrink-0" />
@@ -249,78 +260,97 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
                                     <Database size={48} className="mb-4" />
                                     <Typography variant="label">Không tìm thấy bản sao lưu nào</Typography>
                                 </div>
-                            ) : snapshots.map(snap => (
-                                <div key={snap.id} className="group flex items-center gap-4 bg-slate-50 border border-slate-100 rounded-2xl p-4 hover:border-blue-400 hover:bg-blue-50/30 transition-all">
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <Typography variant="h3" className="truncate text-slate-800">
-                                                {snap.filename}
-                                            </Typography>
-                                            {snap.brand && (
-                                                <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 text-[9px] font-black uppercase">
-                                                    {snap.brand}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center gap-3 text-slate-400 text-2xs font-bold">
-                                            <span className="flex items-center gap-1">
-                                                <Calendar size={10} /> {formatDate(snap.upload_date)}
-                                            </span>
-                                            <span className="flex items-center gap-1">
-                                                <Database size={10} /> {snap.row_count.toLocaleString()} SKUs
-                                            </span>
-                                            {snap.uploader_name && (
-                                                <span className="truncate">By: {snap.uploader_name}</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        {userRole === 'admin' && (
-                                            <button
-                                                onClick={() => handleDeleteSnapshot(snap)}
-                                                disabled={loadingId === snap.id}
-                                                title="Xóa bản sao lưu"
-                                                className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-                                                    loadingId === snap.id
-                                                        ? 'bg-rose-100 text-rose-600'
-                                                        : 'bg-white border border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-300 hover:bg-rose-50 shadow-sm'
-                                                }`}
-                                            >
-                                                {loadingId === snap.id ? <RefreshCw className="animate-spin" size={16} /> : <Trash2 size={16} />}
-                                            </button>
-                                        )}
-                                        <button
-                                            onClick={() => handleLoadInventory(snap)}
-                                            disabled={loadingId === snap.id}
-                                            title="Tải dữ liệu này"
-                                            className={`shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
-                                                loadingId === snap.id
-                                                    ? 'bg-blue-100 text-blue-600'
-                                                    : 'bg-white border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 shadow-sm'
-                                            }`}
-                                        >
-                                            {loadingId === snap.id ? <RefreshCw className="animate-spin" size={20} /> : <Download size={20} />}
-                                        </button>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            monthlySnapshots.length === 0 ? (
-                                <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-60">
-                                    <Calendar size={48} className="mb-4" />
-                                    <Typography variant="label">Không tìm thấy dữ liệu tháng nào</Typography>
-                                </div>
-                            ) : monthlySnapshots.map(m => {
-                                const isActive = currentMonthlyDate === m.id;
-                                return (
-                                    <div key={m.id} className={`group flex items-center gap-4 border rounded-2xl p-4 transition-all ${
-                                        isActive 
-                                            ? 'bg-emerald-50 border-emerald-300' 
-                                            : 'bg-slate-50 border-slate-100 hover:border-emerald-400 hover:bg-emerald-50/30'
-                                    }`}>
+                            ) : (
+                                snapshots.map(snap => (
+                                    <div
+                                        key={snap.id}
+                                        className="group flex items-center gap-4 bg-slate-50 border border-slate-100 rounded-2xl p-4 hover:border-blue-400 hover:bg-blue-50/30 transition-all"
+                                    >
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-1">
-                                                <Typography variant="h3" className={isActive ? 'text-emerald-800' : 'text-slate-800'}>
+                                                <Typography variant="h3" className="truncate text-slate-800">
+                                                    {snap.filename}
+                                                </Typography>
+                                                {snap.brand && (
+                                                    <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 text-[9px] font-black uppercase">
+                                                        {snap.brand}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-3 text-slate-400 text-2xs font-bold">
+                                                <span className="flex items-center gap-1">
+                                                    <Calendar size={10} /> {formatDate(snap.upload_date)}
+                                                </span>
+                                                <span className="flex items-center gap-1">
+                                                    <Database size={10} /> {snap.row_count.toLocaleString()} SKUs
+                                                </span>
+                                                {snap.uploader_name && (
+                                                    <span className="truncate">By: {snap.uploader_name}</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {userRole === 'admin' && (
+                                                <button
+                                                    onClick={() => handleDeleteSnapshot(snap)}
+                                                    disabled={loadingId === snap.id}
+                                                    title="Xóa bản sao lưu"
+                                                    className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                                                        loadingId === snap.id
+                                                            ? 'bg-rose-100 text-rose-600'
+                                                            : 'bg-white border border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-300 hover:bg-rose-50 shadow-sm'
+                                                    }`}
+                                                >
+                                                    {loadingId === snap.id ? (
+                                                        <RefreshCw className="animate-spin" size={16} />
+                                                    ) : (
+                                                        <Trash2 size={16} />
+                                                    )}
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={() => handleLoadInventory(snap)}
+                                                disabled={loadingId === snap.id}
+                                                title="Tải dữ liệu này"
+                                                className={`shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
+                                                    loadingId === snap.id
+                                                        ? 'bg-blue-100 text-blue-600'
+                                                        : 'bg-white border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 shadow-sm'
+                                                }`}
+                                            >
+                                                {loadingId === snap.id ? (
+                                                    <RefreshCw className="animate-spin" size={20} />
+                                                ) : (
+                                                    <Download size={20} />
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            )
+                        ) : monthlySnapshots.length === 0 ? (
+                            <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-60">
+                                <Calendar size={48} className="mb-4" />
+                                <Typography variant="label">Không tìm thấy dữ liệu tháng nào</Typography>
+                            </div>
+                        ) : (
+                            monthlySnapshots.map(m => {
+                                const isActive = currentMonthlyDate === m.id;
+                                return (
+                                    <div
+                                        key={m.id}
+                                        className={`group flex items-center gap-4 border rounded-2xl p-4 transition-all ${
+                                            isActive
+                                                ? 'bg-emerald-50 border-emerald-300'
+                                                : 'bg-slate-50 border-slate-100 hover:border-emerald-400 hover:bg-emerald-50/30'
+                                        }`}
+                                    >
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Typography
+                                                    variant="h3"
+                                                    className={isActive ? 'text-emerald-800' : 'text-slate-800'}
+                                                >
                                                     Tháng {m.id.split('-').reverse().join('/')}
                                                 </Typography>
                                                 {isActive && (
@@ -341,12 +371,18 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
                                             className={`shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
                                                 loadingId === m.id
                                                     ? 'bg-emerald-100 text-emerald-600'
-                                                    : isActive 
-                                                        ? 'bg-emerald-100 text-emerald-600 border border-emerald-200 cursor-default'
-                                                        : 'bg-white border border-slate-200 text-slate-400 hover:text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50 shadow-sm'
+                                                    : isActive
+                                                      ? 'bg-emerald-100 text-emerald-600 border border-emerald-200 cursor-default'
+                                                      : 'bg-white border border-slate-200 text-slate-400 hover:text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50 shadow-sm'
                                             }`}
                                         >
-                                            {loadingId === m.id ? <RefreshCw className="animate-spin" size={20} /> : isActive ? <Database size={20} /> : <Download size={20} />}
+                                            {loadingId === m.id ? (
+                                                <RefreshCw className="animate-spin" size={20} />
+                                            ) : isActive ? (
+                                                <Database size={20} />
+                                            ) : (
+                                                <Download size={20} />
+                                            )}
                                         </button>
                                     </div>
                                 );
@@ -360,10 +396,12 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
                     <div className="flex-1 max-w-[300px]">
                         {tab === 'inventory' && (
                             <div className="flex flex-col gap-1">
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Áp dụng tham số nguồn:</span>
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                                    Áp dụng tham số nguồn:
+                                </span>
                                 <select
                                     value={selectedSourceId}
-                                    onChange={(e) => setSelectedSourceId(e.target.value)}
+                                    onChange={e => setSelectedSourceId(e.target.value)}
                                     className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all cursor-pointer hover:border-blue-400"
                                 >
                                     {sourceProfiles.map(p => (

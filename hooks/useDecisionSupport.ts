@@ -45,8 +45,8 @@ export const useDecisionSupport = (
     preApprovalResult: any | null = null
 ): DecisionSummary => {
     return useMemo(() => {
-        const rows = snap.inventory_context;
-        const origQtys = snap.quantities;
+        const rows = snap?.inventory_context || [];
+        const origQtys = snap?.quantities || {};
 
         // 1. Calculate Baseline (Before)
         let bVal = 0, bAir = 0, bSea = 0, bOos = 0, bRisk = 0, bBo = 0, bSumMos = 0;

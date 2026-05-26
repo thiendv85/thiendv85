@@ -99,6 +99,236 @@ h1, h2, h3, h4, .font-heading {
     letter-spacing: -0.02em;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   LIQUID GLASS FILTER SYSTEM — unified glass buttons across all pages.
+   Mirrors .bo-chip / .bo-segmented design language but scoped globally
+   so pages outside .bo-page (Ordering, DemandIntelligence) get the same
+   translucent filter aesthetic.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Segmented control container — glass pill wrapping a row of buttons */
+.lg-segmented {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px;
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(14px) saturate(1.5);
+    -webkit-backdrop-filter: blur(14px) saturate(1.5);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 14px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.7),
+        0 1px 3px rgba(15, 17, 22, 0.06),
+        0 8px 24px -12px rgba(15, 17, 22, 0.08);
+    transition: box-shadow 200ms ease;
+}
+.lg-segmented > button {
+    height: 28px;
+    padding: 0 14px;
+    border-radius: 10px;
+    font-size: 0.8125rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(15, 17, 22, 0.55);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    white-space: nowrap;
+}
+.lg-segmented > button:hover {
+    color: rgba(15, 17, 22, 0.8);
+    background: rgba(255, 255, 255, 0.5);
+}
+.lg-segmented > button.lg-active,
+.lg-segmented > button[aria-pressed="true"],
+.lg-segmented > button[data-active="true"] {
+    background: rgba(14, 17, 22, 0.88);
+    color: #F4F1EB;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        0 2px 8px -3px rgba(10, 12, 18, 0.4),
+        0 8px 20px -8px rgba(10, 12, 18, 0.25);
+    backdrop-filter: blur(8px);
+}
+
+/* Pill button — standalone glass filter pill (LOIS groups, coverage, etc.) */
+.lg-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 30px;
+    min-width: 36px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(12px) saturate(1.4);
+    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    color: rgba(15, 17, 22, 0.7);
+    font-size: 0.8125rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.65),
+        0 1px 2px rgba(15, 17, 22, 0.04);
+}
+.lg-pill:hover {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(15, 17, 22, 0.12);
+    color: rgba(15, 17, 22, 0.85);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.7),
+        0 2px 6px rgba(15, 17, 22, 0.08);
+}
+.lg-pill.lg-active,
+.lg-pill[aria-pressed="true"],
+.lg-pill[data-active="true"] {
+    background: rgba(14, 17, 22, 0.88);
+    border-color: rgba(168, 133, 75, 0.45);
+    color: #F4F1EB;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 4px 14px -6px rgba(10, 12, 18, 0.45),
+        0 1px 2px rgba(168, 133, 75, 0.12);
+}
+
+/* Icon button — square glass button for icon-only filters */
+.lg-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(12px) saturate(1.4);
+    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    color: rgba(15, 17, 22, 0.55);
+    font-size: 0.8125rem;
+    cursor: pointer;
+    transition: all 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        0 1px 2px rgba(15, 17, 22, 0.04);
+}
+.lg-icon-btn:hover {
+    background: rgba(255, 255, 255, 0.78);
+    border-color: rgba(15, 17, 22, 0.12);
+    color: rgba(15, 17, 22, 0.8);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.7),
+        0 2px 8px rgba(15, 17, 22, 0.08);
+}
+.lg-icon-btn.lg-active,
+.lg-icon-btn[aria-pressed="true"],
+.lg-icon-btn[data-active="true"] {
+    background: rgba(14, 17, 22, 0.88);
+    border-color: rgba(168, 133, 75, 0.4);
+    color: #F4F1EB;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 4px 12px -5px rgba(10, 12, 18, 0.45);
+}
+
+/* Glass select dropdown */
+.lg-select {
+    height: 30px;
+    padding: 0 28px 0 10px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(12px) saturate(1.4);
+    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    color: rgba(15, 17, 22, 0.7);
+    font-size: 0.8125rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    appearance: none;
+    outline: none;
+    transition: all 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        0 1px 2px rgba(15, 17, 22, 0.04);
+}
+.lg-select:hover {
+    background: rgba(255, 255, 255, 0.72);
+    border-color: rgba(15, 17, 22, 0.12);
+}
+.lg-select:focus {
+    border-color: rgba(14, 17, 22, 0.3);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        0 0 0 3px rgba(14, 17, 22, 0.06);
+}
+.lg-select.lg-active,
+.lg-select[data-active="true"] {
+    background: rgba(14, 17, 22, 0.12);
+    border-color: rgba(14, 17, 22, 0.25);
+    color: rgba(15, 17, 22, 0.9);
+}
+
+/* Glass dropdown trigger (source picker etc.) */
+.lg-dropdown {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 10px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(12px) saturate(1.4);
+    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    color: rgba(15, 17, 22, 0.7);
+    font-size: 0.8125rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        0 1px 2px rgba(15, 17, 22, 0.04);
+}
+.lg-dropdown:hover {
+    background: rgba(255, 255, 255, 0.72);
+    border-color: rgba(15, 17, 22, 0.12);
+}
+.lg-dropdown.lg-active,
+.lg-dropdown[data-active="true"] {
+    background: rgba(14, 17, 22, 0.88);
+    border-color: rgba(168, 133, 75, 0.45);
+    color: #F4F1EB;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 4px 14px -6px rgba(10, 12, 18, 0.45);
+}
+
+/* Glass container — wraps filter rows */
+.lg-filter-bar {
+    background: rgba(255, 255, 255, 0.35);
+    backdrop-filter: blur(18px) saturate(1.5);
+    -webkit-backdrop-filter: blur(18px) saturate(1.5);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    border-radius: 24px;
+    padding: 12px 16px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.7),
+        0 1px 3px rgba(15, 17, 22, 0.04),
+        0 12px 32px -16px rgba(15, 17, 22, 0.08);
+}
+
 /* Premium Glassmorphism Utility */
 .glass-premium {
     background: rgba(255, 255, 255, 0.05);
@@ -214,47 +444,47 @@ h1, h2, h3, h4, .font-heading {
        hues. Semantic aliases (warn / danger / data-blue / aging-*) re-point
        into the 4-hue ladder — they do not introduce new colors. */
 
-    /* Hue 1 — ONYX (text, dark surface, neutral signal) */
-    --bo-surface: #F4F1EB;
+    /* Paper & ink — cool slate, ink navy (Indigo/Navy + Vàng palette) */
+    --bo-paper: #FFFFFF;
+    --bo-surface: #F7F5F2;
     --bo-surface-raised: #FFFFFF;
-    --bo-surface-sunken: #ECE7DD;
+    --bo-surface-sunken: #EFF1F8;
     --bo-surface-ink: #0A0C12;
     --bo-surface-ink-soft: #14171D;
-    --bo-ink: #0E1116;
-    --bo-ink-muted: #4B5260;
-    --bo-ink-soft: #7A8190;
-    --bo-hairline: #DAD3C5;
+    --bo-ink: #0F1633;
+    --bo-ink-muted: #5C6580;
+    --bo-ink-soft: #1F2748;
+    --bo-hairline: #E3E6F0;
 
-    /* Hue 2 — BRONZE (premium accent + warning ladder via tonality) */
-    --bo-bronze: #A8854B;
-    --bo-bronze-strong: #8E6E2F;
-    --bo-bronze-soft: #E9DDBE;
-    --bo-bronze-deep: #5C4720;
-    --bo-accent-bronze: var(--bo-bronze);            /* legacy alias */
+    /* Accent — vàng */
+    --bo-accent: #E5B431;
+    --bo-accent-soft: #FAEFCC;
+    --bo-accent-deep: #7A5C0F;
 
-    /* Hue 3 — CLAY (critical only) */
-    --bo-accent: #B8422E;
-    --bo-accent-soft: #F2D9CF;
-    --bo-accent-deep: #7A2A1B;
+    /* Bronze → indigo deep (warm-neutral role) */
+    --bo-bronze: #4F5C8F;
+    --bo-bronze-strong: #2D3866;
+    --bo-bronze-soft: #E5E8F4;
+    --bo-bronze-deep: #1A2347;
+    --bo-accent-bronze: var(--bo-bronze);
 
-    /* Hue 4 — SAGE (positive only) */
-    --bo-ok: #146346;
-    --bo-ok-soft: #D6ECDF;
+    /* Trạng thái */
+    --bo-ok: #3C7A6B;
+    --bo-ok-soft: #D7ECE5;
+    --bo-critical: #C13B3B;
+    --bo-critical-soft: #F8DFDF;
 
-    /* ─── Semantic re-maps — DO NOT introduce new hues here ─────────────
-       Every legacy alias below points back into the 4-hue ladder so the
-       hundreds of inline styles in BackorderAnalytics.tsx that read these
-       custom-properties keep working without per-element edits. */
-    --bo-data-blue: var(--bo-ink-muted);             /* was #2F5BD6 — collapsed to onyx */
+    /* Semantic re-maps */
+    --bo-data-blue: var(--bo-ink-muted);
     --bo-data-blue-soft: var(--bo-surface-sunken);
-    --bo-warn: var(--bo-bronze-strong);              /* was #8A5A14 — bronze ladder */
+    --bo-warn: var(--bo-bronze-strong);
     --bo-warn-soft: var(--bo-bronze-soft);
-    --bo-danger: var(--bo-accent);                   /* was #9A2D2D — clay */
-    --bo-danger-soft: var(--bo-accent-soft);
-    --bo-aging-30: var(--bo-ink-muted);
-    --bo-aging-60: var(--bo-bronze-deep);            /* darker for AA contrast on soft bg */
-    --bo-aging-90: var(--bo-accent-deep);
-    --bo-aging-over90: var(--bo-accent-deep);
+    --bo-danger: var(--bo-critical);
+    --bo-danger-soft: var(--bo-critical-soft);
+    --bo-aging-30: #5C6580;
+    --bo-aging-60: #8A6810;
+    --bo-aging-90: #C13B3B;
+    --bo-aging-over90: #7A1F1F;
 
     --bo-radius-xs: 6px;
     --bo-radius-sm: 10px;
@@ -280,10 +510,10 @@ h1, h2, h3, h4, .font-heading {
 .bo-page .bo-mono    { font-family: var(--bo-font-mono); font-variant-numeric: tabular-nums; font-weight: 700; }
 .bo-page .bo-eyebrow {
     font-family: var(--bo-font-body);
-    font-size: 0.6875rem;
+    font-size: 0.8125rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.14em;
     color: var(--bo-ink-muted);
 }
 
@@ -402,10 +632,10 @@ h1, h2, h3, h4, .font-heading {
     border: 1px solid rgba(15, 17, 22, 0.08);
     color: var(--bo-ink);
     font-family: var(--bo-font-body);
-    font-size: 0.6875rem;
+    font-size: 0.8125rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.10em;
     white-space: nowrap;
     cursor: pointer;
     transition: background 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
@@ -469,10 +699,10 @@ h1, h2, h3, h4, .font-heading {
     border: 1px solid rgba(15, 17, 22, 0.08);
     color: var(--bo-ink);
     font-family: var(--bo-font-body);
-    font-size: 0.6875rem;
+    font-size: 0.8125rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.10em;
     white-space: nowrap;
     cursor: pointer;
     box-shadow: inset 2px 0 0 var(--bo-ink-muted);
@@ -499,7 +729,7 @@ h1, h2, h3, h4, .font-heading {
     background: rgba(15, 17, 22, 0.08);
     color: var(--bo-ink);
     font-family: var(--bo-font-mono);
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 700;
 }
 .bo-page .bo-dropdown-trigger[data-active="true"] .bo-count-pill {
@@ -532,10 +762,10 @@ h1, h2, h3, h4, .font-heading {
     padding: 0 10px;
     border-radius: 7px;
     font-family: var(--bo-font-body);
-    font-size: 0.6875rem;
+    font-size: 0.8125rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.10em;
     color: var(--bo-ink);
     background: transparent;
     border: none;
@@ -561,10 +791,10 @@ h1, h2, h3, h4, .font-heading {
     border-radius: var(--bo-radius-sm);
     background: var(--bo-surface-ink);
     color: #F7F5F2;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.12em;
     transition: transform var(--duration-fast, 120ms) ease, box-shadow var(--duration-fast, 120ms) ease;
     cursor: pointer;
 }
@@ -594,7 +824,7 @@ h1, h2, h3, h4, .font-heading {
     padding: 4px 8px;
     border-radius: var(--bo-radius-xs);
     font-family: var(--bo-font-mono);
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
 }
@@ -658,4 +888,367 @@ h1, h2, h3, h4, .font-heading {
         0 1px 2px rgba(15, 17, 22, 0.05),
         0 12px 32px -16px rgba(15, 17, 22, 0.10);
     overflow: hidden;
+}
+
+/* ========================================
+   Global styles (moved from index.html)
+   ======================================== */
+
+body {
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(14px, 0.95vw, 16px);
+    background-color: #f8fafc;
+    color: #1e293b;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Compact layout for HD (13-inch, 1366-1440px) */
+@media (max-width: 1440px) {
+    td, th { font-size: 0.82rem !important; }
+    .workbench-title { font-size: 1.25rem !important; }
+    .supply-chain-data { font-size: 0.75rem !important; }
+    .metric-label { font-size: 0.7rem !important; }
+    .page-content-hd { padding-left: 1rem !important; padding-right: 1rem !important; }
+}
+
+@media (max-width: 1280px) {
+    td, th { font-size: 0.78rem !important; }
+    .workbench-title { font-size: 1.15rem !important; }
+}
+
+/* Minimalist Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+
+/* Sharp Borders for Sticky Columns */
+.sticky-column-shadow {
+    border-right: 1px solid #e2e8f0 !important;
+    box-shadow: 4px 0 12px -4px rgba(0, 0, 0, 0.05);
+}
+
+/* Clean Print Styles */
+@media print {
+    @page {
+        size: A4 landscape;
+        margin: 10mm 8mm 10mm 8mm;
+    }
+
+    body,
+    html {
+        background-color: white !important;
+        color: black !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    body * {
+        visibility: hidden !important;
+    }
+
+    #print-layout,
+    #print-layout * {
+        visibility: visible !important;
+    }
+
+    #print-layout {
+        display: block !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        background: white !important;
+    }
+
+    .no-print {
+        display: none !important;
+    }
+
+    .print-page {
+        page-break-after: always;
+        page-break-inside: avoid;
+        width: 100%;
+        max-height: 190mm;
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+
+    .print-page:last-child {
+        page-break-after: avoid;
+    }
+
+    .print-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 7pt;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .print-table th {
+        background-color: #1e293b !important;
+        color: white !important;
+        padding: 4px 5px;
+        text-align: left;
+        font-weight: 900;
+        font-size: 6.5pt;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        border: 1px solid #334155;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .print-table td {
+        padding: 3px 5px;
+        border: 1px solid #e2e8f0;
+        vertical-align: middle;
+        line-height: 1.3;
+    }
+
+    .print-table tbody tr.group-header {
+        background-color: #f1f5f9 !important;
+        font-weight: 900;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .print-table tbody tr.sub-row td {
+        color: #334155;
+        font-size: 8pt;
+    }
+
+    .print-table tfoot tr {
+        background-color: #1e293b !important;
+        color: white !important;
+        font-weight: 900;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .print-table tfoot td {
+        border-color: #334155;
+        color: white !important;
+    }
+
+    .print-red {
+        color: #dc2626 !important;
+        font-weight: 900;
+    }
+
+    .print-amber {
+        color: #d97706 !important;
+        font-weight: 900;
+    }
+
+    .print-emerald {
+        color: #059669 !important;
+        font-weight: 900;
+    }
+
+    .print-blue {
+        color: #2563eb !important;
+        font-weight: 900;
+    }
+
+    .print-muted {
+        color: #94a3b8 !important;
+    }
+
+    .print-sim-badge {
+        background-color: #dbeafe !important;
+        color: #1d4ed8 !important;
+        border: 1px solid #93c5fd;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-slideUp {
+    animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stagger-children > * {
+    opacity: 0;
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 60ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 120ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 180ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 240ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 300ms; }
+
+.hover-float {
+    transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.3s ease;
+}
+
+.hover-float:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.12);
+}
+
+.animate-countUp {
+    animation: countPulse 0.8s ease-out;
+}
+
+@keyframes countPulse {
+    0% {
+        opacity: 0.3;
+        transform: scale(0.95);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.table-zebra tbody tr:nth-child(even) {
+    background-color: rgba(248, 250, 252, 0.6);
+}
+
+.table-zebra tbody tr:nth-child(odd) {
+    background-color: transparent;
+}
+
+.table-zebra tbody tr:hover {
+    background-color: rgba(241, 245, 249, 0.8) !important;
+}
+
+.table-relaxed td,
+.table-relaxed th {
+    padding-top: 14px !important;
+    padding-bottom: 14px !important;
+}
+
+.badge-p0 {
+    background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 8px -2px rgba(225, 29, 72, 0.5);
+}
+
+.badge-p1 {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 8px -2px rgba(249, 115, 22, 0.5);
+}
+
+.badge-p2 {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 8px -2px rgba(59, 130, 246, 0.4);
+}
+
+.badge-p3 {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 8px -2px rgba(16, 185, 129, 0.4);
+}
+
+.badge-p4,
+.badge-p5 {
+    background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+    color: white;
+    box-shadow: 0 2px 6px -2px rgba(100, 116, 139, 0.3);
+}
+
+.pagination-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 10px;
+    border-radius: 12px;
+    font-weight: 900;
+    font-size: 13px;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.pagination-pill:hover:not(:disabled):not(.active) {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+}
+
+.pagination-pill.active {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    box-shadow: 0 4px 12px -2px rgba(59, 130, 246, 0.4);
+    border-color: transparent;
+}
+
+.pagination-pill:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.animate-pulse-dot {
+    animation: pulseDot 2s ease-in-out infinite;
+}
+
+@keyframes pulseDot {
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(0.8);
+    }
 }

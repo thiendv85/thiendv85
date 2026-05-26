@@ -17,7 +17,7 @@ interface FilterPanelProps {
 }
 
 const SpecialFilterButton = ({ label, icon, isActive, onClick }: { label: string, icon: string, isActive: boolean, onClick: () => void }) => (
-  <button onClick={onClick} title={label} className={`flex items-center justify-center rounded-xl text-sm transition-all shadow-sm border h-8 w-10 outline-none backdrop-blur-md ${isActive ? 'bg-slate-800/90 text-white border-slate-700 shadow-md ring-1 ring-slate-400/30' : 'bg-white/60 text-slate-700 border-white/50 hover:bg-white/95 hover:border-slate-300 hover:shadow'}`}>
+  <button onClick={onClick} title={label} aria-pressed={isActive} className={`lg-icon-btn outline-none ${isActive ? 'lg-active' : ''}`}>
     <FaIcon className={`fas ${icon}`} />
   </button>
 );
@@ -99,7 +99,7 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
 
   // The full filter panel content — shared between desktop inline and mobile drawer
   const filterBody = (
-    <div className="bg-white/40 backdrop-blur-xl p-3 sm:p-4 rounded-[2rem] shadow-[0_8px_32px_rgba(31,38,135,0.07)] border border-white/60 transition-all">
+    <div className="lg-filter-bar transition-all">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
         {/* LEFT COLUMN: ALL FILTERS (9/12) */}
@@ -107,15 +107,16 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
           
           {/* ── LINE 1: Priority & Source ── */}
           <div className="flex items-center justify-between pb-3 border-b border-slate-200/80">
-            <div className="flex items-center rounded-xl border border-white/60 overflow-hidden shadow-sm backdrop-blur-md bg-white/30">
+            <div className="lg-segmented">
               {['All', 'P1', 'P2', 'P3'].map(p => (
-                <button key={p} onClick={() => onFiltersChange({ ...filters, priority: p as any })} className={`px-4 h-8 text-xs font-black uppercase transition-all border-r border-white/50 last:border-r-0 outline-none ${filters.priority === p ? 'bg-blue-600/90 text-white shadow-inner' : 'hover:bg-white/70 text-slate-700'}`}>{p}</button>
+                <button key={p} onClick={() => onFiltersChange({ ...filters, priority: p as any })} aria-pressed={filters.priority === p} className={filters.priority === p ? 'lg-active' : ''}>{p}</button>
               ))}
             </div>
             <div className="relative shrink-0 w-[140px]">
-              <button 
+              <button
                   onClick={() => setIsSourceDropdownOpen(!isSourceDropdownOpen)}
-                  className={`flex items-center justify-between w-full px-3 py-0 bg-white/60 backdrop-blur-md border rounded-xl text-[11px] font-bold h-8 shadow-sm transition-all uppercase tracking-tighter outline-none ${(filters.source || []).length > 0 ? 'border-blue-500/50 text-blue-800 bg-blue-50/80' : 'border-white/60 text-slate-700 hover:border-slate-300'}`}>
+                  data-active={(filters.source || []).length > 0}
+                  className={`lg-dropdown w-full justify-between outline-none ${(filters.source || []).length > 0 ? 'lg-active' : ''}`}>
                 <span className="truncate pr-2">{(filters.source || []).length > 0 ? `SOURCE (${filters.source.length})` : 'SOURCE'}</span>
                 <FaIcon className={`fas fa-chevron-${isSourceDropdownOpen ? 'up' : 'down'} text-[10px] text-slate-500`} />
               </button>
@@ -149,18 +150,18 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
           {/* ── LINE 2: LOIS & Currency ── */}
           <div className="flex items-center justify-between py-3 border-b border-slate-200/80">
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar flex-nowrap pr-2 py-1">
-              <button onClick={toggleAllLois} className={`px-4 h-8 rounded-full text-xs font-bold border outline-none transition-all shrink-0 backdrop-blur-md ${(filters.lois || []).length === 0 ? 'bg-blue-600/90 text-white border-blue-500/50 shadow-md ring-1 ring-blue-400/30' : 'bg-white/60 text-slate-700 border-white/60 hover:text-blue-700 hover:bg-white/95 hover:border-blue-200 hover:shadow mx-[1px]'}`}>ALL</button>
+              <button onClick={toggleAllLois} aria-pressed={(filters.lois || []).length === 0} className={`lg-pill outline-none shrink-0 ${(filters.lois || []).length === 0 ? 'lg-active' : ''}`}>ALL</button>
               {loisGroups.map(g => {
                 const isActive = (filters.lois || []).includes(g);
                 return (
-                  <button key={g} onClick={() => toggleLois(g)} title={loisProfiles?.find(p => p.id === g)?.name || ''}
-                    className={`min-w-[32px] px-2 h-8 rounded-full text-xs font-bold border outline-none transition-all shrink-0 flex items-center justify-center backdrop-blur-md ${isActive ? 'bg-blue-600/90 text-white border-blue-500/50 shadow-md ring-1 ring-blue-400/30' : 'bg-white/60 text-slate-700 border-white/60 hover:text-blue-700 hover:bg-white/95 hover:border-blue-200 hover:shadow mx-[1px]'}`}>{g}</button>
+                  <button key={g} onClick={() => toggleLois(g)} title={loisProfiles?.find(p => p.id === g)?.name || ''} aria-pressed={isActive}
+                    className={`lg-pill outline-none shrink-0 ${isActive ? 'lg-active' : ''}`}>{g}</button>
                 );
               })}
             </div>
-            <div className="flex items-center rounded-xl border border-white/60 overflow-hidden shadow-sm shrink-0 backdrop-blur-md bg-white/30">
-              <button onClick={() => onSettingsChange({ ...settings, costBasis: 'PP' })} className={`px-3 h-8 text-xs font-black uppercase transition-colors outline-none border-r border-white/50 ${settings.costBasis === 'PP' ? 'bg-blue-100/80 text-blue-800' : 'hover:bg-white/70 text-slate-700'}`}>VND</button>
-              <button onClick={() => onSettingsChange({ ...settings, costBasis: 'FOB' })} className={`px-3 h-8 text-xs font-black uppercase transition-colors outline-none ${settings.costBasis === 'FOB' ? 'bg-blue-100/80 text-blue-800' : 'hover:bg-white/70 text-slate-700'}`}>EUR</button>
+            <div className="lg-segmented shrink-0">
+              <button onClick={() => onSettingsChange({ ...settings, costBasis: 'PP' })} aria-pressed={settings.costBasis === 'PP'} className={settings.costBasis === 'PP' ? 'lg-active' : ''}>VND</button>
+              <button onClick={() => onSettingsChange({ ...settings, costBasis: 'FOB' })} aria-pressed={settings.costBasis === 'FOB'} className={settings.costBasis === 'FOB' ? 'lg-active' : ''}>EUR</button>
             </div>
           </div>
 
@@ -169,7 +170,7 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
             <div className="flex items-center gap-2.5">
               {/* Status */}
               <div className="relative shrink-0 w-[110px]">
-                <select value={filters.status} onChange={e => onFiltersChange({ ...filters, status: e.target.value as any })} className={`w-full cursor-pointer pl-3 pr-7 bg-white/60 backdrop-blur-md border rounded-xl text-xs font-bold h-8 shadow-sm transition-all uppercase appearance-none outline-none ${filters.status !== 'All' ? 'border-slate-500/50 text-slate-800 bg-slate-200/70' : 'border-white/60 text-slate-700 hover:border-slate-300'}`}>
+                <select value={filters.status} onChange={e => onFiltersChange({ ...filters, status: e.target.value as any })} data-active={filters.status !== 'All'} className={`lg-select w-full cursor-pointer ${filters.status !== 'All' ? 'lg-active' : ''}`}>
                   <option value="All">Status</option>
                   <option value="Active">Active</option>
                   <option value="Sleeping">Sleep</option>
@@ -179,14 +180,14 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
               </div>
               {/* Cost */}
               <div className="relative shrink-0 w-[130px]">
-                <select value={filters.costRange} onChange={e => onFiltersChange({ ...filters, costRange: Number(e.target.value) })} className={`w-full cursor-pointer pl-3 pr-7 bg-white/60 backdrop-blur-md border rounded-xl text-xs font-bold h-8 shadow-sm transition-all uppercase appearance-none outline-none ${filters.costRange > 0 ? 'border-slate-500/50 text-slate-800 bg-slate-200/70' : 'border-white/60 text-slate-700 hover:border-slate-300'}`}>
+                <select value={filters.costRange} onChange={e => onFiltersChange({ ...filters, costRange: Number(e.target.value) })} data-active={filters.costRange > 0} className={`lg-select w-full cursor-pointer ${filters.costRange > 0 ? 'lg-active' : ''}`}>
                   {COST_RANGES.map((r, i) => <option key={i} value={i}>{r.label === 'TẤT CẢ (PP)' ? 'Cost Range' : r.label}</option>)}
                 </select>
                 <FaIcon className="fas fa-chevron-down absolute right-3 bottom-[10px] text-[10px] text-slate-500 pointer-events-none" />
               </div>
               {/* Trend */}
               <div className="relative shrink-0 w-[110px]">
-                <select value={filters.trend} onChange={e => onFiltersChange({ ...filters, trend: e.target.value })} className={`w-full cursor-pointer pl-3 pr-7 bg-white/60 backdrop-blur-md border rounded-xl text-xs font-bold h-8 shadow-sm transition-all uppercase appearance-none outline-none ${filters.trend !== 'All' ? 'border-slate-500/50 text-slate-800 bg-slate-200/70' : 'border-white/60 text-slate-700 hover:border-slate-300'}`}>
+                <select value={filters.trend} onChange={e => onFiltersChange({ ...filters, trend: e.target.value })} data-active={filters.trend !== 'All'} className={`lg-select w-full cursor-pointer ${filters.trend !== 'All' ? 'lg-active' : ''}`}>
                   <option value="All">Trend</option>
                   {trendFlags.map(f => <option key={f} value={f}>{f}</option>)}
                 </select>
@@ -213,8 +214,8 @@ export const FilterPanel = React.memo(({ data, settings, onSettingsChange, filte
               {DEBT_STATUS_OPTIONS.map(opt => {
                 const isActive = (filters.debtStatus || []).includes(opt.id);
                 return (
-                  <button key={opt.id} onClick={() => toggleDebtStatus(opt.id)}
-                    className={`px-4 h-7 rounded-full text-[11px] sm:text-xs font-bold border outline-none transition-all shrink-0 flex items-center justify-center tracking-wide backdrop-blur-md ${isActive ? 'bg-slate-700/90 text-white border-slate-600 shadow-md ring-1 ring-slate-400/30' : 'bg-white/60 text-slate-700 border-white/60 hover:bg-white/95 hover:border-slate-300 hover:shadow'}`}>
+                  <button key={opt.id} onClick={() => toggleDebtStatus(opt.id)} aria-pressed={isActive}
+                    className={`lg-pill outline-none shrink-0 text-[11px] sm:text-xs ${isActive ? 'lg-active' : ''}`}>
                     {isActive ? <FaIcon className="fas fa-check mr-2 text-[10px] text-white/80" /> : null}
                     {opt.label.replace('Trạng thái Cung ứng (Debt): ','').replace('BÌNH THƯỜNG','Normal').replace('TỒN ĐỦ TRẢ','Sufficient').replace('TRẢ TRONG THÁNG','Repay').replace('PO ĐỦ TRẢ','PO Cover').replace('THIẾU (CÓ PO)','Short+PO').replace('THIẾU (NO PO)','Short-NoPO')}
                   </button>

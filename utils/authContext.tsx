@@ -15,8 +15,8 @@ export interface UserProfile {
     role: UserRole;
     is_active: boolean;
     created_at: string;
-    approval_levels: number[];    // which workflow levels this user can approve
-    department: string | null;    // user department for filtering
+    approval_levels: number[]; // which workflow levels this user can approve
+    department: string | null; // user department for filtering
 }
 
 export interface AuthContextType {
@@ -41,10 +41,10 @@ export const AuthContext = createContext<AuthContextType>({
     profile: null,
     isLoading: true,
     needsPasswordReset: false,
-    clearPasswordReset: () => { },
+    clearPasswordReset: () => {},
     signIn: async () => ({ error: null }),
-    signOut: async () => { },
-    refreshProfile: async () => { },
+    signOut: async () => {},
+    refreshProfile: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -62,10 +62,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const fetchProfile = async (userId: string): Promise<UserProfile | null> => {
         try {
-            const { data, error } = await Promise.race([
+            const { data, error } = (await Promise.race([
                 supabase.from('profiles').select('*').eq('id', userId).single(),
                 new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
-            ]) as any;
+            ])) as any;
             if (error || !data) return null;
             return data as UserProfile;
         } catch {
@@ -81,27 +81,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     useEffect(() => {
-        console.log("AuthProvider: Initializing...");
-        
-        supabase.auth.getSession().then(async ({ data: { session: s } }) => {
-            console.log("AuthProvider: Session retrieved:", s ? "Logged In" : "No Session");
-            setSession(s);
-            setUser(s?.user ?? null);
-            
-            if (s?.user) {
-                console.log("AuthProvider: Fetching profile for", s.user.id);
-                const p = await fetchProfile(s.user.id);
-                console.log("AuthProvider: Profile loaded:", p ? p.role : "NULL");
-                setProfile(p);
-            }
-            setIsLoading(false);
-        }).catch(err => {
-            console.error("AuthProvider: Session error:", err);
-            setIsLoading(false);
-        });
+        supabase.auth
+            .getSession()
+            .then(async ({ data: { session: s } }) => {
+                setSession(s);
+                setUser(s?.user ?? null);
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
-            console.log("AuthProvider: Auth state change:", _event, s ? "Logged In" : "Logged Out");
+                if (s?.user) {
+                    const p = await fetchProfile(s.user.id);
+                    setProfile(p);
+                }
+                setIsLoading(false);
+            })
+            .catch(() => {
+                setIsLoading(false);
+            });
+
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange((_event, s) => {
             setSession(s);
             setUser(s?.user ?? null);
             if (s?.user) {
@@ -130,7 +128,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ session, user, profile, isLoading, needsPasswordReset, clearPasswordReset, signIn, signOut, refreshProfile }}>
+        <AuthContext.Provider
+            value={{
+                session,
+                user,
+                profile,
+                isLoading,
+                needsPasswordReset,
+                clearPasswordReset,
+                signIn,
+                signOut,
+                refreshProfile,
+            }}
+        >
             {children}
         </AuthContext.Provider>
     );

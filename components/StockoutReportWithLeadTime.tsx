@@ -101,12 +101,13 @@ export const StockoutReportWithLeadTime = ({ data, onAction }: ReportProps) => {
                     <h3 className="text-lg font-black text-slate-800 uppercase flex items-center gap-2">
                         <FaIcon className="fas fa-calendar-check text-blue-600" /> Lead Time Analysis
                     </h3>
-                    <div className="flex bg-slate-100 p-1 rounded-xl">
+                    <div className="lg-segmented">
                         {['ALL', 'CRITICAL', 'WARNING', 'SAFE'].map(f => (
-                            <button 
+                            <button
                                 key={f}
                                 onClick={() => setFilter(f as any)}
-                                className={`px-4 py-1.5 text-2xs font-black rounded-lg transition-all uppercase ${filter === f ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                aria-pressed={filter === f}
+                                className={filter === f ? 'lg-active' : ''}
                             >
                                 {f}
                             </button>

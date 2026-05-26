@@ -110,6 +110,11 @@ export const DealerStockPopup = ({ items, children }: DealerStockPopupProps) => 
                                     ))}
                                 </tbody>
                             </table>
+                            {items.length > 6 && (
+                                <div className="pt-2 pb-1 text-center">
+                                    <span className="text-slate-300 text-xs tracking-widest select-none">— — —</span>
+                                </div>
+                            )}
                         </div>
 
                         <div className="bg-slate-50 px-4 py-2 border-t border-slate-100 flex justify-between items-center">

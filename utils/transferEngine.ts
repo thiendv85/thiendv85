@@ -43,12 +43,12 @@ export const DEFAULT_TRANSFER_POLICY: TransferPolicy = {
     horizonDays: 30,
     transferLeadTimeDays: 3,
     inboundUsableRatioBeforeArrival: 0.25,
-    donorMinCoverDays: 23,              // Donor phải giữ ít nhất 0.75 tháng (~23 ngày)
-    donorMinMOSToGive: 1.5,             // Donor phải có >= 1.5M mới được cho
+    donorMinCoverDays: 18,              // Donor giữ ~0.6 tháng — vừa đủ an toàn
+    donorMinMOSToGive: 1.0,             // Donor cần ≥1.0M mới cho (hạ từ 1.5)
     receiverTargetCoverDays: 30,
-    minTransferQty: 5,
+    minTransferQty: 3,                  // Hạ từ 5 → 3
     roundLot: 1,
-    fixedTripCost: 300_000,
+    fixedTripCost: 0,                   // Chuyển sang batch-level trong SmartFilter
     serviceRiskDiscount: 0.25,
 };
 
@@ -360,7 +360,7 @@ export function computeCostAwareTransfer(
     const totalStock = state.NB.physicalStock + state.BB.physicalStock;
     const totalDailyDemand = state.NB.demandPerDay + state.BB.demandPerDay;
     const systemMOS = totalDailyDemand > 0 ? totalStock / (totalDailyDemand * 30) : 99;
-    const systemTooLow = systemMOS < 1.5;
+    const systemTooLow = systemMOS < 0.5;
 
     if (bothShort || systemTooLow) {
         const reason = bothShort
