@@ -1,9 +1,6 @@
 ﻿import React, { useState, useMemo } from 'react';
 import { ApprovalRequest, ApprovalAction } from '../types/inventory';
 import { ApprovalStatusBadge } from './ApprovalStatusBadge';
-import { StockProgressBar } from './StockProgressBar';
-import { SalesMomentum } from './SalesMomentum';
-import { TrendBadge } from './TrendBadge';
 import { SnapshotMatrix } from './SnapshotMatrix';
 import { BackorderPopup } from './BackorderPopup';
 import { DealerStockPopup } from './DealerStockPopup';
@@ -24,6 +21,7 @@ import { usePartAffinity } from '../hooks/usePartAffinity';
 import { suggestForOrder, normalizePartCode } from '../utils/partAffinity';
 import { AffinityReviewPanel } from './AffinityReviewPanel';
 import { openPrintOrderForm } from '../utils/printOrderForm';
+import { InspectionPopup } from './InspectionPopup';
 
 import { FaIcon } from './Icon';
 interface Props {
@@ -354,7 +352,6 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
 
     // ─── Print Order Form (popup) ─────────────────────────────────────────────
     const handlePrintOrder = () => openPrintOrderForm(request, rows, localQtys, selectedItems);
-
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 sm:p-2 md:p-3 overflow-hidden">
@@ -1126,154 +1123,11 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
                 </div>
             </div>
 
-            {/* ── INSPECTION POPUP: Detail Calculation ──────────────────────────── */}
-            {inspectingItem && (
-                <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
-                    <div
-                        className="absolute inset-0 bg-slate-900/60 backdrop-blur-md animate-fadeIn"
-                        onClick={() => setInspectingItem(null)}
-                    />
-                    <div className="relative w-full max-w-[1000px] bg-white rounded-[32px] shadow-2xl overflow-hidden animate-slideUp flex flex-col max-h-[90vh]">
-                        {/* Header */}
-                        <div className="px-8 py-6 bg-slate-900 text-white flex items-center justify-between shrink-0">
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 bg-white/10 rounded-2xl">
-                                    <FaIcon className="fas fa-magnifying-glass-chart text-blue-400 text-xl" />
-                                </div>
-                                <div>
-                                    <div className="flex items-center gap-3">
-                                        <span className="font-black text-2xl font-mono tracking-tight">
-                                            {inspectingItem.itemCode}
-                                        </span>
-                                        <span
-                                            className={`px-2 py-0.5 rounded-lg text-xs font-black ${inspectingItem.priorityBucket === 'P1' ? 'bg-rose-500 text-white' : 'bg-white/20 text-slate-300'}`}
-                                        >
-                                            {inspectingItem.priorityBucket || 'P3'}
-                                        </span>
-                                    </div>
-                                    <div className="text-slate-400 font-bold text-sm mt-0.5">
-                                        {inspectingItem.itemName}
-                                    </div>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => setInspectingItem(null)}
-                                className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"
-                            >
-                                <FaIcon className="fas fa-xmark text-lg" />
-                            </button>
-                        </div>
-
-                        {/* Content */}
-                        <div className="flex-1 overflow-auto p-8 space-y-10 custom-scrollbar">
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                                {/* Stock Logic */}
-                                <div className="space-y-6">
-                                    <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                                        <div className="w-1.5 h-4 bg-emerald-500 rounded-full" /> Logic Tồn kho & Cung
-                                        ứng
-                                    </h3>
-                                    <div className="bg-slate-50 p-8 rounded-[32px] border border-slate-200/60 shadow-inner">
-                                        <StockProgressBar
-                                            current={inspectingItem.available}
-                                            rop={inspectingItem.rop}
-                                            max={inspectingItem.stockMax || 1}
-                                            ss={inspectingItem.safetyStock}
-                                            onOrder={inspectingItem.totalPO}
-                                            incoming={inspectingItem.incomingCurrentMonth}
-                                            backorder={inspectingItem.backorder}
-                                            breakdown={inspectingItem.backorderBreakdown || []}
-                                            draftAdd={
-                                                (localQtys[inspectingItem.itemCode]?.air || 0) +
-                                                (localQtys[inspectingItem.itemCode]?.sea || 0)
-                                            }
-                                            baseFc={inspectingItem.baseForecast}
-                                        />
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-4">
-                                        <div className="bg-rose-50 p-4 rounded-2xl border border-rose-100/50">
-                                            <div className="text-[10px] text-rose-500 font-black uppercase mb-1">
-                                                Safety Stock
-                                            </div>
-                                            <div className="text-lg font-black text-rose-700">
-                                                {(inspectingItem.safetyStock || 0).toLocaleString()}
-                                            </div>
-                                        </div>
-                                        <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100/50">
-                                            <div className="text-[10px] text-amber-500 font-black uppercase mb-1">
-                                                Re-Order Point
-                                            </div>
-                                            <div className="text-lg font-black text-amber-700">
-                                                {(inspectingItem.rop || 0).toLocaleString()}
-                                            </div>
-                                        </div>
-                                        <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100/50">
-                                            <div className="text-[10px] text-emerald-500 font-black uppercase mb-1">
-                                                Stock Max
-                                            </div>
-                                            <div className="text-lg font-black text-emerald-700">
-                                                {(inspectingItem.stockMax || 0).toLocaleString()}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Demand & Momentum */}
-                                <div className="space-y-6">
-                                    <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                                        <div className="w-1.5 h-4 bg-blue-500 rounded-full" /> Nhu cầu & Xu hướng
-                                    </h3>
-                                    <div className="bg-slate-50 p-8 rounded-[32px] border border-slate-200/60 h-[280px] flex items-center justify-center shadow-inner">
-                                        <SalesMomentum
-                                            values={[
-                                                inspectingItem.avgQty24M,
-                                                inspectingItem.avgQty12M,
-                                                inspectingItem.avgQty6M,
-                                                inspectingItem.avgQty3M,
-                                            ]}
-                                            history={inspectingItem.salesHistory}
-                                            forecast={inspectingItem.baseForecast}
-                                        />
-                                    </div>
-                                    <div className="bg-blue-50/50 p-5 rounded-2xl border border-blue-100/50 flex items-center justify-between">
-                                        <div>
-                                            <div className="text-[10px] text-blue-500 font-black uppercase">
-                                                Xu hướng dự báo
-                                            </div>
-                                            <div className="text-sm font-black text-blue-800 mt-1 flex items-center gap-2">
-                                                <TrendBadge trend={inspectingItem.trendFlag} />
-                                                {inspectingItem.trendFlag === 'up'
-                                                    ? 'Tăng trưởng'
-                                                    : inspectingItem.trendFlag === 'down'
-                                                      ? 'Giảm dần'
-                                                      : 'Ổn định'}
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="text-[10px] text-blue-500 font-black uppercase">
-                                                Dự báo (FC)
-                                            </div>
-                                            <div className="text-xl font-black text-blue-900">
-                                                {(inspectingItem.baseForecast || 0).toLocaleString()}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Footer */}
-                        <div className="px-8 py-6 bg-slate-50 border-t border-slate-200 flex justify-end shrink-0">
-                            <button
-                                onClick={() => setInspectingItem(null)}
-                                className="px-10 py-3 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-95"
-                            >
-                                Hoàn tất kiểm tra
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <InspectionPopup
+                item={inspectingItem}
+                localQtys={localQtys}
+                onClose={() => setInspectingItem(null)}
+            />
 
             {/* ── FINAL DECISION CHECKPOINT ────────────────────────────────────── */}
             {pendingAction && (
