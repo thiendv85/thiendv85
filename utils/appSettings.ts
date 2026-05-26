@@ -4,6 +4,7 @@
 
 import type { Brand, SourceProfile, ApprovalWorkflow, LoisProfile } from '../types/inventory';
 import { DEFAULT_SOURCE_PROFILES } from '../types/inventory';
+import { appSettingsSchema } from './validation';
 
 export interface AppSettings {
   sourceProfiles: SourceProfile[];
@@ -24,6 +25,7 @@ export interface AppSettings {
   exportEncoding: 'utf8-bom' | 'utf8';
   exportColumns: Record<string, boolean>;
   orderDraftColumns: Record<string, boolean>;
+  backorderExportColumns: Record<string, boolean>;
   loisProfiles: LoisProfile[];
   companyName: string;
   reportTitle: string;
@@ -60,6 +62,7 @@ const DEFAULT_LITE: AppSettings = {
   exportEncoding: 'utf8-bom',
   exportColumns: {},
   orderDraftColumns: {},
+  backorderExportColumns: {},
   loisProfiles: [],
   companyName: 'Auto Parts Governance',
   reportTitle: 'Báo cáo Tồn Kho',
@@ -72,7 +75,7 @@ export const loadAppSettings = (): AppSettings => {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) return DEFAULT_LITE;
-    const parsed = JSON.parse(saved);
+    const parsed = JSON.parse(saved) as any;
 
     // Legacy migration: bmwLeadTime → sourceProfiles
     if (parsed.bmwLeadTime !== undefined && !parsed.sourceProfiles) {
