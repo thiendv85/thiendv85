@@ -168,12 +168,12 @@ export const LoginScreen = () => {
                         <div className="relative z-10 space-y-6">
                             {/* Card title */}
                             <div>
-                                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                <h2 className="text-xl font-bold text-white flex items-center gap-2">
                                     <span
                                         className={`w-1.5 h-6 rounded-full bg-gradient-to-b transition-colors duration-500 ${loginSuccess ? 'from-emerald-400 to-emerald-600' : 'from-blue-400 to-purple-400'}`}
                                     />
                                     {loginSuccess ? 'Xác thực thành công' : 'Đăng nhập hệ thống'}
-                                </h3>
+                                </h2>
                                 <p className="text-slate-400 text-xs font-medium mt-1 pl-3.5">
                                     {loginSuccess
                                         ? 'Đang chuyển đến trang nhập dữ liệu...'
@@ -184,11 +184,12 @@ export const LoginScreen = () => {
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 {/* Email */}
                                 <div>
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                                    <label htmlFor="login-email" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
                                         <FaIcon className="fas fa-envelope mr-1.5 opacity-60" />
                                         Email
                                     </label>
                                     <input
+                                        id="login-email"
                                         type="email"
                                         value={email}
                                         onChange={e => setEmail(e.target.value)}
@@ -202,11 +203,12 @@ export const LoginScreen = () => {
 
                                 {/* Password */}
                                 <div>
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                                    <label htmlFor="login-password" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
                                         <FaIcon className="fas fa-lock mr-1.5 opacity-60" />
                                         Mật khẩu
                                     </label>
                                     <input
+                                        id="login-password"
                                         type="password"
                                         value={password}
                                         onChange={e => setPassword(e.target.value)}
