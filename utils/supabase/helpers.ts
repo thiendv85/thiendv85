@@ -14,18 +14,20 @@ import type { SnapshotData, ApprovalSummary } from '../../types/inventory';
  *   );
  */
 export async function selectAllPaginated<T>(
-  build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: any }>,
-  pageSize = 1000,
+    build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: any }>,
+    pageSize = 1000,
 ): Promise<T[]> {
-  const all: T[] = [];
-  for (let offset = 0; ; offset += pageSize) {
-    const { data, error } = await build(offset, offset + pageSize - 1);
-    if (error) { return all; }
-    if (!data || data.length === 0) break;
-    all.push(...data);
-    if (data.length < pageSize) break;
-  }
-  return all;
+    const all: T[] = [];
+    for (let offset = 0; ; offset += pageSize) {
+        const { data, error } = await build(offset, offset + pageSize - 1);
+        if (error) {
+            return all;
+        }
+        if (!data || data.length === 0) break;
+        all.push(...data);
+        if (data.length < pageSize) break;
+    }
+    return all;
 }
 
 /**
@@ -35,42 +37,52 @@ export async function selectAllPaginated<T>(
  *   - totalValue : giá trị đơn (VND) — tính bằng quantity × unitCost của ctx
  */
 export function computeSnapshotSummary(snap: SnapshotData | null | undefined): ApprovalSummary {
-  let skuCount = 0;
-  let totalQty = 0;
-  let totalValue = 0;
-  if (!snap) return { skuCount, totalQty, totalValue };
-  const qtys = snap.quantities || {};
-  const ctxList = snap.inventory_context || [];
-  const costMap: Record<string, number> = {};
-  ctxList.forEach((c) => { costMap[c.itemCode] = c.unitCost || 0; });
+    let skuCount = 0;
+    let totalQty = 0;
+    let totalValue = 0;
+    if (!snap) return { skuCount, totalQty, totalValue };
+    const qtys = snap.quantities || {};
+    const ctxList = snap.inventory_context || [];
+    const costMap: Record<string, number> = {};
+    ctxList.forEach(c => {
+        costMap[c.itemCode] = c.unitCost || 0;
+    });
 
-  Object.entries(qtys).forEach(([code, q]) => {
-    const air = q?.air || 0;
-    const sea = q?.sea || 0;
-    const total = air + sea;
-    if (total <= 0) return;
-    skuCount++;
-    totalQty += total;
-    totalValue += total * (costMap[code] || 0);
-  });
-  return { skuCount, totalQty, totalValue };
+    Object.entries(qtys).forEach(([code, q]) => {
+        const air = q?.air || 0;
+        const sea = q?.sea || 0;
+        const total = air + sea;
+        if (total <= 0) return;
+        skuCount++;
+        totalQty += total;
+        totalValue += total * (costMap[code] || 0);
+    });
+    return { skuCount, totalQty, totalValue };
 }
 
 /**
- * Server-side admin verification via Supabase RPC.
- * The previous implementation exposed VITE_ADMIN_PIN to the client bundle which is
- * trivially extractable. Until a proper RPC `verify_admin_pin(pin text)` exists in the
- * database (gated by RLS / service role), this helper falls back to checking the user's
- * profile role on the server.
+ * Verify admin PIN via server-side RPC.
+ *
+ * Uses `verify_admin_pin(pin)` RPC which:
+ * 1. Checks user is active admin/super_admin
+ * 2. If admin_pin_hash is set, verifies PIN against bcrypt hash
+ * 3. If no PIN configured, role check alone is sufficient (backward compat)
+ *
+ * Falls back to role-only check if the RPC doesn't exist yet (pre-migration).
  */
-export const verifyAdminPin = async (_inputPin: string): Promise<boolean> => {
-    const { data: { user } } = await supabase.auth.getUser();
+export const verifyAdminPin = async (inputPin: string): Promise<boolean> => {
+    try {
+        const { data, error } = await supabase.rpc('verify_admin_pin', { pin_input: inputPin });
+        if (!error) return data === true;
+    } catch {
+        // RPC not available — fall through to role-based check
+    }
+    // Fallback: role-based check (pre-migration compat)
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return false;
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role, is_active')
-        .eq('id', user.id)
-        .maybeSingle();
+    const { data: profile } = await supabase.from('profiles').select('role, is_active').eq('id', user.id).maybeSingle();
     return Boolean(profile?.is_active && (profile.role === 'admin' || profile.role === 'super_admin'));
 };
 
