@@ -273,8 +273,7 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
             }
             onRefresh();
             onClose();
-        } catch (e) {
-        } finally {
+        } catch (_e) { /* approval action failed — silently handled */ } finally {
             setIsSubmitting(false);
             setSubmittingAction(null);
             setPendingAction(null);
@@ -330,8 +329,7 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
             }
             onRefresh();
             onClose();
-        } catch (e) {
-        } finally {
+        } catch (_e) { /* rejection failed — silently handled */ } finally {
             setIsSubmitting(false);
             setSubmittingAction(null);
         }
@@ -344,8 +342,7 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
             await unlockRequest(request.id, user.id, unlockReason);
             onRefresh();
             onClose();
-        } catch (e) {
-        } finally {
+        } catch (_e) { /* unlock failed — silently handled */ } finally {
             setIsSubmitting(false);
         }
     };
