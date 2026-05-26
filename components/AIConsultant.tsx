@@ -1,5 +1,6 @@
 ﻿
 import React from 'react';
+import DOMPurify from 'dompurify';
 
 import { FaIcon } from './Icon';
 interface AIConsultantProps {
@@ -49,7 +50,7 @@ export const AIConsultant = ({ isLoading, response, onAnalyze }: AIConsultantPro
     const formatText = (content: string) => {
       let formatted = content.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-emerald-900">$1</strong>');
       formatted = formatted.replace(/(^|\s)(-\d+(\.\d+)?)/g, '$1<span class="text-rose-600 font-bold">$2</span>');
-      return formatted;
+      return DOMPurify.sanitize(formatted, { ALLOWED_TAGS: ['strong', 'span'], ALLOWED_ATTR: ['class'] });
     };
 
     return blocks.map((block, bIdx) => {
