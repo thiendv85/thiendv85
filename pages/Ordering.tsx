@@ -163,6 +163,12 @@ export const Ordering = ({
     const deferredSearchResult = useDeferredValue(searchResult);
     const deferredSortKey = useDeferredValue(sortKey);
 
+    // Debounced search input
+    const [localSearch, setLocalSearch] = useState(filters.search);
+    const searchDebounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+    useEffect(() => { setLocalSearch(filters.search); }, [filters.search]);
+    useEffect(() => () => clearTimeout(searchDebounceRef.current), []);
+
     const [supersessionWarnings, setSupersessionWarnings] = useState<Record<string, number>>({});
     const [confirmationQueue, setConfirmationQueue] = useState<{ code: string; type: 'air' | 'sea'; val: number }[]>(
         [],
@@ -1361,8 +1367,13 @@ export const Ordering = ({
                             <input
                                 type="text"
                                 placeholder={t('ord_search_ph')}
-                                value={filters.search}
-                                onChange={e => handleMainFilterChange({ ...filters, search: e.target.value })}
+                                value={localSearch}
+                                onChange={e => {
+                                    const val = e.target.value;
+                                    setLocalSearch(val);
+                                    clearTimeout(searchDebounceRef.current);
+                                    searchDebounceRef.current = setTimeout(() => handleMainFilterChange({ ...filters, search: val }), 200);
+                                }}
                                 className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:bg-white focus:border-blue-400 transition-all text-slate-700"
                             />
                         </div>
