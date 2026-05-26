@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useDeferredValue, useTransition } from 'react';
+import React, { useMemo, useState, useEffect, useDeferredValue } from 'react';
 import {
     InventoryItem,
     DashboardSettings,
@@ -137,10 +137,9 @@ export const Dashboard = ({
         if (onSaveState) onSaveState({ settings, filters, subTab });
     }, [settings, filters, subTab, onSaveState]);
 
-    const [, startFilterTransition] = useTransition();
     const handleFiltersChange = (newFilters: InventoryFilters) => {
         if (newFilters.search !== filters.search) setSearchResult(parseInventorySearch(newFilters.search));
-        startFilterTransition(() => setFilters(newFilters));
+        setFilters(newFilters);
     };
 
     const formatCurrency = (val: number) => {

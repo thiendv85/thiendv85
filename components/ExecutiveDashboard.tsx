@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { InventoryItem, DashboardSettings, InventoryFilters, getDebtStatus, OrderingDraft } from '../types/inventory';
 import { StatusBadge } from './StatusBadge';
 import { DebtStatusBadge } from './DebtStatusBadge';
@@ -53,6 +53,25 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(20);
     const [isMobile, setIsMobile] = useState(false);
+    const [localSearch, setLocalSearch] = useState(filters.search);
+    const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+    // Sync external → local when parent resets filters
+    useEffect(() => { setLocalSearch(filters.search); }, [filters.search]);
+
+    const commitSearch = useCallback((value: string) => {
+        onFiltersChange({ ...filters, search: value });
+    }, [filters, onFiltersChange]);
+
+    const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setLocalSearch(val);
+        clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => commitSearch(val), 200);
+    }, [commitSearch]);
+
+    // Cleanup on unmount
+    useEffect(() => () => clearTimeout(debounceRef.current), []);
 
     // Fallback if allData is not provided (though it should be)
     const inventorySource = allData || filteredData;
@@ -120,8 +139,8 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
                         <input 
                             type="text" 
                             placeholder={t('filter_search')} 
-                            value={filters.search} 
-                            onChange={e => onFiltersChange({ ...filters, search: e.target.value })} 
+                            value={localSearch}
+                            onChange={handleSearchChange} 
                             className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl outline-none text-sm font-bold focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all shadow-sm" 
                         />
                     </div>
