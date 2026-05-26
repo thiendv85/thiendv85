@@ -292,7 +292,7 @@ describe('validate', () => {
     it('returns errors for invalid input', () => {
         const result = validate(profileRowSchema, { role: 'admin' });
         expect(result.success).toBe(false);
-        if (!result.success) expect(result.errors.length).toBeGreaterThan(0);
+        expect((result as { success: false; errors: string[] }).errors.length).toBeGreaterThan(0);
     });
 });
 
@@ -330,7 +330,7 @@ describe('safeJsonParse', () => {
     it('returns error for invalid JSON', () => {
         const result = safeJsonParse(profileRowSchema, '{bad json');
         expect(result.success).toBe(false);
-        if (!result.success) expect(result.errors).toContain('Invalid JSON');
+        expect((result as { success: false; errors: string[] }).errors).toContain('Invalid JSON');
     });
 
     it('returns error for valid JSON but invalid schema', () => {

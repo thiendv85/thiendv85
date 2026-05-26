@@ -165,7 +165,7 @@ export const InventoryDistribution: React.FC<InventoryDistributionProps> = ({
                             { label: 'Tổng SL', value: fmtNum(stats.totalQty), sub: `${fmtNum(nbToBb.totalQty)} + ${fmtNum(bbToNb.totalQty)}` },
                             { label: 'Tổng Giá Trị', value: `${formatVND(stats.totalValue)}₫`, sub: `NB→BB ${formatVND(nbToBb.totalValue)} · BB→NB ${formatVND(bbToNb.totalValue)}`, warn: true },
                             { label: 'Lợi Ích Ròng', value: `${formatVND(stats.totalNetBenefit)}₫`, sub: `MOS +${stats.avgMOSImprovement.toFixed(2)} · BO ${(stats.boCoverageRate * 100).toFixed(0)}%`, accent: true },
-                        ] as const).map((t, i) => (
+                        ] as { label: string; value: string; sub: string; accent?: boolean; warn?: boolean }[]).map((t, i) => (
                             <div key={t.label} style={{
                                 padding: '0 20px',
                                 borderLeft: i > 0 ? '1px solid rgba(244, 226, 180, 0.12)' : 'none',
