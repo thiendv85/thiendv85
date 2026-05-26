@@ -91,7 +91,7 @@ export const LoisRow = React.memo(
                 }}
                 role={isHeader ? 'presentation' : 'button'}
                 tabIndex={isHeader ? -1 : 0}
-                aria-label={isHeader ? undefined : `Lọc theo nhóm ${label}`}
+                aria-label={isHeader ? undefined : `${label} — filter group`}
                 className={`${isHeader ? 'bg-slate-50/50 uppercase tracking-widest' : isActive ? 'bg-blue-50/80 shadow-inner' : 'bg-white hover:bg-slate-50/80'} border-b border-slate-100 transition-all cursor-pointer text-sm hover:translate-x-1 duration-200 focus:outline-none focus:bg-blue-50`}
             >
                 <td
