@@ -908,6 +908,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                                             }
                                                             className="w-5 h-5 accent-blue-600 cursor-pointer"
                                                             title="Chọn làm nguồn hàng mặc định"
+                                                            aria-label={`Chọn ${profile.id || 'profile ' + idx} làm nguồn hàng mặc định`}
                                                         />
                                                     </div>
                                                     {/* Source ID Input */}
@@ -1312,6 +1313,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                                                                 }));
                                                                             }}
                                                                             className="w-4 h-4 accent-rose-500 rounded cursor-pointer"
+                                                                            aria-label={`Đánh dấu không có kế hoạch cho ${profile.id || 'profile'}`}
                                                                         />
                                                                     </td>
                                                                     <td className="py-2 px-1">

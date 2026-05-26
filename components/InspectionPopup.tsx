@@ -37,6 +37,7 @@ export function InspectionPopup({ item, localQtys, onClose }: InspectionPopupPro
                     </div>
                     <button
                         onClick={onClose}
+                        aria-label="Đóng"
                         className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"
                     >
                         <FaIcon className="fas fa-xmark text-lg" />

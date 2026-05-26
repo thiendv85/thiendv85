@@ -49,7 +49,7 @@ export const AIConsultant = ({ isLoading, response, onAnalyze }: AIConsultantPro
         const formatText = (content: string) => {
             let formatted = content.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-emerald-900">$1</strong>');
             formatted = formatted.replace(/(^|\s)(-\d+(\.\d+)?)/g, '$1<span class="text-rose-600 font-bold">$2</span>');
-            return DOMPurify.sanitize(formatted, { ALLOWED_TAGS: ['strong', 'span'], ALLOWED_ATTR: ['class'] });
+            return DOMPurify.sanitize(formatted, { ALLOWED_TAGS: ['strong', 'span'], ALLOWED_ATTR: [] });
         };
 
         return blocks.map((block, bIdx) => {
@@ -145,38 +145,53 @@ export const AIConsultant = ({ isLoading, response, onAnalyze }: AIConsultantPro
 
     return (
         <div className="bg-gradient-to-br from-emerald-50 to-white rounded-[40px] p-6 border border-emerald-100 shadow-xl mt-4">
-            <div
-                className={headerClasses}
-                onClick={isInitialState ? onAnalyze : undefined}
-                aria-label={isInitialState ? 'Start AI Analysis' : 'AI Analysis Status'}
-                role={isInitialState ? 'button' : 'status'}
-                tabIndex={isInitialState ? 0 : -1}
-                onKeyDown={isInitialState ? e => (e.key === 'Enter' || e.key === ' ') && onAnalyze() : undefined}
-            >
-                <div className="w-12 h-12 bg-emerald-800 text-white rounded-full flex-shrink-0 flex items-center justify-center shadow-lg">
-                    <FaIcon className="fas fa-brain text-lg" />
-                </div>
-                <div className="flex-1">
-                    <h4 className="text-emerald-950 font-black text-sm tracking-widest uppercase">
-                        AI Expert Analysis
-                    </h4>
-                    <div className="flex items-center gap-2 mt-1">
-                        <span
-                            className={`relative inline-flex rounded-full h-2 w-2 ${isLoading ? 'bg-emerald-500' : isInitialState ? 'bg-slate-500' : 'bg-green-500'}`}
-                        ></span>
-                        <p className="text-emerald-600 text-2xs font-bold uppercase tracking-[0.2em]">
-                            {getStatusText()}
-                        </p>
-                    </div>
-                </div>
-                {isInitialState && (
-                    <div className="pr-4">
-                        <div className="w-10 h-10 rounded-full bg-white/50 flex items-center justify-center">
-                            <FaIcon className="fas fa-play text-emerald-700" />
+            {(() => {
+                const headerContent = (
+                    <>
+                        <div className="w-12 h-12 bg-emerald-800 text-white rounded-full flex-shrink-0 flex items-center justify-center shadow-lg">
+                            <FaIcon className="fas fa-brain text-lg" />
                         </div>
+                        <div className="flex-1">
+                            <h4 className="text-emerald-950 font-black text-sm tracking-widest uppercase">
+                                AI Expert Analysis
+                            </h4>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span
+                                    className={`relative inline-flex rounded-full h-2 w-2 ${isLoading ? 'bg-emerald-500' : isInitialState ? 'bg-slate-500' : 'bg-green-500'}`}
+                                ></span>
+                                <p className="text-emerald-600 text-2xs font-bold uppercase tracking-[0.2em]">
+                                    {getStatusText()}
+                                </p>
+                            </div>
+                        </div>
+                        {isInitialState && (
+                            <div className="pr-4">
+                                <div className="w-10 h-10 rounded-full bg-white/50 flex items-center justify-center">
+                                    <FaIcon className="fas fa-play text-emerald-700" />
+                                </div>
+                            </div>
+                        )}
+                    </>
+                );
+                return isInitialState ? (
+                    <button
+                        type="button"
+                        className={headerClasses}
+                        onClick={onAnalyze}
+                        aria-label="Start AI Analysis"
+                    >
+                        {headerContent}
+                    </button>
+                ) : (
+                    <div
+                        className={headerClasses}
+                        role="status"
+                        aria-label="AI Analysis Status"
+                    >
+                        {headerContent}
                     </div>
-                )}
-            </div>
+                );
+            })()}
 
             {isLoading && (
                 <div className="text-center p-10 bg-white/50 rounded-2xl border border-emerald-100 border-dashed mt-6">

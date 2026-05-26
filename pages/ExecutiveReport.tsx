@@ -81,7 +81,7 @@ const SparklineSVG = ({ data, width = 260, height = 60 }: { data: number[]; widt
     const avg = data.reduce((a, b) => a + b, 0) / data.length;
     const avgY = height - ((avg - min) / range) * (height - 8) - 4;
     return (
-        <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: 'block' }}>
+        <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: 'block' }} role="img" aria-label="Biểu đồ sparkline">
             <line x1={0} y1={avgY} x2={width} y2={avgY} stroke="#94a3b8" strokeWidth={0.5} strokeDasharray="3,3" />
             <polyline points={points} fill="none" stroke="#3b82f6" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
             {data.map((v, i) => {
@@ -110,7 +110,7 @@ const PieChartSVG = ({ slices, size = 120 }: { slices: { label: string; value: n
         return <path key={s.label} d={`M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} Z`} fill={s.color} stroke="white" strokeWidth={1} />;
     });
     return (
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: 'block' }}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: 'block' }} role="img" aria-label="Biểu đồ tròn">
             {paths}
         </svg>
     );
@@ -121,7 +121,7 @@ const BarChartSVG = ({ buckets, width = 220, height = 60 }: { buckets: { label: 
     const gap = 4;
     const bw = (width - gap * (buckets.length - 1)) / buckets.length;
     return (
-        <svg width={width} height={height + 14} viewBox={`0 0 ${width} ${height + 14}`} style={{ display: 'block' }}>
+        <svg width={width} height={height + 14} viewBox={`0 0 ${width} ${height + 14}`} style={{ display: 'block' }} role="img" aria-label="Biểu đồ cột">
             {buckets.map((b, i) => {
                 const h = Math.max(2, (b.value / max) * height);
                 const x = i * (bw + gap);

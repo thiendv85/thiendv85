@@ -118,7 +118,7 @@ const Sparkline = ({ values, group }: { values: number[]; group: IntelGroup }) =
     const color = colorMap[group];
 
     return (
-        <svg width={width} height={height} className="overflow-visible">
+        <svg width={width} height={height} className="overflow-visible" role="img" aria-label="Biểu đồ xu hướng">
             <polyline points={points} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             <circle cx={getX(values.length - 1)} cy={getY(values[values.length - 1])} r={2.5} fill={color} />
         </svg>
@@ -666,6 +666,8 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                             <FaIcon className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs" />
                             <input
                                 type="text"
+                                name="demand-search"
+                                aria-label="Tìm kiếm nhu cầu"
                                 placeholder={t('common_search')}
                                 value={searchText}
                                 onChange={e => handleSearchChange(e.target.value)}

@@ -184,7 +184,10 @@ export const LoginScreen = () => {
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 {/* Email */}
                                 <div>
-                                    <label htmlFor="login-email" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                                    <label
+                                        htmlFor="login-email"
+                                        className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5"
+                                    >
                                         <FaIcon className="fas fa-envelope mr-1.5 opacity-60" />
                                         Email
                                     </label>
@@ -197,13 +200,16 @@ export const LoginScreen = () => {
                                         required
                                         autoFocus
                                         disabled={isLoading || loginSuccess}
-                                        className="w-full bg-black/20 border border-white/10 hover:border-white/20 focus:border-blue-400/60 focus:ring-2 focus:ring-blue-400/20 rounded-2xl px-4 py-3 text-white placeholder-slate-500 outline-none transition-all font-medium disabled:opacity-40"
+                                        className="w-full bg-black/20 border border-white/10 hover:border-white/20 focus:border-blue-400/60 focus:ring-2 focus:ring-blue-400/40 rounded-2xl px-4 py-3 text-white placeholder-slate-500 outline-none transition-all font-medium disabled:opacity-40"
                                     />
                                 </div>
 
                                 {/* Password */}
                                 <div>
-                                    <label htmlFor="login-password" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                                    <label
+                                        htmlFor="login-password"
+                                        className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5"
+                                    >
                                         <FaIcon className="fas fa-lock mr-1.5 opacity-60" />
                                         Mật khẩu
                                     </label>
@@ -215,7 +221,7 @@ export const LoginScreen = () => {
                                         placeholder="••••••••"
                                         required
                                         disabled={isLoading || loginSuccess}
-                                        className="w-full bg-black/20 border border-white/10 hover:border-white/20 focus:border-blue-400/60 focus:ring-2 focus:ring-blue-400/20 rounded-2xl px-4 py-3 text-white placeholder-slate-500 outline-none transition-all font-medium disabled:opacity-40"
+                                        className="w-full bg-black/20 border border-white/10 hover:border-white/20 focus:border-blue-400/60 focus:ring-2 focus:ring-blue-400/40 rounded-2xl px-4 py-3 text-white placeholder-slate-500 outline-none transition-all font-medium disabled:opacity-40"
                                     />
                                 </div>
 

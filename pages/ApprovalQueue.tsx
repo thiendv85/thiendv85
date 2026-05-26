@@ -275,6 +275,8 @@ export const ApprovalQueue = ({ onLoadRequest, appSettings }: Props) => {
                                 <FaIcon className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 text-xs" />
                                 <input
                                     type="text"
+                                    name="approval-search"
+                                    aria-label="Tìm kiếm đơn duyệt"
                                     value={searchTerm}
                                     onChange={e => setSearchTerm(e.target.value)}
                                     placeholder="Tên đơn · Brand · Người đề xuất"

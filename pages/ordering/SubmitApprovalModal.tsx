@@ -80,10 +80,12 @@ export function SubmitApprovalModal({
                 <div className="p-6 space-y-5 bg-slate-50/50">
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                            <label htmlFor="submit-draft-name" className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
                                 Tên Draft
                             </label>
                             <input
+                                id="submit-draft-name"
+                                name="draftName"
                                 value={draftName}
                                 onChange={e => onDraftNameChange(e.target.value)}
                                 placeholder="VD: KIA_NB_Tháng4_2026"
@@ -91,7 +93,7 @@ export function SubmitApprovalModal({
                             />
                         </div>
                         <div>
-                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                            <label htmlFor="submit-workflow" className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
                                 Workflow Phê duyệt
                             </label>
                             {workflows.length === 0 ? (
@@ -100,6 +102,8 @@ export function SubmitApprovalModal({
                                 </p>
                             ) : (
                                 <select
+                                    id="submit-workflow"
+                                    name="workflowId"
                                     value={selectedWorkflowId}
                                     onChange={e => onWorkflowChange(e.target.value)}
                                     className="w-full border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 text-slate-800 bg-white transition-all appearance-none cursor-pointer"
