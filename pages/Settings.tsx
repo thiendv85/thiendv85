@@ -601,7 +601,10 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                     setDraft(result.data as typeof draft);
                     alert('Đã nhập cấu hình thành công!');
                 } else {
-                    const msgs = result.error.issues.slice(0, 3).map(i => `${i.path.join('.')}: ${i.message}`).join('\n');
+                    const msgs = result.error.issues
+                        .slice(0, 3)
+                        .map(i => `${i.path.join('.')}: ${i.message}`)
+                        .join('\n');
                     alert(`Cấu hình không hợp lệ:\n${msgs}`);
                 }
             } catch {

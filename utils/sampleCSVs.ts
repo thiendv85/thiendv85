@@ -24,7 +24,7 @@ WHL001,LUG001,mandatory,100,Bánh xe kèm tắc kê
 WHL001,BAL001,recommended,40,Cân bằng bánh xe
 `,
     },
-    'supersession': {
+    supersession: {
         filename: 'mau-ma-thay-the.csv',
         description: 'Mã thay thế (Old → New)',
         content: `OldPartNumber,NewPartNumber,Interchangeable
@@ -33,7 +33,7 @@ ABC002,XYZ002,false
 ABC003,XYZ003,1
 `,
     },
-    'kitting': {
+    kitting: {
         filename: 'mau-kitting.csv',
         description: 'Gói sửa chữa (Repair Package)',
         content: `SetPartsCode,SetParts,ItemCode,ItemNameEng,Qty,ModelCar,EngineCode,UnitPrice

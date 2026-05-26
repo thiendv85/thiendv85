@@ -28,6 +28,7 @@ const LOW_MOS_THRESHOLD = 0.5;        // months
 export function validatePreApproval(request: ApprovalRequest): PreApprovalResult {
     const warnings: ValidationWarning[] = [];
     const snap = request.snapshot_data;
+    if (!snap?.quantities || !snap?.inventory_context) return { passed: true, warnings: [] };
 
     // ── Rule 1: Budget threshold ─────────────────────────────────────────────
     let totalValue = 0;

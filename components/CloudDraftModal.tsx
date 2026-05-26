@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Typography } from './Typography';
-import { listOrderDrafts, saveOrderDraft, loadFromCloudStorage, fetchAllRequests, fetchMyRequests, fetchPendingForApprover } from '../utils/supabase';
+import { listOrderDrafts, saveOrderDraft, loadFromCloudStorage, fetchAllRequests, fetchMyRequests, fetchPendingForApprover, fetchRequestById } from '../utils/supabase';
 import { ApprovalStatusBadge } from './ApprovalStatusBadge';
 import { ApprovalRequest, ApprovalStatus } from '../types/inventory';
 import { useAuth } from '../utils/authContext';
@@ -152,8 +152,16 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
         onClose();
     };
 
-    const handleLoadReturned = (req: ApprovalRequest) => {
-        onLoadReturnedRequest(req);
+    const handleLoadReturned = async (req: ApprovalRequest) => {
+        // Fetch full request with snapshot_data (list queries don't include it)
+        setIsLoading(true);
+        const fullReq = await fetchRequestById(req.id);
+        setIsLoading(false);
+        if (!fullReq || !fullReq.snapshot_data?.quantities) {
+            alert('Không thể tải dữ liệu snapshot cho đơn này.');
+            return;
+        }
+        onLoadReturnedRequest(fullReq);
         onClose();
     };
 
@@ -330,8 +338,7 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
                             ) : (
                                 <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1 custom-scrollbar">
                                     {pendingRequests.map(req => {
-                                        const snap = req.snapshot_data;
-                                        const itemCount = Object.values(snap.quantities || {}).filter((q: any) => q.air + q.sea > 0).length;
+                                        const itemCount = req.summary?.skuCount || Object.values(req.snapshot_data?.quantities || {}).filter((q: any) => q.air + q.sea > 0).length;
                                         return (
                                             <div key={req.id} className="p-3 border border-rose-200 bg-rose-50/30 rounded-xl hover:border-rose-400 hover:bg-rose-50 transition-all">
                                                 <div className="flex items-center justify-between gap-3">
@@ -387,8 +394,7 @@ export const CloudDraftModal = ({ isOpen, onClose, currentDraft, onLoadDraft, on
                             ) : (
                                 <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1 custom-scrollbar">
                                     {returnedRequests.map(req => {
-                                        const snap = req.snapshot_data;
-                                        const itemCount = Object.values(snap.quantities || {}).filter((q: any) => q.air + q.sea > 0).length;
+                                        const itemCount = req.summary?.skuCount || Object.values(req.snapshot_data?.quantities || {}).filter((q: any) => q.air + q.sea > 0).length;
                                         return (
                                             <div key={req.id} className="p-3 border border-indigo-200 bg-indigo-50/30 rounded-xl hover:border-indigo-400 hover:bg-indigo-50 transition-all">
                                                 <div className="flex items-center justify-between gap-3">

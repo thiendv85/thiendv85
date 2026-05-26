@@ -6,9 +6,15 @@ const localStorageMock = (() => {
     let store: Record<string, string> = {};
     return {
         getItem: vi.fn((key: string) => store[key] ?? null),
-        setItem: vi.fn((key: string, value: string) => { store[key] = value; }),
-        removeItem: vi.fn((key: string) => { delete store[key]; }),
-        clear: vi.fn(() => { store = {}; }),
+        setItem: vi.fn((key: string, value: string) => {
+            store[key] = value;
+        }),
+        removeItem: vi.fn((key: string) => {
+            delete store[key];
+        }),
+        clear: vi.fn(() => {
+            store = {};
+        }),
     };
 })();
 
@@ -29,10 +35,13 @@ describe('loadAppSettings', () => {
     });
 
     it('merges stored partial settings with defaults', () => {
-        localStorageMock.setItem('atp_app_settings', JSON.stringify({
-            currency: 'EUR',
-            language: 'en',
-        }));
+        localStorageMock.setItem(
+            'atp_app_settings',
+            JSON.stringify({
+                currency: 'EUR',
+                language: 'en',
+            }),
+        );
         const settings = loadAppSettings();
         expect(settings.currency).toBe('EUR');
         expect(settings.language).toBe('en');
@@ -49,11 +58,14 @@ describe('loadAppSettings', () => {
     });
 
     it('migrates legacy bmwLeadTime to sourceProfiles', () => {
-        localStorageMock.setItem('atp_app_settings', JSON.stringify({
-            bmwLeadTime: 45,
-            bmwSafetyPeriod: 10,
-            bmwSafetyStockPeriod: 5,
-        }));
+        localStorageMock.setItem(
+            'atp_app_settings',
+            JSON.stringify({
+                bmwLeadTime: 45,
+                bmwSafetyPeriod: 10,
+                bmwSafetyStockPeriod: 5,
+            }),
+        );
         const settings = loadAppSettings();
         const bmw = settings.sourceProfiles.find(p => p.id === 'BMWASIA');
         expect(bmw).toBeDefined();
@@ -72,10 +84,7 @@ describe('saveAppSettings', () => {
     it('saves settings to localStorage', () => {
         const settings = loadAppSettings();
         saveAppSettings(settings);
-        expect(localStorageMock.setItem).toHaveBeenCalledWith(
-            'atp_app_settings',
-            expect.any(String),
-        );
+        expect(localStorageMock.setItem).toHaveBeenCalledWith('atp_app_settings', expect.any(String));
     });
 
     it('round-trips settings correctly', () => {

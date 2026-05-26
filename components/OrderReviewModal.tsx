@@ -1123,11 +1123,7 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
                 </div>
             </div>
 
-            <InspectionPopup
-                item={inspectingItem}
-                localQtys={localQtys}
-                onClose={() => setInspectingItem(null)}
-            />
+            <InspectionPopup item={inspectingItem} localQtys={localQtys} onClose={() => setInspectingItem(null)} />
 
             {/* ── FINAL DECISION CHECKPOINT ────────────────────────────────────── */}
             {pendingAction && (

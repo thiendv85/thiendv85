@@ -15,6 +15,7 @@ import { Typography } from './Typography';
 import { TrendBadge } from './TrendBadge';
 
 import { FaIcon } from './Icon';
+import { DealerStockPopup } from './DealerStockPopup';
 // Inline: StockOutCountdown
 const StockOutCountdown = React.memo(({ current, onOrder, dailyDemand, backorder }: { current: number; onOrder: number; dailyDemand: number; backorder: number }) => {
     const available = Math.max(0, current - backorder);
@@ -360,10 +361,19 @@ export const ExecutiveDashboard = React.memo(({ filteredData, allData, onItemSel
                                             )}
                                         </td>
                                         <td className="px-4 py-3 text-center border-b border-slate-50">
-                                            <Typography variant="body" className="font-bold text-slate-800 tabular-nums">{(item.DealerInventory || 0).toLocaleString()}</Typography>
-                                            <div className="mt-1 flex flex-col items-center">
-                                                <div className={`text-sm font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 tabular-nums`}>
-                                                    {demandMonthly <= 0 ? 'CST: ∞' : `CST: ${currentCst.toFixed(1)}`}
+                                            <div className="flex flex-col items-center">
+                                                <DealerStockPopup items={item.DealerBreakdown || []}>
+                                                    <span className={`font-bold tabular-nums text-[13px] cursor-help hover:scale-105 transition-transform inline-flex items-center gap-1 ${(item.DealerBreakdown?.length || 0) > 0 ? 'text-blue-700' : 'text-slate-800'}`}>
+                                                        {(item.DealerBreakdown?.length || 0) > 0 && <FaIcon className="fas fa-warehouse text-[10px] opacity-60" />}
+                                                        <span className={(item.DealerBreakdown?.length || 0) > 0 ? 'border-b border-dashed border-blue-300' : ''}>
+                                                            {(item.DealerInventory || 0).toLocaleString()}
+                                                        </span>
+                                                    </span>
+                                                </DealerStockPopup>
+                                                <div className="mt-1">
+                                                    <div className={`text-sm font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 tabular-nums`}>
+                                                        {demandMonthly <= 0 ? 'CST: ∞' : `CST: ${currentCst.toFixed(1)}`}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </td>

@@ -11,19 +11,19 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
  * Lịch nghỉ Tết Âm lịch - Ngày bắt đầu (Dương lịch)
  * Dùng để tính toán số ngày nghỉ trong tháng.
  */
-export const TET_DATES: Record<number, { month: number, day: number, length: number }> = {
-    2024: { month: 1, day: 8, length: 7 },  // Feb 8
+export const TET_DATES: Record<number, { month: number; day: number; length: number }> = {
+    2024: { month: 1, day: 8, length: 7 }, // Feb 8
     2025: { month: 0, day: 26, length: 7 }, // Jan 26
     2026: { month: 1, day: 16, length: 7 }, // Feb 16
-    2027: { month: 1, day: 5, length: 7 }   // Feb 5
+    2027: { month: 1, day: 5, length: 7 }, // Feb 5
 };
 
 /** Các ngày lễ Dương lịch cố định tại VN */
 export const PUBLIC_HOLIDAYS = [
-    { m: 0, d: 1 },  // Tết Dương lịch
+    { m: 0, d: 1 }, // Tết Dương lịch
     { m: 3, d: 30 }, // Giải phóng Miền Nam
-    { m: 4, d: 1 },  // Quốc tế Lao động
-    { m: 8, d: 2 }   // Quốc khánh
+    { m: 4, d: 1 }, // Quốc tế Lao động
+    { m: 8, d: 2 }, // Quốc khánh
 ];
 
 /**
@@ -50,7 +50,7 @@ export function getVietnameseWorkingDays(month: number, year: number): number {
         if (tet) {
             const dateTs = date.getTime();
             const tetStartTs = new Date(year, tet.month, tet.day).getTime();
-            const tetEndTs = tetStartTs + (tet.length * MS_PER_DAY);
+            const tetEndTs = tetStartTs + tet.length * MS_PER_DAY;
             if (dateTs >= tetStartTs && dateTs < tetEndTs) continue;
         }
 
@@ -68,7 +68,7 @@ export function getWorkingDaysByLeadTime(calendarDays: number, startDate: Date):
     let workingDays = 0;
 
     for (let i = 0; i < calendarDays; i++) {
-        const d = new Date(startDate.getTime() + (i * MS_PER_DAY));
+        const d = new Date(startDate.getTime() + i * MS_PER_DAY);
         const month = d.getMonth();
         const year = d.getFullYear();
         const mDay = d.getDate();
@@ -85,7 +85,7 @@ export function getWorkingDaysByLeadTime(calendarDays: number, startDate: Date):
         if (tet) {
             const dateTs = d.getTime();
             const tetStartTs = new Date(year, tet.month, tet.day).getTime();
-            const tetEndTs = tetStartTs + (tet.length * MS_PER_DAY);
+            const tetEndTs = tetStartTs + tet.length * MS_PER_DAY;
             if (dateTs >= tetStartTs && dateTs < tetEndTs) continue;
         }
 
@@ -108,7 +108,7 @@ export function buildWorkingDaysCache(startDate: Date, maxDays = 180): Map<numbe
     let runningWorkingDays = 0;
 
     for (let i = 0; i < maxDays; i++) {
-        const d = new Date(startDate.getTime() + (i * MS_PER_DAY));
+        const d = new Date(startDate.getTime() + i * MS_PER_DAY);
         const month = d.getMonth();
         const year = d.getFullYear();
         const mDay = d.getDate();
@@ -125,7 +125,7 @@ export function buildWorkingDaysCache(startDate: Date, maxDays = 180): Map<numbe
             if (tet) {
                 const dateTs = d.getTime();
                 const tetStartTs = new Date(year, tet.month, tet.day).getTime();
-                const tetEndTs = tetStartTs + (tet.length * MS_PER_DAY);
+                const tetEndTs = tetStartTs + tet.length * MS_PER_DAY;
                 if (dateTs >= tetStartTs && dateTs < tetEndTs) isWorking = false;
             }
         }

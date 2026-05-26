@@ -15,10 +15,7 @@ export function InspectionPopup({ item, localQtys, onClose }: InspectionPopupPro
 
     return (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
-            <div
-                className="absolute inset-0 bg-slate-900/60 backdrop-blur-md animate-fadeIn"
-                onClick={onClose}
-            />
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md animate-fadeIn" onClick={onClose} />
             <div className="relative w-full max-w-[1000px] bg-white rounded-[32px] shadow-2xl overflow-hidden animate-slideUp flex flex-col max-h-[90vh]">
                 {/* Header */}
                 <div className="px-8 py-6 bg-slate-900 text-white flex items-center justify-between shrink-0">
@@ -28,18 +25,14 @@ export function InspectionPopup({ item, localQtys, onClose }: InspectionPopupPro
                         </div>
                         <div>
                             <div className="flex items-center gap-3">
-                                <span className="font-black text-2xl font-mono tracking-tight">
-                                    {item.itemCode}
-                                </span>
+                                <span className="font-black text-2xl font-mono tracking-tight">{item.itemCode}</span>
                                 <span
                                     className={`px-2 py-0.5 rounded-lg text-xs font-black ${item.priorityBucket === 'P1' ? 'bg-rose-500 text-white' : 'bg-white/20 text-slate-300'}`}
                                 >
                                     {item.priorityBucket || 'P3'}
                                 </span>
                             </div>
-                            <div className="text-slate-400 font-bold text-sm mt-0.5">
-                                {item.itemName}
-                            </div>
+                            <div className="text-slate-400 font-bold text-sm mt-0.5">{item.itemName}</div>
                         </div>
                     </div>
                     <button
@@ -56,8 +49,7 @@ export function InspectionPopup({ item, localQtys, onClose }: InspectionPopupPro
                         {/* Stock Logic */}
                         <div className="space-y-6">
                             <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                                <div className="w-1.5 h-4 bg-emerald-500 rounded-full" /> Logic Tồn kho & Cung
-                                ứng
+                                <div className="w-1.5 h-4 bg-emerald-500 rounded-full" /> Logic Tồn kho & Cung ứng
                             </h3>
                             <div className="bg-slate-50 p-8 rounded-[32px] border border-slate-200/60 shadow-inner">
                                 <StockProgressBar
@@ -70,8 +62,7 @@ export function InspectionPopup({ item, localQtys, onClose }: InspectionPopupPro
                                     backorder={item.backorder}
                                     breakdown={item.backorderBreakdown || []}
                                     draftAdd={
-                                        (localQtys[item.itemCode]?.air || 0) +
-                                        (localQtys[item.itemCode]?.sea || 0)
+                                        (localQtys[item.itemCode]?.air || 0) + (localQtys[item.itemCode]?.sea || 0)
                                     }
                                     baseFc={item.baseForecast}
                                 />
@@ -111,12 +102,7 @@ export function InspectionPopup({ item, localQtys, onClose }: InspectionPopupPro
                             </h3>
                             <div className="bg-slate-50 p-8 rounded-[32px] border border-slate-200/60 h-[280px] flex items-center justify-center shadow-inner">
                                 <SalesMomentum
-                                    values={[
-                                        item.avgQty24M,
-                                        item.avgQty12M,
-                                        item.avgQty6M,
-                                        item.avgQty3M,
-                                    ]}
+                                    values={[item.avgQty24M, item.avgQty12M, item.avgQty6M, item.avgQty3M]}
                                     history={item.salesHistory}
                                     forecast={item.baseForecast}
                                 />
@@ -136,9 +122,7 @@ export function InspectionPopup({ item, localQtys, onClose }: InspectionPopupPro
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <div className="text-[10px] text-blue-500 font-black uppercase">
-                                        Dự báo (FC)
-                                    </div>
+                                    <div className="text-[10px] text-blue-500 font-black uppercase">Dự báo (FC)</div>
                                     <div className="text-xl font-black text-blue-900">
                                         {(item.baseForecast || 0).toLocaleString()}
                                     </div>

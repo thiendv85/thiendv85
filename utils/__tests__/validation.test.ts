@@ -131,9 +131,7 @@ describe('supersessionMappingSchema', () => {
 
 describe('appSettingsSchema', () => {
     const validSettings = {
-        sourceProfiles: [
-            { id: 'NB', brand: 'Kia', name: 'Nhật Bản', lt: 90, sp: 30, ssp: 15 },
-        ],
+        sourceProfiles: [{ id: 'NB', brand: 'Kia', name: 'Nhật Bản', lt: 90, sp: 30, ssp: 15 }],
         activeSourceId: 'NB',
         defaultWarehouseScope: 'All',
         defaultCostBasis: 'PP',

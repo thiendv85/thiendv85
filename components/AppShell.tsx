@@ -2,6 +2,7 @@ import React from 'react';
 import { Typography } from './Typography';
 import { useLanguage } from '../utils/i18n';
 import { NotificationBell } from './NotificationBell';
+import { useApprovalAuth } from '../hooks/useApprovalAuth';
 
 import { FaIcon } from './Icon';
 type View =
@@ -13,9 +14,10 @@ type View =
   | 'log'
   | 'kitting'
   | 'settings'
-  | 'approval-queue';
+  | 'approval-queue'
+  | 'report';
 
-type NavId = 'dashboard' | 'ordering' | 'backorder' | 'transfer' | 'kitting' | 'approval-queue';
+type NavId = 'dashboard' | 'ordering' | 'backorder' | 'transfer' | 'kitting' | 'approval-queue' | 'report';
 interface NavItem {
   id: NavId;
   label: string;
@@ -23,15 +25,24 @@ interface NavItem {
   mobile: string;
 }
 
-const NAV_ITEMS = (t: (k: string) => string, role: string | undefined): NavItem[] => {
+const NAV_ITEMS = (
+  t: (k: string) => string,
+  role: string | undefined,
+  inAnyWorkflow: boolean,
+): NavItem[] => {
   const base: NavItem[] = [
     { id: 'dashboard', label: t('nav_dashboard') || 'Dashboard', icon: 'fa-chart-simple', mobile: 'Dashboard' },
     { id: 'ordering', label: t('nav_ordering') || 'Đặt hàng', icon: 'fa-cart-shopping', mobile: 'Đặt hàng' },
     { id: 'backorder', label: 'Nợ hàng', icon: 'fa-clock-rotate-left', mobile: 'Nợ hàng' },
     { id: 'transfer', label: t('nav_transfer') || 'Phân bổ', icon: 'fa-right-left', mobile: 'Phân bổ' },
     { id: 'kitting', label: t('nav_kitting') || 'Kitting', icon: 'fa-boxes-stacked', mobile: 'Kitting' },
+    { id: 'report', label: 'Báo cáo', icon: 'fa-file-chart-line', mobile: 'Báo cáo' },
   ];
-  if (role && ['admin', 'approver', 'planner'].includes(role)) {
+  // FIX 2026-05-21: cũng show nav nếu user xuất hiện trong bất kỳ workflow nào
+  // (kể cả role viewer) — workflow membership = source of truth.
+  const hasApprovalAccess =
+    (role && ['admin', 'approver', 'planner'].includes(role)) || inAnyWorkflow;
+  if (hasApprovalAccess) {
     base.push({ id: 'approval-queue', label: 'Phê duyệt', icon: 'fa-clipboard-check', mobile: 'Duyệt' });
   }
   return base;
@@ -67,7 +78,8 @@ export const AppShell = ({
   children,
 }: AppShellProps) => {
   const { t } = useLanguage();
-  const navItems = NAV_ITEMS(t, profile?.role);
+  const { inAnyWorkflow } = useApprovalAuth();
+  const navItems = NAV_ITEMS(t, profile?.role, inAnyWorkflow);
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#f8fafc] to-[#e2e8f0] relative font-sans text-slate-800 overflow-x-clip">
@@ -155,7 +167,7 @@ export const AppShell = ({
               </button>
             </div>
 
-            {profile?.role && ['admin', 'approver', 'planner'].includes(profile.role) && (
+            {((profile?.role && ['admin', 'approver', 'planner'].includes(profile.role)) || inAnyWorkflow) && (
               <NotificationBell onNavigate={() => onSelectView('approval-queue')} />
             )}
             <button

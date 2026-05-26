@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { ANOMALY_META, type OrderAnomaly } from '../utils/supplierAnomaly';
-import type { InventoryItem, BackorderDetail } from '../types/inventory';
+import type { InventoryItem } from '../types/inventory';
 
 /**
  * CriticalSkuSpotlight — strictly follows design-system/pages/backorder.md
@@ -72,31 +72,6 @@ interface NextEtaInfo {
   tone: EtaTone;
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-function parseEtaToTimestamp(eta: string | undefined): number | null {
-  if (!eta) return null;
-  const s = eta.trim();
-  if (!s) return null;
-  let m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s);
-  if (m) return new Date(+m[3], +m[2] - 1, +m[1]).getTime() || null;
-  m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s);
-  if (m) return new Date(+m[1], +m[2] - 1, +m[3]).getTime() || null;
-  m = /^(\d{1,2})\/(\d{4})$/.exec(s);
-  if (m) return new Date(+m[2], +m[1] - 1, 1).getTime();
-  return null;
-}
-
-function pickEarliestBoEta(breakdown: BackorderDetail[] | undefined, now: number): number | null {
-  if (!breakdown || breakdown.length === 0) return null;
-  let earliest: number | null = null;
-  for (const bo of breakdown) {
-    const ts = parseEtaToTimestamp(bo.ETA);
-    if (ts && ts >= now && (earliest === null || ts < earliest)) earliest = ts;
-  }
-  return earliest;
-}
-
 function pickEarliestPipelineMonth(pipeline: Record<string, number> | undefined, now: number): number | null {
   if (!pipeline) return null;
   let earliest: number | null = null;
@@ -115,6 +90,8 @@ function pickEarliestPipelineMonth(pipeline: Record<string, number> | undefined,
 export function computeNextEta(item: InventoryItem, now: number = Date.now()): NextEtaInfo {
   const pThis = item.computed?.incomingCurrentMonth || 0;
   const pNext = item.computed?.incomingNextMonth || 0;
+
+  // Only use Pipeline (confirmed PO/invoice) data — not BO ETA (order dates, unreliable)
   if (pThis > 0) return { label: `Tháng này · ${pThis}`, tone: 'stock' };
   if (pNext > 0) return { label: `Tháng sau · ${pNext}`,  tone: 'po' };
 
@@ -124,17 +101,9 @@ export function computeNextEta(item: InventoryItem, now: number = Date.now()): N
     return { label: `${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`, tone: 'far' };
   }
 
-  const boEta = pickEarliestBoEta(item.BackorderBreakdown, now);
-  if (boEta !== null) {
-    const days = Math.max(0, Math.ceil((boEta - now) / DAY_MS));
-    const d = new Date(boEta);
-    const dateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
-    if (days <= 7)  return { label: `Tuần này · ${dateStr}`,    tone: 'stock' };
-    if (days <= 30) return { label: `Trong tháng · ${dateStr}`, tone: 'po' };
-    return { label: dateStr, tone: 'far' };
-  }
-
-  return { label: 'Chưa có hàng', tone: 'gap' };
+  // No pipeline data at all → show "Chưa có invoice" + total BO qty
+  const boQty = item.Backorder || 0;
+  return { label: `Chưa có invoice · ${boQty}`, tone: 'gap' };
 }
 
 // ─── Semantic mappings (per spec) ───
@@ -158,7 +127,7 @@ const ETA_BADGE: Record<EtaTone, { bg: string; color: string }> = {
 // ─── Typography helpers (per spec scales) ───
 const labelCaps: React.CSSProperties = {
   fontFamily: FONT_BODY,
-  fontSize: '0.6875rem',
+  fontSize: '0.8125rem',
   fontWeight: 700,
   lineHeight: 1.1,
   letterSpacing: '0.18em',
@@ -181,7 +150,7 @@ const pill = (bg: string, color: string): React.CSSProperties => ({
   background: bg,
   color,
   fontFamily: FONT_BODY,
-  fontSize: '0.6875rem',
+  fontSize: '0.8125rem',
   fontWeight: 700,
   lineHeight: 1.1,
   letterSpacing: '0.06em',
@@ -198,7 +167,7 @@ interface Props {
 }
 
 export const CriticalSkuSpotlight: React.FC<Props> = ({
-  items, getAnomaly, getBoQty, onSelect, topN = 8,
+  items, getAnomaly, getBoQty, onSelect, topN = 15,
 }) => {
   const ranked = useMemo(() => {
     const now = Date.now();
@@ -208,11 +177,18 @@ export const CriticalSkuSpotlight: React.FC<Props> = ({
       const qty = getBoQty(item);
       return { item, agg, eta, qty };
     });
+    // Sort by days overdue vs LT (most overdue first), tiebreak by BO qty
     enriched.sort((a, b) => {
-      if (b.agg.maxScore !== a.agg.maxScore) return b.agg.maxScore - a.agg.maxScore;
+      if (b.agg.maxDaysOverdue !== a.agg.maxDaysOverdue) return b.agg.maxDaysOverdue - a.agg.maxDaysOverdue;
       return b.qty - a.qty;
     });
-    return enriched.filter(e => e.agg.abnormalCount > 0 && e.qty > 0).slice(0, topN);
+    return enriched.filter(e => {
+      if (e.agg.abnormalCount <= 0 || e.qty <= 0) return false;
+      // Skip SKU if incoming this month already covers all BO — no longer critical
+      const incomingThisMonth = e.item.computed?.incomingCurrentMonth || 0;
+      if (incomingThisMonth >= e.qty) return false;
+      return true;
+    }).slice(0, topN);
   }, [items, getAnomaly, getBoQty, topN]);
 
   if (ranked.length === 0) return null;
@@ -253,7 +229,7 @@ export const CriticalSkuSpotlight: React.FC<Props> = ({
             style={{
               margin: '6px 0 0',
               fontFamily: FONT_DISPLAY,
-              fontSize: '1.125rem',         // h2 — matrix-section title per spec
+              fontSize: '1.25rem',          // h2 — matrix-section title per spec
               fontWeight: 600,
               lineHeight: 1.2,
               letterSpacing: '-0.01em',
@@ -266,7 +242,7 @@ export const CriticalSkuSpotlight: React.FC<Props> = ({
             style={{
               margin: '6px 0 0',
               fontFamily: FONT_BODY,
-              fontSize: '0.8125rem',         // body-sm
+              fontSize: '0.875rem',          // body-sm
               fontWeight: 500,
               lineHeight: 1.45,
               color: T.inkMuted,
@@ -276,7 +252,7 @@ export const CriticalSkuSpotlight: React.FC<Props> = ({
           </p>
         </div>
         <span style={{ ...labelCaps, color: T.inkSoft }}>
-          Anomaly · sort desc
+          Sort · trễ so LT desc
         </span>
       </header>
 
@@ -288,15 +264,17 @@ export const CriticalSkuSpotlight: React.FC<Props> = ({
           gap: 12,
         }}
       >
-        {ranked.map(({ item, agg, eta, qty }) => {
+        {ranked.map(({ item, agg, eta, qty }, idx) => {
           const ab = ANOMALY_BADGE[agg.worst];
           const eb = ETA_BADGE[eta.tone];
+          const rank = idx + 1;
           return (
             <button
               key={item.ItemCode}
               onClick={() => onSelect(item)}
               style={{
                 // metric-card: surface-raised + rounded.md + padding 16px
+                position: 'relative',
                 background: T.surfaceRaised,
                 border: `1px solid ${T.hairline}`,
                 borderRadius: 14,
@@ -322,24 +300,49 @@ export const CriticalSkuSpotlight: React.FC<Props> = ({
                 e.currentTarget.style.boxShadow = 'none';
               }}
             >
+              {/* Rank badge — top-left corner */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: -6,
+                  left: -6,
+                  width: 28,
+                  height: 28,
+                  borderRadius: '50%',
+                  background: rank <= 3 ? T.accent : rank <= 7 ? T.ink : T.inkMuted,
+                  color: '#FFFFFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontFamily: FONT_MONO,
+                  fontSize: '0.8125rem',
+                  fontWeight: 700,
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                  zIndex: 1,
+                }}
+                aria-label={`Hạng ${rank}`}
+              >
+                {rank}
+              </div>
+
               {/* Top row: anomaly badge + score */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                 <span style={pill(ab.bg, ab.color)}>{ab.label}</span>
-                <span style={{ ...monoStyle, fontSize: '0.75rem', color: T.inkSoft }}>
+                <span style={{ ...monoStyle, fontSize: '0.8125rem', color: T.inkSoft }}>
                   {Math.round(agg.maxScore)}/100
                 </span>
               </div>
 
               {/* Identity: ItemCode (mono) + ItemName (display serif h2) */}
               <div>
-                <div style={{ ...monoStyle, fontSize: '0.75rem', color: T.inkSoft, letterSpacing: '0.04em' }}>
+                <div style={{ ...monoStyle, fontSize: '0.8125rem', color: T.inkSoft, letterSpacing: '0.04em' }}>
                   {item.ItemCode}
                 </div>
                 <div
                   style={{
                     marginTop: 2,
                     fontFamily: FONT_BODY,        // body-md per spec — not display
-                    fontSize: '0.875rem',
+                    fontSize: '0.9375rem',
                     fontWeight: 600,
                     lineHeight: 1.4,
                     color: T.ink,
@@ -369,7 +372,7 @@ export const CriticalSkuSpotlight: React.FC<Props> = ({
                   >
                     {qty.toLocaleString('vi-VN')}
                   </span>
-                  <span style={{ ...labelCaps, color: T.inkMuted, fontSize: '0.625rem' }}>
+                  <span style={{ ...labelCaps, color: T.inkMuted, fontSize: '0.75rem' }}>
                     SL nợ
                   </span>
                 </div>
@@ -387,14 +390,14 @@ export const CriticalSkuSpotlight: React.FC<Props> = ({
                   paddingTop: 10,
                   borderTop: `1px solid ${T.hairline}`,
                   fontFamily: FONT_BODY,
-                  fontSize: '0.75rem',
+                  fontSize: '0.8125rem',
                   fontWeight: 500,
                   color: T.inkMuted,
                   lineHeight: 1.3,
                 }}
               >
-                <span>{agg.abnormalCount} đơn bất cập</span>
-                <span>Trễ nhất {agg.maxDaysOverdue}d</span>
+                <span>{(item.BackorderBreakdown?.length || 0)} đơn · {agg.abnormalCount} bất cập</span>
+                <span>Trễ so LT: {Math.round(agg.maxDaysOverdue)}d</span>
               </div>
             </button>
           );

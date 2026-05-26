@@ -59,10 +59,7 @@ export function SubmitApprovalModal({
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-fadeIn">
-            <div
-                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-                onClick={onClose}
-            />
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
             <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-[scaleIn_0.2s_ease-out]">
                 {/* Premium Header */}
                 <div className="bg-gradient-professional px-6 py-5 border-b border-white/10 flex justify-between items-center z-10">

@@ -11,7 +11,9 @@ import { getZScore } from './safetyStock';
 import { TET_DATES, PUBLIC_HOLIDAYS, getDaysInMonth } from './calendar';
 import { getVietnameseWorkingDays, getWorkingDaysByLeadTime, buildWorkingDaysCache } from './calendar';
 
-export { getVietnameseWorkingDays, getWorkingDaysByLeadTime, buildWorkingDaysCache } from './calendar';
+// Re-export imported bindings (gộp để tránh Rollup "is not exported" do duplicate
+// re-export pattern khi cùng name vừa import vừa export from cùng module).
+export { getVietnameseWorkingDays, getWorkingDaysByLeadTime, buildWorkingDaysCache };
 export type { ComputeParams, SimulatedFields, ComputedFields } from './inventoryEngine.types';
 import type { ComputeParams, ComputedFields, SimulatedFields } from './inventoryEngine.types';
 
@@ -40,11 +42,16 @@ const parseDocDateFallback = (str?: string): number => {
     if (!Number.isFinite(a) || !Number.isFinite(b) || !Number.isFinite(c)) return 0;
     let day: number, month: number, year: number;
     if (m[1].length === 4) {
-        year = a; month = b; day = c;
+        year = a;
+        month = b;
+        day = c;
     } else if (m[3].length === 4) {
-        day = a; month = b; year = c;
+        day = a;
+        month = b;
+        year = c;
     } else {
-        day = a; month = b;
+        day = a;
+        month = b;
         year = c < 50 ? 2000 + c : 1900 + c;
     }
     if (month < 1 || month > 12 || day < 1 || day > 31 || year < 1900 || year > 2100) return 0;
@@ -57,11 +64,11 @@ const parseDocDateFallback = (str?: string): number => {
 
 /**
  * PHASE 5b: Data-Driven SSI (Standardized Seasonal Index)
- * 
+ *
  * Design Principles (B2B context - Dealer pre-stocking):
  * 1. MA3 cluster is the SOLE automatic driver — let the data speak.
  * 2. NO hardcoded month ranges. Tet proximity uses actual TET_DATES registry.
- * 3. Causal weights (Tet/Weather sliders) are OPTIONAL manual boosters 
+ * 3. Causal weights (Tet/Weather sliders) are OPTIONAL manual boosters
  *    that amplify an already-detected peak, never trigger on their own.
  * 4. Higher threshold (1.5x) for B2B to avoid false positives from lumpy orders.
  */
@@ -117,12 +124,14 @@ function calculateSSI(item: InventoryItem, params: ComputeParams): number {
     return Math.min(2.5, ssi);
 }
 
-
 /**
  * Thử phân giải chuỗi ngày từ tiêu đề OO (vd: "25/05", "OO 03/26") thành Timestamp
  */
 function parsePipelineDate(key: string, snapshotYYMM: string): number | null {
-    const clean = key.toLowerCase().replace(/[^0-9/]/g, '').trim();
+    const clean = key
+        .toLowerCase()
+        .replace(/[^0-9/]/g, '')
+        .trim();
     if (!clean) return null;
 
     const snapMM = parseInt(snapshotYYMM.slice(2, 4));
@@ -136,7 +145,7 @@ function parsePipelineDate(key: string, snapshotYYMM: string): number | null {
         } else {
             const [d, m] = parts.map(n => parseInt(n));
             if (!isNaN(d) && !isNaN(m)) {
-                const year = (m < snapMM) ? snapYYYY + 1 : snapYYYY;
+                const year = m < snapMM ? snapYYYY + 1 : snapYYYY;
                 return new Date(year, m - 1, d).getTime();
             }
         }
@@ -203,8 +212,8 @@ function buildArrivalSchedule(
         const ts = parsePipelineDate(k, snapshotYYMM);
         if (ts == null) continue;
         let day = (ts - nowTs) / MS_PER_DAY;
-        if (day < -30) continue;        // quá cũ
-        if (day < 0) day = 0;           // snap past → arrived today
+        if (day < -30) continue; // quá cũ
+        if (day < 0) day = 0; // snap past → arrived today
         entries.push({ day, qty: v });
     }
     entries.sort((a, b) => a.day - b.day);
@@ -267,9 +276,22 @@ function computeOptimalOrder(params: {
     urgentReason: string;
     reserveReason: string;
 } {
-    const { available, onOrder, bo, pipeline, snapshotYYMM, now, brandName, effectiveLT,
-            demandRateDaily, demandMonthly, annualSales, stockMax, snp } = params;
-    const roundUp = (x: number) => snp > 0 ? Math.ceil(x / snp) * snp : Math.ceil(x);
+    const {
+        available,
+        onOrder,
+        bo,
+        pipeline,
+        snapshotYYMM,
+        now,
+        brandName,
+        effectiveLT,
+        demandRateDaily,
+        demandMonthly,
+        annualSales,
+        stockMax,
+        snp,
+    } = params;
+    const roundUp = (x: number) => (snp > 0 ? Math.ceil(x / snp) * snp : Math.ceil(x));
     const isBMW = (brandName || '').toUpperCase().includes('BMW');
     const ltAir = isBMW ? 22 : 35;
     const ltSea = Math.max(effectiveLT || 75, ltAir + 1);
@@ -294,25 +316,29 @@ function computeOptimalOrder(params: {
             stockoutQty: 0,
             capLimited: false,
             classification,
-            ltAir, ltSea,
+            ltAir,
+            ltSea,
             urgentTrigger: 'none',
             reserveTrigger: seaQty > 0 ? 'below_stockmax' : 'none',
             urgentReason: isDead
                 ? `Hàng chết (12 tháng không bán) — không Air, review thủ công`
                 : `Slow-mover (TSB ${demandMonthly.toFixed(2)}/tháng < ${SLOW_MONTHLY_THRESHOLD}) — Air không kinh tế, chỉ Sea`,
-            reserveReason: seaQty > 0
-                ? `${isDead ? 'Dead' : 'Slow'}: inv.position ${Math.round(invPosition)} < MAX ${Math.round(stockMax)} → Sea ${seaQty}`
-                : `${isDead ? 'Dead' : 'Slow'}: inv.position ${Math.round(invPosition)} ≥ MAX, không cần đặt`,
+            reserveReason:
+                seaQty > 0
+                    ? `${isDead ? 'Dead' : 'Slow'}: inv.position ${Math.round(invPosition)} < MAX ${Math.round(stockMax)} → Sea ${seaQty}`
+                    : `${isDead ? 'Dead' : 'Slow'}: inv.position ${Math.round(invPosition)} ≥ MAX, không cần đặt`,
         };
     }
 
     const schedule = buildArrivalSchedule(pipeline, now, snapshotYYMM);
 
     // Grid scan ngày 0..ltSea — tìm min I(t) trong 2 cửa sổ
-    let cumPo = 0, idx = 0;
+    let cumPo = 0,
+        idx = 0;
     let minPreAir = Infinity;
     let minPostAir = Infinity;
-    let preAirArgmin = 0, postAirArgmin = 0;
+    let preAirArgmin = 0,
+        postAirArgmin = 0;
     const horizonEnd = Math.ceil(ltSea);
     for (let t = 0; t <= horizonEnd; t++) {
         while (idx < schedule.length && schedule[idx].day <= t) {
@@ -321,9 +347,15 @@ function computeOptimalOrder(params: {
         }
         const I = available + cumPo - bo - demand_d * t;
         if (t < ltAir) {
-            if (I < minPreAir) { minPreAir = I; preAirArgmin = t; }
+            if (I < minPreAir) {
+                minPreAir = I;
+                preAirArgmin = t;
+            }
         } else {
-            if (I < minPostAir) { minPostAir = I; postAirArgmin = t; }
+            if (I < minPostAir) {
+                minPostAir = I;
+                postAirArgmin = t;
+            }
         }
     }
 
@@ -339,9 +371,7 @@ function computeOptimalOrder(params: {
 
     // Phân loại SKU
     const classification: 'healthy' | 'strained' | 'critical' =
-        airNeed > 3 * demandMonthly ? 'critical' :
-        airNeed > demandMonthly      ? 'strained' :
-                                       'healthy';
+        airNeed > 3 * demandMonthly ? 'critical' : airNeed > demandMonthly ? 'strained' : 'healthy';
 
     let urgentTrigger: 'bridge_to_sea' | 'stockout_unavoidable' | 'none' = 'none';
     let urgentReason = '';
@@ -354,7 +384,8 @@ function computeOptimalOrder(params: {
             `Min I(t) tại ngày ${Math.round(postAirArgmin)} = ${Math.round(minPostAir)}`,
             `Air cần ${Math.round(airNeed)}, cap max(1m=${Math.round(demandMonthly)}, BO=${Math.round(bo)}) = ${Math.round(capAir)} → đặt ${airQty}`,
         ];
-        if (capLimited) reasonParts.push(`⚠ Cap-limited [${classification}]: thiếu ${Math.round(airNeed - capAir)} (multi-cycle)`);
+        if (capLimited)
+            reasonParts.push(`⚠ Cap-limited [${classification}]: thiếu ${Math.round(airNeed - capAir)} (multi-cycle)`);
         if (stockoutFlag) reasonParts.unshift(`⚠ Stockout trước LT_air: thiếu ${stockoutQty} (Air không cứu kịp)`);
         urgentReason = reasonParts.join(' | ');
     } else {
@@ -367,11 +398,25 @@ function computeOptimalOrder(params: {
     const seaNeedRaw = Math.max(0, stockMax - invPosition);
     const seaQty = seaNeedRaw > 0 ? roundUp(seaNeedRaw) : 0;
     const reserveTrigger: 'below_stockmax' | 'none' = seaQty > 0 ? 'below_stockmax' : 'none';
-    const reserveReason = seaQty > 0
-        ? `Inv.position ${Math.round(invPosition)} (tồn ${Math.round(available)} + PO ${Math.round(onOrder)} - BO ${Math.round(bo)} + Air ${airQty}) < MAX ${Math.round(stockMax)} → cần ${Math.round(seaNeedRaw)}`
-        : `Inv.position ${Math.round(invPosition)} ≥ MAX ${Math.round(stockMax)}, không cần Sea`;
+    const reserveReason =
+        seaQty > 0
+            ? `Inv.position ${Math.round(invPosition)} (tồn ${Math.round(available)} + PO ${Math.round(onOrder)} - BO ${Math.round(bo)} + Air ${airQty}) < MAX ${Math.round(stockMax)} → cần ${Math.round(seaNeedRaw)}`
+            : `Inv.position ${Math.round(invPosition)} ≥ MAX ${Math.round(stockMax)}, không cần Sea`;
 
-    return { airQty, seaQty, stockoutFlag, stockoutQty, capLimited, classification, ltAir, ltSea, urgentTrigger, reserveTrigger, urgentReason, reserveReason };
+    return {
+        airQty,
+        seaQty,
+        stockoutFlag,
+        stockoutQty,
+        capLimited,
+        classification,
+        ltAir,
+        ltSea,
+        urgentTrigger,
+        reserveTrigger,
+        urgentReason,
+        reserveReason,
+    };
 }
 
 /**
@@ -394,7 +439,7 @@ function computeUrgentQty(params: {
     demandMonthly: number;
 }): { qty: number; trigger: 'backorder_uncovered' | 'stockout_imminent' | 'none'; reason: string } {
     const { available, bo, poIn30d, safetyStock, snp, demandMonthly } = params;
-    const roundUp = (x: number) => snp > 0 ? Math.ceil(x / snp) * snp : Math.ceil(x);
+    const roundUp = (x: number) => (snp > 0 ? Math.ceil(x / snp) * snp : Math.ceil(x));
     const realStock = available - bo;
     const demand30d = demandMonthly;
     const proj30d = available + poIn30d - bo - demand30d;
@@ -423,9 +468,10 @@ function computeUrgentQty(params: {
     return {
         qty: 0,
         trigger: 'none',
-        reason: bo > 0
-            ? `BO ${bo} được cover: tồn ${Math.round(available)} + PO30d ${Math.round(poIn30d)} - demand 1m ${Math.round(demand30d)} >= 0`
-            : `Tồn ${Math.round(realStock)} >= target ${Math.round(Math.max(safetyStock, demandMonthly))}, không khẩn`,
+        reason:
+            bo > 0
+                ? `BO ${bo} được cover: tồn ${Math.round(available)} + PO30d ${Math.round(poIn30d)} - demand 1m ${Math.round(demand30d)} >= 0`
+                : `Tồn ${Math.round(realStock)} >= target ${Math.round(Math.max(safetyStock, demandMonthly))}, không khẩn`,
     };
 }
 
@@ -442,7 +488,7 @@ function computeReserveQty(params: {
     maxOrderMonths?: number;
 }): { qty: number; trigger: 'below_stockmax' | 'none'; reason: string } {
     const { netDemand, urgentQty, stockMax, snp, demandMonthly, maxOrderMonths = 4 } = params;
-    const roundUp = (x: number) => snp > 0 ? Math.ceil(x / snp) * snp : Math.ceil(x);
+    const roundUp = (x: number) => (snp > 0 ? Math.ceil(x / snp) * snp : Math.ceil(x));
     const futureStock = netDemand + urgentQty;
     const cap = demandMonthly * maxOrderMonths;
 
@@ -552,7 +598,10 @@ function resolveAvailable(item: InventoryItem, scope: 'All' | 'NB' | 'BB'): { oh
     };
 }
 
-function checkIsStop(item: InventoryItem, loisProfiles?: import('../types/inventory').LoisProfile[]): { isStop: boolean; alertType?: string } {
+function checkIsStop(
+    item: InventoryItem,
+    loisProfiles?: import('../types/inventory').LoisProfile[],
+): { isStop: boolean; alertType?: string } {
     // 1. Manual check from note or status
     const manualStop = (item.Note || '').toLowerCase().includes('không đặt') || item.Status === 'Dead Stock';
     if (manualStop) return { isStop: true, alertType: 'critical' };
@@ -569,7 +618,14 @@ function checkIsStop(item: InventoryItem, loisProfiles?: import('../types/invent
     return { isStop: false };
 }
 
-function resolvePriority(available: number, onOrder: number, bo: number, rop: number, demandMonthly: number, isStop: boolean): 'P1' | 'P2' | 'P3' {
+function resolvePriority(
+    available: number,
+    onOrder: number,
+    bo: number,
+    rop: number,
+    demandMonthly: number,
+    isStop: boolean,
+): 'P1' | 'P2' | 'P3' {
     if (isStop) return 'P3';
     const netReserve = available + onOrder - bo;
     const nrMos = demandMonthly > 0 ? netReserve / demandMonthly : 0;
@@ -590,11 +646,17 @@ function calculateCV(history: number[]): number {
 function calculateLinReg(history: number[]): { slope: number; forecast: number } {
     if (!history || history.length < 2) return { slope: 0, forecast: 0 };
     const n = history.length;
-    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+    let sumX = 0,
+        sumY = 0,
+        sumXY = 0,
+        sumX2 = 0;
     for (let i = 0; i < n; i++) {
-        sumX += i; sumY += history[i]; sumXY += i * history[i]; sumX2 += i * i;
+        sumX += i;
+        sumY += history[i];
+        sumXY += i * history[i];
+        sumX2 += i * i;
     }
-    const den = (n * sumX2 - sumX * sumX);
+    const den = n * sumX2 - sumX * sumX;
     if (den === 0) return { slope: 0, forecast: sumY / n };
     const slope = (n * sumXY - sumX * sumY) / den;
     const intercept = (sumY - slope * sumX) / n;
@@ -610,7 +672,7 @@ export function computeInventory(
     params: ComputeParams,
     draftData: { air: number; sea: number } = { air: 0, sea: 0 },
     itemProfileResult?: { profile?: SourceProfile; isFallback?: boolean; fallbackReason?: string },
-    wdCache?: Map<number, number>
+    wdCache?: Map<number, number>,
 ): ComputedFields {
     const draftQty = draftData.air + draftData.sea;
     const profile = itemProfileResult?.profile;
@@ -620,7 +682,7 @@ export function computeInventory(
 
     const demandMonthly = resolveDemand(item);
     const isZeroDemand = demandMonthly <= 0;
-    
+
     /**
      * UNIFIED SAA FORMULA — autoresearch tuned 2026-05-08.
      * `demandMonthly` already incorporates seasonality (via SQL SeasonalityFactor
@@ -646,8 +708,12 @@ export function computeInventory(
 
     // Synchronize Lead Time (Calendar) with Sales Schedule (Working Days)
     // Use pre-built cache for O(1) lookup when available (batch path), fall back to per-call computation
-    const workingDaysInLT = wdCache ? (wdCache.get(effectiveLT) ?? getWorkingDaysByLeadTime(effectiveLT, now)) : getWorkingDaysByLeadTime(effectiveLT, now);
-    const workingDaysInSP = wdCache ? (wdCache.get(effectiveSP) ?? getWorkingDaysByLeadTime(effectiveSP, now)) : getWorkingDaysByLeadTime(effectiveSP, now);
+    const workingDaysInLT = wdCache
+        ? (wdCache.get(effectiveLT) ?? getWorkingDaysByLeadTime(effectiveLT, now))
+        : getWorkingDaysByLeadTime(effectiveLT, now);
+    const workingDaysInSP = wdCache
+        ? (wdCache.get(effectiveSP) ?? getWorkingDaysByLeadTime(effectiveSP, now))
+        : getWorkingDaysByLeadTime(effectiveSP, now);
 
     /**
      * Safety stock — proper Z×√(σ²·LT + d²·σ_LT²) formula.
@@ -671,49 +737,49 @@ export function computeInventory(
     const sigmaLT = params.sigmaLT ?? 0.2;
     const ltMonths = workingDaysInLT / 26;
     const z = getZScore(item.LOISGroup || '');
-    const safetyStock = (isStop || isZeroDemand)
-        ? 0
-        : Math.max(
-              0,
-              z * Math.sqrt(
-                  sigmaD * sigmaD * ltMonths +
-                  demandMonthly * demandMonthly * sigmaLT * sigmaLT,
-              ),
-          );
+    const safetyStock =
+        isStop || isZeroDemand
+            ? 0
+            : Math.max(
+                  0,
+                  z * Math.sqrt(sigmaD * sigmaD * ltMonths + demandMonthly * demandMonthly * sigmaLT * sigmaLT),
+              );
     // ROP = expected demand during lead time + safety stock
-    const rop = (isStop || isZeroDemand) ? 0 : demandRateDaily * workingDaysInLT + safetyStock;
+    const rop = isStop || isZeroDemand ? 0 : demandRateDaily * workingDaysInLT + safetyStock;
     // MAX = ROP + supply-period coverage (review-cycle buffer)
-    const stockMax = (isStop || isZeroDemand) ? 0 : rop + (demandRateDaily * workingDaysInSP);
+    const stockMax = isStop || isZeroDemand ? 0 : rop + demandRateDaily * workingDaysInSP;
 
     const history = item.SalesHistory || [];
     const cv = calculateCV(history);
     const { slope, forecast } = calculateLinReg(history);
 
     const warnings: any[] = [];
-    if (bo > 0 && onOrder === 0) warnings.push({ type: 'Critical', code: 'BO_NO_SUPPLY', message: 'Nợ hàng – Không có PO sắp về' });
-    if (itemProfileResult?.isFallback) warnings.push({ type: 'Warning', code: 'SOURCE_FALLBACK', message: itemProfileResult.fallbackReason });
-    
+    if (bo > 0 && onOrder === 0)
+        warnings.push({ type: 'Critical', code: 'BO_NO_SUPPLY', message: 'Nợ hàng – Không có PO sắp về' });
+    if (itemProfileResult?.isFallback)
+        warnings.push({ type: 'Warning', code: 'SOURCE_FALLBACK', message: itemProfileResult.fallbackReason });
+
     // LOIS-based alert
     if (alertType && alertType !== 'none') {
         const typeMap: Record<string, 'Critical' | 'Warning' | 'Info'> = {
-            'critical': 'Critical',
-            'warning': 'Warning',
-            'info': 'Info'
+            critical: 'Critical',
+            warning: 'Warning',
+            info: 'Info',
         };
         const id = (item.LOISGroup || '').trim().toUpperCase().substring(0, 2);
         const desc = params.loisProfiles?.find(p => p.id.toUpperCase() === id || p.id === item.LOISGroup)?.name;
-        warnings.push({ 
-            type: typeMap[alertType] || 'Info', 
-            code: 'LOIS_ALERT', 
-            message: `Cảnh báo theo nhóm LOIS (${item.LOISGroup})${desc ? ' - ' + desc : ''}` 
+        warnings.push({
+            type: typeMap[alertType] || 'Info',
+            code: 'LOIS_ALERT',
+            message: `Cảnh báo theo nhóm LOIS (${item.LOISGroup})${desc ? ' - ' + desc : ''}`,
         });
     }
-    
+
     // Seasonality Tuning Logic
     if (history.length >= 12) {
         const now = new Date();
         now.setDate(1);
-        const startMonthIndex = ((now.getMonth() - 1) - (history.length - 1)) % 12;
+        const startMonthIndex = (now.getMonth() - 1 - (history.length - 1)) % 12;
         const normalizedStartMonth = (startMonthIndex + 12) % 12;
 
         const useSPD = params.seasonalityTuning?.useSPD !== false;
@@ -735,8 +801,8 @@ export function computeInventory(
             spdCount[actualMonth]++;
         });
 
-        const overallMeanSPD = (spdAvg.reduce((a, b) => a + b, 0) / history.length) || 0.001;
-        const getSPD = (m: number) => (spdAvg[m] / (spdCount[m] || 1));
+        const overallMeanSPD = spdAvg.reduce((a, b) => a + b, 0) / history.length || 0.001;
+        const getSPD = (m: number) => spdAvg[m] / (spdCount[m] || 1);
         const ma3Relative = new Array(12).fill(0).map((_, i) => {
             const clusterSPD = (getSPD((i + 11) % 12) + getSPD(i) + getSPD((i + 1) % 12)) / 3;
             return clusterSPD / overallMeanSPD;
@@ -759,11 +825,11 @@ export function computeInventory(
             const yearOfPeak = peakMonth < currentMonth ? now.getFullYear() + 1 : now.getFullYear();
             const daysInPeak = getVietnameseWorkingDays(peakMonth, yearOfPeak);
             const holidayContext = daysInPeak < 22 ? ` (Số ngày làm việc ít: ${daysInPeak})` : '';
-            
-            warnings.push({ 
-                type: 'Warning', 
-                code: 'SEASONAL_UPCOMING', 
-                message: `Sắp đến cụm cao điểm (Tháng ${peakMonth + 1})${holidayContext} – Cần đặt trước ${Math.ceil(effectiveLT/30)+1} tháng` 
+
+            warnings.push({
+                type: 'Warning',
+                code: 'SEASONAL_UPCOMING',
+                message: `Sắp đến cụm cao điểm (Tháng ${peakMonth + 1})${holidayContext} – Cần đặt trước ${Math.ceil(effectiveLT / 30) + 1} tháng`,
             });
         }
     }
@@ -791,7 +857,7 @@ export function computeInventory(
         const ts = parsePipelineDate(k, params.snapshotYYMM);
         if (!ts) return false;
         const d = new Date(ts);
-        if ((d.getMonth() + 1) !== currMM) return false;
+        if (d.getMonth() + 1 !== currMM) return false;
         const yy = d.getFullYear() % 100;
         return Math.abs(yy - currYY) <= 1;
     };
@@ -800,29 +866,40 @@ export function computeInventory(
         const ts = parsePipelineDate(k, params.snapshotYYMM);
         if (!ts) return false;
         const d = new Date(ts);
-        if ((d.getMonth() + 1) !== nextMM) return false;
+        if (d.getMonth() + 1 !== nextMM) return false;
         const yy = d.getFullYear() % 100;
         return Math.abs(yy - nextYY) <= 1;
     };
 
-    const incomingCurrentMonth = item.Pipeline ? Object.entries(item.Pipeline).reduce((sum, [k, v]) => isMatchCurr(k) ? sum + v : sum, 0) : 0;
-    const incomingNextMonth = item.Pipeline ? Object.entries(item.Pipeline).reduce((sum, [k, v]) => isMatchNext(k) ? sum + v : sum, 0) : 0;
+    const incomingCurrentMonth = item.Pipeline
+        ? Object.entries(item.Pipeline).reduce((sum, [k, v]) => (isMatchCurr(k) ? sum + v : sum), 0)
+        : 0;
+    const incomingNextMonth = item.Pipeline
+        ? Object.entries(item.Pipeline).reduce((sum, [k, v]) => (isMatchNext(k) ? sum + v : sum), 0)
+        : 0;
     const priorityBucket = resolvePriority(available, onOrder, bo, rop, demandMonthly, isStop);
 
     // === Optimal ordering: cost-aware (Air = 2× Sea), time-phased grid scan ===
     const poIn30d = computePoArrivingWithinDays(item.Pipeline, 30, today, params.snapshotYYMM);
-    let urgentQty = 0, reserveQty = 0;
+    let urgentQty = 0,
+        reserveQty = 0;
     let urgentTrigger: 'bridge_to_sea' | 'stockout_unavoidable' | 'none' = 'none';
     let reserveTrigger: 'below_stockmax' | 'none' = 'none';
-    let urgentReason = '', reserveReason = '';
-    let stockoutFlag = false, stockoutQty = 0, capLimited = false;
+    let urgentReason = '',
+        reserveReason = '';
+    let stockoutFlag = false,
+        stockoutQty = 0,
+        capLimited = false;
     let classification: 'healthy' | 'strained' | 'critical' | 'slow' | 'dead' = 'healthy';
-    let ltAir = 35, ltSea = effectiveLT;
+    let ltAir = 35,
+        ltSea = effectiveLT;
 
     if (!isStop && !isZeroDemand) {
         const annualSales = (item.SalesHistory || []).reduce((a, b) => a + b, 0);
         const optimal = computeOptimalOrder({
-            available, onOrder, bo,
+            available,
+            onOrder,
+            bo,
             pipeline: item.Pipeline,
             snapshotYYMM: params.snapshotYYMM,
             now: today,
@@ -862,8 +939,12 @@ export function computeInventory(
     const ratioBB = totalFC > 0 ? fcBB / totalFC : 0.5;
     const physicalNB = (item.QuantityInventory_NB || 0) + (item.QuantityDC_NB || 0) - (item.Backorder_NB || 0);
     const physicalBB = (item.QuantityInventory_BB || 0) + (item.QuantityDC_BB || 0) - (item.Backorder_BB || 0);
-    const incomingNB_Month = item.Pipeline_NB ? Object.entries(item.Pipeline_NB).reduce((sum, [k, v]) => isMatchCurr(k) ? sum + v : sum, 0) : 0;
-    const incomingBB_Month = item.Pipeline_BB ? Object.entries(item.Pipeline_BB).reduce((sum, [k, v]) => isMatchCurr(k) ? sum + v : sum, 0) : 0;
+    const incomingNB_Month = item.Pipeline_NB
+        ? Object.entries(item.Pipeline_NB).reduce((sum, [k, v]) => (isMatchCurr(k) ? sum + v : sum), 0)
+        : 0;
+    const incomingBB_Month = item.Pipeline_BB
+        ? Object.entries(item.Pipeline_BB).reduce((sum, [k, v]) => (isMatchCurr(k) ? sum + v : sum), 0)
+        : 0;
 
     // ── DRP Multi-Echelon Allocation Algorithm ──────────────────────────
     // Step 1: Target stock per warehouse (demand-weighted)
@@ -875,8 +956,8 @@ export function computeInventory(
     const poBB = item.TotalPO_BB || 0;
     const boNB = item.Backorder_NB || 0;
     const boBB = item.Backorder_BB || 0;
-    const reserveNB = physicalNB + poNB;  // physicalNB already subtracted boNB
-    const reserveBB = physicalBB + poBB;  // physicalBB already subtracted boBB
+    const reserveNB = physicalNB + poNB; // physicalNB already subtracted boNB
+    const reserveBB = physicalBB + poBB; // physicalBB already subtracted boBB
 
     // Step 3: Gap per warehouse (how much each needs to reach target)
     const rawGapNB = Math.max(0, maxNB - reserveNB);
@@ -936,17 +1017,24 @@ export function computeInventory(
         }
     }
 
-    const mosNB = (demandRateDaily * ratioNB) > 0 ? physicalNB / (demandRateDaily * ratioNB * 30) : 99;
-    const mosBB = (demandRateDaily * ratioBB) > 0 ? physicalBB / (demandRateDaily * ratioBB * 30) : 99;
+    const mosNB = demandRateDaily * ratioNB > 0 ? physicalNB / (demandRateDaily * ratioNB * 30) : 99;
+    const mosBB = demandRateDaily * ratioBB > 0 ? physicalBB / (demandRateDaily * ratioBB * 30) : 99;
 
     transferProps = {
-        maxNB, maxBB,
-        physicalNB, physicalBB,
-        incomingNB: poNB, incomingBB: poBB,
-        mosNB, mosBB,
-        incomingNB_Month, incomingBB_Month,
-        transferNBtoBB, transferBBtoNB,
-        suggestedOrderNB: sugOrderNB, suggestedOrderBB: sugOrderBB
+        maxNB,
+        maxBB,
+        physicalNB,
+        physicalBB,
+        incomingNB: poNB,
+        incomingBB: poBB,
+        mosNB,
+        mosBB,
+        incomingNB_Month,
+        incomingBB_Month,
+        transferNBtoBB,
+        transferBBtoNB,
+        suggestedOrderNB: sugOrderNB,
+        suggestedOrderBB: sugOrderBB,
     };
 
     const simTotalStock = available + onOrder + draftQty;
@@ -967,13 +1055,18 @@ export function computeInventory(
         pipelineQty: onOrder,
         boQty: simBOQty,
         boValue: simBOValue,
-        totalIncomingValue: (onOrder + draftQty) * unitCost
+        totalIncomingValue: (onOrder + draftQty) * unitCost,
     };
 
     // Aging Calculation (New)
     const boAging: import('../types/inventory').BackorderAging = {
-        qty30: 0, qty60: 0, qty90: 0, qtyOver90: 0,
-        totalQty: 0, totalValue: 0, oldestDebtDays: 0
+        qty30: 0,
+        qty60: 0,
+        qty90: 0,
+        qtyOver90: 0,
+        totalQty: 0,
+        totalValue: 0,
+        oldestDebtDays: 0,
     };
 
     if (item.BackorderBreakdown && item.BackorderBreakdown.length > 0) {
@@ -989,7 +1082,7 @@ export function computeInventory(
             // the CSV — parse it fresh every time. Only fall back to RawDate when
             // DocDate is empty or unparseable.
             const reparsed = parseDocDateFallback(boItem.DocDate);
-            const docTs = reparsed > 0 ? reparsed : (boItem.RawDate || 0);
+            const docTs = reparsed > 0 ? reparsed : boItem.RawDate || 0;
             if (docTs > 0) {
                 const daysOld = Math.max(0, Math.floor((todayTs - docTs) / MS_PER_DAY));
                 if (daysOld <= 30) boAging.qty30 += boItem.Qty;
@@ -1009,25 +1102,68 @@ export function computeInventory(
     }
 
     return {
-        effectiveLT, effectiveSP, effectiveSSP, demandRateDaily, demandMonthly,
-        available, netAvailable, dcQuantity: dc, unitCost, safetyStock, rop, stockMax,
-        stockoutRiskFlag, isStopBiz: isStop, excessQty, excessValue: excessQty * unitCost,
-        stockValue: available * unitCost, stockoutGapQty: stockoutRiskFlag ? Math.max(0, rop - reserve) : 0,
+        effectiveLT,
+        effectiveSP,
+        effectiveSSP,
+        demandRateDaily,
+        demandMonthly,
+        available,
+        netAvailable,
+        dcQuantity: dc,
+        unitCost,
+        safetyStock,
+        rop,
+        stockMax,
+        stockoutRiskFlag,
+        isStopBiz: isStop,
+        excessQty,
+        excessValue: excessQty * unitCost,
+        stockValue: available * unitCost,
+        stockoutGapQty: stockoutRiskFlag ? Math.max(0, rop - reserve) : 0,
         stockoutGapValue: (stockoutRiskFlag ? Math.max(0, rop - reserve) : 0) * unitCost,
-        mos, cst, incomingCurrentMonth, incomingNextMonth,
-        priorityBucket, priorityScore: 0, stockTurnRatio: 0, fillRate: 0, capitalEfficiency: 0,
-        gapOrExcess, suggestedBO, isBOCritical: bo > reserve, snp, ssi,
+        mos,
+        cst,
+        incomingCurrentMonth,
+        incomingNextMonth,
+        priorityBucket,
+        priorityScore: 0,
+        stockTurnRatio: 0,
+        fillRate: 0,
+        capitalEfficiency: 0,
+        gapOrExcess,
+        suggestedBO,
+        isBOCritical: bo > reserve,
+        snp,
+        ssi,
         // === Optimal ordering fields (cost-aware Air=2×Sea, time-phased) ===
-        poIn30d, urgentQty, reserveQty, urgentTrigger, reserveTrigger,
-        urgentReason, reserveReason, orderPriority,
-        stockoutFlag, stockoutQty, capLimited, classification, ltAir, ltSea,
+        poIn30d,
+        urgentQty,
+        reserveQty,
+        urgentTrigger,
+        reserveTrigger,
+        urgentReason,
+        reserveReason,
+        orderPriority,
+        stockoutFlag,
+        stockoutQty,
+        capLimited,
+        classification,
+        ltAir,
+        ltSea,
         boAging, // Include aging in computed fields
-        transfer: transferProps, cv, slope, forecastLinReg: forecast, warnings,
-        simulated
+        transfer: transferProps,
+        cv,
+        slope,
+        forecastLinReg: forecast,
+        warnings,
+        simulated,
     };
 }
 
-export function resolveItemProfile(item: InventoryItem, sourceProfiles?: SourceProfile[]): { profile?: SourceProfile; isFallback?: boolean; fallbackReason?: string } {
+export function resolveItemProfile(
+    item: InventoryItem,
+    sourceProfiles?: SourceProfile[],
+): { profile?: SourceProfile; isFallback?: boolean; fallbackReason?: string } {
     if (!sourceProfiles || sourceProfiles.length === 0) return {};
     const sId = (item.SourceId || '').toLowerCase();
     const brand = (item.BrandName || '').toLowerCase();
@@ -1041,19 +1177,36 @@ export function resolveItemProfile(item: InventoryItem, sourceProfiles?: SourceP
     if (sameBrandProfiles.length > 0) {
         // Pick the profile with the highest Lead Time as a conservative fallback for that brand (User requirement)
         const brandFallback = sameBrandProfiles.reduce((max, p) => (p.lt > max.lt ? p : max), sameBrandProfiles[0]);
-        return { profile: brandFallback, isFallback: true, fallbackReason: `Dùng LT cao nhất của ${item.BrandName || 'thương hiệu'}` };
+        return {
+            profile: brandFallback,
+            isFallback: true,
+            fallbackReason: `Dùng LT cao nhất của ${item.BrandName || 'thương hiệu'}`,
+        };
     }
 
     // 3. Absolute Fallback: Default to General profile (GEN) or first profile if Brand is completely unknown
     const generalProfile = sourceProfiles.find(p => p.id.toUpperCase() === 'GEN') || sourceProfiles[0];
-    return { profile: generalProfile, isFallback: true, fallbackReason: brand ? `Không tìm thấy profile cho ${brand}` : 'Dùng profile chung' };
+    return {
+        profile: generalProfile,
+        isFallback: true,
+        fallbackReason: brand ? `Không tìm thấy profile cho ${brand}` : 'Dùng profile chung',
+    };
 }
 
 export function computeInventoryBatch(items: InventoryItem[], params: ComputeParams, draftData?: any): InventoryItem[] {
     // Build working days cache ONCE for entire batch — anchored to snapshot date
     const wdCache = buildWorkingDaysCache(params.snapshotDate ? new Date(params.snapshotDate) : new Date());
-    const computed = items.map(item => ({ ...item, computed: computeInventory(item, params, draftData?.[item.ItemCode], resolveItemProfile(item, params.sourceProfiles), wdCache) }));
-    
+    const computed = items.map(item => ({
+        ...item,
+        computed: computeInventory(
+            item,
+            params,
+            draftData?.[item.ItemCode],
+            resolveItemProfile(item, params.sourceProfiles),
+            wdCache,
+        ),
+    }));
+
     // PHASE 6: Prepare Search Cache off-main-thread (Worker)
     // This offloads ~300-600ms of string processing from the UI thread for 50K items.
     return prepareSearchCache(computed) as InventoryItem[];
@@ -1062,7 +1215,9 @@ export function computeInventoryBatch(items: InventoryItem[], params: ComputePar
 export function makeComputeParams(settings: any): ComputeParams {
     const sDate = settings.snapshotDate || new Date().toISOString().split('T')[0];
     return {
-        lt: settings.params.lt, sp: settings.params.sp, ssp: settings.params.ssp,
+        lt: settings.params.lt,
+        sp: settings.params.sp,
+        ssp: settings.params.ssp,
         warehouseScope: settings.warehouseScope,
         costBasis: settings.costBasis,
         snapshotYYMM: sDate.replace(/-/g, '').substring(2, 6),
@@ -1074,7 +1229,7 @@ export function makeComputeParams(settings: any): ComputeParams {
             tetWeight: settings.seasonalityTuning?.tetWeight ?? 1.2,
             weatherWeight: settings.seasonalityTuning?.weatherWeight ?? 1.1,
             normalizationMethod: settings.seasonalityTuning?.normalizationMethod ?? 'Fixed',
-            workingDayFallback: settings.seasonalityTuning?.workingDayFallback ?? 26
-        }
+            workingDayFallback: settings.seasonalityTuning?.workingDayFallback ?? 26,
+        },
     };
 }

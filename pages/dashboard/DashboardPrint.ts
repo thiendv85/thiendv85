@@ -50,9 +50,11 @@ export function openPrintWindow(opts: {
         if (brands.length === 1 && sources.length > 1) return `${brands[0]} · ${sources.length} nguồn`;
         if (brands.length > 1) return `Hỗn hợp · ${brands.length} thương hiệu`;
         if (brands.length === 1 && sources.length === 1) {
-            const p = appSettings?.sourceProfiles?.find(p =>
-                p.brand?.toLowerCase() === brands[0].toLowerCase() &&
-                (p.id.toUpperCase() === sources[0].toUpperCase() || p.name.toLowerCase().includes(sources[0].toLowerCase()))
+            const p = appSettings?.sourceProfiles?.find(
+                p =>
+                    p.brand?.toLowerCase() === brands[0].toLowerCase() &&
+                    (p.id.toUpperCase() === sources[0].toUpperCase() ||
+                        p.name.toLowerCase().includes(sources[0].toLowerCase())),
             );
             if (p) return `${p.brand} · ${p.id} – ${p.name}`;
             return `${brands[0]} · ${sources[0]}`;
@@ -67,20 +69,43 @@ export function openPrintWindow(opts: {
     const buildTableRows = (mx: Record<string, any>, gs: GrandStats) => {
         let rows = '';
         LOIS_HIERARCHY.forEach(group => {
-            const hRow = { items: 0, turnover: 0, noStock: 0, short: 0, stockVal: 0, poVal: 0, boItems: 0, boValue: 0, excessItems: 0, excessVal: 0, bmwCount: 0, trendSum: 0, trendCount: 0 };
+            const hRow = {
+                items: 0,
+                turnover: 0,
+                noStock: 0,
+                short: 0,
+                stockVal: 0,
+                poVal: 0,
+                boItems: 0,
+                boValue: 0,
+                excessItems: 0,
+                excessVal: 0,
+                bmwCount: 0,
+                trendSum: 0,
+                trendCount: 0,
+            };
             group.sub.forEach(k => {
                 if (mx[k]) {
-                    hRow.items += mx[k].items; hRow.turnover += mx[k].turnover; hRow.noStock += mx[k].noStock; hRow.short += mx[k].short;
-                    hRow.stockVal += mx[k].stockVal; hRow.poVal += mx[k].poVal; hRow.boItems += mx[k].boItems; hRow.boValue += mx[k].boValue;
-                    hRow.excessItems += mx[k].excessItems; hRow.excessVal += mx[k].excessVal; hRow.bmwCount += mx[k].bmwCount;
-                    hRow.trendSum += mx[k].trendSum; hRow.trendCount += mx[k].trendCount;
+                    hRow.items += mx[k].items;
+                    hRow.turnover += mx[k].turnover;
+                    hRow.noStock += mx[k].noStock;
+                    hRow.short += mx[k].short;
+                    hRow.stockVal += mx[k].stockVal;
+                    hRow.poVal += mx[k].poVal;
+                    hRow.boItems += mx[k].boItems;
+                    hRow.boValue += mx[k].boValue;
+                    hRow.excessItems += mx[k].excessItems;
+                    hRow.excessVal += mx[k].excessVal;
+                    hRow.bmwCount += mx[k].bmwCount;
+                    hRow.trendSum += mx[k].trendSum;
+                    hRow.trendCount += mx[k].trendCount;
                 }
             });
             if (hRow.items === 0) return;
             const hTrend = hRow.trendCount > 0 ? hRow.trendSum / hRow.trendCount : 0;
-            const hExPct = hRow.stockVal > 0 ? (hRow.excessVal / hRow.stockVal * 100) : 0;
-            const hTurnPct = gs.grandTurnover > 0 ? (hRow.turnover / gs.grandTurnover * 100) : 0;
-            const hMOS = hRow.turnover > 0 ? (hRow.stockVal * 12 / hRow.turnover) : 0;
+            const hExPct = hRow.stockVal > 0 ? (hRow.excessVal / hRow.stockVal) * 100 : 0;
+            const hTurnPct = gs.grandTurnover > 0 ? (hRow.turnover / gs.grandTurnover) * 100 : 0;
+            const hMOS = hRow.turnover > 0 ? (hRow.stockVal * 12) / hRow.turnover : 0;
 
             rows += `<tr class="group-hdr">
                 <td>${group.label}</td>
@@ -99,22 +124,23 @@ export function openPrintWindow(opts: {
                 <td class="c ${hExPct > 15 ? 'red' : 'grn'}">${hExPct.toFixed(1)}%</td>
             </tr>`;
 
-            if (group.sub.length > 1) group.sub.forEach(k => {
-                if (!mx[k] || mx[k].items === 0) return;
-                const d = mx[k];
-                const trend = d.trendCount > 0 ? d.trendSum / d.trendCount : 0;
-                const exPct = d.stockVal > 0 ? (d.excessVal / d.stockVal * 100) : 0;
-                const turnPct = gs.grandTurnover > 0 ? (d.turnover / gs.grandTurnover * 100) : 0;
-                const dMOS = d.turnover > 0 ? (d.stockVal * 12 / d.turnover) : 0;
-                const tgtCfg = loisProfiles.find(p => p.id === k) || null;
-                const tgtMOS = tgtCfg ? tgtCfg.targetMOS : null;
-                const tgtEx = tgtCfg ? tgtCfg.targetExcessPct : null;
-                const dDesc = tgtCfg ? tgtCfg.name : '';
+            if (group.sub.length > 1)
+                group.sub.forEach(k => {
+                    if (!mx[k] || mx[k].items === 0) return;
+                    const d = mx[k];
+                    const trend = d.trendCount > 0 ? d.trendSum / d.trendCount : 0;
+                    const exPct = d.stockVal > 0 ? (d.excessVal / d.stockVal) * 100 : 0;
+                    const turnPct = gs.grandTurnover > 0 ? (d.turnover / gs.grandTurnover) * 100 : 0;
+                    const dMOS = d.turnover > 0 ? (d.stockVal * 12) / d.turnover : 0;
+                    const tgtCfg = loisProfiles.find(p => p.id === k) || null;
+                    const tgtMOS = tgtCfg ? tgtCfg.targetMOS : null;
+                    const tgtEx = tgtCfg ? tgtCfg.targetExcessPct : null;
+                    const dDesc = tgtCfg ? tgtCfg.name : '';
 
-                const mosOk = (tgtMOS && dMOS > 0) ? (dMOS >= tgtMOS * 0.5 && dMOS <= tgtMOS * 1.5) : null;
-                const exOk = tgtEx ? exPct <= tgtEx : null;
+                    const mosOk = tgtMOS && dMOS > 0 ? dMOS >= tgtMOS * 0.5 && dMOS <= tgtMOS * 1.5 : null;
+                    const exOk = tgtEx ? exPct <= tgtEx : null;
 
-                rows += `<tr class="sub-row">
+                    rows += `<tr class="sub-row">
                     <td class="indent">${k}${dDesc ? ` <span style="font-weight:400;color:#555;font-size:6pt">— ${dDesc}</span>` : ''}</td>
                     <td class="r">${fv(d.turnover)}<span class="trend ${trend > 0 ? 'up' : 'dn'}">${trend > 0 ? '↑' : '↓'}${Math.abs(trend).toFixed(0)}%</span></td>
                     <td class="r blue">${turnPct.toFixed(1)}%</td>
@@ -130,14 +156,14 @@ export function openPrintWindow(opts: {
                     <td class="r muted">${fv(d.excessVal)}</td>
                     <td class="c ${exOk === true ? 'grn' : exOk === false ? 'red' : 'muted'}">${exPct.toFixed(1)}%${tgtEx ? ` <small>🎯≤${tgtEx}%</small>` : ''}</td>
                 </tr>`;
-            });
+                });
         });
         return rows;
     };
 
     const makeFooter = (gs: GrandStats) => {
-        const exPct = gs.grandStock > 0 ? (gs.grandExcess / gs.grandStock * 100) : 0;
-        const gMOS = gs.grandTurnover > 0 ? (gs.grandStock * 12 / gs.grandTurnover) : 0;
+        const exPct = gs.grandStock > 0 ? (gs.grandExcess / gs.grandStock) * 100 : 0;
+        const gMOS = gs.grandTurnover > 0 ? (gs.grandStock * 12) / gs.grandTurnover : 0;
         return `<tr class="footer-row">
             <td>TỔNG CỘNG</td>
             <td class="r">${fv(gs.grandTurnover)}</td>
@@ -161,7 +187,7 @@ export function openPrintWindow(opts: {
     const tableHTML = (isSimulation: boolean) => {
         const mx = isSimulation ? simMatrix : curMatrix;
         const gs = isSimulation ? simGS : curGS;
-        const exPctGrand = gs.grandStock > 0 ? (gs.grandExcess / gs.grandStock * 100) : 0;
+        const exPctGrand = gs.grandStock > 0 ? (gs.grandExcess / gs.grandStock) * 100 : 0;
         return `
         <div class="page-header">
             <div class="logo-area"><div class="logo-box">ATP</div><div><div class="company-name">Auto Parts Governance</div><div class="page-title">Báo cáo Tồn Kho</div><div class="brand-line">Thương hiệu: <strong>${brandLabel}</strong></div></div></div>
@@ -278,5 +304,7 @@ export function openPrintWindow(opts: {
     w.document.write(html);
     w.document.close();
     w.focus();
-    setTimeout(() => { w.print(); }, 600);
+    setTimeout(() => {
+        w.print();
+    }, 600);
 }

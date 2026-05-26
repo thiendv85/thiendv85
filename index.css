@@ -99,6 +99,236 @@ h1, h2, h3, h4, .font-heading {
     letter-spacing: -0.02em;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   LIQUID GLASS FILTER SYSTEM — unified glass buttons across all pages.
+   Mirrors .bo-chip / .bo-segmented design language but scoped globally
+   so pages outside .bo-page (Ordering, DemandIntelligence) get the same
+   translucent filter aesthetic.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Segmented control container — glass pill wrapping a row of buttons */
+.lg-segmented {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px;
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(14px) saturate(1.5);
+    -webkit-backdrop-filter: blur(14px) saturate(1.5);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 14px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.7),
+        0 1px 3px rgba(15, 17, 22, 0.06),
+        0 8px 24px -12px rgba(15, 17, 22, 0.08);
+    transition: box-shadow 200ms ease;
+}
+.lg-segmented > button {
+    height: 28px;
+    padding: 0 14px;
+    border-radius: 10px;
+    font-size: 0.8125rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(15, 17, 22, 0.55);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    white-space: nowrap;
+}
+.lg-segmented > button:hover {
+    color: rgba(15, 17, 22, 0.8);
+    background: rgba(255, 255, 255, 0.5);
+}
+.lg-segmented > button.lg-active,
+.lg-segmented > button[aria-pressed="true"],
+.lg-segmented > button[data-active="true"] {
+    background: rgba(14, 17, 22, 0.88);
+    color: #F4F1EB;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        0 2px 8px -3px rgba(10, 12, 18, 0.4),
+        0 8px 20px -8px rgba(10, 12, 18, 0.25);
+    backdrop-filter: blur(8px);
+}
+
+/* Pill button — standalone glass filter pill (LOIS groups, coverage, etc.) */
+.lg-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 30px;
+    min-width: 36px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(12px) saturate(1.4);
+    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    color: rgba(15, 17, 22, 0.7);
+    font-size: 0.8125rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.65),
+        0 1px 2px rgba(15, 17, 22, 0.04);
+}
+.lg-pill:hover {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(15, 17, 22, 0.12);
+    color: rgba(15, 17, 22, 0.85);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.7),
+        0 2px 6px rgba(15, 17, 22, 0.08);
+}
+.lg-pill.lg-active,
+.lg-pill[aria-pressed="true"],
+.lg-pill[data-active="true"] {
+    background: rgba(14, 17, 22, 0.88);
+    border-color: rgba(168, 133, 75, 0.45);
+    color: #F4F1EB;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 4px 14px -6px rgba(10, 12, 18, 0.45),
+        0 1px 2px rgba(168, 133, 75, 0.12);
+}
+
+/* Icon button — square glass button for icon-only filters */
+.lg-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(12px) saturate(1.4);
+    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    color: rgba(15, 17, 22, 0.55);
+    font-size: 0.8125rem;
+    cursor: pointer;
+    transition: all 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        0 1px 2px rgba(15, 17, 22, 0.04);
+}
+.lg-icon-btn:hover {
+    background: rgba(255, 255, 255, 0.78);
+    border-color: rgba(15, 17, 22, 0.12);
+    color: rgba(15, 17, 22, 0.8);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.7),
+        0 2px 8px rgba(15, 17, 22, 0.08);
+}
+.lg-icon-btn.lg-active,
+.lg-icon-btn[aria-pressed="true"],
+.lg-icon-btn[data-active="true"] {
+    background: rgba(14, 17, 22, 0.88);
+    border-color: rgba(168, 133, 75, 0.4);
+    color: #F4F1EB;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 4px 12px -5px rgba(10, 12, 18, 0.45);
+}
+
+/* Glass select dropdown */
+.lg-select {
+    height: 30px;
+    padding: 0 28px 0 10px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(12px) saturate(1.4);
+    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    color: rgba(15, 17, 22, 0.7);
+    font-size: 0.8125rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    appearance: none;
+    outline: none;
+    transition: all 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        0 1px 2px rgba(15, 17, 22, 0.04);
+}
+.lg-select:hover {
+    background: rgba(255, 255, 255, 0.72);
+    border-color: rgba(15, 17, 22, 0.12);
+}
+.lg-select:focus {
+    border-color: rgba(14, 17, 22, 0.3);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        0 0 0 3px rgba(14, 17, 22, 0.06);
+}
+.lg-select.lg-active,
+.lg-select[data-active="true"] {
+    background: rgba(14, 17, 22, 0.12);
+    border-color: rgba(14, 17, 22, 0.25);
+    color: rgba(15, 17, 22, 0.9);
+}
+
+/* Glass dropdown trigger (source picker etc.) */
+.lg-dropdown {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 10px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(12px) saturate(1.4);
+    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    color: rgba(15, 17, 22, 0.7);
+    font-size: 0.8125rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        0 1px 2px rgba(15, 17, 22, 0.04);
+}
+.lg-dropdown:hover {
+    background: rgba(255, 255, 255, 0.72);
+    border-color: rgba(15, 17, 22, 0.12);
+}
+.lg-dropdown.lg-active,
+.lg-dropdown[data-active="true"] {
+    background: rgba(14, 17, 22, 0.88);
+    border-color: rgba(168, 133, 75, 0.45);
+    color: #F4F1EB;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 4px 14px -6px rgba(10, 12, 18, 0.45);
+}
+
+/* Glass container — wraps filter rows */
+.lg-filter-bar {
+    background: rgba(255, 255, 255, 0.35);
+    backdrop-filter: blur(18px) saturate(1.5);
+    -webkit-backdrop-filter: blur(18px) saturate(1.5);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    border-radius: 24px;
+    padding: 12px 16px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.7),
+        0 1px 3px rgba(15, 17, 22, 0.04),
+        0 12px 32px -16px rgba(15, 17, 22, 0.08);
+}
+
 /* Premium Glassmorphism Utility */
 .glass-premium {
     background: rgba(255, 255, 255, 0.05);
@@ -214,47 +444,47 @@ h1, h2, h3, h4, .font-heading {
        hues. Semantic aliases (warn / danger / data-blue / aging-*) re-point
        into the 4-hue ladder — they do not introduce new colors. */
 
-    /* Hue 1 — ONYX (text, dark surface, neutral signal) */
-    --bo-surface: #F4F1EB;
+    /* Paper & ink — cool slate, ink navy (Indigo/Navy + Vàng palette) */
+    --bo-paper: #FFFFFF;
+    --bo-surface: #F7F5F2;
     --bo-surface-raised: #FFFFFF;
-    --bo-surface-sunken: #ECE7DD;
+    --bo-surface-sunken: #EFF1F8;
     --bo-surface-ink: #0A0C12;
     --bo-surface-ink-soft: #14171D;
-    --bo-ink: #0E1116;
-    --bo-ink-muted: #4B5260;
-    --bo-ink-soft: #7A8190;
-    --bo-hairline: #DAD3C5;
+    --bo-ink: #0F1633;
+    --bo-ink-muted: #5C6580;
+    --bo-ink-soft: #1F2748;
+    --bo-hairline: #E3E6F0;
 
-    /* Hue 2 — BRONZE (premium accent + warning ladder via tonality) */
-    --bo-bronze: #A8854B;
-    --bo-bronze-strong: #8E6E2F;
-    --bo-bronze-soft: #E9DDBE;
-    --bo-bronze-deep: #5C4720;
-    --bo-accent-bronze: var(--bo-bronze);            /* legacy alias */
+    /* Accent — vàng */
+    --bo-accent: #E5B431;
+    --bo-accent-soft: #FAEFCC;
+    --bo-accent-deep: #7A5C0F;
 
-    /* Hue 3 — CLAY (critical only) */
-    --bo-accent: #B8422E;
-    --bo-accent-soft: #F2D9CF;
-    --bo-accent-deep: #7A2A1B;
+    /* Bronze → indigo deep (warm-neutral role) */
+    --bo-bronze: #4F5C8F;
+    --bo-bronze-strong: #2D3866;
+    --bo-bronze-soft: #E5E8F4;
+    --bo-bronze-deep: #1A2347;
+    --bo-accent-bronze: var(--bo-bronze);
 
-    /* Hue 4 — SAGE (positive only) */
-    --bo-ok: #146346;
-    --bo-ok-soft: #D6ECDF;
+    /* Trạng thái */
+    --bo-ok: #3C7A6B;
+    --bo-ok-soft: #D7ECE5;
+    --bo-critical: #C13B3B;
+    --bo-critical-soft: #F8DFDF;
 
-    /* ─── Semantic re-maps — DO NOT introduce new hues here ─────────────
-       Every legacy alias below points back into the 4-hue ladder so the
-       hundreds of inline styles in BackorderAnalytics.tsx that read these
-       custom-properties keep working without per-element edits. */
-    --bo-data-blue: var(--bo-ink-muted);             /* was #2F5BD6 — collapsed to onyx */
+    /* Semantic re-maps */
+    --bo-data-blue: var(--bo-ink-muted);
     --bo-data-blue-soft: var(--bo-surface-sunken);
-    --bo-warn: var(--bo-bronze-strong);              /* was #8A5A14 — bronze ladder */
+    --bo-warn: var(--bo-bronze-strong);
     --bo-warn-soft: var(--bo-bronze-soft);
-    --bo-danger: var(--bo-accent);                   /* was #9A2D2D — clay */
-    --bo-danger-soft: var(--bo-accent-soft);
-    --bo-aging-30: var(--bo-ink-muted);
-    --bo-aging-60: var(--bo-bronze-deep);            /* darker for AA contrast on soft bg */
-    --bo-aging-90: var(--bo-accent-deep);
-    --bo-aging-over90: var(--bo-accent-deep);
+    --bo-danger: var(--bo-critical);
+    --bo-danger-soft: var(--bo-critical-soft);
+    --bo-aging-30: #5C6580;
+    --bo-aging-60: #8A6810;
+    --bo-aging-90: #C13B3B;
+    --bo-aging-over90: #7A1F1F;
 
     --bo-radius-xs: 6px;
     --bo-radius-sm: 10px;
@@ -280,10 +510,10 @@ h1, h2, h3, h4, .font-heading {
 .bo-page .bo-mono    { font-family: var(--bo-font-mono); font-variant-numeric: tabular-nums; font-weight: 700; }
 .bo-page .bo-eyebrow {
     font-family: var(--bo-font-body);
-    font-size: 0.6875rem;
+    font-size: 0.8125rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.14em;
     color: var(--bo-ink-muted);
 }
 
@@ -402,10 +632,10 @@ h1, h2, h3, h4, .font-heading {
     border: 1px solid rgba(15, 17, 22, 0.08);
     color: var(--bo-ink);
     font-family: var(--bo-font-body);
-    font-size: 0.6875rem;
+    font-size: 0.8125rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.10em;
     white-space: nowrap;
     cursor: pointer;
     transition: background 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
@@ -469,10 +699,10 @@ h1, h2, h3, h4, .font-heading {
     border: 1px solid rgba(15, 17, 22, 0.08);
     color: var(--bo-ink);
     font-family: var(--bo-font-body);
-    font-size: 0.6875rem;
+    font-size: 0.8125rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.10em;
     white-space: nowrap;
     cursor: pointer;
     box-shadow: inset 2px 0 0 var(--bo-ink-muted);
@@ -499,7 +729,7 @@ h1, h2, h3, h4, .font-heading {
     background: rgba(15, 17, 22, 0.08);
     color: var(--bo-ink);
     font-family: var(--bo-font-mono);
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 700;
 }
 .bo-page .bo-dropdown-trigger[data-active="true"] .bo-count-pill {
@@ -532,10 +762,10 @@ h1, h2, h3, h4, .font-heading {
     padding: 0 10px;
     border-radius: 7px;
     font-family: var(--bo-font-body);
-    font-size: 0.6875rem;
+    font-size: 0.8125rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.10em;
     color: var(--bo-ink);
     background: transparent;
     border: none;
@@ -561,10 +791,10 @@ h1, h2, h3, h4, .font-heading {
     border-radius: var(--bo-radius-sm);
     background: var(--bo-surface-ink);
     color: #F7F5F2;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.12em;
     transition: transform var(--duration-fast, 120ms) ease, box-shadow var(--duration-fast, 120ms) ease;
     cursor: pointer;
 }
@@ -594,7 +824,7 @@ h1, h2, h3, h4, .font-heading {
     padding: 4px 8px;
     border-radius: var(--bo-radius-xs);
     font-family: var(--bo-font-mono);
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
 }
