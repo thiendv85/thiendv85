@@ -163,10 +163,17 @@ export const Ordering = ({
     const deferredSearchResult = useDeferredValue(searchResult);
     const deferredSortKey = useDeferredValue(sortKey);
 
+    // Defer heavy table render on mount to keep nav-switch INP low
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => { setMounted(true); }, []);
+    const deferredMounted = useDeferredValue(mounted);
+
     // Debounced search input
     const [localSearch, setLocalSearch] = useState(filters.search);
     const searchDebounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-    useEffect(() => { setLocalSearch(filters.search); }, [filters.search]);
+    useEffect(() => {
+        setLocalSearch(filters.search);
+    }, [filters.search]);
     useEffect(() => () => clearTimeout(searchDebounceRef.current), []);
 
     const [supersessionWarnings, setSupersessionWarnings] = useState<Record<string, number>>({});
@@ -489,6 +496,8 @@ export const Ordering = ({
     // O10 PERFORMANCE: Base metrics (no drafts) are now computed centrally in App.tsx!
 
     const { enrichedList, enrichedMap } = useMemo(() => {
+        // Skip heavy computation until mount is deferred — keeps nav-switch INP low
+        if (!deferredMounted) return { enrichedList: [] as InventoryItem[], enrichedMap: new Map<string, InventoryItem>() };
         const itemMap = new Map<string, InventoryItem>();
         const list = activeEnrichedData.map(item => {
             const draft = orderQuantities[item.ItemCode];
@@ -516,7 +525,7 @@ export const Ordering = ({
             return finalizedItem;
         });
         return { enrichedList: list, enrichedMap: itemMap };
-    }, [activeEnrichedData, computeParams, orderQuantities, originalDraft]);
+    }, [deferredMounted, activeEnrichedData, computeParams, orderQuantities, originalDraft]);
 
     const filteredData = useMemo(() => {
         let list = enrichedList.filter(i => {
@@ -1372,7 +1381,10 @@ export const Ordering = ({
                                     const val = e.target.value;
                                     setLocalSearch(val);
                                     clearTimeout(searchDebounceRef.current);
-                                    searchDebounceRef.current = setTimeout(() => handleMainFilterChange({ ...filters, search: val }), 200);
+                                    searchDebounceRef.current = setTimeout(
+                                        () => handleMainFilterChange({ ...filters, search: val }),
+                                        200,
+                                    );
                                 }}
                                 className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:bg-white focus:border-blue-400 transition-all text-slate-700"
                             />
