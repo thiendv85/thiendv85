@@ -17,7 +17,7 @@ import { useSupersession } from './hooks/useSupersession';
 import { useSettingsRepair } from './hooks/useSettingsRepair';
 import { cacheUploadedData, getCachedUploadedData, clearCachedUploadedData, cacheMonthlyData } from './utils/db';
 import { loadAppSettings, saveAppSettings, type AppSettings } from './utils/appSettings';
-import { UpdateLog } from './pages/UpdateLog';
+const UpdateLog = React.lazy(() => import('./pages/UpdateLog').then((m) => ({ default: m.UpdateLog })));
 
 import { FaIcon } from './components/Icon';
 // Heavy pages — lazy loaded for code splitting
@@ -34,6 +34,7 @@ const BackorderAnalytics = React.lazy(() =>
   import('./pages/BackorderAnalytics').then((m) => ({ default: m.BackorderAnalytics }))
 );
 const SettingsPage = React.lazy(() => import('./pages/Settings').then((m) => ({ default: m.SettingsPage })));
+const ExecutiveReport = React.lazy(() => import('./pages/ExecutiveReport'));
 
 const PageSkeleton = () => (
   <div className="animate-pulse space-y-4 p-6">
@@ -57,7 +58,8 @@ type View =
   | 'log'
   | 'kitting'
   | 'settings'
-  | 'approval-queue';
+  | 'approval-queue'
+  | 'report';
 
 const AuthSpinner = () => (
   <div className="min-h-screen bg-slate-900 flex items-center justify-center">
@@ -251,6 +253,7 @@ const AppContent = () => {
         signOut();
       }}
     >
+      <ErrorBoundary compact resetKey={view}>
       <React.Suspense fallback={<PageSkeleton />}>
         {view === 'dashboard' && (
           <Dashboard
@@ -311,6 +314,13 @@ const AppContent = () => {
           />
         )}
         {view === 'settings' && <SettingsPage settings={appSettings} onSave={updateSettings} />}
+        {view === 'report' && (
+          <ExecutiveReport
+            data={data}
+            enrichedData={enrichedData}
+            appSettings={appSettings}
+          />
+        )}
         {view === 'approval-queue' && (
           <ApprovalQueue
             appSettings={appSettings}
@@ -325,6 +335,7 @@ const AppContent = () => {
           />
         )}
       </React.Suspense>
+      </ErrorBoundary>
 
       <AppModals
         isDataModalOpen={isDataModalOpen}

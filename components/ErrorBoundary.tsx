@@ -2,6 +2,10 @@ import React from 'react';
 
 interface Props {
   children: React.ReactNode;
+  /** When this key changes, the boundary resets (useful for page-level boundaries). */
+  resetKey?: string;
+  /** Optional compact fallback for page sections instead of full-screen error. */
+  compact?: boolean;
 }
 interface State {
   hasError: boolean;
@@ -36,10 +40,36 @@ export class ErrorBoundary extends React.Component<Props, State> {
     }
   }
 
+  componentDidUpdate(prevProps: Props) {
+    if (this.props.resetKey !== prevProps.resetKey && this.state.hasError) {
+      this.setState({ hasError: false, error: null });
+    }
+  }
+
   render() {
     if (!this.state.hasError) return this.props.children;
     const err = this.state.error;
     const errStr = err instanceof Error ? `${err.message}\n\n${err.stack}` : String(err);
+
+    if (this.props.compact) {
+      return (
+        <div className="p-6 text-center">
+          <div className="inline-flex items-center gap-2 bg-rose-50 text-rose-700 px-4 py-3 rounded-2xl border border-rose-200 text-sm font-bold mb-3">
+            <span>⚠</span> Lỗi hiển thị trang
+          </div>
+          <pre className="bg-slate-100 p-3 rounded-xl text-xs text-slate-600 max-w-lg mx-auto overflow-auto mb-3">
+            {errStr.slice(0, 300)}
+          </pre>
+          <button
+            onClick={() => this.setState({ hasError: false, error: null })}
+            className="px-5 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold"
+          >
+            Thử lại
+          </button>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-slate-900 text-white p-10 flex flex-col items-center justify-center font-mono">
         <h1 className="text-2xl font-bold mb-4 text-rose-500">RUNTIME ERROR DETECTED</h1>
