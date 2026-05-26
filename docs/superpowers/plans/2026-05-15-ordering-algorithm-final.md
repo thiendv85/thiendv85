@@ -21,7 +21,10 @@
 | Khi nào fire Air | `BO > 0` HOẶC sắp stockout | Air đắt, chỉ dùng khi cần thật |
 | Air có check PO sắp về không | Có — `poIn30d` (PO về trong 30 ngày) | Tránh đặt Air thừa khi Sea sắp về |
 | Cap PO sắp về | 30 ngày | User chốt: "PO về trong 30 ngày là kịp" |
-| Cap số lượng Air | `BO_deficit + 1 tháng demand` | Air đắt — chỉ đủ cover ngắn hạn, phần dài hạn để Sea |
+| Số lượng Air (Trig1 BO) | `deficit` trần = `-(avail+poIn30d-bo-demand1m)` | FIX: bỏ buffer. Air cầm cự, Sea fill MAX. Buffer = over-order |
+| Số lượng Air (Trig2 stockout) | `max(SS, 1m demand) - realStock` | FIX: tới SS/1m, KHÔNG tới ROP (ROP quá nhiều cho air đắt) |
+| proj30d trừ demand? | Có (Trig1, so với 0) | 0 không chứa demand → phải trừ. ROP đã chứa → không trừ |
+| Anti-thrash Air | Không buffer; Air về <30d vào poIn30d kỳ sau | Tốc độ Air tự chống thrash |
 | Sea fire khi nào | `futureStock < stockMax` | Luôn fill tới MAX sau khi tính BO + PO |
 | Baseline Sea | `NetDemand + urgentQty` | Future state, chống double-count |
 
@@ -149,53 +152,62 @@ Trong `utils/inventoryEngine.ts`, ngay trước `export function computeInventor
 
 ```typescript
 /**
- * Khẩn (Air) — đặt nhanh để cover deficit RIGHT NOW.
+ * Khẩn (Air) — đặt nhanh chỉ để CẦM CỰ tới khi Sea về. KHÔNG xây buffer.
  *
- * Baseline: `available - bo` (kệ thật trừ nợ thật).
- * KHÔNG dùng NetDemand vì nó cộng PO 2-3 tháng nữa mới về → false safety.
+ * Triết lý: Air đắt → chỉ bù đúng phần âm. Restock dài hạn (fill stockMax)
+ * là việc của Sea. Cộng buffer vào Air = over-order (dư).
  *
- * Có check poIn30d: nếu PO sắp về trong 30 ngày đủ cover BO → KHÔNG fire Air.
- *
- * Cap qty: BO_deficit + 1 tháng demand (Air đắt, không fill tới 4 tháng).
+ * FIX 2026-05-17 (qua thảo luận với user):
+ *   - FIX 1: proj30d TRỪ demand 30 ngày — so với 0 (hết hàng vật lý),
+ *            mà 0 KHÔNG bao gồm demand. Plan cũ thiếu → undercount.
+ *   - FIX 2: BỎ "+ demandMonthly buffer" — Air = deficit trần. Anti-thrash
+ *            do chính Air về nhanh (<30d, vào poIn30d kỳ sau) lo.
+ *   - FIX 3 (Trig2): size tới max(safetyStock, 1 tháng demand), KHÔNG ROP.
+ *            ROP = leadtime-demand + SS → quá nhiều cho air đắt.
+ *   QUY TẮC: so với 0/target tuyệt đối → TRỪ demand. So với ROP (đã chứa
+ *            demand-leadtime) → KHÔNG trừ lại (double-count). Trig2 dùng
+ *            target tuyệt đối nên KHÔNG trừ demand.
  *
  * Triggers:
- *   1. backorder_uncovered: bo > available + poIn30d → có khách chờ + PO không kịp
- *   2. stockout_imminent  : (available - bo) < rop AND poIn30d == 0 → sắp hết, không có PO cứu
- *   3. none               : tồn đủ hoặc PO về kịp
+ *   1. backorder_uncovered: bo>0 AND (available+poIn30d-bo-demand30d) < 0
+ *   2. stockout_imminent  : bo=0 AND realStock < max(SS,1m) AND poIn30d<=0
+ *   3. none               : tồn đủ hoặc PO 30d về kịp
  */
 function computeUrgentQty(params: {
     available: number;
     bo: number;
     poIn30d: number;
-    rop: number;
+    safetyStock: number;
     snp: number;
     demandMonthly: number;
 }): { qty: number; trigger: 'backorder_uncovered' | 'stockout_imminent' | 'none'; reason: string } {
-    const { available, bo, poIn30d, rop, snp, demandMonthly } = params;
+    const { available, bo, poIn30d, safetyStock, snp, demandMonthly } = params;
     const roundUp = (x: number) => snp > 0 ? Math.ceil(x / snp) * snp : Math.ceil(x);
     const realStock = available - bo;
-    const effectiveStock30d = available + poIn30d - bo;
+    const demand30d = demandMonthly; // 30 ngày ≈ 1 tháng (worst case PO về cuối kỳ)
+    // FIX 1: trừ demand vì so với 0 (0 không bao gồm demand tiêu thụ)
+    const proj30d = available + poIn30d - bo - demand30d;
 
-    // Trigger 1: BO không cover nổi sau khi PO 30d về
-    if (bo > 0 && effectiveStock30d < 0) {
-        const deficit = -effectiveStock30d;
-        const buffer = demandMonthly * 1; // 1 tháng cover khi chờ Sea
-        const qty = roundUp(deficit + buffer);
+    // Trigger 1: BO + demand vượt tồn + PO30d. FIX 2: deficit trần, KHÔNG buffer.
+    if (bo > 0 && proj30d < 0) {
+        const deficit = -proj30d;
+        const qty = roundUp(deficit);
         return {
             qty,
             trigger: 'backorder_uncovered',
-            reason: `BO ${bo} > tồn ${available} + PO 30d ${Math.round(poIn30d)}, thiếu ${Math.round(deficit)} + buffer 1m ${Math.round(buffer)}`,
+            reason: `BO ${bo}: tồn ${available} + PO30d ${Math.round(poIn30d)} - demand 1m ${Math.round(demand30d)} = thiếu ${Math.round(deficit)} (cầm cự, Sea fill MAX)`,
         };
     }
 
-    // Trigger 2: sắp stockout, không có PO cứu
-    if (realStock < rop && poIn30d <= 0) {
-        const need = rop - realStock;
+    // Trigger 2: sắp stockout, không PO30d cứu. FIX 3: target lean = max(SS, 1m).
+    const target = Math.max(safetyStock, demandMonthly);
+    if (bo === 0 && realStock < target && poIn30d <= 0) {
+        const need = target - realStock; // target tuyệt đối → KHÔNG trừ demand lần nữa
         const qty = roundUp(need);
         return {
             qty,
             trigger: 'stockout_imminent',
-            reason: `Tồn ròng ${Math.round(realStock)} < ROP ${Math.round(rop)}, không có PO 30d cứu`,
+            reason: `Tồn ${Math.round(realStock)} < target ${Math.round(target)} (max[SS ${Math.round(safetyStock)}, 1m ${Math.round(demandMonthly)}]), không PO30d cứu`,
         };
     }
 
@@ -203,8 +215,8 @@ function computeUrgentQty(params: {
         qty: 0,
         trigger: 'none',
         reason: bo > 0
-            ? `BO ${bo} sẽ được cover bởi tồn ${available} + PO 30d ${Math.round(poIn30d)}`
-            : `Tồn ròng ${Math.round(realStock)} >= ROP ${Math.round(rop)}, không khẩn`,
+            ? `BO ${bo} được cover: tồn ${available} + PO30d ${Math.round(poIn30d)} - demand 1m ${Math.round(demand30d)} >= 0`
+            : `Tồn ${Math.round(realStock)} >= target ${Math.round(Math.max(safetyStock, demandMonthly))}, không khẩn`,
     };
 }
 ```
@@ -219,7 +231,7 @@ npx tsc --noEmit 2>&1 | grep -v "InventoryDistribution\|npm notice" | tail -5
 
 ```bash
 git add utils/inventoryEngine.ts
-git commit -m "feat(engine): add computeUrgentQty with 30d-window trigger logic"
+git commit -m "feat(engine): computeUrgentQty - lean Air (deficit only, demand-adjusted, no buffer)"
 ```
 
 ---
@@ -351,7 +363,7 @@ if (!isStop && !isZeroDemand) {
         available,
         bo,
         poIn30d,
-        rop,
+        safetyStock,
         snp,
         demandMonthly,
     });
@@ -735,13 +747,19 @@ git push origin v2.2.0-dual-ordering
 
 ## Bảng tra cứu nhanh: scenario → action
 
-| `available` | `bo` | `onOrder` | `poIn30d` | `rop` | `stockMax` | demand/m | → urgent | → reserve | trigger |
-|-------------|------|-----------|-----------|-------|------------|----------|----------|-----------|---------|
-| 50 | 0 | 0 | 0 | 100 | 300 | 100 | 50 | 200 | stockout_imminent + below_stockmax |
-| 50 | 80 | 100 | 100 | 100 | 300 | 100 | 0 | 230 | none + below_stockmax (PO 30d cứu BO) |
-| 50 | 80 | 100 | 0 | 100 | 300 | 100 | 130 | 100 | backorder_uncovered (BO 30 deficit + 100 buffer) |
-| 50 | 80 | 0 | 0 | 100 | 300 | 100 | 130 | 200 | backorder_uncovered + below_stockmax |
-| 200 | 0 | 100 | 100 | 100 | 300 | 100 | 0 | 0 | none (đã đủ MAX) |
+Constants: `SS=30`, `stockMax=300`, `demandMonthly=100`, `snp=1`, `demand30d=100`.
+`proj30d = available + poIn30d - bo - demand30d`. Trig2 target = `max(SS,1m)=100`.
+
+| `available` | `bo` | `onOrder` | `poIn30d` | `SS` | `stockMax` | dm | proj30d | → urgent | → reserve | trigger |
+|-------------|------|-----------|-----------|------|------------|----|---------|----------|-----------|---------|
+| 50 | 0 | 0 | 0 | 30 | 300 | 100 | — (bo=0) | 50 | 200 | stockout_imminent (tồn 50 < target 100) |
+| 50 | 80 | 100 | 100 | 30 | 300 | 100 | 50+100−80−100=−30 | **30** | 200 | backorder_uncovered (deficit trần, no buffer) |
+| 50 | 80 | 100 | 0 | 30 | 300 | 100 | 50+0−80−100=−130 | **130** | 100 | backorder_uncovered |
+| 50 | 80 | 0 | 0 | 30 | 300 | 100 | 50+0−80−100=−130 | **130** | 200 | backorder_uncovered + below_stockmax |
+| 200 | 0 | 100 | 100 | 30 | 300 | 100 | — (bo=0) | 0 | 0 | none (tồn 200 ≥ target 100, đã đủ MAX) |
+
+> So plan gốc (buggy): dòng 2 `0→30`, dòng 3 reserve `100` giữ, dòng 1 `50` giữ.
+> 2 lỗi (bỏ buffer −100, thêm trừ demand −100) triệt tiêu nhau ở vài dòng → số trùng, lý do khác.
 
 ---
 

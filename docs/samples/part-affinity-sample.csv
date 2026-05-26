@@ -1,0 +1,7 @@
+PartA,PartB,Type,Score,Note
+BRK001,PAD001,mandatory,100,Bộ phanh kèm má phanh
+BRK001,SCR001,mandatory,100,Bộ phanh kèm bulông
+OIL001,FLT001,recommended,90,Thay nhớt nên thay lọc nhớt
+OIL001,GSK001,recommended,60,Gioăng nắp dầu nên thay khi mở
+WHL001,LUG001,mandatory,100,Bánh xe kèm tắc kê
+WHL001,BAL001,recommended,40,Cân bằng bánh xe

@@ -1,6 +1,12 @@
 {
   "skills": [
     {
+      "source": "microsoft/playwright-cli",
+      "skills": [
+        "playwright-cli"
+      ]
+    },
+    {
       "source": "pbakaus/impeccable",
       "skills": [
         "colorize"
