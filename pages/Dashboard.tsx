@@ -698,7 +698,7 @@ export const Dashboard = ({
 
                     <div
                         id="inventory-table-section"
-                        className="bg-white border border-slate-200/60 shadow-soft rounded-3xl overflow-hidden hover:shadow-medium transition-shadow"
+                        className="bg-white border border-slate-200/60 shadow-soft rounded-3xl overflow-hidden hover:shadow-medium transition-shadow min-h-[400px]"
                     >
                         {showSimulation && (
                             <div className="bg-gradient-to-r from-blue-50 to-white border-b border-blue-100 px-6 py-4 flex items-center justify-between no-print animate-fadeIn">
