@@ -21,6 +21,9 @@ import { OrderItemRow } from './DecisionSupport/OrderItemRow';
 import { WorkflowStepper } from './WorkflowStepper';
 import { useEffect } from 'react';
 import { ApprovalWorkflow } from '../types/inventory';
+import { usePartAffinity } from '../hooks/usePartAffinity';
+import { suggestForOrder, normalizePartCode } from '../utils/partAffinity';
+import { AffinityReviewPanel } from './AffinityReviewPanel';
 
 
 
@@ -83,6 +86,38 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
     const [inspectingItem, setInspectingItem] = useState<any>(null);
     const [pendingAction, setPendingAction] = useState<'approved' | 'rejected' | 'returned' | null>(null);
     const [workflow, setWorkflow] = useState<ApprovalWorkflow | null>(null);
+
+    // ── Part Affinity suggestions (2026-05-26) ────────────────────────────────
+    const { index: affinityIndex, isLoading: affinityLoading } = usePartAffinity();
+    const orderedSet = useMemo(() => {
+        const s = new Set<string>();
+        Object.entries(localQtys).forEach(([code, q]) => {
+            if ((q?.air || 0) + (q?.sea || 0) > 0) s.add(code);
+        });
+        return s;
+    }, [localQtys]);
+    const affinity = useMemo(() => {
+        if (affinityLoading || orderedSet.size === 0) return { mandatoryMissing: [], recommended: [] };
+        return suggestForOrder(orderedSet, affinityIndex, 5);
+    }, [orderedSet, affinityIndex, affinityLoading]);
+    const itemNamesMap = useMemo(() => {
+        const m: Record<string, string> = {};
+        (snap.inventory_context || []).forEach((c: any) => { m[normalizePartCode(c.itemCode)] = c.itemName || ''; });
+        return m;
+    }, [snap.inventory_context]);
+    const normalizedToRawMap = useMemo(() => {
+        const m: Record<string, string> = {};
+        (snap.inventory_context || []).forEach((c: any) => { m[normalizePartCode(c.itemCode)] = c.itemCode; });
+        return m;
+    }, [snap.inventory_context]);
+    const handleAddAffinity = (sku: string) => {
+        const rawSku = normalizedToRawMap[sku] || sku;
+        setLocalQtys(prev => {
+            const cur = prev[rawSku] || { air: 0, sea: 0 };
+            return { ...prev, [rawSku]: { air: cur.air, sea: (cur.sea || 0) + 1 } };
+        });
+        setSelectedItems(prev => new Set([...prev, rawSku]));
+    };
 
     // Fetch Workflow for Stepper
     useEffect(() => {
@@ -195,7 +230,8 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
             
             const result = await processApprovalAction(
                 request.id, user.id, action, managerComment || comment || undefined, finalQtys,
-                reason, request.version, summary
+                reason, request.version, summary,
+                snap // pass decompressed snapshot to avoid re-fetching compressed stub
             );
 
             
@@ -205,9 +241,8 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
                 return;
             }
             onRefresh(); onClose();
-        } catch (e) { 
-            console.error(e); 
-        } finally { 
+        } catch (e) {
+        } finally {
             setIsSubmitting(false); 
             setSubmittingAction(null);
             setPendingAction(null);
@@ -246,7 +281,7 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
                 return;
             }
             onRefresh(); onClose();
-        } catch (e) { console.error(e); } finally { setIsSubmitting(false); setSubmittingAction(null); }
+        } catch (e) { } finally { setIsSubmitting(false); setSubmittingAction(null); }
     };
 
     const handleUnlock = async () => {
@@ -255,7 +290,7 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
         try {
             await unlockRequest(request.id, user.id, unlockReason);
             onRefresh(); onClose();
-        } catch (e) { console.error(e); } finally { setIsSubmitting(false); }
+        } catch (e) { } finally { setIsSubmitting(false); }
     };
 
     // ─── Print Order Form (popup) ─────────────────────────────────────────────
@@ -603,6 +638,16 @@ ${splitNotes.length > 0 ? `<div class="notes-section">
                                             <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Adjustment Mode</span>
                                         </div>
                                     )}
+                                    {(affinity.mandatoryMissing.length > 0 || affinity.recommended.length > 0) && (
+                                        <div className="max-w-md">
+                                            <AffinityReviewPanel
+                                                mandatoryMissing={affinity.mandatoryMissing}
+                                                recommended={affinity.recommended}
+                                                itemNames={itemNamesMap}
+                                                onAdd={handleAddAffinity}
+                                            />
+                                        </div>
+                                    )}
                                     <div className="flex gap-2">
 
                                         <button
@@ -717,21 +762,87 @@ ${splitNotes.length > 0 ? `<div class="notes-section">
                                             <p className="text-center py-10 text-slate-400 text-sm font-bold">Chưa có hành động nào.</p>
                                         ) : (
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                {actions.map(a => {
+                                                {actions.map((a, idx) => {
                                                     const s = ACTION_STYLE[a.action] || ACTION_STYLE.commented;
                                                     const actorName = usersMap[a.actor_id] || 'N/A';
                                                     const actionLabels: Record<string, string> = { approved: 'Đã duyệt', returned: 'Trả lại', rejected: 'Từ chối', commented: 'Bình luận' };
+                                                    const meta = a.metadata as any;
+                                                    const isResubmit = meta?.is_resubmit;
+                                                    const displayLabel = isResubmit ? 'Gửi lại' : (actionLabels[a.action] || a.action);
+                                                    const displayStyle = isResubmit ? { cls: 'text-blue-600', icon: 'fa-rotate-right' } : s;
+
+                                                    const snapQty = meta?.snapshot_quantities as Record<string, { air: number; sea: number }> | null;
+                                                    const snapNotes = meta?.snapshot_notes as Record<string, string> | null;
+                                                    const origQty = meta?.original_quantities as Record<string, { air: number; sea: number }> | null;
+
+                                                    const qtyDiffs: { code: string; oldTotal: number; newTotal: number }[] = [];
+                                                    const noteDiffs: { code: string; oldNote: string; newNote: string }[] = [];
+
+                                                    if (snapQty && origQty) {
+                                                        const allCodes = new Set([...Object.keys(snapQty), ...Object.keys(origQty)]);
+                                                        allCodes.forEach(code => {
+                                                            const oldT = (origQty[code]?.air || 0) + (origQty[code]?.sea || 0);
+                                                            const newT = (snapQty[code]?.air || 0) + (snapQty[code]?.sea || 0);
+                                                            if (oldT !== newT) qtyDiffs.push({ code, oldTotal: oldT, newTotal: newT });
+                                                        });
+                                                    }
+                                                    if (snapNotes) {
+                                                        const prevAction = idx > 0 ? actions[idx - 1] : null;
+                                                        const prevNotes = (prevAction?.metadata as any)?.snapshot_notes as Record<string, string> | null;
+                                                        Object.keys(snapNotes).forEach(code => {
+                                                            const newN = (snapNotes[code] || '').trim();
+                                                            const oldN = (prevNotes?.[code] || '').trim();
+                                                            if (newN !== oldN) noteDiffs.push({ code, oldNote: oldN, newNote: newN });
+                                                        });
+                                                    }
+
                                                     return (
                                                         <div key={a.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm relative pl-10 overflow-hidden">
-                                                            <div className={`absolute left-0 top-0 bottom-0 w-8 flex items-center justify-center ${s.cls.replace('text-', 'bg-')}/10 border-r border-slate-100`}>
-                                                                <FaIcon className={`fas ${s.icon} ${s.cls} text-sm`}  />
+                                                            <div className={`absolute left-0 top-0 bottom-0 w-8 flex items-center justify-center ${displayStyle.cls.replace('text-', 'bg-')}/10 border-r border-slate-100`}>
+                                                                <FaIcon className={`fas ${displayStyle.icon} ${displayStyle.cls} text-sm`}  />
                                                             </div>
                                                             <div className="flex justify-between items-start mb-1">
-                                                                <span className={`text-xs font-black uppercase ${s.cls}`}>{actionLabels[a.action] || a.action}</span>
-                                                                <span className="text-[10px] font-black text-slate-400">Lv{a.level}</span>
+                                                                <span className={`text-xs font-black uppercase ${displayStyle.cls}`}>{displayLabel}</span>
+                                                                <div className="flex items-center gap-1.5">
+                                                                    {meta?.version_before && <span className="text-[9px] font-black text-slate-300 bg-slate-50 px-1.5 py-0.5 rounded">v{meta.version_before}→v{meta.version_after}</span>}
+                                                                    <span className="text-[10px] font-black text-slate-400">{a.level > 0 ? `Lv${a.level}` : ''}</span>
+                                                                </div>
                                                             </div>
                                                             <div className="text-xs font-bold text-slate-700 mb-1">{actorName}</div>
-                                                            {a.comment && <p className="text-xs text-slate-500 italic mb-2">"{a.comment}"</p>}
+                                                            {meta?.reason && <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-2 py-1 mb-2 font-bold">Lý do: {meta.reason}</p>}
+                                                            {a.comment && !isResubmit && <p className="text-xs text-slate-500 italic mb-2">"{a.comment}"</p>}
+
+                                                            {qtyDiffs.length > 0 && (
+                                                                <div className="mb-2 border border-slate-100 rounded-lg overflow-hidden">
+                                                                    <div className="text-[9px] font-black text-slate-500 uppercase px-2 py-1 bg-slate-50 border-b border-slate-100">Thay đổi SL ({qtyDiffs.length})</div>
+                                                                    <div className="max-h-24 overflow-y-auto">
+                                                                        {qtyDiffs.slice(0, 10).map(d => (
+                                                                            <div key={d.code} className="flex items-center justify-between px-2 py-0.5 text-[10px] border-b border-slate-50 last:border-0">
+                                                                                <span className="font-bold text-slate-600 truncate max-w-[120px]">{d.code}</span>
+                                                                                <span><span className="text-red-400 line-through">{d.oldTotal}</span> → <span className="text-emerald-600 font-black">{d.newTotal}</span></span>
+                                                                            </div>
+                                                                        ))}
+                                                                        {qtyDiffs.length > 10 && <div className="text-[9px] text-slate-400 px-2 py-0.5 text-center">+{qtyDiffs.length - 10} mã khác</div>}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {noteDiffs.length > 0 && (
+                                                                <div className="mb-2 border border-slate-100 rounded-lg overflow-hidden">
+                                                                    <div className="text-[9px] font-black text-slate-500 uppercase px-2 py-1 bg-slate-50 border-b border-slate-100">Thay đổi Ghi chú ({noteDiffs.length})</div>
+                                                                    <div className="max-h-24 overflow-y-auto">
+                                                                        {noteDiffs.slice(0, 5).map(d => (
+                                                                            <div key={d.code} className="px-2 py-1 text-[10px] border-b border-slate-50 last:border-0">
+                                                                                <span className="font-bold text-slate-600">{d.code}: </span>
+                                                                                {d.oldNote && <span className="text-red-400 line-through mr-1">"{d.oldNote}"</span>}
+                                                                                <span className="text-emerald-600 font-bold">"{d.newNote}"</span>
+                                                                            </div>
+                                                                        ))}
+                                                                        {noteDiffs.length > 5 && <div className="text-[9px] text-slate-400 px-2 py-0.5 text-center">+{noteDiffs.length - 5} ghi chú khác</div>}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
                                                             <div className="text-[10px] text-slate-400 font-bold border-t border-slate-50 pt-2">
                                                                 {new Date(a.acted_at).toLocaleString('vi-VN')}
                                                             </div>

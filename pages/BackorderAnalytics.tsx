@@ -15,6 +15,10 @@ import { DealerInventoryPopup } from '../components/DealerInventoryPopup';
 import { parseInventorySearch, SearchResult, matchSearch, prepareSearchCache } from '../utils/searchLogic';
 import { classifyItemAnomalies, classifyOrderAnomaly, ANOMALY_META, buildCohortStats, stockoutDaysRemaining, type OrderAnomaly } from '../utils/supplierAnomaly';
 import { CriticalSkuSpotlight } from '../components/CriticalSkuSpotlight';
+import { BentoHeader } from '../components/BentoHeader';
+import { AnomalyRail } from '../components/AnomalyRail';
+import { AgingMatrix } from '../components/AgingMatrix';
+import { VelocityMatrix } from '../components/VelocityMatrix';
 
 // Aging tier badge — Bento Light Luxury spec
 // Spec: aging-30 #5B6470 | aging-60 #8A5A14 | aging-90 #9A2D2D | aging-over90 #6B1717
@@ -33,7 +37,7 @@ const AgingBadge = ({ days, qty }: { days: string, qty: number }) => {
                 className="uppercase"
                 style={{
                     fontFamily: "'Inter', system-ui, sans-serif",
-                    fontSize: '0.625rem',
+                    fontSize: '0.75rem',
                     fontWeight: 700,
                     letterSpacing: '0.18em',
                     color: '#5B6470',
@@ -46,7 +50,7 @@ const AgingBadge = ({ days, qty }: { days: string, qty: number }) => {
                 style={{
                     fontFamily: "'JetBrains Mono', ui-monospace, monospace",
                     fontVariantNumeric: 'tabular-nums',
-                    fontSize: '0.75rem',
+                    fontSize: '0.8125rem',
                     fontWeight: 600,
                     minWidth: 44,
                     padding: '4px 8px',
@@ -106,7 +110,7 @@ const MetricCard = ({ label, value, sub, icon, onClick, isActive }: any) => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: 16,
+                    fontSize: 18,
                     flexShrink: 0,
                 }}
             >
@@ -116,7 +120,7 @@ const MetricCard = ({ label, value, sub, icon, onClick, isActive }: any) => {
                 <span
                     style={{
                         display: 'block',
-                        fontSize: '0.625rem',
+                        fontSize: '0.75rem',
                         fontWeight: 700,
                         lineHeight: 1.1,
                         letterSpacing: '0.18em',
@@ -144,7 +148,7 @@ const MetricCard = ({ label, value, sub, icon, onClick, isActive }: any) => {
                     <span
                         style={{
                             fontFamily: "'Inter', system-ui, sans-serif",
-                            fontSize: '0.625rem',
+                            fontSize: '0.75rem',
                             fontWeight: 700,
                             color: '#5B6470',
                             textTransform: 'uppercase',
@@ -159,7 +163,7 @@ const MetricCard = ({ label, value, sub, icon, onClick, isActive }: any) => {
                         style={{
                             display: 'block',
                             marginTop: 4,
-                            fontSize: '0.75rem',
+                            fontSize: '0.8125rem',
                             fontWeight: 500,
                             lineHeight: 1.4,
                             color: '#5B6470',
@@ -315,7 +319,8 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
             const supplierStatus = getSupplierStatus(item);
             const supplierLabel = supplierStatus === 'none' ? '' : SUPPLIER_STATUS_META[supplierStatus].label;
             const agg = getItemAnomaly(item).aggregate;
-            const skuCtx = {
+            const c = item.computed;
+            const skuCtx: Record<string, any> = {
                 'Mã hàng': item.ItemCode,
                 'Tên hàng': item.ItemName,
                 'Nguồn': item.SourceId,
@@ -325,19 +330,72 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                 'LOIS': item.LOISGroup || '',
                 'LT (ngày)': lt || '',
                 'Tổng nợ': item.Backorder,
+                'Nợ NB': item.Backorder_NB,
+                'Nợ BB': item.Backorder_BB,
                 'Tồn NB': item.QuantityInventory_NB,
                 'Tồn BB': item.QuantityInventory_BB,
                 'DC NB': item.QuantityDC_NB,
                 'DC BB': item.QuantityDC_BB,
                 'Tồn đại lý': item.DealerInventory,
+                'Tổng tồn kho': item.TotalInventory,
                 'Hàng về (PO)': item.TotalPO,
-                'PO về tháng này': item.computed?.incomingCurrentMonth || 0,
-                'PO về tháng sau': item.computed?.incomingNextMonth || 0,
-                'Nợ lâu nhất (ngày)': item.computed?.boAging?.oldestDebtDays || 0,
+                'PO NB': item.TotalPO_NB || 0,
+                'PO BB': item.TotalPO_BB || 0,
+                'PO về tháng này': c?.incomingCurrentMonth || 0,
+                'PO về tháng sau': c?.incomingNextMonth || 0,
+                'Net Demand': item.NetDemand,
+                'Total Supply': item.TotalSupply,
+                // Anomaly & Aging
+                'Nợ lâu nhất (ngày)': c?.boAging?.oldestDebtDays || 0,
+                'Nợ ≤30 ngày': c?.boAging?.qty30 || 0,
+                'Nợ 31-60 ngày': c?.boAging?.qty60 || 0,
+                'Nợ 61-90 ngày': c?.boAging?.qty90 || 0,
+                'Nợ >90 ngày': c?.boAging?.qtyOver90 || 0,
+                'Giá trị nợ tổng': c?.boAging?.totalValue || 0,
                 'Cảnh báo NCC (SKU)': supplierLabel,
                 'Bất thường nhất (SKU)': agg.abnormalCount > 0 ? ANOMALY_META[agg.worst].label : '',
                 'Score bất thường tối đa': Math.round(agg.maxScore),
                 'Số đơn bất thường (SKU)': agg.abnormalCount,
+                // Pricing
+                'Đơn giá PP': item.UnitCost_PP,
+                'Đơn giá FOB': item.UnitCost_FOB,
+                'Giá trị tồn': c?.stockValue || 0,
+                // Inventory metrics
+                'MOS': c?.mos != null ? Math.round(c.mos * 100) / 100 : '',
+                'CST': c?.cst != null ? Math.round(c.cst * 100) / 100 : '',
+                'ROP': c?.rop || '',
+                'Stock Max': c?.stockMax || '',
+                'Safety Stock': c?.safetyStock || '',
+                'Available': c?.available || 0,
+                'Net Available': c?.netAvailable || 0,
+                'Demand/ngày': c?.demandRateDaily != null ? Math.round(c.demandRateDaily * 1000) / 1000 : '',
+                'Demand/tháng': c?.demandMonthly != null ? Math.round(c.demandMonthly * 100) / 100 : '',
+                'Priority': c?.priorityBucket || '',
+                'Stockout Risk': c?.stockoutRiskFlag ? 'Có' : '',
+                // Forecast & Statistics
+                'AVG 3M': item.AvgQty3M,
+                'AVG 6M': item.AvgQty6M,
+                'AVG 12M': item.AvgQty12M,
+                'AVG 24M': item.AvgQty24M,
+                'Base Forecast': item.BaseForecast,
+                'Forecast NB': item.Forecast_NB || '',
+                'Forecast BB': item.Forecast_BB || '',
+                'CV': c?.cv != null ? Math.round(c.cv * 1000) / 1000 : '',
+                'Slope': c?.slope != null ? Math.round(c.slope * 1000) / 1000 : '',
+                'SSI': c?.ssi != null ? Math.round(c.ssi * 1000) / 1000 : '',
+                'Forecast LinReg': c?.forecastLinReg != null ? Math.round(c.forecastLinReg * 100) / 100 : '',
+                // Other
+                'Trend Flag': item.TrendFlag || '',
+                'Status': item.Status || '',
+                'SNP': item.SNP || '',
+                'Stop Biz': c?.isStopBiz ? 'Có' : '',
+                'Suggested BO': c?.suggestedBO || '',
+                'BO Critical': c?.isBOCritical ? 'Có' : '',
+                // Transfer/DRP
+                'Transfer NB→BB': c?.transfer?.transferNBtoBB || '',
+                'Transfer BB→NB': c?.transfer?.transferBBtoNB || '',
+                'MOS NB': c?.transfer?.mosNB != null ? Math.round(c.transfer.mosNB * 100) / 100 : '',
+                'MOS BB': c?.transfer?.mosBB != null ? Math.round(c.transfer.mosBB * 100) / 100 : '',
             };
 
             if (breakdown.length === 0) {
@@ -402,11 +460,12 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
     const [warehouseScope, setWarehouseScope] = useState<'all' | 'NB' | 'BB'>('all');
     const [pageSize, setPageSize] = useState(25);
     const [currentPage, setCurrentPage] = useState(1);
-    const [matrixMetric, setMatrixMetric] = useState<'sku' | 'qty' | 'val'>('sku');
+    const [matrixMetric] = useState<'sku' | 'qty' | 'val'>('sku');
     const [motherGroupFilters, setMotherGroupFilters] = useState<string[]>([]);
     const [specialFilter, setSpecialFilter] = useState<'all' | 'critical' | 'transfer' | 'po'>('all');
     const [masterFilter, setMasterFilter] = useState<'all' | 'stock_ok' | 'po_ok' | 'fail'>('all');
     const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>({ key: 'totalValue', direction: 'desc' });
+    const [activeAnomalyTier, setActiveAnomalyTier] = useState<OrderAnomaly | 'NONE' | null>(null);
 
     // Deferred filters for performance
     const deferredSearch = useDeferredValue(search);
@@ -440,10 +499,10 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                 if (Array.isArray(parsed.anomalyFilters)) setAnomalyFilters(parsed.anomalyFilters.filter((f: any) => f && ['CRITICAL','HIGH','WARNING','DUE_SOON'].includes(f)));
                 if (parsed.warehouseScope && ['all','NB','BB'].includes(parsed.warehouseScope)) setWarehouseScope(parsed.warehouseScope);
                 if (parsed.pageSize) setPageSize(Math.max(1, parsed.pageSize));
-                if (parsed.matrixMetric) setMatrixMetric(parsed.matrixMetric);
+
                 if (parsed.masterFilter) setMasterFilter(parsed.masterFilter);
             }
-        } catch (e) { console.error('Error loading filters:', e); }
+        } catch (e) { /* filters load failed */ }
     }, []);
 
     React.useEffect(() => {
@@ -564,29 +623,15 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
         return breakdown.filter(isBBEntry);
     };
     const getScopedBOQty = (item: InventoryItem, scope: 'all' | 'NB' | 'BB'): number => {
-        // PARTITION INVARIANT: when breakdown rows are present, NB-sum + BB-sum +
-        // unknown-sum must equal the total breakdown sum. Earlier this function
-        // preferred the pre-aggregated Backorder_NB / Backorder_BB columns from
-        // the CSV, but those values can drift from the breakdown (different
-        // upload pipelines, mismatched cutoffs, manual edits). When the pre-agg
-        // is inflated, NB + BB exceeded 'all' — that was the reported bug.
-        // Now: when breakdown exists, ALWAYS sum from it (the single source of
-        // truth for per-entry warehouse classification). Pre-agg is only used
-        // when breakdown is missing, so legacy uploads still render.
         const breakdown = item.BackorderBreakdown ?? [];
         if (breakdown.length > 0) {
             if (scope === 'NB') return breakdown.filter(isNBEntry).reduce((s, b) => s + (b.Qty || 0), 0);
             if (scope === 'BB') return breakdown.filter(isBBEntry).reduce((s, b) => s + (b.Qty || 0), 0);
-            // 'all' — keep the existing Math.max so that if item.Backorder is
-            // larger than the breakdown sum (rare CSV/upload inconsistency) we
-            // do not silently shrink the headline number. This still gives
-            // all >= NB-sum + BB-sum.
-            return Math.max(item.Backorder || 0, item.computed?.boAging?.totalQty || 0);
+            return breakdown.reduce((s, b) => s + (b.Qty || 0), 0);
         }
-        // Fallback: no breakdown. Use the pre-aggregated columns.
         if (scope === 'NB') return item.Backorder_NB || 0;
         if (scope === 'BB') return item.Backorder_BB || 0;
-        return Math.max(item.Backorder || 0, (item.Backorder_NB || 0) + (item.Backorder_BB || 0));
+        return (item.Backorder_NB || 0) + (item.Backorder_BB || 0);
     };
     const getScopedStock = (item: InventoryItem, scope: 'all' | 'NB' | 'BB'): number => {
         if (scope === 'NB') return (item.QuantityInventory_NB || 0) + (item.QuantityDC_NB || 0);
@@ -760,8 +805,9 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
             else if (deferredMasterFilter === 'fail') matchesMaster = boQty > (scopedStock + poThisMonth);
 
             const matchesSupplier = deferredSupplierStatusFilters.length === 0 || deferredSupplierStatusFilters.includes(getSupplierStatus(item));
-            const matchesAnomaly = deferredAnomalyFilters.length === 0 || (() => {
+            const matchesAnomaly = (deferredAnomalyFilters.length === 0 && activeAnomalyTier !== 'NONE') || (() => {
                 const agg = getItemAnomaly(item).aggregate;
+                if (activeAnomalyTier === 'NONE') return agg.abnormalCount === 0;
                 return deferredAnomalyFilters.some(t => agg.counts[t] > 0);
             })();
 
@@ -803,7 +849,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
             });
         }
         return list;
-    }, [cachedData, searchResult, deferredSourceFilters, deferredMotherGroupFilters, deferredAgingFilter, deferredOrderTypeFilters, deferredBranchFilters, deferredSupplierStatusFilters, deferredAnomalyFilters, deferredWarehouseScope, sortConfig, deferredSpecialFilter, deferredMasterFilter, startOfThisMonth, anomalyNow]);
+    }, [cachedData, searchResult, deferredSourceFilters, deferredMotherGroupFilters, deferredAgingFilter, deferredOrderTypeFilters, deferredBranchFilters, deferredSupplierStatusFilters, deferredAnomalyFilters, deferredWarehouseScope, sortConfig, deferredSpecialFilter, deferredMasterFilter, startOfThisMonth, anomalyNow, activeAnomalyTier]);
 
     const stats = useMemo(() => {
         if (!filteredData) return { totalValue: 0, totalQty: 0, criticalCount: 0, aging: { q30: 0, q60: 0, q90: 0, qO90: 0 }, totalPOVal: 0, poCoverage: 0 };
@@ -1124,11 +1170,28 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
         return counts;
     }, [enrichedData]);
 
+
+    const sparkline12m = useMemo(() => {
+        const out = Array(12).fill(0);
+        for (const it of filteredData) (it.SalesHistory || []).forEach((v: number, i: number) => { out[i] += v || 0; });
+        return out;
+    }, [filteredData]);
+
     const sortByScore = () => setSortConfig({ key: 'AnomalyScore', direction: 'desc' });
     const onCriticalChip = () => { setAnomalyFilters(['CRITICAL']); setSupplierStatusFilters([]); sortByScore(); setCurrentPage(1); };
     const onHighChip     = () => { setAnomalyFilters(['HIGH']);     setSupplierStatusFilters([]); sortByScore(); setCurrentPage(1); };
     const onWarningChip  = () => { setAnomalyFilters(['WARNING']);  setSupplierStatusFilters([]); sortByScore(); setCurrentPage(1); };
     const onSupplierChip = () => { setSupplierStatusFilters(['overdue']); setAnomalyFilters([]); sortByScore(); setCurrentPage(1); };
+    const handleAnomalyTierClick = (tier: OrderAnomaly | 'NONE' | null) => {
+        setActiveAnomalyTier(tier);
+        if (tier === null || tier === 'NONE') {
+            setAnomalyFilters([]);
+        } else {
+            setAnomalyFilters([tier]);
+        }
+        setSupplierStatusFilters([]);
+        setCurrentPage(1);
+    };
     // Drill-down from hero "SKU NỢ" — clears every dimension filter (search, aging,
     // dropdowns, anomaly) but keeps coverage band + warehouse scope so operators can
     // re-inspect the full population currently in scope. Pattern: glance hero → click → audit.
@@ -1147,166 +1210,38 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                 fontFamily: "'Inter', system-ui, sans-serif",
             }}
         >
-            {/* ════════════════════════════════════════════════════════════════
-                BENTO HEADER — Light Luxury (per design-system/pages/backorder.md)
-                Layout:
-                  Row 1 (12-col): col-span-7 dark feature tile (identity + hero
-                                  metric + reset-trigger) | col-span-5 white
-                                  KPI cluster (TRẠNG THÁI SỨC KHOẺ 2×2)
-                  Row 2: phân-loại chip rail on parchment + warehouse + metric
-                Strict 4-hue palette (onyx · bronze · clay · sage). */}
-            <div className="px-6 lg:px-8 pt-5 pb-3 grid grid-cols-12 gap-4">
-                {/* ─── Feature tile (left, dark obsidian) */}
-                <div className="col-span-12 lg:col-span-7 bo-bento-feature p-7 lg:p-8 relative">
+            {/* ═══ UNIFIED HEADER BLOCK — obsidian banner + anomaly rail + controls ═══ */}
+            <div className="px-6 lg:px-8 pt-5 pb-4" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <BentoHeader items={filteredData} sparkline={sparkline12m} actions={
                     <button
-                        type="button"
                         onClick={handleExport}
-                        aria-label="Xuất Excel danh sách nợ chi tiết theo từng đơn"
-                        className="absolute top-6 right-6 inline-flex items-center gap-2 h-9 px-4 rounded-md text-[10px] font-black uppercase tracking-[0.18em] text-white transition-colors focus-visible:ring-2 focus-visible:ring-[var(--bo-bronze)]"
-                        style={{ background: 'var(--bo-accent)' }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bo-accent-deep)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bo-accent)')}
+                        className="bo-chip"
+                        style={{ background: 'rgba(244, 226, 180, 0.10)', border: '1px solid rgba(244, 226, 180, 0.20)', color: '#F4F1EB' }}
                     >
-                        <FaIcon className="fas fa-file-excel" aria-hidden="true" />
-                        <span className="hidden sm:inline">Xuất Excel</span>
+                        <FaIcon className="fas fa-file-csv" style={{ fontSize: 12 }} />
+                        <span>Xuất Excel</span>
                     </button>
+                } />
 
-                    <div className="flex items-center gap-2 mb-5">
-                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--bo-bronze)' }} aria-hidden="true" />
-                        <span className="text-[10px] uppercase tracking-[0.22em] font-black" style={{ color: 'var(--bo-bronze)' }}>
-                            Supply Chain · Backorder
-                        </span>
-                    </div>
+                {/* Anomaly tier strip + warehouse/metric/search — single control row */}
+                <div style={{
+                    display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+                    padding: '6px 8px',
+                    background: 'var(--bo-paper)',
+                    border: '1px solid var(--bo-hairline)',
+                    borderRadius: 'var(--bo-radius-md)',
+                    boxShadow: 'var(--bo-shadow-tile)',
+                }}>
+                    <AnomalyRail
+                        items={filteredData}
+                        getAggregate={(it) => getItemAnomaly(it).aggregate}
+                        activeTier={activeAnomalyTier}
+                        onTierClick={handleAnomalyTierClick}
+                    />
 
-                    <h1 className="bo-display text-[28px] lg:text-[32px] font-extrabold tracking-tight leading-tight mb-7" style={{ color: '#F4F1EB' }}>
-                        Phân tích Nợ hàng
-                    </h1>
+                    {/* Vertical divider */}
+                    <div style={{ width: 1, height: 22, background: 'var(--bo-hairline)', flexShrink: 0 }} />
 
-                    <div className="text-[10px] uppercase tracking-[0.22em] font-black mb-2" style={{ color: 'rgba(168, 133, 75, 0.92)' }}>
-                        Tổng nợ đang theo dõi
-                    </div>
-
-                    <button
-                        type="button"
-                        onClick={onResetFilters}
-                        title="Xóa toàn bộ filter và xem toàn bộ SKU đang nợ"
-                        aria-label="Bấm để reset filter và xem toàn bộ danh sách nợ"
-                        className="block text-left group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bo-bronze)]/60 rounded-md"
-                    >
-                        <div className="flex items-baseline gap-3">
-                            <span className="bo-metric-xl">
-                                {Math.round(stats.totalValue / 1e6).toLocaleString('vi-VN')}
-                            </span>
-                            <span className="text-[11px] uppercase tracking-[0.22em] font-black" style={{ color: 'var(--bo-bronze)' }}>
-                                Tr ₫
-                            </span>
-                        </div>
-
-                        <div className="flex items-center gap-3 mt-3">
-                            <span className="font-mono text-[12px] font-bold tabular-nums" style={{ color: '#E5DFCD' }}>
-                                {filteredData.length.toLocaleString('vi-VN')}
-                                <span className="text-[10px] tracking-[0.18em] uppercase font-extrabold ml-1.5" style={{ color: '#A8AAAE' }}>SKU</span>
-                            </span>
-                            <span className="w-px h-3.5" style={{ background: 'rgba(255,255,255,0.12)' }} aria-hidden="true" />
-                            <span className="font-mono text-[12px] font-bold tabular-nums" style={{ color: '#E5DFCD' }}>
-                                {stats.totalQty.toLocaleString('vi-VN')}
-                                <span className="text-[10px] tracking-[0.18em] uppercase font-extrabold ml-1.5" style={{ color: '#A8AAAE' }}>SL</span>
-                            </span>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 mt-3 text-[10px] tracking-[0.16em] uppercase font-bold transition-colors group-hover:opacity-100" style={{ color: '#8A8C90' }}>
-                            <FaIcon className="fas fa-rotate-left text-[9px]" aria-hidden="true" />
-                            <span className="group-hover:underline">bấm để reset filter</span>
-                        </div>
-                    </button>
-                </div>
-
-                {/* ─── KPI cluster tile (right, light) — TRẠNG THÁI SỨC KHOẺ 2×2 */}
-                <div className="col-span-12 lg:col-span-5 bo-bento-tile p-6 lg:p-7">
-                    <div className="flex items-center justify-between mb-5">
-                        <div className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--bo-bronze)' }} aria-hidden="true" />
-                            <h2 className="text-[12px] uppercase tracking-[0.22em] font-black" style={{ color: 'var(--bo-ink)' }}>
-                                Trạng thái sức khoẻ
-                            </h2>
-                        </div>
-                        <span className="text-[10px] uppercase tracking-[0.16em] font-bold" style={{ color: 'var(--bo-ink-muted)' }}>
-                            cập nhật theo filter
-                        </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-x-8 gap-y-5">
-                        {([
-                            { label: 'Tuổi nợ TB',    value: `${Math.round(headerStats.avgDays)}d`,    sub: `${headerStats.countOpen.toLocaleString('vi-VN')} đơn mở`,    accent: headerStats.avgDays > 90 ? 'critical' : 'default' },
-                            { label: '% Trễ LT',      value: `${headerStats.pctOverLT.toFixed(1)}%`,   sub: `${headerStats.countOverLT.toLocaleString('vi-VN')} quá LT`,   accent: headerStats.pctOverLT > 50 ? 'critical' : 'default' },
-                            { label: 'Đơn lâu nhất',  value: `${Math.round(headerStats.maxDays)}d`,    sub: 'tối đa',                                                       accent: 'bronze' },
-                            { label: 'PO Coverage',   value: `${stats.poCoverage.toFixed(0)}%`,        sub: 'có hàng về',                                                   accent: stats.poCoverage >= 80 ? 'sage' : stats.poCoverage >= 50 ? 'default' : 'critical' },
-                        ] as const).map(k => {
-                            const valueColor =
-                                k.accent === 'critical' ? 'var(--bo-accent)' :
-                                k.accent === 'bronze'   ? 'var(--bo-bronze)' :
-                                k.accent === 'sage'     ? 'var(--bo-ok)'      :
-                                                           'var(--bo-ink)';
-                            return (
-                                <div key={k.label} className="flex flex-col gap-1.5">
-                                    <span className="text-[10px] uppercase tracking-[0.18em] font-black" style={{ color: 'var(--bo-ink-muted)' }}>
-                                        {k.label}
-                                    </span>
-                                    <div className="flex items-baseline gap-2">
-                                        <span className="font-display font-extrabold tabular-nums tracking-tight leading-none text-[28px] lg:text-[30px]" style={{ color: valueColor }}>
-                                            {k.value}
-                                        </span>
-                                        <span className="font-mono text-[11px] tabular-nums" style={{ color: 'var(--bo-ink-muted)' }}>
-                                            {k.sub}
-                                        </span>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            </div>
-
-            {/* ─── Phân loại chip rail + warehouse/metric switchers (parchment) */}
-            <div className="px-6 lg:px-8 pb-2 flex items-center gap-2 flex-wrap">
-                <button type="button" onClick={onCriticalChip} title="Lọc các SKU có đơn ở mức TRỄ NGHIÊM TRỌNG"
-                    className="bo-chip bo-chip-tone-danger" aria-pressed={anomalyFilters.includes('CRITICAL')}>
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--bo-accent)' }} aria-hidden="true" />
-                    Trễ N.trọng <span className="bo-mono">{headerStats.nCritical.toLocaleString('vi-VN')}</span>
-                </button>
-                <button type="button" onClick={onHighChip} title="Lọc các SKU có đơn ở mức TRỄ NẶNG"
-                    className="bo-chip bo-chip-tone-amber" aria-pressed={anomalyFilters.includes('HIGH')}>
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--bo-bronze-strong)' }} aria-hidden="true" />
-                    Trễ nặng <span className="bo-mono">{headerStats.nHigh.toLocaleString('vi-VN')}</span>
-                </button>
-                <button type="button" onClick={onWarningChip} title="Lọc các SKU có đơn ở mức TRỄ NHẸ"
-                    className="bo-chip bo-chip-tone-warn" aria-pressed={anomalyFilters.includes('WARNING')}>
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--bo-bronze)' }} aria-hidden="true" />
-                    Trễ nhẹ <span className="bo-mono">{headerStats.nWarning.toLocaleString('vi-VN')}</span>
-                </button>
-                <button type="button" onClick={onSupplierChip} title="Lọc các SKU có NCC quá hạn giao"
-                    className="bo-chip bo-chip-tone-ink" aria-pressed={supplierStatusFilters.includes('overdue')}>
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--bo-ink-muted)' }} aria-hidden="true" />
-                    NCC trễ <span className="bo-mono">{headerStats.nSupplierLate.toLocaleString('vi-VN')}</span>
-                </button>
-                <button type="button"
-                    onClick={() => { setAnomalyFilters(['CRITICAL', 'HIGH', 'WARNING']); setSupplierStatusFilters(['overdue']); sortByScore(); setCurrentPage(1); }}
-                    title="Lọc tất cả SKU đang cần xử lý (anomaly + NCC trễ)"
-                    className="bo-chip bo-chip-tone-ink">
-                    <FaIcon className="fas fa-bullseye text-[9px]" aria-hidden="true" />
-                    Cần xử lý <span className="bo-mono">{(headerStats.nCritical + headerStats.nHigh + headerStats.nWarning + headerStats.nSupplierLate).toLocaleString('vi-VN')}</span>
-                </button>
-                <span title="Cơ hội điều chuyển nội bộ giữa NB/BB — xem cột Hành động trong bảng"
-                    className="bo-chip bo-chip-tone-emerald cursor-help">
-                    <FaIcon className="fas fa-arrow-right-arrow-left text-[9px]" aria-hidden="true" />
-                    Điều chuyển <span className="bo-mono">{headerStats.nTransfer.toLocaleString('vi-VN')}</span>
-                </span>
-
-                {/* Warehouse + matrix-metric switchers — pushed right.
-                    Both control the SAME data plane (warehouse scope filters
-                    rows; metric switches the unit shown in the matrix tables),
-                    so they sit side-by-side as one toolbar. */}
-                <div className="ml-auto flex items-center gap-2 shrink-0">
                     <div className="bo-segmented" role="group" aria-label="Phạm vi kho NB / BB">
                         {([
                             { id: 'all', label: 'Cả 2' },
@@ -1319,18 +1254,61 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                             </button>
                         ))}
                     </div>
-                    <div className="bo-segmented" role="group" aria-label="Đơn vị hiển thị trong bảng matrix">
-                        {([
-                            { id: 'sku', label: 'SKU',  tip: 'Đếm theo số mã' },
-                            { id: 'qty', label: 'SL',   tip: 'Đếm theo số lượng' },
-                            { id: 'val', label: 'Tr ₫', tip: 'Đếm theo giá trị (Triệu VND)' },
-                        ] as const).map(m => (
-                            <button key={m.id} type="button" onClick={() => setMatrixMetric(m.id)}
-                                aria-pressed={matrixMetric === m.id} data-active={matrixMetric === m.id}
-                                title={m.tip}>
-                                {m.label}
+
+
+                    <div style={{ marginLeft: 'auto', position: 'relative', width: 220, flexShrink: 0 }}>
+                        <FaIcon className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[12px]" style={{ color: 'var(--bo-ink-soft)' }} aria-hidden="true" />
+                        <label htmlFor="bo-search" className="sr-only">Tìm SKU theo mã hoặc tên hàng</label>
+                        <input
+                            id="bo-search"
+                            type="text"
+                            placeholder="Tìm mã / tên hàng…"
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            autoComplete="off"
+                            spellCheck={false}
+                            inputMode="search"
+                            className="w-full pl-9 pr-9 h-8 text-[11px] font-semibold tabular-nums outline-none transition-colors"
+                            style={{
+                                background: 'var(--bo-surface-sunken)',
+                                border: '1px solid var(--bo-hairline)',
+                                borderRadius: 'var(--bo-radius-sm)',
+                                color: 'var(--bo-ink)',
+                            }}
+                            onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--bo-bronze)')}
+                            onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--bo-hairline)')}
+                        />
+                        {search && (
+                            <button
+                                type="button"
+                                onClick={() => setSearch('')}
+                                aria-label="Xoá tìm kiếm"
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 transition-colors"
+                                style={{ color: 'var(--bo-ink-soft)' }}
+                                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--bo-accent)')}
+                                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--bo-ink-soft)')}
+                            >
+                                <FaIcon className="fas fa-circle-xmark text-[13px]" aria-hidden="true" />
                             </button>
-                        ))}
+                        )}
+                        {searchResult.type !== 'EMPTY' && (
+                            <div
+                                className="absolute top-full left-0 right-0 mt-1.5 px-3 py-2 text-[10px] font-black z-30 flex items-center gap-1.5"
+                                style={{
+                                    background: 'var(--bo-surface-ink)',
+                                    color: 'var(--bo-bronze)',
+                                    border: '1px solid var(--bo-bronze-deep)',
+                                    borderRadius: 'var(--bo-radius-xs)',
+                                    letterSpacing: '0.12em',
+                                    textTransform: 'uppercase',
+                                }}
+                                role="status"
+                                aria-live="polite"
+                            >
+                                <FaIcon className="fas fa-microchip" aria-hidden="true" />
+                                <span style={{ color: '#F4F1EB' }}>{searchResult.modeDescription}</span>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -1435,274 +1413,20 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                         );
                     })()}
 
-                    <CriticalSkuSpotlight
-                        items={filteredData}
-                        getAnomaly={getItemAnomaly}
-                        getBoQty={(item) => {
-                            const scoped = filterBreakdownByScope(item.BackorderBreakdown, deferredWarehouseScope);
-                            return scoped.reduce((sum, bo) => sum + (bo.Qty || 0), 0) || (item.Backorder || 0);
-                        }}
-                        onSelect={onSkuSelect}
-                        topN={8}
-                    />
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                        <AgingMatrix
+                            items={filteredData}
+                            resolveMotherGroup={resolveMotherGroup}
+                            getScopedBreakdown={(it) => filterBreakdownByScope(it.BackorderBreakdown, deferredWarehouseScope)}
+                            now={anomalyNow}
+                            onSelectBucket={(b) => setAgingFilter(b as any)}
+                        />
 
-                    <div className="p-5 flex flex-col bo-bento-tile relative overflow-hidden group/m1">
-                        <div className="flex justify-between items-end mb-6 relative z-10">
-                            <div>
-                                <span
-                                    style={{
-                                        display: 'block',
-                                        fontFamily: "'Inter', system-ui, sans-serif",
-                                        fontSize: '0.6875rem',
-                                        fontWeight: 700,
-                                        letterSpacing: '0.18em',
-                                        textTransform: 'uppercase',
-                                        color: '#5B6470',
-                                        marginBottom: 4,
-                                    }}
-                                >
-                                    Aging Distribution
-                                </span>
-                                <h2
-                                    style={{
-                                        margin: 0,
-                                        fontFamily: "'Fraunces', ui-serif, Georgia, serif",
-                                        fontSize: '1.125rem',         // h2 per spec
-                                        fontWeight: 600,
-                                        lineHeight: 1.2,
-                                        letterSpacing: '-0.01em',
-                                        color: '#15181E',
-                                    }}
-                                >
-                                    Phân bổ theo Tuổi nợ (Aging)
-                                </h2>
-                            </div>
-                            <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-slate-600">
-                                {matrixMetric === 'sku' ? 'Đếm theo số SKU' : matrixMetric === 'qty' ? 'Đếm theo số lượng' : 'Đếm theo Triệu VND'}
-                            </span>
-                        </div>
-                        <div className="overflow-x-auto custom-scrollbar relative z-10 max-h-[640px]">
-                            <table className="w-full border-collapse">
-                                {/*
-                                  Header design:
-                                  - Two sticky rows. Row 1 = column groups (TỔNG / LOẠI ĐƠN / AGING).
-                                    Row 2 = leaf labels.
-                                  - Row 1 sticks at top:0; row 2 at top:38px (height of row 1).
-                                  - Single bg color per group (slate-50 muted) — drops the previous
-                                    fractional-opacity stack that rendered as visually-identical noise.
-                                */}
-                                <thead className="bg-white">
-                                    <tr>
-                                        <th rowSpan={2} className="sticky top-0 z-20 bg-white py-3 px-5 text-left border-b border-slate-200 min-w-[200px]">
-                                            <Typography variant="label" className="text-[var(--bo-ink-muted)] !text-[11px] uppercase tracking-[0.2em] font-black">NHÓM MẸ / NGUỒN</Typography>
-                                        </th>
-                                        <th rowSpan={2} className="sticky top-0 z-20 bg-slate-50 py-3 px-4 text-right border-b border-r-2 border-slate-300">
-                                            <Typography variant="label" className="text-[var(--bo-ink)] !text-[11px] font-black uppercase tracking-wider">TỔNG NỢ</Typography>
-                                        </th>
-                                        <th colSpan={6} className="sticky top-0 z-20 bg-slate-50 py-3 text-center border-b border-r-2 border-slate-300">
-                                            <Typography variant="label" className="text-[var(--bo-ink-muted)] !text-[10px] font-black uppercase tracking-[0.2em]">PHÂN RÃ THEO LOẠI ĐƠN</Typography>
-                                        </th>
-                                        <th colSpan={4} className="sticky top-0 z-20 bg-slate-50 py-3 text-center border-b border-slate-200">
-                                            <Typography variant="label" className="text-[var(--bo-ink-muted)] !text-[10px] font-black uppercase tracking-[0.2em]">PHÂN RÃ THEO TUỔI NỢ (AGING)</Typography>
-                                        </th>
-                                    </tr>
-                                    <tr>
-                                        {[
-                                            { key: 'VOR',     min: '80px' },
-                                            { key: 'BH',      min: '80px' },
-                                            { key: 'KHẨN',    min: '80px' },
-                                            { key: 'C/DỊCH',  min: '80px' },
-                                            { key: 'STOCK',   min: '80px' },
-                                            { key: 'KHÁC',    min: '80px', last: true },
-                                        ].map(c => (
-                                            <th key={c.key} style={{ minWidth: c.min, top: 38 }} className={`sticky z-10 bg-white py-2 text-center px-2 border-b border-slate-200 ${c.last ? 'border-r-2 border-slate-300' : ''}`}>
-                                                <Typography variant="label" className="text-slate-700 !text-[10px] font-bold tracking-tight">{c.key}</Typography>
-                                            </th>
-                                        ))}
-                                        {[
-                                            { key: '< 30D' },
-                                            { key: '30-60D' },
-                                            { key: '60-90D' },
-                                            { key: '> 90D' },
-                                        ].map(c => (
-                                            <th key={c.key} style={{ minWidth: '90px', top: 38 }} className="sticky z-10 bg-white py-2 text-center px-2 border-b border-slate-200">
-                                                <Typography variant="label" className="text-slate-700 !text-[10px] font-bold tracking-tight">{c.key}</Typography>
-                                            </th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {matrixData.length === 0 && (
-                                        <tr>
-                                            <td colSpan={11} className="py-12 text-center text-slate-600 !text-[12px]">Không có dữ liệu phù hợp với bộ lọc</td>
-                                        </tr>
-                                    )}
-                                    {matrixData.map((row, idx) => (
-                                        <tr key={row.source} className={`group/row hover:bg-[var(--bo-bronze-soft)]/40 transition-colors ${idx % 2 === 1 ? 'bg-slate-50/40' : ''}`}>
-                                            <td className="py-3 px-5 border-b border-slate-100">
-                                                <Typography variant="label" className="text-slate-900 font-black uppercase !text-[14px] group-hover/row:text-[var(--bo-bronze-strong)] transition-colors tracking-tight">{row.source}</Typography>
-                                            </td>
-                                            <td className="py-3 text-right px-4 bg-slate-50/60 border-r-2 border-slate-200 border-b border-slate-100">
-                                                <Typography variant="mono" className="!text-[14px] font-black text-slate-900 tabular-nums">
-                                                    {formatMatrixVal(row.total)}
-                                                </Typography>
-                                            </td>
-
-                                            {/* Types breakdown */}
-                                            {[
-                                                'type_1. VOR (Xe nằm đường)',
-                                                'type_2. Bảo Hành',
-                                                'type_3. Khẩn (EO/Emergency)',
-                                                'type_4. Chiến dịch',
-                                                'type_5. Dự trữ (Stock)',
-                                                'type_6. Khác',
-                                            ].map((k, i, arr) => (
-                                                <td key={k} className={`py-3 text-center px-2 border-b border-slate-100 ${i === arr.length - 1 ? 'border-r-2 border-slate-200' : ''}`}>
-                                                    <Typography variant="mono" className={`!text-[14px] tabular-nums ${row[k] > 0 ? 'font-bold text-slate-800' : 'text-slate-400'}`}>{row[k] > 0 ? formatMatrixVal(row[k]) : '–'}</Typography>
-                                                </td>
-                                            ))}
-
-                                            {/* Aging breakdown — distinct color per bucket: amber=60-90D, rose=>90D */}
-                                            <td className="py-3 text-center px-2 border-b border-slate-100"><Typography variant="mono" className={`!text-[14px] tabular-nums ${row.q30 > 0 ? 'font-bold text-slate-800' : 'text-slate-400'}`}>{row.q30 > 0 ? formatMatrixVal(row.q30) : '–'}</Typography></td>
-                                            <td className="py-3 text-center px-2 border-b border-slate-100"><Typography variant="mono" className={`!text-[14px] tabular-nums ${row.q60 > 0 ? 'font-bold text-slate-800' : 'text-slate-400'}`}>{row.q60 > 0 ? formatMatrixVal(row.q60) : '–'}</Typography></td>
-                                            <td className="py-3 text-center px-2 border-b border-slate-100"><Typography variant="mono" className={`!text-[14px] tabular-nums ${row.q90 > 0 ? 'font-bold text-[var(--bo-bronze-deep)]' : 'text-slate-400'}`}>{row.q90 > 0 ? formatMatrixVal(row.q90) : '–'}</Typography></td>
-                                            <td className="py-3 text-center px-2 border-b border-slate-100"><Typography variant="mono" className={`!text-[14px] tabular-nums ${row.qO90 > 0 ? 'font-black text-[var(--bo-accent-deep)]' : 'text-slate-400'}`}>{row.qO90 > 0 ? formatMatrixVal(row.qO90) : '–'}</Typography></td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                                {matrixData.length > 0 && (
-                                    <tfoot className="bg-slate-100/70 border-t-2 border-slate-300">
-                                        <tr>
-                                            <td className="py-4 px-5 text-slate-700 !text-[11px] uppercase font-black tracking-[0.15em]">Tổng cộng</td>
-                                            <td className="py-4 text-right px-4 bg-slate-200/60 border-r-2 border-slate-300">
-                                                <Typography variant="mono" className="!text-[14px] font-black text-slate-900 tabular-nums">
-                                                    {formatMatrixVal(matrixData.reduce((a, b) => a + (b.total || 0), 0))}
-                                                </Typography>
-                                            </td>
-                                            {/* Type Totals */}
-                                            {[
-                                                'type_1. VOR (Xe nằm đường)',
-                                                'type_2. Bảo Hành',
-                                                'type_3. Khẩn (EO/Emergency)',
-                                                'type_4. Chiến dịch',
-                                                'type_5. Dự trữ (Stock)',
-                                                'type_6. Khác',
-                                            ].map((k, i, arr) => (
-                                                <td key={k} className={`py-4 text-center px-2 ${i === arr.length - 1 ? 'border-r-2 border-slate-300' : ''}`}>
-                                                    <Typography variant="mono" className="!text-[12px] font-black text-slate-800 tabular-nums">{formatMatrixVal(matrixData.reduce((a, b) => a + (b[k] || 0), 0))}</Typography>
-                                                </td>
-                                            ))}
-                                            {/* Aging Totals — apply same color semantics as body cells */}
-                                            <td className="py-4 text-center px-2"><Typography variant="mono" className="!text-[12px] font-black text-slate-800 tabular-nums">{formatMatrixVal(matrixData.reduce((a, b) => a + (b.q30 || 0), 0))}</Typography></td>
-                                            <td className="py-4 text-center px-2"><Typography variant="mono" className="!text-[12px] font-black text-slate-800 tabular-nums">{formatMatrixVal(matrixData.reduce((a, b) => a + (b.q60 || 0), 0))}</Typography></td>
-                                            <td className="py-4 text-center px-2"><Typography variant="mono" className="!text-[12px] font-black text-[var(--bo-bronze-deep)] tabular-nums">{formatMatrixVal(matrixData.reduce((a, b) => a + (b.q90 || 0), 0))}</Typography></td>
-                                            <td className="py-4 text-center px-2"><Typography variant="mono" className="!text-[12px] font-black text-[var(--bo-accent-deep)] tabular-nums">{formatMatrixVal(matrixData.reduce((a, b) => a + (b.qO90 || 0), 0))}</Typography></td>
-                                        </tr>
-                                    </tfoot>
-                                )}
-                            </table>
-                        </div>
-                    </div>
-
-                    <div className="p-5 flex flex-col bo-bento-tile relative overflow-hidden group/m2">
-                        <div className="mb-6 flex justify-between items-end relative z-10">
-                            <div>
-                                <span
-                                    style={{
-                                        display: 'block',
-                                        fontFamily: "'Inter', system-ui, sans-serif",
-                                        fontSize: '0.6875rem',
-                                        fontWeight: 700,
-                                        letterSpacing: '0.18em',
-                                        textTransform: 'uppercase',
-                                        color: '#5B6470',
-                                        marginBottom: 4,
-                                    }}
-                                >
-                                    Line of Interest Matrix
-                                </span>
-                                <h2
-                                    style={{
-                                        margin: 0,
-                                        fontFamily: "'Fraunces', ui-serif, Georgia, serif",
-                                        fontSize: '1.125rem',
-                                        fontWeight: 600,
-                                        lineHeight: 1.2,
-                                        letterSpacing: '-0.01em',
-                                        color: '#15181E',
-                                    }}
-                                >
-                                    Phân bổ nợ hàng theo LOIS
-                                </h2>
-                            </div>
-                            <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-slate-600">
-                                {matrixMetric === 'sku' ? 'Đếm theo số SKU' : matrixMetric === 'qty' ? 'Đếm theo số lượng' : 'Đếm theo Triệu VND'}
-                            </span>
-                        </div>
-                        <div className="overflow-x-auto custom-scrollbar relative z-10 max-h-[640px]">
-                            <table className="w-full border-collapse">
-                                <thead className="bg-white">
-                                    <tr>
-                                        <th className="sticky top-0 z-20 bg-white py-3 px-5 text-left border-b border-slate-200 min-w-[200px]">
-                                            <Typography variant="label" className="text-[var(--bo-ink-muted)] !text-[11px] uppercase tracking-[0.2em] font-black">NHÓM MẸ / NGUỒN</Typography>
-                                        </th>
-                                        <th className="sticky top-0 z-20 bg-slate-50 py-3 px-4 text-right border-b border-r-2 border-slate-300">
-                                            <Typography variant="label" className="text-[var(--bo-ink)] !text-[11px] font-black uppercase tracking-wider">TỔNG NỢ</Typography>
-                                        </th>
-                                        {loisList.map(lois => (
-                                            <th key={lois} style={{ minWidth: '80px' }} className="sticky top-0 z-20 bg-white py-3 text-center px-2 border-b border-slate-200">
-                                                <Typography variant="label" className="text-slate-700 !text-[11px] font-black tracking-tight">{lois}</Typography>
-                                            </th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {loisMatrixData.length === 0 && (
-                                        <tr>
-                                            <td colSpan={2 + loisList.length} className="py-12 text-center text-slate-600 !text-[12px]">Không có dữ liệu phù hợp với bộ lọc</td>
-                                        </tr>
-                                    )}
-                                    {loisMatrixData.map((row, idx) => (
-                                        <tr key={row.source} className={`group/row hover:bg-[var(--bo-bronze-soft)]/40 transition-colors ${idx % 2 === 1 ? 'bg-slate-50/40' : ''}`}>
-                                            <td className="py-3 px-5 border-b border-slate-100">
-                                                <Typography variant="label" className="text-slate-900 font-black uppercase !text-[14px] group-hover/row:text-[var(--bo-bronze-strong)] transition-colors tracking-tight">{row.source}</Typography>
-                                            </td>
-                                            <td className="py-3 text-right px-4 bg-slate-50/60 border-r-2 border-slate-200 border-b border-slate-100">
-                                                <Typography variant="mono" className="!text-[14px] font-black text-slate-900 tabular-nums">
-                                                    {formatMatrixVal(row.total)}
-                                                </Typography>
-                                            </td>
-                                            {loisList.map(lois => (
-                                                <td key={lois} className="py-3 text-center px-2 border-b border-slate-100">
-                                                    <Typography variant="mono" className={`!text-[14px] tabular-nums ${row[`lois_${lois}`] > 0 ? 'font-bold text-slate-800' : 'text-slate-400'}`}>
-                                                        {row[`lois_${lois}`] > 0 ? formatMatrixVal(row[`lois_${lois}`]) : '–'}
-                                                    </Typography>
-                                                </td>
-                                            ))}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                                {loisMatrixData.length > 0 && (
-                                    <tfoot className="bg-slate-100/70 border-t-2 border-slate-300">
-                                        <tr>
-                                            <td className="py-4 px-5 text-slate-700 !text-[11px] uppercase font-black tracking-[0.15em]">Tổng cộng</td>
-                                            <td className="py-4 text-right px-4 bg-slate-200/60 border-r-2 border-slate-300">
-                                                <Typography variant="mono" className="!text-[14px] font-black text-slate-900 tabular-nums">
-                                                    {formatMatrixVal(loisMatrixData.reduce((a, b) => a + (b.total || 0), 0))}
-                                                </Typography>
-                                            </td>
-                                            {loisList.map(lois => (
-                                                <td key={lois} className="py-4 text-center px-2">
-                                                    <Typography variant="mono" className="!text-[12px] font-black text-slate-800 tabular-nums">
-                                                        {formatMatrixVal(loisMatrixData.reduce((a, b) => a + (b[`lois_${lois}`] || 0), 0))}
-                                                    </Typography>
-                                                </td>
-                                            ))}
-                                        </tr>
-                                    </tfoot>
-                                )}
-                            </table>
-                        </div>
+                        <VelocityMatrix
+                            items={filteredData}
+                            resolveMotherGroup={resolveMotherGroup}
+                            getScopedBOQty={(it) => getScopedBOQty(it, deferredWarehouseScope)}
+                        />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -1787,6 +1511,19 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                 </div>
             </div>
 
+            <div className="px-6 lg:px-8 pb-4">
+                <CriticalSkuSpotlight
+                    items={filteredData}
+                    getAnomaly={getItemAnomaly}
+                    getBoQty={(item) => {
+                        const scoped = filterBreakdownByScope(item.BackorderBreakdown, deferredWarehouseScope);
+                        return scoped.reduce((sum, bo) => sum + (bo.Qty || 0), 0) || (item.Backorder || 0);
+                    }}
+                    onSelect={onSkuSelect}
+                    topN={15}
+                />
+            </div>
+
             <div className="flex-1 overflow-hidden flex flex-col p-6 pt-0">
                 <div className="bo-data-table-shell flex-1 flex flex-col">
                         <div className="px-6 py-5 shrink-0 flex justify-between items-center gap-6 flex-wrap" style={{ background: 'var(--bo-surface-sunken)', borderBottom: '1px solid var(--bo-hairline)' }}>
@@ -1799,63 +1536,7 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                 </span>
                             </div>
 
-                            {/* Search — relocated from main filter strip into the SKU detail header
-                                where it belongs scope-wise (search narrows the SKU list, not the
-                                aggregate matrices above). Uses .bo-page tokens for consistency. */}
-                            <div className="relative w-full sm:w-72 shrink-0">
-                                <FaIcon className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[12px]" style={{ color: 'var(--bo-ink-soft)' }} aria-hidden="true" />
-                                <label htmlFor="bo-search" className="sr-only">Tìm SKU theo mã hoặc tên hàng</label>
-                                <input
-                                    id="bo-search"
-                                    type="text"
-                                    placeholder="Tìm mã hoặc tên hàng…"
-                                    value={search}
-                                    onChange={e => setSearch(e.target.value)}
-                                    autoComplete="off"
-                                    spellCheck={false}
-                                    inputMode="search"
-                                    className="w-full pl-9 pr-9 h-9 text-[12px] font-semibold tabular-nums outline-none transition-colors"
-                                    style={{
-                                        background: 'var(--bo-surface-raised)',
-                                        border: '1px solid var(--bo-hairline)',
-                                        borderRadius: 'var(--bo-radius-sm)',
-                                        color: 'var(--bo-ink)',
-                                    }}
-                                    onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--bo-bronze)')}
-                                    onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--bo-hairline)')}
-                                />
-                                {search && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setSearch('')}
-                                        aria-label="Xoá tìm kiếm"
-                                        className="absolute right-2.5 top-1/2 -translate-y-1/2 transition-colors"
-                                        style={{ color: 'var(--bo-ink-soft)' }}
-                                        onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--bo-accent)')}
-                                        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--bo-ink-soft)')}
-                                    >
-                                        <FaIcon className="fas fa-circle-xmark text-[13px]" aria-hidden="true" />
-                                    </button>
-                                )}
-                                {searchResult.type !== 'EMPTY' && (
-                                    <div
-                                        className="absolute top-full left-0 right-0 mt-1.5 px-3 py-2 text-[10px] font-black z-30 flex items-center gap-1.5"
-                                        style={{
-                                            background: 'var(--bo-surface-ink)',
-                                            color: 'var(--bo-bronze)',
-                                            border: '1px solid var(--bo-bronze-deep)',
-                                            borderRadius: 'var(--bo-radius-xs)',
-                                            letterSpacing: '0.12em',
-                                            textTransform: 'uppercase',
-                                        }}
-                                        role="status"
-                                        aria-live="polite"
-                                    >
-                                        <FaIcon className="fas fa-microchip" aria-hidden="true" />
-                                        <span style={{ color: '#F4F1EB' }}>{searchResult.modeDescription}</span>
-                                    </div>
-                                )}
-                            </div>
+                            {/* Search moved to top toolbar next to warehouse/metric switchers */}
                         </div>
                         <div className="flex-1 overflow-auto custom-scrollbar">
                         <table className="w-full text-left border-collapse">
@@ -1944,31 +1625,25 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                     if (aging && (aging.qtyOver90 > 0 || aging.qty90 > 0)) priority = 'CRITICAL';
                                     else if (aging && aging.qty60 > 0) priority = 'HIGH';
 
-                                    // Rewritten for data density: single semantic color (rose) for critical state,
-                                    // mono numbers throughout, no decorative pills/badges. Padding tightened.
                                     const isCritical = priority === 'CRITICAL';
                                     const isHigh = priority === 'HIGH';
-                                    // Total BO and breakdown shown in popup respect the active warehouse scope.
                                     const scopedBreakdown = filterBreakdownByScope(item.BackorderBreakdown, deferredWarehouseScope);
-                                    const totalBO = deferredWarehouseScope === 'all'
-                                        ? Math.max(item.Backorder || 0, item.computed?.boAging?.totalQty || 0)
-                                        : getScopedBOQty(item, deferredWarehouseScope);
-                                    // Unified sizing: data = 13px mono, labels = 9px slate-400, single semantic color.
+                                    const totalBO = getScopedBOQty(item, deferredWarehouseScope);
                                     return (
-                                        <tr key={item.ItemCode} tabIndex={0} role="button" aria-label={`Xem chi tiết ${item.ItemCode}`} className={`hover:bg-[var(--bo-bronze-soft)]/40 transition-colors group cursor-pointer border-b border-slate-100 last:border-0 focus-visible:bg-[var(--bo-bronze-soft)]/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--bo-bronze)] ${isCritical ? 'bg-[var(--bo-accent-soft)]/30' : ''}`} onClick={() => onSkuSelect(item)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSkuSelect(item); } }}>
+                                        <tr key={item.ItemCode} className={`hover:bg-slate-50 transition-colors group border-b border-slate-100 last:border-0 ${isCritical ? 'bg-red-50/40' : ''}`}>
                                             <td className="px-4 py-3">
                                                 <div className="flex items-start gap-2.5">
-                                                    <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${isCritical ? 'bg-[var(--bo-accent)]' : isHigh ? 'bg-[var(--bo-bronze-strong)]' : 'bg-[var(--bo-ink-soft)]/40'}`} aria-hidden />
+                                                    <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${isCritical ? 'bg-red-500' : isHigh ? 'bg-amber-500' : 'bg-slate-300'}`} aria-hidden />
                                                     <div className="min-w-0">
-                                                        <div className="font-mono font-bold text-slate-900 group-hover:text-[var(--bo-bronze-strong)] transition-colors text-[14px] tabular-nums tracking-tight">
+                                                        <div className="font-mono font-semibold text-slate-800 hover:text-blue-700 transition-colors text-[13px] tabular-nums tracking-tight cursor-pointer hover:underline" role="button" tabIndex={0} onClick={(e) => { e.stopPropagation(); onSkuSelect(item); }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSkuSelect(item); } }}>
                                                             {item.ItemCode}
                                                         </div>
-                                                        <div className="text-[11px] text-slate-500 truncate max-w-[260px] mt-0.5 font-bold">{item.ItemName}</div>
-                                                        <div className="text-[10px] text-slate-600 font-medium mt-0.5 flex flex-wrap items-baseline gap-x-1">
+                                                        <div className="text-[11px] text-slate-500 truncate max-w-[260px] mt-0.5 font-medium">{item.ItemName}</div>
+                                                        <div className="text-[10px] text-slate-400 font-medium mt-0.5 flex flex-wrap items-baseline gap-x-1">
                                                             {item.SourceId && (
-                                                                <span className="font-mono font-black text-[10px] text-[var(--bo-bronze-strong)] uppercase tracking-wider">{item.SourceId}</span>
+                                                                <span className="font-mono font-bold text-[10px] text-slate-500 uppercase tracking-wider">{item.SourceId}</span>
                                                             )}
-                                                            <span className="text-slate-600 font-bold">· {item.BrandName}</span>
+                                                            <span className="text-slate-400">· {item.BrandName}</span>
                                                             {item.TypeCar && <span>· {item.TypeCar}</span>}
                                                         </div>
                                                         {(() => {
@@ -2022,18 +1697,18 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                             </td>
                                             <td className="px-3 py-3 text-right">
                                                 <BackorderPopup items={scopedBreakdown} effectiveLTDays={item.computed?.effectiveLT}>
-                                                    <span className={`font-mono font-bold text-[14px] tabular-nums ${isCritical ? 'text-[var(--bo-accent)]' : 'text-[var(--bo-ink)]'} hover:text-[var(--bo-bronze-strong)] transition-colors`}>
+                                                    <span className={`font-mono font-semibold text-[13px] tabular-nums ${isCritical ? 'text-red-600' : 'text-slate-800'} hover:text-blue-700 transition-colors`}>
                                                         {totalBO.toLocaleString('vi-VN')}
                                                     </span>
                                                 </BackorderPopup>
                                             </td>
                                             <td className="px-3 py-3 text-right">
-                                                <span className={`font-mono font-bold text-[14px] tabular-nums ${isCritical ? 'text-[var(--bo-accent)]' : isHigh ? 'text-[var(--bo-bronze-strong)]' : 'text-[var(--bo-ink)]'}`}>
-                                                    {aging?.oldestDebtDays ?? 0}<span className="text-[11px] text-slate-600 font-medium ml-0.5">d</span>
+                                                <span className={`font-mono font-semibold text-[13px] tabular-nums ${isCritical ? 'text-red-600' : isHigh ? 'text-amber-600' : 'text-slate-700'}`}>
+                                                    {aging?.oldestDebtDays ?? 0}<span className="text-[10px] text-slate-400 font-normal ml-0.5">d</span>
                                                 </span>
                                             </td>
                                             <td className="px-3 py-3">
-                                                <div className="text-[14px] tabular-nums font-bold text-slate-800 max-w-[180px] leading-snug">
+                                                <div className="text-[13px] tabular-nums font-semibold text-slate-700 max-w-[180px] leading-snug">
                                                     {Object.entries(boTypes).map(([type, qty], idx) => {
                                                         const meta = ORDER_TYPE_SYMBOL[type] ?? { sym: '?', full: type, color: 'text-slate-600' };
                                                         return (
@@ -2047,62 +1722,65 @@ export const BackorderAnalytics = ({ enrichedData, isProcessing, onSkuSelect, gr
                                                 </div>
                                             </td>
                                             <td className="px-3 py-3">
-                                                <div className="flex justify-center gap-3 text-[14px] tabular-nums font-bold">
+                                                <div className="flex justify-center gap-3 text-[13px] tabular-nums font-semibold">
                                                     {[
-                                                        { label: '30d', val: aging?.qty30 || 0, color: 'text-slate-700' },
-                                                        { label: '60d', val: aging?.qty60 || 0, color: 'text-[var(--bo-bronze-strong)]' },
-                                                        { label: '90d', val: aging?.qty90 || 0, color: 'text-[var(--bo-accent)]' },
-                                                        { label: '>90d', val: aging?.qtyOver90 || 0, color: 'text-[var(--bo-accent-deep)]' },
+                                                        { label: '30D', val: aging?.qty30 || 0, color: 'text-slate-600' },
+                                                        { label: '60D', val: aging?.qty60 || 0, color: 'text-amber-600' },
+                                                        { label: '90D', val: aging?.qty90 || 0, color: 'text-orange-600' },
+                                                        { label: '>90D', val: aging?.qtyOver90 || 0, color: 'text-red-600' },
                                                     ].map(({ label, val, color }) => (
                                                         <div key={label} className="flex flex-col items-center min-w-[34px]">
-                                                            <span className={val > 0 ? color : 'text-slate-400'}>{val > 0 ? val : '–'}</span>
-                                                            <span className="text-[11px] text-slate-600 uppercase tracking-wide font-bold">{label}</span>
+                                                            <span className={val > 0 ? color : 'text-slate-300'}>{val > 0 ? val : '–'}</span>
+                                                            <span className="text-[10px] text-slate-400 uppercase tracking-wide font-medium">{label}</span>
                                                         </div>
                                                     ))}
                                                 </div>
                                             </td>
                                             <td className="px-3 py-3 text-center">
-                                                <div className="flex justify-center gap-3 text-[14px] tabular-nums font-bold">
+                                                <div className="flex justify-center gap-3 text-[13px] tabular-nums font-semibold">
                                                     <div className="flex flex-col items-center min-w-[34px]">
-                                                        <span className={item.Backorder_NB > 0 ? 'text-[var(--bo-accent)]' : 'text-[var(--bo-ink)]'}>{nbStock}</span>
-                                                        <span className="text-[11px] text-slate-600 uppercase tracking-wide font-bold">NB</span>
+                                                        <span className={nbStock > 0 ? 'text-slate-700' : 'text-slate-300'}>{nbStock}</span>
+                                                        <span className="text-[10px] text-slate-400 uppercase tracking-wide font-medium">NB</span>
                                                     </div>
                                                     <div className="flex flex-col items-center min-w-[34px]">
-                                                        <span className={item.Backorder_BB > 0 ? 'text-[var(--bo-accent)]' : 'text-[var(--bo-ink)]'}>{bbStock}</span>
-                                                        <span className="text-[11px] text-slate-600 uppercase tracking-wide font-bold">BB</span>
+                                                        <span className={bbStock > 0 ? 'text-slate-700' : 'text-slate-300'}>{bbStock}</span>
+                                                        <span className="text-[10px] text-slate-400 uppercase tracking-wide font-medium">BB</span>
                                                     </div>
                                                 </div>
                                                 {(canTransferToBB || canTransferToNB) && (
-                                                    <div className="text-[11px] uppercase font-bold tracking-wide mt-1" style={{ color: 'var(--bo-ok)' }}>↔ Điều chuyển</div>
+                                                    <div className="text-[10px] uppercase font-medium tracking-wide mt-1 text-emerald-600">↔ Điều chuyển</div>
                                                 )}
                                             </td>
                                             <td className="px-3 py-3 text-right">
                                                 <DealerInventoryPopup items={item.DealerBreakdown || []}>
-                                                    <span className="font-mono font-bold tabular-nums text-[var(--bo-ink)] hover:text-[var(--bo-bronze-strong)] text-[14px] transition-colors">
-                                                        {item.DealerInventory.toLocaleString()}
+                                                    <span className={`font-mono font-semibold tabular-nums text-[13px] cursor-help hover:scale-105 transition-transform inline-flex items-center gap-1 ${(item.DealerBreakdown?.length || 0) > 0 ? 'text-blue-700' : 'text-slate-700'}`}>
+                                                        {(item.DealerBreakdown?.length || 0) > 0 && <FaIcon className="fas fa-warehouse text-[10px] opacity-60" />}
+                                                        <span className={(item.DealerBreakdown?.length || 0) > 0 ? 'border-b border-dashed border-blue-300' : ''}>
+                                                            {item.DealerInventory.toLocaleString()}
+                                                        </span>
                                                     </span>
                                                 </DealerInventoryPopup>
                                             </td>
                                             <td className="px-3 py-3">
                                                 <PipelinePopup pipeline={item.Pipeline} pipelineNB={item.Pipeline_NB} pipelineBB={item.Pipeline_BB}>
-                                                    <div className="flex justify-end gap-3 text-[14px] tabular-nums font-bold cursor-help">
+                                                    <div className="flex justify-end gap-3 text-[13px] tabular-nums font-semibold cursor-help">
                                                         <div className="flex flex-col items-center min-w-[34px]">
-                                                            <span className={poM0 > 0 ? 'text-slate-900' : 'text-slate-400'}>{poM0 > 0 ? poM0 : '–'}</span>
-                                                            <span className="text-[11px] text-slate-600 uppercase tracking-wide font-bold">T.này</span>
+                                                            <span className={poM0 > 0 ? 'text-slate-700' : 'text-slate-300'}>{poM0 > 0 ? poM0 : '–'}</span>
+                                                            <span className="text-[10px] text-slate-400 uppercase tracking-wide font-medium">T.nay</span>
                                                         </div>
                                                         <div className="flex flex-col items-center min-w-[34px]">
-                                                            <span className={poM1 > 0 ? 'text-slate-900' : 'text-slate-400'}>{poM1 > 0 ? poM1 : '–'}</span>
-                                                            <span className="text-[11px] text-slate-600 uppercase tracking-wide font-bold">T.sau</span>
+                                                            <span className={poM1 > 0 ? 'text-slate-700' : 'text-slate-300'}>{poM1 > 0 ? poM1 : '–'}</span>
+                                                            <span className="text-[10px] text-slate-400 uppercase tracking-wide font-medium">T.sau</span>
                                                         </div>
                                                         <div className="flex flex-col items-center min-w-[42px] border-l border-slate-200 pl-3">
-                                                            <span className={item.TotalPO > 0 ? 'text-slate-900' : 'text-slate-400'}>{item.TotalPO}</span>
-                                                            <span className="text-[11px] text-slate-600 uppercase tracking-wide font-bold">Tổng</span>
+                                                            <span className={item.TotalPO > 0 ? 'text-slate-700' : 'text-slate-300'}>{item.TotalPO}</span>
+                                                            <span className="text-[10px] text-slate-400 uppercase tracking-wide font-medium">Tổng</span>
                                                         </div>
                                                     </div>
                                                 </PipelinePopup>
                                             </td>
                                             <td className="px-4 py-3 text-right">
-                                                <span className="font-mono font-bold text-slate-900 text-[14px] tabular-nums">
+                                                <span className="font-mono font-semibold text-slate-700 text-[13px] tabular-nums">
                                                     {formatCurrency(item.computed?.boAging?.totalValue || 0)}
                                                 </span>
                                             </td>

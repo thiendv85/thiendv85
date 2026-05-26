@@ -49,8 +49,7 @@ export function useApprovalNotifications(): ApprovalNotifications {
             setRejectedRecent(
                 mineList.filter(r => r.status === 'rejected' && new Date(r.submitted_at).getTime() >= cutoff)
             );
-        } catch (e) {
-            console.error('[notifications] refetch failed', e);
+        } catch {
         } finally {
             inFlightRef.current = false;
             setIsLoading(false);

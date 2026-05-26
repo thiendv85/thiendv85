@@ -20,7 +20,7 @@ export async function listSupersessionUploads(): Promise<SupersessionUpload[]> {
     .from('supersession_uploads')
     .select('*')
     .order('uploaded_at', { ascending: false });
-  if (error) { console.error('listSupersessionUploads:', error); return []; }
+  if (error) { return []; }
   return data || [];
 }
 
@@ -92,7 +92,6 @@ export async function uploadSupersessionFile(
 
     return { success: true, uploadId: upload.id, inserted, previousCount: previousCount || 0 };
   } catch (err: any) {
-    console.error('uploadSupersessionFile:', err);
     return { success: false, error: err?.message || String(err) };
   }
 }
@@ -102,7 +101,7 @@ export async function deleteSupersessionUpload(uploadId: string): Promise<boolea
     .from('supersession_uploads')
     .delete()
     .eq('id', uploadId);
-  if (error) { console.error('deleteSupersessionUpload:', error); return false; }
+  if (error) { return false; }
   return true;
 }
 
@@ -157,7 +156,6 @@ export async function migrateLocalMappingsToDB(
     await supabase.from('supersession_uploads').update({ row_count: inserted }).eq('id', upload.id);
     return { success: true, inserted };
   } catch (err: any) {
-    console.error('migrateLocalMappingsToDB:', err);
     return { success: false, inserted: 0, error: err?.message || String(err) };
   }
 }
@@ -254,6 +252,5 @@ export async function bulkUpsertPartAffinity(
 
 export async function deletePartAffinityPair(id: string): Promise<boolean> {
   const { error } = await supabase.from('part_affinity_pairs').delete().eq('id', id);
-  if (error) console.error('deletePartAffinityPair:', error);
   return !error;
 }

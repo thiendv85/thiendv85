@@ -82,7 +82,6 @@ export async function saveMonthlyData(monthlyMap: Record<string, any>, options?:
 
     return true;
   } catch (error) {
-    console.error('Lỗi khi lưu Monthly Data:', error);
     return false;
   }
 }
@@ -167,7 +166,6 @@ export async function loadLatestMonthlyData(lastUpdatedAt?: string | null): Prom
     if (Object.keys(result).length === 0) return null;
     return { data: result, updatedAt };
   } catch (error) {
-    console.error('Lỗi khi tải Monthly Data:', error);
     return null;
   }
 }
@@ -189,7 +187,6 @@ export async function listMonthlyVersions(): Promise<string[]> {
     const uniqueMonths = Array.from(new Set(data.map(r => r.snapshot_month as string)));
     return uniqueMonths;
   } catch (err) {
-    console.error('listMonthlyVersions:', err);
     return [];
   }
 }
@@ -262,7 +259,6 @@ export async function loadSpecificMonthlyData(month: string): Promise<{ data: Re
     if (Object.keys(result).length === 0) return null;
     return { data: result, updatedAt };
   } catch (error) {
-    console.error('loadSpecificMonthlyData:', error);
     return null;
   }
 }
@@ -273,8 +269,6 @@ export async function loadSpecificMonthlyData(month: string): Promise<{ data: Re
  */
 export async function deleteMonthlyData(snapshotMonth: string): Promise<{ success: boolean; error?: string }> {
   try {
-    console.log(`[Supabase] Deleting monthly data for: ${snapshotMonth}`);
-
     // 1. Delete rows from monthly_sku_data
     const { error: dErr } = await supabase
       .from('monthly_sku_data')
@@ -282,7 +276,6 @@ export async function deleteMonthlyData(snapshotMonth: string): Promise<{ succes
       .eq('snapshot_month', snapshotMonth);
 
     if (dErr) {
-      console.error('[Supabase] Error deleting from monthly_sku_data:', dErr);
       return { success: false, error: dErr.message };
     }
 
@@ -293,14 +286,11 @@ export async function deleteMonthlyData(snapshotMonth: string): Promise<{ succes
       .eq('snapshot_month', snapshotMonth);
 
     if (cErr) {
-      console.error('[Supabase] Error deleting from monthly_snapshots:', cErr);
       return { success: false, error: cErr.message };
     }
 
-    console.log(`[Supabase] Successfully deleted monthly data for: ${snapshotMonth}`);
     return { success: true };
   } catch (error: any) {
-    console.error('Lỗi khi xóa Monthly Data:', error);
     return { success: false, error: error?.message || 'Unknown error' };
   }
 }

@@ -81,27 +81,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     useEffect(() => {
-        console.log("AuthProvider: Initializing...");
-        
         supabase.auth.getSession().then(async ({ data: { session: s } }) => {
-            console.log("AuthProvider: Session retrieved:", s ? "Logged In" : "No Session");
             setSession(s);
             setUser(s?.user ?? null);
-            
+
             if (s?.user) {
-                console.log("AuthProvider: Fetching profile for", s.user.id);
                 const p = await fetchProfile(s.user.id);
-                console.log("AuthProvider: Profile loaded:", p ? p.role : "NULL");
                 setProfile(p);
             }
             setIsLoading(false);
-        }).catch(err => {
-            console.error("AuthProvider: Session error:", err);
+        }).catch(() => {
             setIsLoading(false);
         });
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
-            console.log("AuthProvider: Auth state change:", _event, s ? "Logged In" : "Logged Out");
             setSession(s);
             setUser(s?.user ?? null);
             if (s?.user) {

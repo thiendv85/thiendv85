@@ -9,7 +9,6 @@ function loadInitial(): SupersessionMapping[] {
     const saved = localStorage.getItem(STORAGE_KEY);
     return saved ? JSON.parse(saved) : [];
   } catch (e) {
-    console.error('Failed to load supersession mappings', e);
     return [];
   }
 }

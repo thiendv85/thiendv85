@@ -146,7 +146,6 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
             const canUpload = profile?.role === 'admin' || profile?.role === 'planner' || profile?.role === 'approver';
             
             if (!canUpload) {
-                console.log("FileUpload: Role not authorized for cloud saving. Defaulting to local analysis.");
                 processFilesLocalOnly();
                 return;
             }
@@ -171,7 +170,6 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
             });
         } catch (error) {
             alert("Lỗi khi đọc file. Vui lòng kiểm tra định dạng CSV.");
-            console.error(error);
         } finally {
             setIsLoading(false);
         }
@@ -189,7 +187,6 @@ export const FileUpload = ({ onData, monthlyData, isMonthlyLoading, monthlyDataD
             onData(inventoryData, mainFile.name, '');
         } catch (error) {
             alert("Lỗi khi đọc file. Vui lòng kiểm tra định dạng CSV.");
-            console.error(error);
         } finally {
             setIsLoading(false);
         }

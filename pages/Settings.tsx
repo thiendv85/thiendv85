@@ -271,7 +271,6 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
             alert('✅ Đã lưu cấu hình lên Cloud (Supabase) thành công!');
             handleSave();
         } catch (err: any) {
-            console.error('Lỗi khi lưu lên Cloud:', err);
             alert(`Lỗi khi lưu lên Cloud: ${err.message || 'Lỗi không xác định'}. Vui lòng kiểm tra lại thiết lập Database.`);
         } finally {
             setIsSavingCloud(false);

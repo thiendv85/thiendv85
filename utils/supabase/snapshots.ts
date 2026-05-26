@@ -41,7 +41,7 @@ function getSharedWorker() {
         }
       };
     } catch (err) {
-      console.warn("Could not instantiate shared inventory worker:", err);
+      // Worker instantiation failed — compression will fall back to sync
     }
   }
   return sharedWorker;
@@ -59,7 +59,7 @@ export async function compressData(data: any): Promise<Blob> {
       worker.postMessage({ type: 'COMPRESS_DATA', payload: { data, id } });
     } catch (fallbackErr) {
       // Fallback to synchronous if Web Workers are not supported
-      console.warn('Web Worker failed, falling back to sync compression', fallbackErr);
+      // Fallback to synchronous compression
       try {
         const json = JSON.stringify(data);
         const blob = new Blob([new TextEncoder().encode(json)]);
@@ -109,15 +109,12 @@ async function enforceRetentionLimit(maxSnapshots = 30): Promise<void> {
       .order('upload_date', { ascending: true });
 
     if (fetchErr) {
-      console.error('[Supabase] Retention limit fetch error:', fetchErr);
       return;
     }
 
     if (!data || data.length <= maxSnapshots) return;
 
     const toDelete = data.slice(0, data.length - maxSnapshots);
-    console.log(`[Supabase] Retention: deleting ${toDelete.length} old snapshots.`);
-
     // Batch storage removal (Storage SDK accepts an array) and DB delete (single .in() query),
     // replacing the per-row round-trip loop.
     const paths = toDelete.map((s) => s.storage_path).filter(Boolean);
@@ -127,7 +124,7 @@ async function enforceRetentionLimit(maxSnapshots = 30): Promise<void> {
       const { error: storageErr } = await supabase.storage
         .from('inventory_snapshots')
         .remove(paths);
-      if (storageErr) console.warn('[Supabase] Retention storage remove warning:', storageErr);
+      // Storage removal failure is non-critical — metadata delete still proceeds
     }
 
     if (ids.length > 0) {
@@ -135,10 +132,10 @@ async function enforceRetentionLimit(maxSnapshots = 30): Promise<void> {
         .from('snapshot_metadata')
         .delete()
         .in('id', ids);
-      if (dbErr) console.error('[Supabase] Retention DB delete error:', dbErr);
+      // DB delete failure is silently ignored for retention cleanup
     }
   } catch (err) {
-    console.error('[Supabase] Unexpected error in enforceRetentionLimit:', err);
+    // Retention cleanup failure is non-critical
   }
 }
 
@@ -259,7 +256,7 @@ export async function listSnapshots(limit = 50, brandFilter?: string | null): Pr
     query = query.order('upload_date', { ascending: false }).limit(limit);
 
     const { data, error } = await query;
-    if (error) { console.error('listSnapshots:', error); return []; }
+    if (error) return [];
     return (data || []).map((row: any) => ({
       ...row,
       uploader_name: row.profiles?.full_name || null,
@@ -293,11 +290,10 @@ export async function loadSnapshot(storagePath: string): Promise<InventoryItem[]
     const { data, error } = await supabase.storage
       .from('inventory_snapshots')
       .download(storagePath);
-    if (error || !data) { console.error('loadSnapshot download:', error); return null; }
+    if (error || !data) return null;
     const parsed = await decompressData(data);
     return Array.isArray(parsed) ? parsed as InventoryItem[] : null;
   } catch (err) {
-    console.error('loadSnapshot:', err);
     return null;
   }
 }
@@ -307,16 +303,13 @@ export async function loadSnapshot(storagePath: string): Promise<InventoryItem[]
  */
 export async function deleteSnapshot(id: string, storagePath: string): Promise<{ success: boolean; error?: string }> {
   try {
-    console.log(`[Supabase] Attempting to delete snapshot: ${id} at ${storagePath}`);
-
     // 1. Remove file from storage
     const { error: storageErr } = await supabase.storage
       .from('inventory_snapshots')
       .remove([storagePath]);
 
     if (storageErr) {
-      console.warn('[Supabase] Storage removal warning (might already be deleted):', storageErr);
-      // We continue even if storage removal fails
+      // Continue even if storage removal fails (file may already be deleted)
     }
 
     // 2. Delete metadata row
@@ -326,14 +319,11 @@ export async function deleteSnapshot(id: string, storagePath: string): Promise<{
       .eq('id', id);
 
     if (dbErr) {
-      console.error('[Supabase] Error deleting snapshot metadata:', dbErr);
       return { success: false, error: dbErr.message };
     }
 
-    console.log(`[Supabase] Successfully deleted snapshot: ${id}`);
     return { success: true };
   } catch (err: any) {
-    console.error('[Supabase] Unexpected error in deleteSnapshot:', err);
     return { success: false, error: err?.message || 'Unexpected error' };
   }
 }

@@ -40,9 +40,6 @@ export async function fetchProfileDirectory(): Promise<ProfileDirectoryEntry[]> 
     }
     if (error && (error.code === '42883' || error.code === 'PGRST202' || /function .* does not exist|could not find/i.test(error.message || ''))) {
       DIRECTORY_RPC_AVAILABLE = false;
-      console.warn('[profiles] RPC list_profile_directory chưa được apply, fallback listProfiles');
-    } else if (error) {
-      console.error('[profiles] RPC list_profile_directory lỗi:', error);
     }
   }
   // Fallback: dùng listProfiles. Nếu user không phải admin, RLS chỉ trả profile chính mình.

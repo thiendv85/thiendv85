@@ -20,7 +20,7 @@ export async function selectAllPaginated<T>(
   const all: T[] = [];
   for (let offset = 0; ; offset += pageSize) {
     const { data, error } = await build(offset, offset + pageSize - 1);
-    if (error) { console.error('selectAllPaginated:', error); return all; }
+    if (error) { return all; }
     if (!data || data.length === 0) break;
     all.push(...data);
     if (data.length < pageSize) break;

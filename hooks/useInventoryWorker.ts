@@ -52,9 +52,7 @@ export function useInventoryWorker(
                 }
             };
 
-            workerRef.current.onerror = (err) => {
-                console.error('[InventoryWorker] Error:', err);
-                // Fallback to synchronous
+            workerRef.current.onerror = () => {
                 setIsProcessing(false);
                 isBusyRef.current = false;
             };

@@ -48,7 +48,6 @@ export async function submitApprovalRequest(payload: SubmitRequestPayload): Prom
         .upload(path, compressed, { contentType: 'application/gzip' });
 
       if (uploadErr) {
-        console.error('Failed to upload compressed snapshot:', uploadErr);
         return { id: null, error: 'Lỗi tải dữ liệu lên Cloud Storage: ' + uploadErr.message };
       }
 
@@ -91,7 +90,6 @@ export async function submitApprovalRequest(payload: SubmitRequestPayload): Prom
     }
 
     if (error) {
-      console.error('submitApprovalRequest failed:', error);
       return { id: null, error: error.message };
     }
 
@@ -101,7 +99,6 @@ export async function submitApprovalRequest(payload: SubmitRequestPayload): Prom
 
     return { id: data.id, error: null };
   } catch (err: any) {
-    console.error('submitApprovalRequest exception:', err);
     return { id: null, error: err.message || 'Lỗi không xác định' };
   }
 }
@@ -141,7 +138,6 @@ export async function submitApprovalRequestPrecompressed(payload: {
       .upload(path, payload.compressedBlob, { contentType: 'application/gzip' });
 
     if (uploadErr) {
-      console.error('Failed to upload pre-compressed snapshot:', uploadErr);
       return { id: null, error: 'Lỗi tải dữ liệu lên Cloud Storage: ' + uploadErr.message };
     }
 
@@ -183,13 +179,11 @@ export async function submitApprovalRequestPrecompressed(payload: {
     }
 
     if (error) {
-      console.error('submitApprovalRequestPrecompressed failed:', error);
       return { id: null, error: error.message };
     }
     if (!data) return { id: null, error: 'Không nhận được phản hồi từ máy chủ' };
     return { id: data.id, error: null };
   } catch (err: any) {
-    console.error('submitApprovalRequestPrecompressed exception:', err);
     return { id: null, error: err.message || 'Lỗi không xác định' };
   }
 }
@@ -218,7 +212,7 @@ export async function fetchMyRequests(userId: string): Promise<ApprovalRequest[]
     } catch (e: any) {
       if (!isMissingSummaryColumn(e)) return [];
       SUMMARY_COLUMN_AVAILABLE = false;
-      console.warn('[approval] cột `summary` chưa tồn tại, retry không có summary');
+
     }
   }
   return selectAllPaginated<ApprovalRequest>((from, to) =>
@@ -242,7 +236,7 @@ export async function fetchPendingForApprover(
     } catch (e: any) {
       if (isMissingSummaryColumn(e)) {
         SUMMARY_COLUMN_AVAILABLE = false;
-        console.warn('[approval] cột `summary` chưa tồn tại, retry không có summary');
+  
       } else return [];
     }
   }
@@ -270,7 +264,7 @@ export async function fetchAllRequests(): Promise<ApprovalRequest[]> {
     } catch (e: any) {
       if (!isMissingSummaryColumn(e)) return [];
       SUMMARY_COLUMN_AVAILABLE = false;
-      console.warn('[approval] cột `summary` chưa tồn tại, retry không có summary');
+
     }
   }
   return selectAllPaginated<ApprovalRequest>((from, to) =>
@@ -290,14 +284,13 @@ export async function fetchRequestById(id: string): Promise<ApprovalRequest | nu
         .download(request.snapshot_data.storage_path);
 
       if (dlErr || !blob) {
-        console.error('Failed to download compressed snapshot:', dlErr);
         return request;
       }
 
       const decompressed = await decompressData(blob);
       request.snapshot_data = decompressed;
     } catch (e) {
-      console.error('Decompression failed:', e);
+      // decompression failed — continue with compressed stub
     }
   }
 
@@ -345,7 +338,7 @@ export async function fetchRequestByDraftName(draftName: string): Promise<Approv
         request.snapshot_data = await decompressData(blob);
       }
     } catch (e) {
-      console.error('Decompression failed for draft:', draftName, e);
+      // decompression failed — return request with compressed stub
     }
   }
 
@@ -407,7 +400,7 @@ export async function processApprovalAction(
   const currentLevelConfig = workflow.levels.find(l => l.level === (request.current_level || 1));
   if (action !== 'commented' && currentLevelConfig) {
     if (!currentLevelConfig.approver_ids.includes(actorId)) {
-      console.warn(`Actor ${actorId} not in approver_ids for level ${request.current_level}, allowing via role-based access`);
+      // Actor not in approver_ids — allowed via role-based access
     }
   }
 
@@ -438,7 +431,7 @@ export async function processApprovalAction(
           snapData = await decompressData(blob);
         }
       } catch (e) {
-        console.error('Failed to decompress snapshot during action:', e);
+        // decompression failed — proceed with existing snapshot stub
       }
     }
 
@@ -472,7 +465,7 @@ export async function processApprovalAction(
             }
         }
     } catch (err) {
-        console.warn("Failed to compress/upload updated snapshot during action", err);
+        // compress/upload failed — proceed with uncompressed snapshot
     }
   }
 
@@ -620,7 +613,6 @@ export async function resubmitApprovalRequestPrecompressed(
       .upload(path, compressedBlob, { contentType: 'application/gzip' });
 
     if (uploadErr) {
-      console.error('resubmitApprovalRequestPrecompressed upload failed:', uploadErr);
       return false;
     }
 
@@ -663,7 +655,6 @@ export async function resubmitApprovalRequestPrecompressed(
     }
     return !error;
   } catch (err) {
-    console.error('resubmitApprovalRequestPrecompressed exception:', err);
     return false;
   }
 }
@@ -708,6 +699,6 @@ export async function sendApprovalEmail(payload: {
   try {
     await supabase.functions.invoke('send-approval-email', { body: payload });
   } catch (err) {
-    console.warn('sendApprovalEmail failed (non-critical):', err);
+    // email send failed — non-critical, swallow silently
   }
 }

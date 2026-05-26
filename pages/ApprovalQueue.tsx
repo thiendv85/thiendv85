@@ -286,7 +286,6 @@ export const ApprovalQueue = ({ onLoadRequest, appSettings }: Props) => {
             if (ok) showToast("Đã tải file CSV", "success");
             else showToast("Đơn không có dòng đặt hàng nào", "amber");
         } catch (e) {
-            console.error(e);
             showToast("Lỗi khi tải đơn", "error");
         } finally {
             setDownloadingId(null);

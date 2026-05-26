@@ -14,6 +14,7 @@ import {
 import { useLanguage } from '../utils/i18n';
 import { SupersessionGraph, SupersessionMapping } from '../utils/supersessionGraph';
 import { parseSupersessionMappingCSV } from '../utils/csvParser';
+import { SampleCSVButton } from './SampleCSVButton';
 
 interface SupersessionCSVUploadProps {
     itemCodes: string[];
@@ -117,7 +118,6 @@ export const SupersessionCSVUpload: React.FC<SupersessionCSVUploadProps> = ({
                 // Or we can auto call:
                 // onImportSuccess(graph, mappings); 
             } catch (err) {
-                console.error(err);
                 setStatus('ERROR');
                 if (onImportError) onImportError(["Unexpected error during graph construction"]);
             }
@@ -172,9 +172,12 @@ export const SupersessionCSVUpload: React.FC<SupersessionCSVUploadProps> = ({
                     {t('ss_upload_desc')} (Max 5MB)
                 </p>
                 
-                <button className="mt-6 px-6 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-600 shadow-sm hover:text-blue-600 hover:border-blue-200 transition-all">
-                    Browse File
-                </button>
+                <div className="mt-6 flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                    <button onClick={() => inputRef.current?.click()} className="px-6 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-600 shadow-sm hover:text-blue-600 hover:border-blue-200 transition-all">
+                        Browse File
+                    </button>
+                    <SampleCSVButton sampleKey="supersession" label="Tải mẫu CSV" />
+                </div>
             </div>
         );
     }

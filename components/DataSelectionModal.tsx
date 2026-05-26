@@ -124,7 +124,6 @@ export const DataSelectionModal: React.FC<DataSelectionModalProps> = ({
             }
         } catch (err: any) {
             setError(`Lỗi khi xóa dữ liệu: ${err?.message || 'Lỗi hệ thống'}`);
-            console.error('[UI] Cloud deletion error:', err);
         } finally {
             setLoadingId(null);
         }

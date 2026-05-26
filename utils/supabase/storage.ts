@@ -10,7 +10,6 @@ export async function saveToCloudStorage(id: string, data: any) {
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Lỗi khi lưu lên Cloud:', error);
     return false;
   }
 }
@@ -25,7 +24,6 @@ export async function saveOrderDraft(id: string, data: any) {
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Lỗi khi lưu draft:', error);
     return false;
   }
 }
@@ -49,7 +47,6 @@ export async function loadFromCloudStorage(id: string) {
 
     return data?.data || null;
   } catch (error) {
-    console.error('Lỗi khi tải từ Cloud:', error);
     return null;
   }
 }

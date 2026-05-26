@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import type { MonthlyData, KittingDefinition } from '../types/inventory';
 import type { SupersessionMapping } from '../utils/supersessionGraph';
 import type { AppSettings } from '../utils/appSettings';
-import { loadFromCloudStorage, loadLatestMonthlyData } from '../utils/supabase';
+import { loadFromCloudStorage, loadLatestMonthlyData, loadAllSupersessionMappings, dbMappingsToApp } from '../utils/supabase';
 import { cacheMonthlyData, getCachedMonthlyData } from '../utils/db';
 
 type Setters = {
@@ -25,15 +25,22 @@ export function useAppBootstrap(setters: Setters) {
     let cancelled = false;
     const run = async () => {
       try {
-        const [configData, ssData, kittingData] = await Promise.all([
+        const [configData, ssDbRows, kittingData] = await Promise.all([
           loadFromCloudStorage('global_config'),
-          loadFromCloudStorage('supersession_draft'),
+          loadAllSupersessionMappings(),
           loadFromCloudStorage('kitting_draft'),
         ]);
         if (cancelled) return;
 
         if (configData) setters.setAppSettings((prev) => ({ ...prev, ...configData }));
-        if (Array.isArray(ssData)) setters.setSupersessionMappings(ssData);
+
+        if (ssDbRows.length > 0) {
+          setters.setSupersessionMappings(dbMappingsToApp(ssDbRows));
+        } else {
+          const ssLegacy = await loadFromCloudStorage('supersession_draft');
+          if (Array.isArray(ssLegacy)) setters.setSupersessionMappings(ssLegacy);
+        }
+
         if (Array.isArray(kittingData)) setters.setKittingDefs(kittingData);
 
         setIsMonthlyLoading(true);
@@ -58,7 +65,6 @@ export function useAppBootstrap(setters: Setters) {
         }
         setIsMonthlyLoading(false);
       } catch (err) {
-        if (!cancelled) console.error('Bootstrap failed:', err);
         setIsMonthlyLoading(false);
       }
     };
