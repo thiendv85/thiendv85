@@ -111,18 +111,27 @@ h1, h2, h3, h4, .font-heading {
     display: inline-flex;
     align-items: center;
     padding: 3px;
-    background: rgba(255, 255, 255, 0.45);
-    backdrop-filter: blur(14px) saturate(1.5);
-    -webkit-backdrop-filter: blur(14px) saturate(1.5);
-    border: 1px solid rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.42);
+    backdrop-filter: blur(16px) saturate(1.6);
+    -webkit-backdrop-filter: blur(16px) saturate(1.6);
+    border: 1px solid rgba(255, 255, 255, 0.55);
     border-radius: 14px;
     box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.7),
-        0 1px 3px rgba(15, 17, 22, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.75),
+        inset 0 -0.5px 0 rgba(15, 17, 22, 0.04),
+        0 1px 3px rgba(15, 17, 22, 0.05),
         0 8px 24px -12px rgba(15, 17, 22, 0.08);
-    transition: box-shadow 200ms ease;
+    transition: box-shadow 250ms ease, transform 250ms ease;
+}
+.lg-segmented:hover {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.8),
+        inset 0 -0.5px 0 rgba(15, 17, 22, 0.04),
+        0 2px 6px rgba(15, 17, 22, 0.06),
+        0 12px 32px -12px rgba(15, 17, 22, 0.10);
 }
 .lg-segmented > button {
+    position: relative;
     height: 28px;
     padding: 0 14px;
     border-radius: 10px;
@@ -130,31 +139,52 @@ h1, h2, h3, h4, .font-heading {
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: rgba(15, 17, 22, 0.55);
+    color: rgba(15, 17, 22, 0.5);
     background: transparent;
     border: none;
     cursor: pointer;
-    transition: all 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: all 200ms cubic-bezier(0.22, 1, 0.36, 1);
     white-space: nowrap;
+    overflow: hidden;
 }
 .lg-segmented > button:hover {
-    color: rgba(15, 17, 22, 0.8);
-    background: rgba(255, 255, 255, 0.5);
+    color: rgba(15, 17, 22, 0.85);
+    background: rgba(255, 255, 255, 0.55);
+    transform: translateY(-0.5px);
+}
+.lg-segmented > button:active {
+    transform: scale(0.96);
+    transition-duration: 80ms;
 }
 .lg-segmented > button.lg-active,
 .lg-segmented > button[aria-pressed="true"],
 .lg-segmented > button[data-active="true"] {
-    background: rgba(14, 17, 22, 0.88);
+    background: linear-gradient(160deg, rgba(20, 23, 29, 0.9) 0%, rgba(10, 12, 18, 0.95) 100%);
     color: #F4F1EB;
     box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.1),
-        0 2px 8px -3px rgba(10, 12, 18, 0.4),
-        0 8px 20px -8px rgba(10, 12, 18, 0.25);
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.25),
+        0 2px 8px -2px rgba(10, 12, 18, 0.5),
+        0 8px 20px -8px rgba(10, 12, 18, 0.3),
+        0 0 0 0.5px rgba(168, 133, 75, 0.2);
     backdrop-filter: blur(8px);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+/* Aurora sheen on active segmented button */
+.lg-segmented > button.lg-active::after,
+.lg-segmented > button[aria-pressed="true"]::after,
+.lg-segmented > button[data-active="true"]::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 15%; right: 15%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(244, 226, 180, 0.4) 30%, rgba(255, 255, 255, 0.5) 50%, rgba(244, 226, 180, 0.4) 70%, transparent);
+    pointer-events: none;
 }
 
 /* Pill button — standalone glass filter pill (LOIS groups, coverage, etc.) */
 .lg-pill {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -163,44 +193,67 @@ h1, h2, h3, h4, .font-heading {
     min-width: 36px;
     padding: 0 12px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.5);
-    backdrop-filter: blur(12px) saturate(1.4);
-    -webkit-backdrop-filter: blur(12px) saturate(1.4);
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    color: rgba(15, 17, 22, 0.7);
+    background: rgba(255, 255, 255, 0.48);
+    backdrop-filter: blur(14px) saturate(1.5);
+    -webkit-backdrop-filter: blur(14px) saturate(1.5);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    color: rgba(15, 17, 22, 0.6);
     font-size: 0.8125rem;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     white-space: nowrap;
     cursor: pointer;
-    transition: all 180ms cubic-bezier(0.22, 1, 0.36, 1);
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.65),
-        0 1px 2px rgba(15, 17, 22, 0.04);
-}
-.lg-pill:hover {
-    background: rgba(255, 255, 255, 0.8);
-    border-color: rgba(15, 17, 22, 0.12);
-    color: rgba(15, 17, 22, 0.85);
+    transition: all 200ms cubic-bezier(0.22, 1, 0.36, 1);
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.7),
-        0 2px 6px rgba(15, 17, 22, 0.08);
+        inset 0 -0.5px 0 rgba(15, 17, 22, 0.03),
+        0 1px 2px rgba(15, 17, 22, 0.04);
+    overflow: hidden;
+}
+.lg-pill:hover {
+    background: rgba(255, 255, 255, 0.78);
+    border-color: rgba(15, 17, 22, 0.1);
+    color: rgba(15, 17, 22, 0.88);
+    transform: translateY(-1px);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.8),
+        0 2px 8px rgba(15, 17, 22, 0.07),
+        0 6px 16px -6px rgba(15, 17, 22, 0.10);
+}
+.lg-pill:active {
+    transform: translateY(0) scale(0.96);
+    transition-duration: 80ms;
 }
 .lg-pill.lg-active,
 .lg-pill[aria-pressed="true"],
 .lg-pill[data-active="true"] {
-    background: rgba(14, 17, 22, 0.88);
-    border-color: rgba(168, 133, 75, 0.45);
+    background: linear-gradient(160deg, rgba(20, 23, 29, 0.9) 0%, rgba(10, 12, 18, 0.95) 100%);
+    border-color: rgba(168, 133, 75, 0.35);
     color: #F4F1EB;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.08),
-        0 4px 14px -6px rgba(10, 12, 18, 0.45),
-        0 1px 2px rgba(168, 133, 75, 0.12);
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2),
+        0 4px 14px -4px rgba(10, 12, 18, 0.5),
+        0 1px 3px rgba(168, 133, 75, 0.15),
+        0 0 0 0.5px rgba(168, 133, 75, 0.18);
+}
+/* Aurora sheen on active pill */
+.lg-pill.lg-active::after,
+.lg-pill[aria-pressed="true"]::after,
+.lg-pill[data-active="true"]::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 20%; right: 20%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(244, 226, 180, 0.45) 25%, rgba(255, 255, 255, 0.55) 50%, rgba(244, 226, 180, 0.45) 75%, transparent);
+    pointer-events: none;
 }
 
 /* Icon button — square glass button for icon-only filters */
 .lg-icon-btn {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -208,34 +261,55 @@ h1, h2, h3, h4, .font-heading {
     height: 32px;
     border-radius: 10px;
     background: rgba(255, 255, 255, 0.45);
-    backdrop-filter: blur(12px) saturate(1.4);
-    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    backdrop-filter: blur(14px) saturate(1.5);
+    -webkit-backdrop-filter: blur(14px) saturate(1.5);
     border: 1px solid rgba(255, 255, 255, 0.55);
-    color: rgba(15, 17, 22, 0.55);
+    color: rgba(15, 17, 22, 0.5);
     font-size: 0.8125rem;
     cursor: pointer;
-    transition: all 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: all 200ms cubic-bezier(0.22, 1, 0.36, 1);
     box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.65),
+        inset 0 -0.5px 0 rgba(15, 17, 22, 0.03),
         0 1px 2px rgba(15, 17, 22, 0.04);
+    overflow: hidden;
 }
 .lg-icon-btn:hover {
     background: rgba(255, 255, 255, 0.78);
-    border-color: rgba(15, 17, 22, 0.12);
-    color: rgba(15, 17, 22, 0.8);
+    border-color: rgba(15, 17, 22, 0.1);
+    color: rgba(15, 17, 22, 0.85);
+    transform: translateY(-1px);
     box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.7),
-        0 2px 8px rgba(15, 17, 22, 0.08);
+        inset 0 1px 0 rgba(255, 255, 255, 0.8),
+        0 2px 8px rgba(15, 17, 22, 0.07),
+        0 6px 16px -6px rgba(15, 17, 22, 0.10);
+}
+.lg-icon-btn:active {
+    transform: translateY(0) scale(0.92);
+    transition-duration: 80ms;
 }
 .lg-icon-btn.lg-active,
 .lg-icon-btn[aria-pressed="true"],
 .lg-icon-btn[data-active="true"] {
-    background: rgba(14, 17, 22, 0.88);
-    border-color: rgba(168, 133, 75, 0.4);
+    background: linear-gradient(160deg, rgba(20, 23, 29, 0.9) 0%, rgba(10, 12, 18, 0.95) 100%);
+    border-color: rgba(168, 133, 75, 0.35);
     color: #F4F1EB;
     box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.08),
-        0 4px 12px -5px rgba(10, 12, 18, 0.45);
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2),
+        0 4px 12px -4px rgba(10, 12, 18, 0.5),
+        0 0 0 0.5px rgba(168, 133, 75, 0.18);
+}
+/* Aurora sheen on active icon button */
+.lg-icon-btn.lg-active::after,
+.lg-icon-btn[aria-pressed="true"]::after,
+.lg-icon-btn[data-active="true"]::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 15%; right: 15%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(244, 226, 180, 0.4) 30%, rgba(255, 255, 255, 0.5) 50%, rgba(244, 226, 180, 0.4) 70%, transparent);
+    pointer-events: none;
 }
 
 /* Glass select dropdown */
@@ -244,10 +318,10 @@ h1, h2, h3, h4, .font-heading {
     padding: 0 28px 0 10px;
     border-radius: 10px;
     background: rgba(255, 255, 255, 0.45);
-    backdrop-filter: blur(12px) saturate(1.4);
-    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    backdrop-filter: blur(14px) saturate(1.5);
+    -webkit-backdrop-filter: blur(14px) saturate(1.5);
     border: 1px solid rgba(255, 255, 255, 0.55);
-    color: rgba(15, 17, 22, 0.7);
+    color: rgba(15, 17, 22, 0.6);
     font-size: 0.8125rem;
     font-weight: 800;
     text-transform: uppercase;
@@ -255,14 +329,19 @@ h1, h2, h3, h4, .font-heading {
     cursor: pointer;
     appearance: none;
     outline: none;
-    transition: all 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: all 200ms cubic-bezier(0.22, 1, 0.36, 1);
     box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.65),
+        inset 0 -0.5px 0 rgba(15, 17, 22, 0.03),
         0 1px 2px rgba(15, 17, 22, 0.04);
 }
 .lg-select:hover {
-    background: rgba(255, 255, 255, 0.72);
-    border-color: rgba(15, 17, 22, 0.12);
+    background: rgba(255, 255, 255, 0.75);
+    border-color: rgba(15, 17, 22, 0.1);
+    transform: translateY(-0.5px);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.75),
+        0 2px 8px rgba(15, 17, 22, 0.06);
 }
 .lg-select:focus {
     border-color: rgba(14, 17, 22, 0.3);
@@ -279,6 +358,7 @@ h1, h2, h3, h4, .font-heading {
 
 /* Glass dropdown trigger (source picker etc.) */
 .lg-dropdown {
+    position: relative;
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -286,47 +366,83 @@ h1, h2, h3, h4, .font-heading {
     padding: 0 10px;
     border-radius: 10px;
     background: rgba(255, 255, 255, 0.45);
-    backdrop-filter: blur(12px) saturate(1.4);
-    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    backdrop-filter: blur(14px) saturate(1.5);
+    -webkit-backdrop-filter: blur(14px) saturate(1.5);
     border: 1px solid rgba(255, 255, 255, 0.55);
-    color: rgba(15, 17, 22, 0.7);
+    color: rgba(15, 17, 22, 0.6);
     font-size: 0.8125rem;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     white-space: nowrap;
     cursor: pointer;
-    transition: all 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: all 200ms cubic-bezier(0.22, 1, 0.36, 1);
     box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.65),
+        inset 0 -0.5px 0 rgba(15, 17, 22, 0.03),
         0 1px 2px rgba(15, 17, 22, 0.04);
+    overflow: hidden;
 }
 .lg-dropdown:hover {
-    background: rgba(255, 255, 255, 0.72);
-    border-color: rgba(15, 17, 22, 0.12);
+    background: rgba(255, 255, 255, 0.75);
+    border-color: rgba(15, 17, 22, 0.1);
+    transform: translateY(-0.5px);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.75),
+        0 2px 8px rgba(15, 17, 22, 0.06);
+}
+.lg-dropdown:active {
+    transform: scale(0.97);
+    transition-duration: 80ms;
 }
 .lg-dropdown.lg-active,
 .lg-dropdown[data-active="true"] {
-    background: rgba(14, 17, 22, 0.88);
-    border-color: rgba(168, 133, 75, 0.45);
+    background: linear-gradient(160deg, rgba(20, 23, 29, 0.9) 0%, rgba(10, 12, 18, 0.95) 100%);
+    border-color: rgba(168, 133, 75, 0.35);
     color: #F4F1EB;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.08),
-        0 4px 14px -6px rgba(10, 12, 18, 0.45);
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2),
+        0 4px 14px -4px rgba(10, 12, 18, 0.5),
+        0 0 0 0.5px rgba(168, 133, 75, 0.18);
+}
+/* Aurora sheen on active dropdown */
+.lg-dropdown.lg-active::after,
+.lg-dropdown[data-active="true"]::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 15%; right: 15%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(244, 226, 180, 0.4) 30%, rgba(255, 255, 255, 0.5) 50%, rgba(244, 226, 180, 0.4) 70%, transparent);
+    pointer-events: none;
 }
 
 /* Glass container — wraps filter rows */
 .lg-filter-bar {
-    background: rgba(255, 255, 255, 0.35);
-    backdrop-filter: blur(18px) saturate(1.5);
-    -webkit-backdrop-filter: blur(18px) saturate(1.5);
-    border: 1px solid rgba(255, 255, 255, 0.55);
+    position: relative;
+    background: rgba(255, 255, 255, 0.38);
+    backdrop-filter: blur(20px) saturate(1.6);
+    -webkit-backdrop-filter: blur(20px) saturate(1.6);
+    border: 1px solid rgba(255, 255, 255, 0.5);
     border-radius: 24px;
     padding: 12px 16px;
     box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.7),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8),
+        inset 0 -0.5px 0 rgba(15, 17, 22, 0.04),
         0 1px 3px rgba(15, 17, 22, 0.04),
-        0 12px 32px -16px rgba(15, 17, 22, 0.08);
+        0 12px 40px -16px rgba(15, 17, 22, 0.10);
+    overflow: hidden;
+}
+/* Top-edge aurora reflection on filter bar */
+.lg-filter-bar::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 5%; right: 5%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6) 20%, rgba(255, 255, 255, 0.85) 50%, rgba(255, 255, 255, 0.6) 80%, transparent);
+    pointer-events: none;
+    z-index: 1;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
