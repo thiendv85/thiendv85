@@ -160,10 +160,10 @@ export const AppShell = ({
                     </nav>
 
                     <div className="flex items-center gap-1.5 md:gap-4 shrink-0">
-                        <div className="bg-white/5 rounded-lg p-1 border border-white/10 hidden sm:flex items-center">
+                        <div className="lg-segmented rounded-lg p-1 hidden sm:flex items-center">
                             <button
                                 onClick={() => setLanguage('vi')}
-                                className={`w-8 h-7 rounded-md transition-all flex items-center justify-center ${language === 'vi' ? 'bg-white shadow-sm' : ''}`}
+                                className={`w-8 h-7 rounded-md transition-all flex items-center justify-center ${language === 'vi' ? 'lg-active' : ''}`}
                             >
                                 <Typography
                                     variant="label"
@@ -174,7 +174,7 @@ export const AppShell = ({
                             </button>
                             <button
                                 onClick={() => setLanguage('en')}
-                                className={`w-8 h-7 rounded-md transition-all flex items-center justify-center ${language === 'en' ? 'bg-white shadow-sm' : ''}`}
+                                className={`w-8 h-7 rounded-md transition-all flex items-center justify-center ${language === 'en' ? 'lg-active' : ''}`}
                             >
                                 <Typography
                                     variant="label"

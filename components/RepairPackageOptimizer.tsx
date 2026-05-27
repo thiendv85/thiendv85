@@ -532,22 +532,22 @@ export const RepairPackageOptimizer = ({
         return (
             <div className="space-y-4 animate-fadeIn">
                 {/* Tab nav — cho phép vào "Mã liên quan" / "Khai báo gói" kể cả khi chưa có Kitting data */}
-                <div className="flex bg-slate-900 border border-white/10 p-1 rounded-xl w-fit">
+                <div className="lg-segmented w-fit">
                     <button
                         onClick={() => setViewMode('OPTIMIZER')}
-                        className={`px-4 py-1.5 text-[10px] font-black rounded-lg transition-all uppercase ${viewMode === 'OPTIMIZER' ? 'bg-white text-slate-900 shadow-sm' : 'text-white/40 hover:text-white'}`}
+                        className={viewMode === 'OPTIMIZER' ? 'lg-active' : ''}
                     >
                         Refill Optimizer
                     </button>
                     <button
                         onClick={() => setViewMode('MANAGE')}
-                        className={`px-4 py-1.5 text-[10px] font-black rounded-lg transition-all uppercase ${viewMode === 'MANAGE' ? 'bg-white text-slate-900 shadow-sm' : 'text-white/40 hover:text-white'}`}
+                        className={viewMode === 'MANAGE' ? 'lg-active' : ''}
                     >
                         Khai báo gói
                     </button>
                     <button
                         onClick={() => setViewMode('AFFINITY')}
-                        className={`px-4 py-1.5 text-[10px] font-black rounded-lg transition-all uppercase ${viewMode === 'AFFINITY' ? 'bg-white text-slate-900 shadow-sm' : 'text-white/40 hover:text-white'}`}
+                        className={viewMode === 'AFFINITY' ? 'lg-active' : ''}
                     >
                         Mã liên quan
                     </button>
@@ -647,28 +647,28 @@ export const RepairPackageOptimizer = ({
                             </button>
                         )}
 
-                        <div className="flex bg-slate-900 border border-white/10 p-1 rounded-xl">
+                        <div className="lg-segmented">
                             <button
                                 onClick={() => setViewMode('OPTIMIZER')}
-                                className={`px-4 py-1.5 text-[10px] font-black rounded-lg transition-all uppercase ${viewMode === 'OPTIMIZER' ? 'bg-white text-slate-900 shadow-sm' : 'text-white/40 hover:text-white'}`}
+                                className={viewMode === 'OPTIMIZER' ? 'lg-active' : ''}
                             >
                                 Refill Optimizer
                             </button>
                             <button
                                 onClick={() => setViewMode('SIMILARITY')}
-                                className={`px-4 py-1.5 text-[10px] font-black rounded-lg transition-all uppercase ${viewMode === 'SIMILARITY' ? 'bg-white text-slate-900 shadow-sm' : 'text-white/40 hover:text-white'}`}
+                                className={viewMode === 'SIMILARITY' ? 'lg-active' : ''}
                             >
                                 Similarity
                             </button>
                             <button
                                 onClick={() => setViewMode('MANAGE')}
-                                className={`px-4 py-1.5 text-[10px] font-black rounded-lg transition-all uppercase ${viewMode === 'MANAGE' ? 'bg-white text-slate-900 shadow-sm' : 'text-white/40 hover:text-white'}`}
+                                className={viewMode === 'MANAGE' ? 'lg-active' : ''}
                             >
                                 Khai báo gói
                             </button>
                             <button
                                 onClick={() => setViewMode('AFFINITY')}
-                                className={`px-4 py-1.5 text-[10px] font-black rounded-lg transition-all uppercase ${viewMode === 'AFFINITY' ? 'bg-white text-slate-900 shadow-sm' : 'text-white/40 hover:text-white'}`}
+                                className={viewMode === 'AFFINITY' ? 'lg-active' : ''}
                             >
                                 Mã liên quan
                             </button>

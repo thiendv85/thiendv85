@@ -106,7 +106,7 @@ export const DecisionConfirmDialog = ({ action, summary, onConfirm, onCancel }: 
                                     <button
                                         key={i}
                                         onClick={() => setSelectedReason(r)}
-                                        className={`w-full text-left p-3 rounded-xl border text-[11px] font-bold transition-all ${selectedReason === r ? 'bg-blue-50 border-blue-400 text-blue-700 shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'}`}
+                                        className={`w-full text-left p-3 rounded-xl text-[11px] font-bold transition-all lg-pill ${selectedReason === r ? 'lg-active' : ''}`}
                                     >
                                         {r}
                                     </button>

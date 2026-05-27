@@ -238,13 +238,13 @@ export const CloudDraftModal = ({
 
                 {/* Tabs */}
                 <div
-                    className={`grid ${TABS.length === 4 ? 'grid-cols-4' : 'grid-cols-3'} bg-slate-50 border-b border-slate-200`}
+                    className={`lg-segmented grid ${TABS.length === 4 ? 'grid-cols-4' : 'grid-cols-3'}`}
                 >
                     {TABS.map(t => (
                         <button
                             key={t.id}
                             onClick={() => setActiveTab(t.id)}
-                            className={`py-3 text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 ${activeTab === t.id ? 'bg-white border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'} ${t.id === 'RETURNED' && returnedRequests.length > 0 ? 'text-indigo-500' : ''}`}
+                            className={`py-3 text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 ${activeTab === t.id ? 'lg-active' : ''} ${t.id === 'RETURNED' && returnedRequests.length > 0 ? 'text-indigo-500' : ''}`}
                         >
                             <FaIcon className={`fas ${t.icon} text-[10px]`} />
                             {t.label}
@@ -600,7 +600,7 @@ export const CloudDraftModal = ({
                                         <button
                                             key={b}
                                             onClick={() => setDraftBrand(b)}
-                                            className={`py-2 rounded-lg text-xs font-black transition-all border-2 ${draftBrand === b ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200' : 'bg-white text-slate-500 border-slate-100 hover:border-blue-300'}`}
+                                            className={`lg-pill py-2 text-xs font-black ${draftBrand === b ? 'lg-active' : ''}`}
                                         >
                                             {b}
                                         </button>

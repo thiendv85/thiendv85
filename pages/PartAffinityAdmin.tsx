@@ -151,7 +151,7 @@ export const PartAffinityAdmin = ({ embedded = false }: { embedded?: boolean } =
                     <button
                         key={t}
                         onClick={() => setFilterType(t)}
-                        className={`px-3 py-2 rounded-lg text-xs font-bold ${filterType === t ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-600'}`}
+                        className={`lg-pill px-3 py-2 text-xs font-bold ${filterType === t ? 'lg-active' : ''}`}
                     >
                         {t === 'all' ? 'Tất cả' : t === 'mandatory' ? 'Bắt buộc' : 'Khuyến nghị'}
                     </button>
@@ -258,7 +258,7 @@ export const PartAffinityAdmin = ({ embedded = false }: { embedded?: boolean } =
                                     <button
                                         key={t}
                                         onClick={() => setFormType(t)}
-                                        className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold ${formType === t ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-600'}`}
+                                        className={`lg-pill flex-1 px-3 py-2 text-xs font-bold ${formType === t ? 'lg-active' : ''}`}
                                     >
                                         {t === 'mandatory' ? 'Bắt buộc' : 'Khuyến nghị'}
                                     </button>

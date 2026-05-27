@@ -351,7 +351,7 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
                     <span className="font-black text-[10px] uppercase tracking-widest">Ma Trận Cung Ứng</span>
                     <button
                         onClick={() => setShowSim(p => !p)}
-                        className={`text-[9px] font-black px-2 py-0.5 rounded border transition-colors ${showSim ? 'bg-blue-500 border-blue-400 text-white' : 'border-slate-500 text-slate-400 hover:text-white'}`}
+                        className={`lg-pill ${showSim ? 'lg-active' : ''}`}
                     >
                         {showSim ? 'SIM' : 'TT'}
                     </button>
@@ -398,7 +398,7 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
                 </div>
                 <button
                     onClick={() => setShowSim(p => !p)}
-                    className={`text-xs font-black px-3 py-1.5 rounded-lg border transition-colors ${showSim ? 'bg-blue-500 border-blue-400 text-white' : 'border-slate-500 text-slate-400 hover:text-white hover:border-slate-400'}`}
+                    className={`lg-pill ${showSim ? 'lg-active' : ''}`}
                 >
                     {showSim ? 'SIMULATED' : 'HIỆN TẠI'}
                 </button>

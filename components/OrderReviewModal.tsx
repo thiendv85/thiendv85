@@ -545,7 +545,7 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
                         {/* Upper Row: Tabs & General Actions */}
                         <div className="flex items-center justify-between px-4 py-2 bg-slate-50/80 backdrop-blur-md border-b border-slate-100 gap-4">
                             {/* Tabs */}
-                            <div className="flex bg-slate-100/50 p-1 rounded-xl gap-1 shrink-0 border border-slate-200/60">
+                            <div className="lg-segmented shrink-0">
                                 {[
                                     { id: 'info', icon: 'fa-circle-info', label: 'Duyệt đơn' },
                                     {
@@ -559,7 +559,7 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
                                     <button
                                         key={tab.id}
                                         onClick={() => setSidebarTab(tab.id as any)}
-                                        className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${sidebarTab === tab.id ? 'bg-white text-blue-600 shadow-sm border border-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+                                        className={`flex items-center gap-2 px-4 py-1.5 text-xs font-black uppercase tracking-widest transition-all ${sidebarTab === tab.id ? 'lg-active' : ''}`}
                                     >
                                         <FaIcon className={`fas ${tab.icon}`} /> {tab.label}
                                         {tab.count !== undefined && tab.count > 0 && (
