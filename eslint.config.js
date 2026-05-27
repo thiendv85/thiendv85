@@ -1,11 +1,11 @@
-import js from '@eslint/js';
+﻿import js from '@eslint/js';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 
 export default [
-  { ignores: ['dist/', 'node_modules/', 'back-order-dashboard/', 'scratch/', 'streamlit_apps/', '**/*.cjs', '*.js', '*.mjs', 'scripts/', 'supabase/'] },
+  { ignores: ['dist/', 'node_modules/', 'back-order-dashboard/', 'scratch/', 'streamlit_apps/', '**/*.cjs', '*.js', '*.mjs', 'scripts/', 'supabase/', '.agents/', '.claude/'] },
 
   js.configs.recommended,
 
@@ -77,13 +77,13 @@ export default [
       // TypeScript
       ...tsPlugin.configs.recommended.rules,
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
-      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-empty-function': 'off',
       '@typescript-eslint/ban-ts-comment': 'off',
       '@typescript-eslint/no-unused-expressions': 'off',
       '@typescript-eslint/no-require-imports': 'off',
 
-      // React hooks — keep rules-of-hooks as warning, disable compiler checks
+      // React hooks â€” keep rules-of-hooks as warning, disable compiler checks
       'react-hooks/rules-of-hooks': 'warn',
       'react-hooks/exhaustive-deps': 'warn',
       'react-hooks/react-compiler': 'off',
@@ -105,7 +105,7 @@ export default [
     },
   },
 
-  // Test files — relax
+  // Test files â€” relax
   {
     files: ['**/__tests__/**', '**/*.test.{ts,tsx}'],
     rules: {

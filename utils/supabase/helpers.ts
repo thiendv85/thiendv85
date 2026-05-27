@@ -1,6 +1,12 @@
 import { supabase } from './client';
 import type { SnapshotData, ApprovalSummary } from '../../types/inventory';
 
+/** Decompress gzip blob → parsed JSON. Shared by approval + snapshots modules. */
+export async function decompressData(blob: Blob): Promise<unknown> {
+    const stream = blob.stream().pipeThrough(new DecompressionStream('gzip'));
+    return JSON.parse(await new Response(stream).text());
+}
+
 /**
  * Generic paginated select — Supabase default cap = 1000 rows.
  * Truyền factory build query với .range(offset, offset+limit-1) đã set.

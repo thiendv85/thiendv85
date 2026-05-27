@@ -55,7 +55,7 @@ export function useAppBootstrap(setters: Setters) {
                 if (cachedMonthly && !cancelled) {
                     setters.setMonthlyData(cachedMonthly.data);
                     setters.setMonthlyDataDate(cachedMonthly.date);
-                    lastTimestamp = cachedMonthly.updatedAt;
+                    lastTimestamp = cachedMonthly.updatedAt ?? undefined;
                     setIsMonthlyLoading(false);
                 }
 

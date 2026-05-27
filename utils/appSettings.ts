@@ -110,7 +110,10 @@ export const loadAppSettings = (): AppSettings => {
             );
         }
 
-        return { ...DEFAULT_LITE, ...parsed };
+        const merged = { ...DEFAULT_LITE, ...parsed };
+        // Validate merged settings through Zod — fallback to defaults on bad data
+        const result = appSettingsSchema.safeParse(merged);
+        return result.success ? (merged as AppSettings) : DEFAULT_LITE;
     } catch {
         return DEFAULT_LITE;
     }

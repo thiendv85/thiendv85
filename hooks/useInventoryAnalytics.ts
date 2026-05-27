@@ -112,17 +112,17 @@ function analyzeItem(item: InventoryItem): DemandAnalysisRow | null {
         computed.effectiveLT || 90,
         computed.effectiveSP || 30,
         item.LOISGroup || '',
-        computed.demandMonthly,
+        computed.demandMonthly ?? 0,
     );
 
     // ─── 5. Risk Scoring ───
     const riskResult = classifySeverity({
         available: computed.available,
-        netAvailable: computed.netAvailable,
-        demandMonthly: computed.demandMonthly,
+        netAvailable: computed.netAvailable ?? 0,
+        demandMonthly: computed.demandMonthly ?? 0,
         mos: computed.mos,
-        stockoutRiskFlag: computed.stockoutRiskFlag,
-        isBOCritical: computed.isBOCritical,
+        stockoutRiskFlag: computed.stockoutRiskFlag ?? false,
+        isBOCritical: computed.isBOCritical ?? false,
         isStopBiz: computed.isStopBiz,
         excessQty: computed.excessQty,
         excessValue: computed.excessValue,
@@ -168,9 +168,9 @@ function analyzeItem(item: InventoryItem): DemandAnalysisRow | null {
         safetyStockResult,
 
         available: computed.available,
-        netAvailable: computed.netAvailable,
+        netAvailable: computed.netAvailable ?? 0,
         mos: computed.mos,
-        demandMonthly: computed.demandMonthly,
+        demandMonthly: computed.demandMonthly ?? 0,
         demandRateDaily: computed.demandRateDaily,
 
         newSS: safetyStockResult.ss,

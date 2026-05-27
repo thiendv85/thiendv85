@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import { selectAllPaginated, computeSnapshotSummary, normalizeBrand } from './helpers';
+import { selectAllPaginated, computeSnapshotSummary, normalizeBrand, decompressData } from './helpers';
 import type {
     ApprovalWorkflow,
     ApprovalRequest,
@@ -9,11 +9,6 @@ import type {
     ApprovalSummary,
 } from '../../types/inventory';
 import { compressData } from '../supabase';
-
-async function decompressData(blob: Blob): Promise<any> {
-    const stream = blob.stream().pipeThrough(new DecompressionStream('gzip'));
-    return JSON.parse(await new Response(stream).text());
-}
 
 export interface SubmitRequestPayload {
     draft_name: string;
@@ -324,7 +319,7 @@ export async function fetchRequestById(id: string): Promise<ApprovalRequest | nu
             }
 
             const decompressed = await decompressData(blob);
-            request.snapshot_data = decompressed;
+            request.snapshot_data = decompressed as SnapshotData;
         } catch (e) {
             // decompression failed — continue with compressed stub
         }
@@ -375,7 +370,7 @@ export async function fetchRequestByDraftName(draftName: string): Promise<Approv
                 .from('inventory_snapshots')
                 .download(request.snapshot_data.storage_path);
             if (!dlErr && blob) {
-                request.snapshot_data = await decompressData(blob);
+                request.snapshot_data = await decompressData(blob) as SnapshotData;
             }
         } catch (e) {
             // decompression failed — return request with compressed stub
@@ -433,13 +428,13 @@ export async function processApprovalAction(
         .eq('id', request.workflow_id)
         .single();
     const workflow: ApprovalWorkflow | null = wfData ?? null;
-    if (!workflow) return { success: false, newStatus: request.status, error: 'Không tìm thấy quy trình phê duyệt' };
+    if (!workflow) return { success: false, newStatus: request.status ?? 'pending', error: 'Không tìm thấy quy trình phê duyệt' };
 
     // Phase 5: Optimistic locking — check version matches
     if (expectedVersion !== undefined && request.version !== expectedVersion) {
         return {
             success: false,
-            newStatus: request.status,
+            newStatus: request.status ?? 'pending',
             error: 'Đơn hàng đã bị thay đổi bởi người khác. Vui lòng tải lại trang.',
         };
     }
@@ -533,9 +528,9 @@ export async function processApprovalAction(
     });
 
     if (actionError)
-        return { success: false, newStatus: request.status, error: 'Không thể ghi nhận hành động phê duyệt' };
+        return { success: false, newStatus: request.status ?? 'pending', error: 'Không thể ghi nhận hành động phê duyệt' };
 
-    if (action === 'commented') return { success: true, newStatus: request.status };
+    if (action === 'commented') return { success: true, newStatus: request.status ?? 'pending' };
 
     if (action === 'rejected') {
         const update: Record<string, unknown> = {
@@ -545,7 +540,7 @@ export async function processApprovalAction(
         if (reason) update.rejection_reason = reason;
         const { error: updErr } = await supabase.from('approval_requests').update(update).eq('id', request.id);
         if (updErr)
-            return { success: false, newStatus: request.status, error: 'Lỗi khi từ chối đơn hàng: ' + updErr.message };
+            return { success: false, newStatus: request.status ?? 'pending', error: 'Lỗi khi từ chối đơn hàng: ' + updErr.message };
         return { success: true, newStatus: 'rejected' };
     }
 
@@ -560,13 +555,13 @@ export async function processApprovalAction(
 
         const { error: updErr } = await supabase.from('approval_requests').update(returnUpdate).eq('id', request.id);
         if (updErr)
-            return { success: false, newStatus: request.status, error: 'Lỗi khi trả lại đơn hàng: ' + updErr.message };
+            return { success: false, newStatus: request.status ?? 'pending', error: 'Lỗi khi trả lại đơn hàng: ' + updErr.message };
         return { success: true, newStatus: 'returned' };
     }
 
     // action === 'approved': kiểm tra xem level hiện tại đã đủ chưa
     if (!currentLevelConfig)
-        return { success: false, newStatus: request.status, error: 'Không tìm thấy cấu hình cấp bậc' };
+        return { success: false, newStatus: request.status ?? 'pending', error: 'Không tìm thấy cấu hình cấp bậc' };
 
     let advance = false;
     if (!currentLevelConfig.require_all) {
@@ -596,17 +591,18 @@ export async function processApprovalAction(
     }
 
     // Tìm level tiếp theo
-    const nextLevelConfig = workflow.levels.find(l => l.level === request.current_level + 1);
+    const currentLevel = request.current_level ?? 1;
+    const nextLevelConfig = workflow.levels.find(l => l.level === currentLevel + 1);
     if (nextLevelConfig) {
         const advanceUpdate: Record<string, unknown> = {
-            current_level: request.current_level + 1,
+            current_level: currentLevel + 1,
             status: 'in_progress',
             version: nextVersion,
         };
         if (finalSnapshotData) advanceUpdate.snapshot_data = finalSnapshotData;
 
         const { error: updErr } = await supabase.from('approval_requests').update(advanceUpdate).eq('id', request.id);
-        if (updErr) return { success: false, newStatus: request.status, error: 'Lỗi khi chuyển cấp bậc phê duyệt' };
+        if (updErr) return { success: false, newStatus: request.status ?? 'pending', error: 'Lỗi khi chuyển cấp bậc phê duyệt' };
         return { success: true, newStatus: 'in_progress' };
     } else {
         const approveUpdate: Record<string, unknown> = {
@@ -619,7 +615,7 @@ export async function processApprovalAction(
         if (updErr)
             return {
                 success: false,
-                newStatus: request.status,
+                newStatus: request.status ?? 'pending',
                 error: 'Lỗi khi phê duyệt đơn hàng: ' + updErr.message,
             };
         return { success: true, newStatus: 'approved' };

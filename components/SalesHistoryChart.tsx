@@ -309,7 +309,7 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
         const nextMonth = (currentMonth + 1) % 12;
         const monthAfterNext = (currentMonth + 2) % 12;
 
-        let approachingPeak = null;
+        let approachingPeak: number | null = null;
         if (peakMonths.length > 0) {
             if (peakMonths.includes(nextMonth)) approachingPeak = nextMonth;
             else if (peakMonths.includes(monthAfterNext)) approachingPeak = monthAfterNext;
@@ -775,6 +775,7 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
                 </Typography>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {trendLine && (
                     <div className="bg-gradient-to-br from-emerald-50 to-white p-4 rounded-2xl border border-emerald-100 shadow-glass-sm transition-all hover:shadow-glass hover:-translate-y-1">
                         <div className="flex items-center gap-2 mb-1.5">
                             <FaIcon className={`fas fa-arrow-trend-${trendLine.slope > 0 ? 'up' : 'down'} text-base ${trendLine.slope > 0 ? 'text-emerald-600' : 'text-rose-600'}`} />
@@ -787,6 +788,7 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
                             Độ mạnh: <span className="font-bold text-slate-600">{(trendLine.rSquared * 100).toFixed(0)}%</span>
                         </Typography>
                     </div>
+                    )}
 
                     {/* Volatility */}
                     {volatility && (

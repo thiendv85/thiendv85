@@ -354,7 +354,7 @@ export const RepairPackageOptimizer = ({
                 const transferQty = Math.min(shortage, stockOtherRegion);
                 const purchaseQty = shortage - transferQty;
 
-                let noteParts = [];
+                let noteParts: string[] = [];
                 noteParts.push(`[Kit:${set.setCode}-${region}:${qtyToBuild}set]`);
 
                 if (transferQty > 0) {
@@ -377,7 +377,7 @@ export const RepairPackageOptimizer = ({
             }
         });
 
-        const messages = [];
+        const messages: string[] = [];
         if (addedCount > 0) messages.push(`đặt mua thêm ${addedCount} mã`);
         if (transferCount > 0) messages.push(`điều chuyển ${transferCount} mã từ miền khác`);
 

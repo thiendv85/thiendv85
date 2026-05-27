@@ -29,11 +29,13 @@ export function validatePreApproval(request: ApprovalRequest): PreApprovalResult
     const warnings: ValidationWarning[] = [];
     const snap = request.snapshot_data;
     if (!snap?.quantities || !snap?.inventory_context) return { passed: true, warnings: [] };
+    const snapQuantities = snap.quantities;
+    const snapInventoryContext = snap.inventory_context;
 
     // ── Rule 1: Budget threshold ─────────────────────────────────────────────
     let totalValue = 0;
-    Object.entries(snap.quantities).forEach(([code, qty]) => {
-        const ctx = snap.inventory_context.find(c => c.itemCode === code);
+    Object.entries(snapQuantities).forEach(([code, qty]) => {
+        const ctx = snapInventoryContext.find(c => c.itemCode === code);
         if (ctx) {
             totalValue += (ctx.unitCost || 0) * ((qty.air || 0) + (qty.sea || 0));
         }
@@ -48,8 +50,8 @@ export function validatePreApproval(request: ApprovalRequest): PreApprovalResult
     }
 
     // ── Rule 2: Items with excess stock (MOS > 6) being ordered ──────────────
-    snap.inventory_context.forEach(ctx => {
-        const qty = snap.quantities[ctx.itemCode];
+    snapInventoryContext.forEach(ctx => {
+        const qty = snapQuantities[ctx.itemCode];
         const totalQty = (qty?.air || 0) + (qty?.sea || 0);
         if (totalQty > 0 && ctx.mos > HIGH_MOS_THRESHOLD) {
             warnings.push({
@@ -62,8 +64,8 @@ export function validatePreApproval(request: ApprovalRequest): PreApprovalResult
     });
 
     // ── Rule 3: Items with critically low stock ──────────────────────────────
-    const criticalItems = snap.inventory_context.filter(ctx => {
-        const qty = snap.quantities[ctx.itemCode];
+    const criticalItems = snapInventoryContext.filter(ctx => {
+        const qty = snapQuantities[ctx.itemCode];
         const totalQty = (qty?.air || 0) + (qty?.sea || 0);
         return totalQty > 0 && ctx.mos < LOW_MOS_THRESHOLD && ctx.baseForecast > 0.02;
     });
@@ -77,8 +79,8 @@ export function validatePreApproval(request: ApprovalRequest): PreApprovalResult
     }
 
     // ── Rule 4: OOS items not being ordered ──────────────────────────────────
-    const oosNotOrdered = snap.inventory_context.filter(ctx => {
-        const qty = snap.quantities[ctx.itemCode];
+    const oosNotOrdered = snapInventoryContext.filter(ctx => {
+        const qty = snapQuantities[ctx.itemCode];
         const totalQty = (qty?.air || 0) + (qty?.sea || 0);
         return ctx.available <= 0 && ctx.baseForecast > 0.02 && totalQty === 0;
     });
@@ -92,8 +94,8 @@ export function validatePreApproval(request: ApprovalRequest): PreApprovalResult
     }
 
     // ── Rule 5: Large single-item orders ─────────────────────────────────────
-    snap.inventory_context.forEach(ctx => {
-        const qty = snap.quantities[ctx.itemCode];
+    snapInventoryContext.forEach(ctx => {
+        const qty = snapQuantities[ctx.itemCode];
         const totalQty = (qty?.air || 0) + (qty?.sea || 0);
         const itemValue = (ctx.unitCost || 0) * totalQty;
         if (itemValue > 100_000_000) { // Single item > 100M VND

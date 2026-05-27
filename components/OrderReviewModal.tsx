@@ -46,21 +46,23 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
     const { user, profile } = useAuth();
     const { canApproveLevel, allowedLevels, canUnlock: canUnlockRole } = useApprovalAuth();
     const snap = request.snapshot_data;
+    const snapInventoryContext = snap.inventory_context ?? [];
+    const snapQuantities = snap.quantities ?? {};
     const proposerName = usersMap[request.submitted_by] || 'N/A';
 
     const [localQtys, setLocalQtys] = useState<Record<string, { air: number; sea: number }>>(() => {
         const qtys: Record<string, { air: number; sea: number }> = {};
         // Initialize from original context to ensure all known items have a record
-        snap.inventory_context.forEach(ctx => {
-            const q = snap.quantities[ctx.itemCode] || { air: 0, sea: 0 };
+        snapInventoryContext.forEach(ctx => {
+            const q = snapQuantities[ctx.itemCode] || { air: 0, sea: 0 };
             qtys[ctx.itemCode] = { air: q.air, sea: q.sea };
         });
         return qtys;
     });
     const [selectedItems, setSelectedItems] = useState<Set<string>>(() => {
         const initial = new Set<string>();
-        snap.inventory_context.forEach(ctx => {
-            const q = snap.quantities[ctx.itemCode];
+        snapInventoryContext.forEach(ctx => {
+            const q = snapQuantities[ctx.itemCode];
             if ((q?.air || 0) > 0 || (q?.sea || 0) > 0) {
                 initial.add(ctx.itemCode);
             }
@@ -147,12 +149,12 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
 
     const rows = useMemo(
         () =>
-            snap.inventory_context.filter(ctx => {
-                const cur = snap.quantities[ctx.itemCode] || { air: 0, sea: 0 };
+            snapInventoryContext.filter(ctx => {
+                const cur = snapQuantities[ctx.itemCode] || { air: 0, sea: 0 };
                 const orig = (snap as any).original_quantities?.[ctx.itemCode] || cur;
                 return cur.air > 0 || cur.sea > 0 || orig.air > 0 || orig.sea > 0;
             }),
-        [snap],
+        [snap, snapInventoryContext, snapQuantities],
     );
 
     const totals = useMemo(() => {
@@ -183,14 +185,14 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
     const hasChanges = useMemo(
         () =>
             rows.some(ctx => {
-                const orig = snap.quantities[ctx.itemCode] || { air: 0, sea: 0 };
+                const orig = snapQuantities[ctx.itemCode] || { air: 0, sea: 0 };
                 const cur = localQtys[ctx.itemCode] || { air: 0, sea: 0 };
                 const isSelected = selectedItems.has(ctx.itemCode);
                 if (!isSelected && (orig.air > 0 || orig.sea > 0)) return true;
                 if (isSelected && (orig.air !== cur.air || orig.sea !== cur.sea)) return true;
                 return false;
             }),
-        [rows, localQtys, selectedItems, snap.quantities],
+        [rows, localQtys, selectedItems, snapQuantities],
     );
 
     const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
@@ -523,7 +525,7 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
                         onReset={() =>
                             setLocalQtys(
                                 Object.fromEntries(
-                                    Object.entries(snap.quantities).map(([k, v]) => [k, { air: v.air, sea: v.sea }]),
+                                    Object.entries(snapQuantities).map(([k, v]) => [k, { air: v.air, sea: v.sea }]),
                                 ),
                             )
                         }
@@ -710,7 +712,7 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
                                                 onClick={() =>
                                                     setLocalQtys(
                                                         Object.fromEntries(
-                                                            Object.entries(snap.quantities).map(([k, v]) => [
+                                                            Object.entries(snapQuantities).map(([k, v]) => [
                                                                 k,
                                                                 { air: v.air, sea: v.sea },
                                                             ]),
@@ -1080,7 +1082,7 @@ export const OrderReviewModal = ({ request, actions, usersMap, onClose, onRefres
                                                     selectedItems.size === 0 ? false : selectedItems.has(ctx.itemCode)
                                                 }
                                                 localQty={localQtys[ctx.itemCode] || { air: 0, sea: 0 }}
-                                                origQty={snap.quantities[ctx.itemCode] || { air: 0, sea: 0 }}
+                                                origQty={snapQuantities[ctx.itemCode] || { air: 0, sea: 0 }}
                                                 onToggle={toggleItem}
                                                 onSetQty={setQty}
                                                 onInspect={setInspectingItem}

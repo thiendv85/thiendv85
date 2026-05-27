@@ -49,7 +49,7 @@ export const AppModals = (p: AppModalsProps) => {
           onSelectInventory={p.onSelectInventory}
           onSelectMonthly={p.onSelectMonthly}
           sourceProfiles={p.sourceProfiles}
-          activeSourceId={p.activeSourceId}
+          activeSourceId={p.activeSourceId ?? ''}
         />
 
         <SupersessionEditModal

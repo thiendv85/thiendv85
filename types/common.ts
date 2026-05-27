@@ -2,6 +2,19 @@
 // COMMON TYPES — Shared across all domains
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** App navigation views — single source of truth */
+export type View =
+    | 'upload'
+    | 'dashboard'
+    | 'ordering'
+    | 'backorder'
+    | 'transfer'
+    | 'log'
+    | 'kitting'
+    | 'settings'
+    | 'approval-queue'
+    | 'report';
+
 export const AVAILABLE_BRANDS = ['Kia', 'Mazda', 'Stellantis', 'BMW'] as const;
 export type Brand = (typeof AVAILABLE_BRANDS)[number];
 

@@ -442,26 +442,26 @@ export const SkuDetail = ({ item, allData = [], onClose, onItemSelect, kittingDe
                                 <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 shadow-sm transition-all hover:bg-white hover:shadow-md group">
                                     <div className="flex justify-between items-center mb-2">
                                         <Typography variant="label" className="text-slate-500 font-bold uppercase tracking-widest !text-[10px]">Độ biến thiên (CV)</Typography>
-                                        <FaIcon className={`fas fa-wave-square p-2 rounded-lg ${item.computed?.cv > 0.5 ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-500'}`} />
+                                        <FaIcon className={`fas fa-wave-square p-2 rounded-lg ${(item.computed?.cv ?? 0) > 0.5 ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-500'}`} />
                                     </div>
-                                    <Typography variant="h2" className={item.computed?.cv > 0.5 ? 'text-rose-600' : 'text-slate-800'}>
+                                    <Typography variant="h2" className={(item.computed?.cv ?? 0) > 0.5 ? 'text-rose-600' : 'text-slate-800'}>
                                         {(item.computed?.cv || 0).toFixed(2)}
                                     </Typography>
                                     <Typography variant="label" className="text-slate-400 mt-1 block !text-[10px]">
-                                        {item.computed?.cv > 0.5 ? '🔴 Nhu cầu không ổn định' : '🟢 Nhu cầu ổn định'}
+                                        {(item.computed?.cv ?? 0) > 0.5 ? '🔴 Nhu cầu không ổn định' : '🟢 Nhu cầu ổn định'}
                                     </Typography>
                                 </div>
 
                                 <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 shadow-sm transition-all hover:bg-white hover:shadow-md group">
                                     <div className="flex justify-between items-center mb-2">
                                         <Typography variant="label" className="text-slate-500 font-bold uppercase tracking-widest !text-[10px]">Hệ số góc (Slope)</Typography>
-                                        <FaIcon className={`fas ${item.computed?.slope < -1 ? 'fa-arrow-trend-down text-rose-500' : 'fa-arrow-trend-up text-emerald-500'} p-2 rounded-lg bg-slate-100`} />
+                                        <FaIcon className={`fas ${(item.computed?.slope ?? 0) < -1 ? 'fa-arrow-trend-down text-rose-500' : 'fa-arrow-trend-up text-emerald-500'} p-2 rounded-lg bg-slate-100`} />
                                     </div>
-                                    <Typography variant="h2" className={item.computed?.slope < -1 ? 'text-rose-600' : 'text-slate-800'}>
+                                    <Typography variant="h2" className={(item.computed?.slope ?? 0) < -1 ? 'text-rose-600' : 'text-slate-800'}>
                                         {(item.computed?.slope || 0).toFixed(2)}
                                     </Typography>
                                     <Typography variant="label" className="text-slate-400 mt-1 block !text-[10px]">
-                                        {item.computed?.slope < -1 ? '🔴 Xu hướng giảm mạnh' : item.computed?.slope > 1 ? '🔵 Xu hướng tăng' : '⚪ Xu hướng ổn định'}
+                                        {(item.computed?.slope ?? 0) < -1 ? '🔴 Xu hướng giảm mạnh' : (item.computed?.slope ?? 0) > 1 ? '🔵 Xu hướng tăng' : '⚪ Xu hướng ổn định'}
                                     </Typography>
                                 </div>
 

@@ -240,7 +240,7 @@ export const Dashboard = ({
                 (showSimulation ? sim.totalStock <= 0 : comp.available <= 0) && item.BaseForecast > 0.02;
             const activeExcessQty = (showSimulation ? sim.excessQty : comp.excessQty) || 0;
             const poVal = showSimulation ? sim.totalIncomingValue || 0 : (item.TotalPO || 0) * comp.unitCost;
-            const isBO = showSimulation ? sim.boQty > 0 : (item.Backorder || 0) > (comp.available || 0);
+            const isBO = showSimulation ? (sim.boQty ?? 0) > 0 : (item.Backorder || 0) > (comp.available || 0);
             const boVal = showSimulation
                 ? sim.boValue || 0
                 : isBO
@@ -334,7 +334,7 @@ export const Dashboard = ({
 
             // ── SIMULATION matrix (for print page 2) ──
             const simPO = sim.totalIncomingValue || 0;
-            const simIsBO = sim.boQty > 0;
+            const simIsBO = (sim.boQty ?? 0) > 0;
             const simBoVal = sim.boValue || 0;
 
             if (!simMatrix[sub]) simMatrix[sub] = emptyBucket();
@@ -579,7 +579,7 @@ export const Dashboard = ({
             {/* Sub-Tab Content */}
             {subTab === 'intelligence' && (
                 <DemandIntelligence
-                    data={enrichedData}
+                    data={enrichedData ?? []}
                     onItemSelect={onItemSelect}
                     appSettings={appSettings}
                     seasonalityTuning={settings.seasonalityTuning}
@@ -1097,9 +1097,9 @@ export const Dashboard = ({
                             if (brands.length === 1 && sources.length === 1) {
                                 const p = appSettings?.sourceProfiles?.find(
                                     p =>
-                                        p.brand.toLowerCase() === brands[0].toLowerCase() &&
-                                        (p.id.toUpperCase() === sources[0].toUpperCase() ||
-                                            p.name.toLowerCase().includes(sources[0].toLowerCase())),
+                                        p.brand.toLowerCase() === (brands[0] ?? '').toLowerCase() &&
+                                        (p.id.toUpperCase() === (sources[0] ?? '').toUpperCase() ||
+                                            p.name.toLowerCase().includes((sources[0] ?? '').toLowerCase())),
                                 );
                                 if (p) return `[${p.brand}] ${p.id} – ${p.name}`;
                                 return `[${brands[0]}] ${sources[0]}`;

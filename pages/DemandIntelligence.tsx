@@ -173,7 +173,7 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
 
     // ── ANALYSIS ENGINE ──────────────────────────────────────────────────────
     const { analyzedItems, metrics } = useMemo(() => {
-        if (!data || data.length === 0) return { analyzedItems: [], metrics: { stockout: 0, risk: 0, spike: 0, overstock: 0, declining: 0, stockoutGapValue: 0, excessValue: 0, avgAccuracy: 0, accuracyCount: 0 } };
+        if (!data || data.length === 0) return { analyzedItems: [] as AnalyzedItem[], metrics: { stockout: 0, risk: 0, seasonal: 0, spike: 0, overstock: 0, declining: 0, stockoutGapValue: 0, excessValue: 0, avgAccuracy: 0, accuracyCount: 0 } };
 
         const results: AnalyzedItem[] = [];
         let mStockout = 0, mRisk = 0, mSeasonal = 0, mSpike = 0, mOverstock = 0, mDeclining = 0;

@@ -588,7 +588,7 @@ export const BackorderAnalytics = ({
         let list = cachedData.filter(item => {
             const matchesSearch = matchSearch(item, searchResult);
             // Enhanced robustness for multi-select filters
-            const matchesSource = deferredSourceFilters.length === 0 || deferredSourceFilters.includes(item.SourceId);
+            const matchesSource = deferredSourceFilters.length === 0 || deferredSourceFilters.includes(item.SourceId ?? '');
             const matchesMother =
                 deferredMotherGroupFilters.length === 0 ||
                 deferredMotherGroupFilters.includes(resolveMotherGroup(item));
@@ -1018,7 +1018,7 @@ export const BackorderAnalytics = ({
         const motherGroups = new Set<string>();
 
         enrichedData?.forEach(item => {
-            sources.add(item.SourceId);
+            sources.add(item.SourceId ?? '');
             motherGroups.add(resolveMotherGroup(item));
             item.BackorderBreakdown?.forEach(bo => {
                 types.add(getOrderTypeName(bo));
@@ -1692,7 +1692,7 @@ export const BackorderAnalytics = ({
                                                     setSortConfig(p => ({
                                                         key: sortKey,
                                                         direction:
-                                                            p?.key === sortKey && p.direction === 'desc'
+                                                            p?.key === sortKey && p?.direction === 'desc'
                                                                 ? 'asc'
                                                                 : 'desc',
                                                     }))
@@ -1711,10 +1711,10 @@ export const BackorderAnalytics = ({
                                                         className={`flex flex-col text-[8px] ${isActive ? 'text-[var(--bo-bronze-strong)]' : 'text-slate-600 opacity-0 group-hover/th:opacity-100'}`}
                                                     >
                                                         <FaIcon
-                                                            className={`fas fa-caret-up ${isActive && sortConfig.direction === 'asc' ? 'opacity-100' : 'opacity-30'}`}
+                                                            className={`fas fa-caret-up ${isActive && sortConfig?.direction === 'asc' ? 'opacity-100' : 'opacity-30'}`}
                                                         />
                                                         <FaIcon
-                                                            className={`fas fa-caret-down ${isActive && sortConfig.direction === 'desc' ? 'opacity-100' : 'opacity-30'}`}
+                                                            className={`fas fa-caret-down ${isActive && sortConfig?.direction === 'desc' ? 'opacity-100' : 'opacity-30'}`}
                                                         />
                                                     </div>
                                                 </div>

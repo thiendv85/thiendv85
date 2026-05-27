@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import { normalizeBrand } from './helpers';
+import { normalizeBrand, decompressData } from './helpers';
 import type { InventoryItem } from '../../types/inventory';
 
 export interface SnapshotMetadataRow {
@@ -70,11 +70,6 @@ export async function compressData(data: any): Promise<Blob> {
             }
         }
     });
-}
-
-async function decompressData(blob: Blob): Promise<any> {
-    const stream = blob.stream().pipeThrough(new DecompressionStream('gzip'));
-    return JSON.parse(await new Response(stream).text());
 }
 
 /**

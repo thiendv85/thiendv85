@@ -52,9 +52,9 @@ export function openPrintWindow(opts: {
         if (brands.length === 1 && sources.length === 1) {
             const p = appSettings?.sourceProfiles?.find(
                 p =>
-                    p.brand?.toLowerCase() === brands[0].toLowerCase() &&
-                    (p.id.toUpperCase() === sources[0].toUpperCase() ||
-                        p.name.toLowerCase().includes(sources[0].toLowerCase())),
+                    p.brand?.toLowerCase() === (brands[0] ?? '').toLowerCase() &&
+                    (p.id.toUpperCase() === (sources[0] ?? '').toUpperCase() ||
+                        p.name.toLowerCase().includes((sources[0] ?? '').toLowerCase())),
             );
             if (p) return `${p.brand} · ${p.id} – ${p.name}`;
             return `${brands[0]} · ${sources[0]}`;

@@ -61,14 +61,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [needsPasswordReset, setNeedsPasswordReset] = useState(false);
 
     const fetchProfile = async (userId: string): Promise<UserProfile | null> => {
+        let timer: ReturnType<typeof setTimeout> | undefined;
         try {
-            const { data, error } = (await Promise.race([
+            const result = await Promise.race([
                 supabase.from('profiles').select('*').eq('id', userId).single(),
-                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
-            ])) as any;
-            if (error || !data) return null;
-            return data as UserProfile;
+                new Promise<{ data: null; error: { message: string } }>((resolve) => {
+                    timer = setTimeout(() => resolve({ data: null, error: { message: 'timeout' } }), 5000);
+                }),
+            ]);
+            clearTimeout(timer);
+            if (result.error || !result.data) return null;
+            return result.data as UserProfile;
         } catch {
+            clearTimeout(timer);
             return null;
         }
     };

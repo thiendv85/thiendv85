@@ -3,19 +3,9 @@ import { Typography } from './Typography';
 import { useLanguage } from '../utils/i18n';
 import { NotificationBell } from './NotificationBell';
 import { useApprovalAuth } from '../hooks/useApprovalAuth';
+import type { View } from '../types/inventory';
 
 import { FaIcon } from './Icon';
-type View =
-  | 'upload'
-  | 'dashboard'
-  | 'ordering'
-  | 'backorder'
-  | 'transfer'
-  | 'log'
-  | 'kitting'
-  | 'settings'
-  | 'approval-queue'
-  | 'report';
 
 type NavId = 'dashboard' | 'ordering' | 'backorder' | 'transfer' | 'kitting' | 'approval-queue' | 'report';
 interface NavItem {

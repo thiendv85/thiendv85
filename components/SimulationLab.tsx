@@ -111,7 +111,7 @@ export const SimulationLab = ({ item }: SimulationLabProps) => {
 
     // Smart input validation with context
     const inputWarnings = useMemo(() => {
-        const warnings = [];
+        const warnings: { type: string; msg: string }[] = [];
         const avgDemand = item.AvgQty12M || item.AvgQty6M || item.AvgQty3M || 1;
 
         if (simDemand < 0) {

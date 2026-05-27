@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState, useTransition, useMemo } from 'react';
-import type { InventoryItem, KittingDefinition, MonthlyData, ApprovalRequest } from './types/inventory';
+import type { InventoryItem, KittingDefinition, MonthlyData, ApprovalRequest, View } from './types/inventory';
 import { FileUpload } from './pages/FileUpload';
 import { LoginScreen } from './pages/LoginScreen';
 import { ResetPasswordScreen } from './pages/ResetPasswordScreen';
@@ -48,18 +48,6 @@ const PageSkeleton = () => (
         <div className="h-64 bg-slate-50 rounded-2xl" />
     </div>
 );
-
-type View =
-    | 'upload'
-    | 'dashboard'
-    | 'ordering'
-    | 'backorder'
-    | 'transfer'
-    | 'log'
-    | 'kitting'
-    | 'settings'
-    | 'approval-queue'
-    | 'report';
 
 const AuthSpinner = () => (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center">
@@ -247,7 +235,7 @@ const AppContent = () => {
             isMobile={isMobile}
             isMonthlyLoading={isMonthlyLoading}
             monthlyDataDate={monthlyDataDate}
-            profile={profile}
+            profile={profile ? { ...profile, full_name: profile.full_name ?? undefined } : null}
             language={language}
             setLanguage={setLanguage}
             onSelectView={onSelectView}
@@ -341,7 +329,7 @@ const AppContent = () => {
                 isDataModalOpen={isDataModalOpen}
                 onCloseData={() => setIsDataModalOpen(false)}
                 monthlyDataDate={monthlyDataDate}
-                profile={profile}
+                profile={profile ? { ...profile, department: profile.department ?? undefined } : null}
                 onSelectInventory={handleDataUpload}
                 onSelectMonthly={async (mData, monthDate, updatedAt) => {
                     setMonthlyData(mData);
