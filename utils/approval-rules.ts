@@ -18,8 +18,8 @@ export interface PreApprovalResult {
 }
 
 const BUDGET_THRESHOLD = 500_000_000; // 500M VND
-const HIGH_MOS_THRESHOLD = 6;         // months
-const LOW_MOS_THRESHOLD = 0.5;        // months
+const HIGH_MOS_THRESHOLD = 6; // months
+const LOW_MOS_THRESHOLD = 0.5; // months
 
 /**
  * Validate business rules before approving a request.
@@ -88,7 +88,10 @@ export function validatePreApproval(request: ApprovalRequest): PreApprovalResult
     if (oosNotOrdered.length > 0) {
         warnings.push({
             code: 'OOS_NOT_ORDERED',
-            message: `${oosNotOrdered.length} mã hết hàng (OOS) nhưng không đặt: ${oosNotOrdered.slice(0, 3).map(c => c.itemCode).join(', ')}${oosNotOrdered.length > 3 ? '...' : ''}`,
+            message: `${oosNotOrdered.length} mã hết hàng (OOS) nhưng không đặt: ${oosNotOrdered
+                .slice(0, 3)
+                .map(c => c.itemCode)
+                .join(', ')}${oosNotOrdered.length > 3 ? '...' : ''}`,
             severity: 'info',
         });
     }
@@ -98,7 +101,8 @@ export function validatePreApproval(request: ApprovalRequest): PreApprovalResult
         const qty = snapQuantities[ctx.itemCode];
         const totalQty = (qty?.air || 0) + (qty?.sea || 0);
         const itemValue = (ctx.unitCost || 0) * totalQty;
-        if (itemValue > 100_000_000) { // Single item > 100M VND
+        if (itemValue > 100_000_000) {
+            // Single item > 100M VND
             warnings.push({
                 code: 'LARGE_ITEM_ORDER',
                 message: `${ctx.itemCode}: ${(itemValue / 1e6).toFixed(1)}M VND cho đơn lẻ`,

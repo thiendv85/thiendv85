@@ -178,10 +178,7 @@ export const WarningConfirmation = ({
                     >
                         Hủy bỏ
                     </button>
-                    <button
-                        onClick={onConfirm}
-                        className="py-4 px-6 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-amber-200 active:scale-95 ml-auto w-full"
-                    >
+                    <button onClick={onConfirm} className="lg-btn lg-btn-amber lg-btn-lg lg-btn-full py-4 px-6">
                         Xác nhận
                     </button>
                 </div>

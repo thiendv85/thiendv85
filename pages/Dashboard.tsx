@@ -634,7 +634,7 @@ export const Dashboard = ({
                                             100,
                                         );
                                     }}
-                                    className="shrink-0 bg-rose-600 text-white px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wide hover:bg-rose-700 transition-colors flex items-center gap-1.5"
+                                    className="shrink-0 px-3 py-1.5 text-xs flex items-center gap-1.5 lg-btn lg-btn-sm lg-btn-danger"
                                 >
                                     <FaIcon className="fas fa-arrow-right text-[10px]" /> Xem ngay
                                 </button>

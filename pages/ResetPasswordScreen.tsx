@@ -14,8 +14,14 @@ export const ResetPasswordScreen = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (password.length < 6) { setError('Mật khẩu phải có ít nhất 6 ký tự.'); return; }
-        if (password !== confirm) { setError('Mật khẩu xác nhận không khớp.'); return; }
+        if (password.length < 6) {
+            setError('Mật khẩu phải có ít nhất 6 ký tự.');
+            return;
+        }
+        if (password !== confirm) {
+            setError('Mật khẩu xác nhận không khớp.');
+            return;
+        }
         setIsLoading(true);
         setError(null);
         const { error: err } = await supabase.auth.updateUser({ password });
@@ -39,8 +45,12 @@ export const ResetPasswordScreen = () => {
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-500/20 border border-blue-400/30 mb-4 backdrop-blur-sm">
                         <FaIcon className="fas fa-key text-blue-400 text-2xl" />
                     </div>
-                    <Typography variant="h1" className="text-white !text-3xl tracking-tight">Đặt mật khẩu mới</Typography>
-                    <Typography variant="body" className="text-slate-400 mt-1">ATP System</Typography>
+                    <Typography variant="h1" className="text-white !text-3xl tracking-tight">
+                        Đặt mật khẩu mới
+                    </Typography>
+                    <Typography variant="body" className="text-slate-400 mt-1">
+                        ATP System
+                    </Typography>
                 </div>
 
                 <div className="bg-slate-800/60 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-8 shadow-2xl">
@@ -53,7 +63,9 @@ export const ResetPasswordScreen = () => {
                     ) : (
                         <form onSubmit={handleSubmit} className="space-y-5">
                             <div>
-                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Mật khẩu mới</label>
+                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
+                                    Mật khẩu mới
+                                </label>
                                 <input
                                     type="password"
                                     value={password}
@@ -65,7 +77,9 @@ export const ResetPasswordScreen = () => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Xác nhận mật khẩu</label>
+                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
+                                    Xác nhận mật khẩu
+                                </label>
                                 <input
                                     type="password"
                                     value={confirm}
@@ -86,18 +100,25 @@ export const ResetPasswordScreen = () => {
                             <button
                                 type="submit"
                                 disabled={isLoading || !password || !confirm}
-                                className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-black py-3 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest text-sm mt-2"
+                                className="w-full py-3 flex items-center justify-center gap-2 text-sm mt-2 disabled:opacity-50 lg-btn lg-btn-blue lg-btn-lg lg-btn-full"
                             >
                                 {isLoading ? (
-                                    <><FaIcon className="fas fa-circle-notch fa-spin" /> Đang lưu...</>
+                                    <>
+                                        <FaIcon className="fas fa-circle-notch fa-spin" /> Đang lưu...
+                                    </>
                                 ) : (
-                                    <><FaIcon className="fas fa-floppy-disk" /> Lưu mật khẩu</>
+                                    <>
+                                        <FaIcon className="fas fa-floppy-disk" /> Lưu mật khẩu
+                                    </>
                                 )}
                             </button>
 
                             <button
                                 type="button"
-                                onClick={() => { clearPasswordReset(); signOut(); }}
+                                onClick={() => {
+                                    clearPasswordReset();
+                                    signOut();
+                                }}
                                 className="w-full text-slate-500 hover:text-slate-400 text-sm py-2"
                             >
                                 Hủy, đăng xuất

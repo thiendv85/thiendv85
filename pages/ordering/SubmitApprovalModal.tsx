@@ -80,7 +80,10 @@ export function SubmitApprovalModal({
                 <div className="p-6 space-y-5 bg-slate-50/50">
                     <div className="space-y-4">
                         <div>
-                            <label htmlFor="submit-draft-name" className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                            <label
+                                htmlFor="submit-draft-name"
+                                className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1"
+                            >
                                 Tên Draft
                             </label>
                             <input
@@ -93,7 +96,10 @@ export function SubmitApprovalModal({
                             />
                         </div>
                         <div>
-                            <label htmlFor="submit-workflow" className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                            <label
+                                htmlFor="submit-workflow"
+                                className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1"
+                            >
                                 Workflow Phê duyệt
                             </label>
                             {workflows.length === 0 ? (
@@ -148,7 +154,7 @@ export function SubmitApprovalModal({
                         <button
                             onClick={onSubmit}
                             disabled={isSubmitting || !draftName.trim() || !selectedWorkflowId}
-                            className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black py-3.5 rounded-2xl text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.98]"
+                            className="lg-btn lg-btn-primary lg-btn-lg lg-btn-full disabled:opacity-40 flex items-center justify-center gap-2"
                         >
                             {isSubmitting ? (
                                 <>

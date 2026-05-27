@@ -165,7 +165,9 @@ export const Ordering = ({
 
     // Defer heavy table render on mount to keep nav-switch INP low
     const [mounted, setMounted] = useState(false);
-    useEffect(() => { setMounted(true); }, []);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
     const deferredMounted = useDeferredValue(mounted);
 
     // Debounced search input
@@ -497,7 +499,8 @@ export const Ordering = ({
 
     const { enrichedList, enrichedMap } = useMemo(() => {
         // Skip heavy computation until mount is deferred — keeps nav-switch INP low
-        if (!deferredMounted) return { enrichedList: [] as InventoryItem[], enrichedMap: new Map<string, InventoryItem>() };
+        if (!deferredMounted)
+            return { enrichedList: [] as InventoryItem[], enrichedMap: new Map<string, InventoryItem>() };
         const itemMap = new Map<string, InventoryItem>();
         const list = activeEnrichedData.map(item => {
             const draft = orderQuantities[item.ItemCode];
@@ -984,7 +987,7 @@ export const Ordering = ({
                             {Object.keys(supersessionWarnings).length > 1 && (
                                 <button
                                     onClick={handleConvertAll}
-                                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-sm active:scale-95 flex items-center gap-2"
+                                    className="lg-btn lg-btn-primary lg-btn-sm px-4 py-2 flex items-center gap-2"
                                 >
                                     <FaIcon className="fas fa-sync-alt" /> Chuyển tất cả sang mã mới
                                 </button>
@@ -1029,7 +1032,7 @@ export const Ordering = ({
                                     onClick={() => {
                                         affinitySuggestions.mandatoryMissing.forEach(s => addAffinityToOrder(s));
                                     }}
-                                    className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-sm active:scale-95 flex items-center gap-2"
+                                    className="lg-btn lg-btn-danger lg-btn-sm px-4 py-2 flex items-center gap-2"
                                 >
                                     <FaIcon className="fas fa-plus" /> Thêm tất cả bắt buộc
                                 </button>
@@ -1189,7 +1192,7 @@ export const Ordering = ({
                                         <button
                                             onClick={() => addAffinityToOrder(s)}
                                             disabled={!inApp}
-                                            className={`text-[11px] font-bold px-2.5 py-1 rounded-md text-white disabled:opacity-50 disabled:cursor-not-allowed ${isM ? 'bg-rose-600 hover:bg-rose-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+                                            className={`lg-btn lg-btn-sm px-2.5 py-1 disabled:opacity-50 disabled:cursor-not-allowed ${isM ? 'lg-btn-danger' : 'lg-btn-blue'}`}
                                             title={
                                                 !inApp
                                                     ? 'SKU không có trong data hiện tại'
@@ -1308,7 +1311,7 @@ export const Ordering = ({
                             <div className="flex items-center gap-2 bg-white/40 backdrop-blur-md border border-white/20 p-1.5 rounded-2xl shadow-sm">
                                 <button
                                     onClick={() => setIsCloudModalOpen(true)}
-                                    className="bg-blue-600/90 hover:bg-blue-600 text-white rounded-xl transition-all border border-blue-400/30 flex items-center justify-center shadow-lg shadow-blue-500/20 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest backdrop-blur-sm active:scale-95"
+                                    className="lg-btn lg-btn-blue flex items-center justify-center px-4 py-2.5"
                                 >
                                     <FaIcon className="fas fa-cloud mr-2" /> Cloud
                                 </button>
@@ -1338,7 +1341,7 @@ export const Ordering = ({
                             </div>
                             <button
                                 onClick={handleExport}
-                                className="bg-slate-800/90 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-slate-900/10 flex items-center gap-2 border border-slate-700/50 backdrop-blur-md active:scale-95"
+                                className="lg-btn lg-btn-dark px-6 py-2.5 flex items-center gap-2"
                             >
                                 <FaIcon className="fas fa-file-export text-blue-300" /> {t('ord_export_btn')}
                             </button>
@@ -1347,14 +1350,14 @@ export const Ordering = ({
                                     <button
                                         onClick={handleReturn}
                                         disabled={isSubmitting}
-                                        className="bg-rose-600/90 hover:bg-rose-600 disabled:opacity-40 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-rose-500/20 flex items-center gap-2 border border-rose-400/30 active:scale-95 backdrop-blur-sm"
+                                        className="lg-btn lg-btn-danger disabled:opacity-40 px-5 py-2.5 flex items-center gap-2"
                                     >
                                         <FaIcon className="fas fa-times" /> Trả lại
                                     </button>
                                     <button
                                         onClick={handleApprove}
                                         disabled={isSubmitting}
-                                        className="bg-emerald-600/90 hover:bg-emerald-600 disabled:opacity-40 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 flex items-center gap-2 border border-emerald-400/30 active:scale-95 backdrop-blur-sm"
+                                        className="lg-btn lg-btn-primary disabled:opacity-40 px-5 py-2.5 flex items-center gap-2"
                                     >
                                         <FaIcon className="fas fa-check" /> Phê duyệt
                                     </button>
@@ -1470,7 +1473,7 @@ export const Ordering = ({
                                 disabled={
                                     isSubmitting || Object.values(orderQuantities).every((v: any) => !v.air && !v.sea)
                                 }
-                                className="shrink-0 bg-indigo-600/90 hover:bg-indigo-600 disabled:opacity-40 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95 backdrop-blur-sm border border-indigo-400/30"
+                                className="lg-btn lg-btn-blue lg-btn-sm shrink-0 disabled:opacity-40 px-4 py-2 flex items-center gap-2"
                             >
                                 {isSubmitting ? (
                                     <FaIcon className="fas fa-spinner fa-spin" />

@@ -36,19 +36,30 @@ export const PartAffinityAdmin = ({ embedded = false }: { embedded?: boolean } =
 
     const openNew = () => {
         setEditing(null);
-        setFormA(''); setFormB(''); setFormType('recommended'); setFormScore(50); setFormNote('');
+        setFormA('');
+        setFormB('');
+        setFormType('recommended');
+        setFormScore(50);
+        setFormNote('');
         setShowForm(true);
     };
     const openEdit = (p: PartAffinityPair) => {
         setEditing(p);
-        setFormA(p.partA); setFormB(p.partB);
-        setFormType(p.type); setFormScore(p.score); setFormNote(p.note || '');
+        setFormA(p.partA);
+        setFormB(p.partB);
+        setFormType(p.type);
+        setFormScore(p.score);
+        setFormNote(p.note || '');
         setShowForm(true);
     };
 
     const handleSave = async () => {
         const res = await upsertPartAffinityPair({
-            partA: formA, partB: formB, type: formType, score: formScore, note: formNote || undefined,
+            partA: formA,
+            partB: formB,
+            type: formType,
+            score: formScore,
+            note: formNote || undefined,
         });
         if (res.success) {
             showToastMsg('Đã lưu');
@@ -62,8 +73,10 @@ export const PartAffinityAdmin = ({ embedded = false }: { embedded?: boolean } =
     const handleDelete = async (id: string) => {
         if (!confirm('Xoá pair này?')) return;
         const ok = await deletePartAffinityPair(id);
-        if (ok) { showToastMsg('Đã xoá'); refresh(); }
-        else showToastMsg('Xoá thất bại');
+        if (ok) {
+            showToastMsg('Đã xoá');
+            refresh();
+        } else showToastMsg('Xoá thất bại');
     };
 
     const handleCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,7 +84,10 @@ export const PartAffinityAdmin = ({ embedded = false }: { embedded?: boolean } =
         if (!file) return;
         const text = await file.text();
         const parsed = parsePartAffinityCSV(text);
-        if (parsed.length === 0) { showToastMsg('CSV không có dòng hợp lệ'); return; }
+        if (parsed.length === 0) {
+            showToastMsg('CSV không có dòng hợp lệ');
+            return;
+        }
         const res = await bulkUpsertPartAffinity(parsed);
         if (res.error) showToastMsg(`Lỗi: ${res.error}`);
         else showToastMsg(`Đã import ${res.inserted} (skip ${res.skipped})`);
@@ -90,12 +106,17 @@ export const PartAffinityAdmin = ({ embedded = false }: { embedded?: boolean } =
                         </div>
                         <div className="flex gap-2">
                             <SampleCSVButton sampleKey="part-affinity" variant="dark" label="Mẫu CSV" />
-                            <button onClick={() => fileRef.current?.click()} className="px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white/90 text-sm font-bold">
-                                <FaIcon className="fas fa-upload mr-2" />CSV
+                            <button
+                                onClick={() => fileRef.current?.click()}
+                                className="px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white/90 text-sm font-bold"
+                            >
+                                <FaIcon className="fas fa-upload mr-2" />
+                                CSV
                             </button>
                             <input ref={fileRef} type="file" accept=".csv" hidden onChange={handleCSV} />
-                            <button onClick={openNew} className="px-3 py-2 rounded-xl bg-blue-600 text-white text-sm font-bold">
-                                <FaIcon className="fas fa-plus mr-2" />Thêm pair
+                            <button onClick={openNew} className="px-3 py-2 text-sm lg-btn lg-btn-blue">
+                                <FaIcon className="fas fa-plus mr-2" />
+                                Thêm pair
                             </button>
                         </div>
                     </div>
@@ -104,12 +125,17 @@ export const PartAffinityAdmin = ({ embedded = false }: { embedded?: boolean } =
             {embedded && (
                 <div className="flex justify-end gap-2">
                     <SampleCSVButton sampleKey="part-affinity" />
-                    <button onClick={() => fileRef.current?.click()} className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50">
-                        <FaIcon className="fas fa-upload mr-2" />CSV
+                    <button
+                        onClick={() => fileRef.current?.click()}
+                        className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50"
+                    >
+                        <FaIcon className="fas fa-upload mr-2" />
+                        CSV
                     </button>
                     <input ref={fileRef} type="file" accept=".csv" hidden onChange={handleCSV} />
-                    <button onClick={openNew} className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700">
-                        <FaIcon className="fas fa-plus mr-2" />Thêm pair
+                    <button onClick={openNew} className="px-3 py-2 text-sm lg-btn lg-btn-blue">
+                        <FaIcon className="fas fa-plus mr-2" />
+                        Thêm pair
                     </button>
                 </div>
             )}
@@ -130,7 +156,9 @@ export const PartAffinityAdmin = ({ embedded = false }: { embedded?: boolean } =
                         {t === 'all' ? 'Tất cả' : t === 'mandatory' ? 'Bắt buộc' : 'Khuyến nghị'}
                     </button>
                 ))}
-                <span className="text-sm text-slate-500 ml-auto">{filtered.length} / {pairs.length} pair</span>
+                <span className="text-sm text-slate-500 ml-auto">
+                    {filtered.length} / {pairs.length} pair
+                </span>
             </div>
 
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -146,24 +174,48 @@ export const PartAffinityAdmin = ({ embedded = false }: { embedded?: boolean } =
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                        {isLoading && <tr><td colSpan={6} className="p-6 text-center text-slate-400">Đang nạp...</td></tr>}
+                        {isLoading && (
+                            <tr>
+                                <td colSpan={6} className="p-6 text-center text-slate-400">
+                                    Đang nạp...
+                                </td>
+                            </tr>
+                        )}
                         {!isLoading && filtered.length === 0 && (
-                            <tr><td colSpan={6} className="p-6 text-center text-slate-400">Chưa có pair nào</td></tr>
+                            <tr>
+                                <td colSpan={6} className="p-6 text-center text-slate-400">
+                                    Chưa có pair nào
+                                </td>
+                            </tr>
                         )}
                         {filtered.map(p => (
                             <tr key={p.id} className="hover:bg-slate-50">
                                 <td className="p-3 font-mono font-bold text-slate-800">{p.partA}</td>
                                 <td className="p-3 font-mono font-bold text-slate-800">{p.partB}</td>
                                 <td className="p-3">
-                                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${p.type === 'mandatory' ? 'bg-rose-100 text-rose-700' : 'bg-blue-100 text-blue-700'}`}>
+                                    <span
+                                        className={`text-[10px] font-black px-2 py-0.5 rounded-full ${p.type === 'mandatory' ? 'bg-rose-100 text-rose-700' : 'bg-blue-100 text-blue-700'}`}
+                                    >
                                         {p.type === 'mandatory' ? 'BẮT BUỘC' : 'KHUYẾN NGHỊ'}
                                     </span>
                                 </td>
-                                <td className="p-3 text-right tabular-nums">{p.type === 'recommended' ? p.score : '—'}</td>
+                                <td className="p-3 text-right tabular-nums">
+                                    {p.type === 'recommended' ? p.score : '—'}
+                                </td>
                                 <td className="p-3 text-slate-600 text-xs">{p.note || '—'}</td>
                                 <td className="p-3 text-right">
-                                    <button onClick={() => openEdit(p)} className="text-blue-600 hover:underline text-xs mr-2">Sửa</button>
-                                    <button onClick={() => handleDelete(p.id)} className="text-rose-600 hover:underline text-xs">Xoá</button>
+                                    <button
+                                        onClick={() => openEdit(p)}
+                                        className="text-blue-600 hover:underline text-xs mr-2"
+                                    >
+                                        Sửa
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(p.id)}
+                                        className="text-rose-600 hover:underline text-xs"
+                                    >
+                                        Xoá
+                                    </button>
                                 </td>
                             </tr>
                         ))}
@@ -172,24 +224,42 @@ export const PartAffinityAdmin = ({ embedded = false }: { embedded?: boolean } =
             </div>
 
             {showForm && (
-                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setShowForm(false)}>
-                    <div className="bg-white rounded-2xl p-6 w-full max-w-md space-y-3" onClick={e => e.stopPropagation()}>
+                <div
+                    className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+                    onClick={() => setShowForm(false)}
+                >
+                    <div
+                        className="bg-white rounded-2xl p-6 w-full max-w-md space-y-3"
+                        onClick={e => e.stopPropagation()}
+                    >
                         <h2 className="text-lg font-black">{editing ? 'Sửa pair' : 'Thêm pair mới'}</h2>
                         <div className="grid grid-cols-2 gap-3">
                             <label className="text-xs font-bold text-slate-600">
                                 Part A
-                                <input value={formA} onChange={e => setFormA(e.target.value)} className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg font-mono" />
+                                <input
+                                    value={formA}
+                                    onChange={e => setFormA(e.target.value)}
+                                    className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg font-mono"
+                                />
                             </label>
                             <label className="text-xs font-bold text-slate-600">
                                 Part B
-                                <input value={formB} onChange={e => setFormB(e.target.value)} className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg font-mono" />
+                                <input
+                                    value={formB}
+                                    onChange={e => setFormB(e.target.value)}
+                                    className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg font-mono"
+                                />
                             </label>
                         </div>
                         <label className="text-xs font-bold text-slate-600 block">
                             Loại
                             <div className="flex gap-2 mt-1">
                                 {(['mandatory', 'recommended'] as const).map(t => (
-                                    <button key={t} onClick={() => setFormType(t)} className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold ${formType === t ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-600'}`}>
+                                    <button
+                                        key={t}
+                                        onClick={() => setFormType(t)}
+                                        className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold ${formType === t ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-600'}`}
+                                    >
                                         {t === 'mandatory' ? 'Bắt buộc' : 'Khuyến nghị'}
                                     </button>
                                 ))}
@@ -198,16 +268,39 @@ export const PartAffinityAdmin = ({ embedded = false }: { embedded?: boolean } =
                         {formType === 'recommended' && (
                             <label className="text-xs font-bold text-slate-600 block">
                                 Score: {formScore}
-                                <input type="range" min={0} max={100} value={formScore} onChange={e => setFormScore(parseInt(e.target.value))} className="w-full mt-1" />
+                                <input
+                                    type="range"
+                                    min={0}
+                                    max={100}
+                                    value={formScore}
+                                    onChange={e => setFormScore(parseInt(e.target.value))}
+                                    className="w-full mt-1"
+                                />
                             </label>
                         )}
                         <label className="text-xs font-bold text-slate-600 block">
                             Ghi chú
-                            <textarea value={formNote} onChange={e => setFormNote(e.target.value)} className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg" rows={2} />
+                            <textarea
+                                value={formNote}
+                                onChange={e => setFormNote(e.target.value)}
+                                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg"
+                                rows={2}
+                            />
                         </label>
                         <div className="flex justify-end gap-2 pt-2">
-                            <button onClick={() => setShowForm(false)} className="px-3 py-2 text-sm font-bold text-slate-600">Huỷ</button>
-                            <button onClick={handleSave} disabled={!formA.trim() || !formB.trim()} className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold disabled:opacity-50">Lưu</button>
+                            <button
+                                onClick={() => setShowForm(false)}
+                                className="px-3 py-2 text-sm font-bold text-slate-600"
+                            >
+                                Huỷ
+                            </button>
+                            <button
+                                onClick={handleSave}
+                                disabled={!formA.trim() || !formB.trim()}
+                                className="px-3 py-2 text-sm disabled:opacity-50 lg-btn lg-btn-blue"
+                            >
+                                Lưu
+                            </button>
                         </div>
                     </div>
                 </div>

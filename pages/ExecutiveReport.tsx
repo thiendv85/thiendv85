@@ -28,13 +28,13 @@ interface GrandStats {
     mosAvg: number;
     dealerStock: number;
     // Research-based metrics (2026-05-22)
-    wmape: number;          // Weighted MAPE — forecast accuracy error %
-    bias: number;           // Forecast bias % (dương = over-forecast)
-    capitalTurn: number;    // Vòng quay vốn = turnover / stockValue (lần/năm)
-    serviceScore: number;   // 0-100
-    efficiencyScore: number;// 0-100
+    wmape: number; // Weighted MAPE — forecast accuracy error %
+    bias: number; // Forecast bias % (dương = over-forecast)
+    capitalTurn: number; // Vòng quay vốn = turnover / stockValue (lần/năm)
+    serviceScore: number; // 0-100
+    efficiencyScore: number; // 0-100
     freshnessScore: number; // 0-100
-    healthScore: number;    // 0-100 composite
+    healthScore: number; // 0-100 composite
 }
 
 interface LoisRow {
@@ -77,58 +77,129 @@ const SparklineSVG = ({ data, width = 260, height = 60 }: { data: number[]; widt
     const max = Math.max(...data, 1);
     const min = Math.min(...data, 0);
     const range = max - min || 1;
-    const points = data.map((v, i) => `${(i / (data.length - 1)) * width},${height - ((v - min) / range) * (height - 8) - 4}`).join(' ');
+    const points = data
+        .map((v, i) => `${(i / (data.length - 1)) * width},${height - ((v - min) / range) * (height - 8) - 4}`)
+        .join(' ');
     const avg = data.reduce((a, b) => a + b, 0) / data.length;
     const avgY = height - ((avg - min) / range) * (height - 8) - 4;
     return (
-        <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: 'block' }} role="img" aria-label="Biểu đồ sparkline">
+        <svg
+            width={width}
+            height={height}
+            viewBox={`0 0 ${width} ${height}`}
+            style={{ display: 'block' }}
+            role="img"
+            aria-label="Biểu đồ sparkline"
+        >
             <line x1={0} y1={avgY} x2={width} y2={avgY} stroke="#94a3b8" strokeWidth={0.5} strokeDasharray="3,3" />
-            <polyline points={points} fill="none" stroke="#3b82f6" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+            <polyline
+                points={points}
+                fill="none"
+                stroke="#3b82f6"
+                strokeWidth={2}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+            />
             {data.map((v, i) => {
                 const x = (i / (data.length - 1)) * width;
                 const y = height - ((v - min) / range) * (height - 8) - 4;
-                return <circle key={i} cx={x} cy={y} r={i === data.length - 1 ? 3.5 : 2} fill={i === data.length - 1 ? '#3b82f6' : '#cbd5e1'} />;
+                return (
+                    <circle
+                        key={i}
+                        cx={x}
+                        cy={y}
+                        r={i === data.length - 1 ? 3.5 : 2}
+                        fill={i === data.length - 1 ? '#3b82f6' : '#cbd5e1'}
+                    />
+                );
             })}
         </svg>
     );
 };
 
-const PieChartSVG = ({ slices, size = 120 }: { slices: { label: string; value: number; color: string }[]; size?: number }) => {
+const PieChartSVG = ({
+    slices,
+    size = 120,
+}: {
+    slices: { label: string; value: number; color: string }[];
+    size?: number;
+}) => {
     const total = slices.reduce((a, s) => a + s.value, 0) || 1;
     const r = size / 2 - 2;
     const cx = size / 2;
     const cy = size / 2;
     let cumAngle = -Math.PI / 2;
-    const paths = slices.filter(s => s.value > 0).map((s) => {
-        const angle = (s.value / total) * 2 * Math.PI;
-        const x1 = cx + r * Math.cos(cumAngle);
-        const y1 = cy + r * Math.sin(cumAngle);
-        cumAngle += angle;
-        const x2 = cx + r * Math.cos(cumAngle);
-        const y2 = cy + r * Math.sin(cumAngle);
-        const large = angle > Math.PI ? 1 : 0;
-        return <path key={s.label} d={`M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} Z`} fill={s.color} stroke="white" strokeWidth={1} />;
-    });
+    const paths = slices
+        .filter(s => s.value > 0)
+        .map(s => {
+            const angle = (s.value / total) * 2 * Math.PI;
+            const x1 = cx + r * Math.cos(cumAngle);
+            const y1 = cy + r * Math.sin(cumAngle);
+            cumAngle += angle;
+            const x2 = cx + r * Math.cos(cumAngle);
+            const y2 = cy + r * Math.sin(cumAngle);
+            const large = angle > Math.PI ? 1 : 0;
+            return (
+                <path
+                    key={s.label}
+                    d={`M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} Z`}
+                    fill={s.color}
+                    stroke="white"
+                    strokeWidth={1}
+                />
+            );
+        });
     return (
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: 'block' }} role="img" aria-label="Biểu đồ tròn">
+        <svg
+            width={size}
+            height={size}
+            viewBox={`0 0 ${size} ${size}`}
+            style={{ display: 'block' }}
+            role="img"
+            aria-label="Biểu đồ tròn"
+        >
             {paths}
         </svg>
     );
 };
 
-const BarChartSVG = ({ buckets, width = 220, height = 60 }: { buckets: { label: string; value: number; color: string }[]; width?: number; height?: number }) => {
+const BarChartSVG = ({
+    buckets,
+    width = 220,
+    height = 60,
+}: {
+    buckets: { label: string; value: number; color: string }[];
+    width?: number;
+    height?: number;
+}) => {
     const max = Math.max(...buckets.map(b => b.value), 1);
     const gap = 4;
     const bw = (width - gap * (buckets.length - 1)) / buckets.length;
     return (
-        <svg width={width} height={height + 14} viewBox={`0 0 ${width} ${height + 14}`} style={{ display: 'block' }} role="img" aria-label="Biểu đồ cột">
+        <svg
+            width={width}
+            height={height + 14}
+            viewBox={`0 0 ${width} ${height + 14}`}
+            style={{ display: 'block' }}
+            role="img"
+            aria-label="Biểu đồ cột"
+        >
             {buckets.map((b, i) => {
                 const h = Math.max(2, (b.value / max) * height);
                 const x = i * (bw + gap);
                 return (
                     <g key={b.label}>
                         <rect x={x} y={height - h} width={bw} height={h} rx={2} fill={b.color} />
-                        <text x={x + bw / 2} y={height + 11} textAnchor="middle" fontSize={7} fill="#64748b" fontWeight={600}>{b.label}</text>
+                        <text
+                            x={x + bw / 2}
+                            y={height + 11}
+                            textAnchor="middle"
+                            fontSize={7}
+                            fill="#64748b"
+                            fontWeight={600}
+                        >
+                            {b.label}
+                        </text>
                     </g>
                 );
             })}
@@ -143,19 +214,25 @@ const generateCommentary = (stats: GrandStats, loisRows: LoisRow[], aging: Aging
     // OOS warning
     if (stats.oosCount > 0) {
         const worstLois = [...loisRows].sort((a, b) => b.oosCount - a.oosCount)[0];
-        bullets.push(`⚠️ ${stats.oosCount} SKU hết hàng (OOS)${worstLois?.oosCount > 0 ? `, tập trung nhóm ${worstLois.label} (${worstLois.oosCount} SKU)` : ''}.`);
+        bullets.push(
+            `⚠️ ${stats.oosCount} SKU hết hàng (OOS)${worstLois?.oosCount > 0 ? `, tập trung nhóm ${worstLois.label} (${worstLois.oosCount} SKU)` : ''}.`,
+        );
     }
 
     // Excess warning
     if (stats.excessPct > 15) {
-        bullets.push(`📦 Tỷ lệ tồn dư ${pct(stats.excessPct)} vượt ngưỡng 15%. Giá trị dư thừa: ${fmtM(stats.excessValue)}.`);
+        bullets.push(
+            `📦 Tỷ lệ tồn dư ${pct(stats.excessPct)} vượt ngưỡng 15%. Giá trị dư thừa: ${fmtM(stats.excessValue)}.`,
+        );
     } else if (stats.excessPct > 10) {
         bullets.push(`📊 Tỷ lệ tồn dư ${pct(stats.excessPct)} — trong tầm kiểm soát nhưng cần theo dõi.`);
     }
 
     // MOS insight
     if (stats.mosAvg > 6) {
-        bullets.push(`🔴 MOS trung bình ${stats.mosAvg.toFixed(1)} tháng — vốn tồn kho cao, cần xem xét giảm đặt hàng.`);
+        bullets.push(
+            `🔴 MOS trung bình ${stats.mosAvg.toFixed(1)} tháng — vốn tồn kho cao, cần xem xét giảm đặt hàng.`,
+        );
     } else if (stats.mosAvg > 3) {
         bullets.push(`🟡 MOS trung bình ${stats.mosAvg.toFixed(1)} tháng — mức tồn kho chấp nhận được.`);
     } else {
@@ -174,7 +251,7 @@ const generateCommentary = (stats: GrandStats, loisRows: LoisRow[], aging: Aging
 
     // PO pipeline
     if (stats.poValue > 0) {
-        const poPct = stats.stockValue > 0 ? (stats.poValue / stats.stockValue * 100) : 0;
+        const poPct = stats.stockValue > 0 ? (stats.poValue / stats.stockValue) * 100 : 0;
         bullets.push(`🚢 Pipeline PO: ${fmtM(stats.poValue)} (${pct(poPct)} so với tồn kho hiện hữu).`);
     }
 
@@ -185,7 +262,9 @@ const generateCommentary = (stats: GrandStats, loisRows: LoisRow[], aging: Aging
         bullets.push(`🎯 WMAPE ${stats.wmape.toFixed(1)}% — dự báo chính xác tốt.`);
     }
     if (Math.abs(stats.bias) > 10) {
-        bullets.push(`📐 Bias ${stats.bias > 0 ? '+' : ''}${stats.bias.toFixed(1)}% — dự báo ${stats.bias > 0 ? 'cao hơn' : 'thấp hơn'} thực tế hệ thống, cần hiệu chỉnh.`);
+        bullets.push(
+            `📐 Bias ${stats.bias > 0 ? '+' : ''}${stats.bias.toFixed(1)}% — dự báo ${stats.bias > 0 ? 'cao hơn' : 'thấp hơn'} thực tế hệ thống, cần hiệu chỉnh.`,
+        );
     }
 
     // Health score
@@ -208,9 +287,11 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
         const brands = Array.from(new Set(data.map(i => i.BrandName).filter(Boolean)));
         const sources = Array.from(new Set(data.map(i => i.SourceId).filter(Boolean)));
         if (brands.length === 1 && sources.length === 1) {
-            const p = appSettings?.sourceProfiles?.find(p =>
-                p.brand?.toLowerCase() === (brands[0] ?? '').toLowerCase() &&
-                (p.id.toUpperCase() === (sources[0] ?? '').toUpperCase() || p.name.toLowerCase().includes((sources[0] ?? '').toLowerCase()))
+            const p = appSettings?.sourceProfiles?.find(
+                p =>
+                    p.brand?.toLowerCase() === (brands[0] ?? '').toLowerCase() &&
+                    (p.id.toUpperCase() === (sources[0] ?? '').toUpperCase() ||
+                        p.name.toLowerCase().includes((sources[0] ?? '').toLowerCase())),
             );
             if (p) return `${p.brand} · ${p.id} – ${p.name}`;
             return `${brands[0]} · ${sources[0]}`;
@@ -233,12 +314,39 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
 
     // Compute all stats in single pass
     const { stats, loisRows, aging, sparklineData, mosBuckets, loisSlices } = useMemo(() => {
-        const matrix: Record<string, { items: number; turnover: number; stockVal: number; poVal: number; oosCount: number; riskCount: number; excessVal: number; excessItems: number; boItems: number; boValue: number; trendSum: number; trendCount: number }> = {};
-        let turnover = 0, stockValue = 0, poValue = 0, oosCount = 0, riskCount = 0;
-        let excessValue = 0, excessItems = 0, boItems = 0, boValue = 0;
-        let mosSum = 0, mosCount = 0, dealerStock = 0;
+        const matrix: Record<
+            string,
+            {
+                items: number;
+                turnover: number;
+                stockVal: number;
+                poVal: number;
+                oosCount: number;
+                riskCount: number;
+                excessVal: number;
+                excessItems: number;
+                boItems: number;
+                boValue: number;
+                trendSum: number;
+                trendCount: number;
+            }
+        > = {};
+        let turnover = 0,
+            stockValue = 0,
+            poValue = 0,
+            oosCount = 0,
+            riskCount = 0;
+        let excessValue = 0,
+            excessItems = 0,
+            boItems = 0,
+            boValue = 0;
+        let mosSum = 0,
+            mosCount = 0,
+            dealerStock = 0;
         // Forecast accuracy accumulators (WMAPE + Bias) — recent month actual vs BaseForecast
-        let sumAbsErr = 0, sumActual = 0, sumSignedErr = 0;
+        let sumAbsErr = 0,
+            sumActual = 0,
+            sumSignedErr = 0;
         const agingAcc: AgingBucket = { qty30: 0, qty60: 0, qty90: 0, qtyOver90: 0, totalQty: 0, totalValue: 0 };
         // MOS distribution
         const mosDistribution = { '<1': 0, '1-3': 0, '3-6': 0, '6-12': 0, '>12': 0 };
@@ -260,7 +368,10 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
 
             if (c.available <= 0 && item.BaseForecast > 0.02) oosCount++;
             if (c.stockoutRiskFlag) riskCount++;
-            if ((c.excessQty || 0) > 0) { excessItems++; excessValue += c.excessValue || 0; }
+            if ((c.excessQty || 0) > 0) {
+                excessItems++;
+                excessValue += c.excessValue || 0;
+            }
 
             const isBO = (item.Backorder || 0) > (c.available || 0);
             if (isBO) {
@@ -269,8 +380,11 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
             }
 
             // MOS
-            const mos = c.mos ?? (turnVal > 0 ? (c.stockValue || 0) * 12 / turnVal : 0);
-            if (mos > 0) { mosSum += mos; mosCount++; }
+            const mos = c.mos ?? (turnVal > 0 ? ((c.stockValue || 0) * 12) / turnVal : 0);
+            if (mos > 0) {
+                mosSum += mos;
+                mosCount++;
+            }
             if (mos < 1) mosDistribution['<1']++;
             else if (mos <= 3) mosDistribution['1-3']++;
             else if (mos <= 6) mosDistribution['3-6']++;
@@ -278,7 +392,9 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
             else mosDistribution['>12']++;
 
             // Sparkline: monthly sales value
-            item.SalesHistory.forEach((q, i) => { monthlyTurnover[i] += q * unitCost; });
+            item.SalesHistory.forEach((q, i) => {
+                monthlyTurnover[i] += q * unitCost;
+            });
 
             // Forecast accuracy: actual = tháng gần nhất, forecast = BaseForecast (monthly)
             const actualRecent = item.SalesHistory.length > 0 ? item.SalesHistory[item.SalesHistory.length - 1] : 0;
@@ -286,7 +402,7 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
             if (actualRecent > 0 || forecastMonthly > 0) {
                 sumAbsErr += Math.abs(actualRecent - forecastMonthly);
                 sumActual += actualRecent;
-                sumSignedErr += (forecastMonthly - actualRecent);
+                sumSignedErr += forecastMonthly - actualRecent;
             }
 
             // Aging
@@ -305,19 +421,42 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
             const first6 = item.SalesHistory.slice(0, 6).reduce((a, b) => a + b, 0);
             const trend = first6 > 0 ? ((last6 - first6) / first6) * 100 : 0;
 
-            if (!matrix[sub]) matrix[sub] = { items: 0, turnover: 0, stockVal: 0, poVal: 0, oosCount: 0, riskCount: 0, excessVal: 0, excessItems: 0, boItems: 0, boValue: 0, trendSum: 0, trendCount: 0 };
+            if (!matrix[sub])
+                matrix[sub] = {
+                    items: 0,
+                    turnover: 0,
+                    stockVal: 0,
+                    poVal: 0,
+                    oosCount: 0,
+                    riskCount: 0,
+                    excessVal: 0,
+                    excessItems: 0,
+                    boItems: 0,
+                    boValue: 0,
+                    trendSum: 0,
+                    trendCount: 0,
+                };
             const m = matrix[sub];
-            m.items++; m.turnover += turnVal; m.stockVal += c.stockValue || 0;
+            m.items++;
+            m.turnover += turnVal;
+            m.stockVal += c.stockValue || 0;
             m.poVal += (item.TotalPO || 0) * unitCost;
             if (c.available <= 0 && item.BaseForecast > 0.02) m.oosCount++;
             if (c.stockoutRiskFlag) m.riskCount++;
-            if ((c.excessQty || 0) > 0) { m.excessItems++; m.excessVal += c.excessValue || 0; }
-            if (isBO) { m.boItems++; m.boValue += Math.max(0, (item.Backorder || 0) - (c.available || 0)) * unitCost; }
-            m.trendSum += trend; m.trendCount++;
+            if ((c.excessQty || 0) > 0) {
+                m.excessItems++;
+                m.excessVal += c.excessValue || 0;
+            }
+            if (isBO) {
+                m.boItems++;
+                m.boValue += Math.max(0, (item.Backorder || 0) - (c.available || 0)) * unitCost;
+            }
+            m.trendSum += trend;
+            m.trendCount++;
         }
 
         const mosAvg = mosCount > 0 ? mosSum / mosCount : 0;
-        const excessPct = stockValue > 0 ? (excessValue / stockValue * 100) : 0;
+        const excessPct = stockValue > 0 ? (excessValue / stockValue) * 100 : 0;
         const skuCount = enrichedData.length || 1;
 
         // WMAPE = Σ|A−F| / ΣA × 100 (chuẩn ngành 2026, ổn định cho SKU bán chậm)
@@ -332,19 +471,44 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
         const riskPct = (riskCount / skuCount) * 100;
         const serviceScore = Math.max(0, Math.min(100, 100 - oosPct - riskPct * 0.5));
         // Efficiency: MOS trong khoảng tối ưu [2, 4] tháng → 100, lệch → giảm dần
-        const MOS_LOW = 2, MOS_HIGH = 4;
-        const efficiencyScore = Math.max(0, Math.min(100,
-            mosAvg < MOS_LOW ? 100 - (MOS_LOW - mosAvg) * 25 :
-            mosAvg > MOS_HIGH ? 100 - (mosAvg - MOS_HIGH) * 15 :
-            100));
+        const MOS_LOW = 2,
+            MOS_HIGH = 4;
+        const efficiencyScore = Math.max(
+            0,
+            Math.min(
+                100,
+                mosAvg < MOS_LOW
+                    ? 100 - (MOS_LOW - mosAvg) * 25
+                    : mosAvg > MOS_HIGH
+                      ? 100 - (mosAvg - MOS_HIGH) * 15
+                      : 100,
+            ),
+        );
         const freshnessScore = Math.max(0, Math.min(100, 100 - excessPct));
         // Weighted composite: Service 40% / Efficiency 30% / Freshness 30%
         const healthScore = serviceScore * 0.4 + efficiencyScore * 0.3 + freshnessScore * 0.3;
 
         const grandStats: GrandStats = {
-            totalSKUs: enrichedData.length, turnover, stockValue, poValue, oosCount, riskCount,
-            excessValue, excessPct, excessItems, boItems, boValue, mosAvg, dealerStock,
-            wmape, bias, capitalTurn, serviceScore, efficiencyScore, freshnessScore, healthScore,
+            totalSKUs: enrichedData.length,
+            turnover,
+            stockValue,
+            poValue,
+            oosCount,
+            riskCount,
+            excessValue,
+            excessPct,
+            excessItems,
+            boItems,
+            boValue,
+            mosAvg,
+            dealerStock,
+            wmape,
+            bias,
+            capitalTurn,
+            serviceScore,
+            efficiencyScore,
+            freshnessScore,
+            healthScore,
         };
 
         // Build LOIS rows
@@ -352,21 +516,53 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
         const rows: LoisRow[] = [];
         const slices: { label: string; value: number; color: string }[] = [];
         loisHierarchy.forEach((g, gi) => {
-            let gItems = 0, gTurnover = 0, gStockVal = 0, gPoVal = 0, gOOS = 0, gRisk = 0, gExVal = 0, gBO = 0, gBOVal = 0, gTrendSum = 0, gTrendCount = 0;
+            let gItems = 0,
+                gTurnover = 0,
+                gStockVal = 0,
+                gPoVal = 0,
+                gOOS = 0,
+                gRisk = 0,
+                gExVal = 0,
+                gBO = 0,
+                gBOVal = 0,
+                gTrendSum = 0,
+                gTrendCount = 0;
             g.sub.forEach(k => {
                 const m = matrix[k];
                 if (!m) return;
-                gItems += m.items; gTurnover += m.turnover; gStockVal += m.stockVal;
-                gPoVal += m.poVal; gOOS += m.oosCount; gRisk += m.riskCount;
-                gExVal += m.excessVal; gBO += m.boItems; gBOVal += m.boValue;
-                gTrendSum += m.trendSum; gTrendCount += m.trendCount;
+                gItems += m.items;
+                gTurnover += m.turnover;
+                gStockVal += m.stockVal;
+                gPoVal += m.poVal;
+                gOOS += m.oosCount;
+                gRisk += m.riskCount;
+                gExVal += m.excessVal;
+                gBO += m.boItems;
+                gBOVal += m.boValue;
+                gTrendSum += m.trendSum;
+                gTrendCount += m.trendCount;
             });
             if (gItems === 0) return;
-            const mos = gTurnover > 0 ? (gStockVal * 12 / gTurnover) : 0;
-            const exPct = gStockVal > 0 ? (gExVal / gStockVal * 100) : 0;
-            const tPct = turnover > 0 ? (gTurnover / turnover * 100) : 0;
+            const mos = gTurnover > 0 ? (gStockVal * 12) / gTurnover : 0;
+            const exPct = gStockVal > 0 ? (gExVal / gStockVal) * 100 : 0;
+            const tPct = turnover > 0 ? (gTurnover / turnover) * 100 : 0;
             const trend = gTrendCount > 0 ? gTrendSum / gTrendCount : 0;
-            rows.push({ label: g.label, items: gItems, turnover: gTurnover, turnoverPct: tPct, stockVal: gStockVal, mos, poVal: gPoVal, oosCount: gOOS, riskCount: gRisk, excessVal: gExVal, excessPct: exPct, boItems: gBO, boValue: gBOVal, trend });
+            rows.push({
+                label: g.label,
+                items: gItems,
+                turnover: gTurnover,
+                turnoverPct: tPct,
+                stockVal: gStockVal,
+                mos,
+                poVal: gPoVal,
+                oosCount: gOOS,
+                riskCount: gRisk,
+                excessVal: gExVal,
+                excessPct: exPct,
+                boItems: gBO,
+                boValue: gBOVal,
+                trend,
+            });
             slices.push({ label: g.label, value: gTurnover, color: loisColors[gi % loisColors.length] });
         });
 
@@ -378,12 +574,24 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
             { label: '>12M', value: mosDistribution['>12'], color: '#dc2626' },
         ];
 
-        return { stats: grandStats, loisRows: rows, aging: agingAcc, sparklineData: monthlyTurnover, mosBuckets: mosBucketsArr, loisSlices: slices };
+        return {
+            stats: grandStats,
+            loisRows: rows,
+            aging: agingAcc,
+            sparklineData: monthlyTurnover,
+            mosBuckets: mosBucketsArr,
+            loisSlices: slices,
+        };
     }, [enrichedData, loisHierarchy]);
 
     const commentary = useMemo(() => generateCommentary(stats, loisRows, aging), [stats, loisRows, aging]);
 
-    const dateStr = new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const dateStr = new Date().toLocaleDateString('vi-VN', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+    });
     const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
 
     const handlePrint = () => {
@@ -412,9 +620,29 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
         { label: 'Doanh số 12 tháng', value: fmtM(stats.turnover), icon: 'fa-chart-line', color: '#3b82f6' },
         { label: 'Tồn kho hiện hữu', value: fmtM(stats.stockValue), icon: 'fa-warehouse', color: '#10b981' },
         { label: 'PO Pipeline', value: fmtM(stats.poValue), icon: 'fa-ship', color: '#6366f1' },
-        { label: 'Hết hàng (OOS)', value: fmtN(stats.oosCount), icon: 'fa-circle-xmark', color: '#ef4444', alert: stats.oosCount > 0 },
-        { label: 'Tồn dư thừa', value: fmtM(stats.excessValue), sub: pct(stats.excessPct), icon: 'fa-box-open', color: '#f59e0b', alert: stats.excessPct > 15 },
-        { label: 'Nợ hàng (BO)', value: fmtN(stats.boItems), sub: fmtM(stats.boValue), icon: 'fa-clock-rotate-left', color: '#dc2626', alert: stats.boItems > 0 },
+        {
+            label: 'Hết hàng (OOS)',
+            value: fmtN(stats.oosCount),
+            icon: 'fa-circle-xmark',
+            color: '#ef4444',
+            alert: stats.oosCount > 0,
+        },
+        {
+            label: 'Tồn dư thừa',
+            value: fmtM(stats.excessValue),
+            sub: pct(stats.excessPct),
+            icon: 'fa-box-open',
+            color: '#f59e0b',
+            alert: stats.excessPct > 15,
+        },
+        {
+            label: 'Nợ hàng (BO)',
+            value: fmtN(stats.boItems),
+            sub: fmtM(stats.boValue),
+            icon: 'fa-clock-rotate-left',
+            color: '#dc2626',
+            alert: stats.boItems > 0,
+        },
     ];
 
     return (
@@ -428,10 +656,15 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
                         </div>
                         <div>
                             <h1 className="text-xl font-black tracking-tight uppercase">Báo Cáo Tổng Hợp KPI</h1>
-                            <p className="text-white/50 text-xs font-medium">{brandLabel} · {dateStr}</p>
+                            <p className="text-white/50 text-xs font-medium">
+                                {brandLabel} · {dateStr}
+                            </p>
                         </div>
                     </div>
-                    <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-white/80 hover:bg-white/20 transition-all text-sm font-bold">
+                    <button
+                        onClick={handlePrint}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-white/80 hover:bg-white/20 transition-all text-sm font-bold"
+                    >
                         <FaIcon className="fas fa-print" /> In báo cáo
                     </button>
                 </div>
@@ -440,10 +673,15 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
             {/* KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                 {kpiCards.map(c => (
-                    <div key={c.label} className={`rounded-xl border p-4 ${c.alert ? 'bg-red-50 border-red-200' : 'bg-white border-slate-200'} shadow-sm`}>
+                    <div
+                        key={c.label}
+                        className={`rounded-xl border p-4 ${c.alert ? 'bg-red-50 border-red-200' : 'bg-white border-slate-200'} shadow-sm`}
+                    >
                         <div className="flex items-center gap-2 mb-2">
                             <FaIcon className={`fas ${c.icon} text-sm`} style={{ color: c.color }} />
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{c.label}</span>
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                {c.label}
+                            </span>
                         </div>
                         <div className="text-xl font-black text-slate-900">{c.value}</div>
                         {c.sub && <div className="text-xs text-slate-500 font-semibold mt-0.5">{c.sub}</div>}
@@ -454,11 +692,15 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
             {/* Charts Row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Xu hướng doanh số 12 tháng</h3>
+                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+                        Xu hướng doanh số 12 tháng
+                    </h3>
                     <SparklineSVG data={sparklineData} width={300} height={70} />
                 </div>
                 <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Phân bổ LOIS (theo doanh số)</h3>
+                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+                        Phân bổ LOIS (theo doanh số)
+                    </h3>
                     <div className="flex items-center gap-4">
                         <PieChartSVG slices={loisSlices} size={100} />
                         <div className="space-y-1">
@@ -473,7 +715,9 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
                     </div>
                 </div>
                 <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Phân bổ MOS (SKU count)</h3>
+                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+                        Phân bổ MOS (SKU count)
+                    </h3>
                     <BarChartSVG buckets={mosBuckets} width={240} height={65} />
                 </div>
             </div>
@@ -481,7 +725,9 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
             {/* LOIS Matrix Table */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-4 py-3 border-b border-slate-100">
-                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Ma trận LOIS — Tổng hợp</h3>
+                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        Ma trận LOIS — Tổng hợp
+                    </h3>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-xs">
@@ -506,16 +752,47 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
                                 <tr key={r.label} className="border-t border-slate-100 hover:bg-slate-50">
                                     <td className="px-3 py-2 font-bold text-slate-800">{r.label}</td>
                                     <td className="text-right px-2 py-2 tabular-nums">{fmtN(r.items)}</td>
-                                    <td className="text-right px-2 py-2 tabular-nums font-semibold">{fmtM(r.turnover)}</td>
-                                    <td className="text-right px-2 py-2 tabular-nums text-blue-600">{pct(r.turnoverPct)}</td>
-                                    <td className="text-right px-2 py-2 tabular-nums text-emerald-600">{fmtM(r.stockVal)}</td>
-                                    <td className={`text-center px-2 py-2 tabular-nums font-bold ${r.mos > 6 ? 'text-red-600' : r.mos > 3 ? 'text-amber-600' : 'text-emerald-600'}`}>{r.mos.toFixed(1)}</td>
-                                    <td className="text-right px-2 py-2 tabular-nums text-indigo-600">{fmtM(r.poVal)}</td>
-                                    <td className={`text-center px-2 py-2 font-bold ${r.oosCount > 0 ? 'text-red-600' : 'text-slate-300'}`}>{r.oosCount || '-'}</td>
-                                    <td className={`text-center px-2 py-2 font-bold ${r.riskCount > 0 ? 'text-amber-600' : 'text-slate-300'}`}>{r.riskCount || '-'}</td>
-                                    <td className="text-right px-2 py-2 tabular-nums text-slate-500">{fmtM(r.excessVal)}</td>
-                                    <td className={`text-center px-2 py-2 font-bold ${r.excessPct > 15 ? 'text-red-600' : 'text-slate-500'}`}>{pct(r.excessPct)}</td>
-                                    <td className={`text-center px-2 py-2 font-bold ${r.trend > 0 ? 'text-emerald-600' : 'text-red-600'}`}>{r.trend > 0 ? '↑' : '↓'}{Math.abs(r.trend).toFixed(0)}%</td>
+                                    <td className="text-right px-2 py-2 tabular-nums font-semibold">
+                                        {fmtM(r.turnover)}
+                                    </td>
+                                    <td className="text-right px-2 py-2 tabular-nums text-blue-600">
+                                        {pct(r.turnoverPct)}
+                                    </td>
+                                    <td className="text-right px-2 py-2 tabular-nums text-emerald-600">
+                                        {fmtM(r.stockVal)}
+                                    </td>
+                                    <td
+                                        className={`text-center px-2 py-2 tabular-nums font-bold ${r.mos > 6 ? 'text-red-600' : r.mos > 3 ? 'text-amber-600' : 'text-emerald-600'}`}
+                                    >
+                                        {r.mos.toFixed(1)}
+                                    </td>
+                                    <td className="text-right px-2 py-2 tabular-nums text-indigo-600">
+                                        {fmtM(r.poVal)}
+                                    </td>
+                                    <td
+                                        className={`text-center px-2 py-2 font-bold ${r.oosCount > 0 ? 'text-red-600' : 'text-slate-300'}`}
+                                    >
+                                        {r.oosCount || '-'}
+                                    </td>
+                                    <td
+                                        className={`text-center px-2 py-2 font-bold ${r.riskCount > 0 ? 'text-amber-600' : 'text-slate-300'}`}
+                                    >
+                                        {r.riskCount || '-'}
+                                    </td>
+                                    <td className="text-right px-2 py-2 tabular-nums text-slate-500">
+                                        {fmtM(r.excessVal)}
+                                    </td>
+                                    <td
+                                        className={`text-center px-2 py-2 font-bold ${r.excessPct > 15 ? 'text-red-600' : 'text-slate-500'}`}
+                                    >
+                                        {pct(r.excessPct)}
+                                    </td>
+                                    <td
+                                        className={`text-center px-2 py-2 font-bold ${r.trend > 0 ? 'text-emerald-600' : 'text-red-600'}`}
+                                    >
+                                        {r.trend > 0 ? '↑' : '↓'}
+                                        {Math.abs(r.trend).toFixed(0)}%
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
@@ -525,9 +802,17 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
                                 <td className="text-right px-2 py-2 tabular-nums">{fmtN(stats.totalSKUs)}</td>
                                 <td className="text-right px-2 py-2 tabular-nums">{fmtM(stats.turnover)}</td>
                                 <td className="text-right px-2 py-2 tabular-nums text-blue-600">100%</td>
-                                <td className="text-right px-2 py-2 tabular-nums text-emerald-600">{fmtM(stats.stockValue)}</td>
-                                <td className={`text-center px-2 py-2 ${stats.mosAvg > 6 ? 'text-red-600' : 'text-amber-600'}`}>{stats.mosAvg.toFixed(1)}</td>
-                                <td className="text-right px-2 py-2 tabular-nums text-indigo-600">{fmtM(stats.poValue)}</td>
+                                <td className="text-right px-2 py-2 tabular-nums text-emerald-600">
+                                    {fmtM(stats.stockValue)}
+                                </td>
+                                <td
+                                    className={`text-center px-2 py-2 ${stats.mosAvg > 6 ? 'text-red-600' : 'text-amber-600'}`}
+                                >
+                                    {stats.mosAvg.toFixed(1)}
+                                </td>
+                                <td className="text-right px-2 py-2 tabular-nums text-indigo-600">
+                                    {fmtM(stats.poValue)}
+                                </td>
                                 <td className="text-center px-2 py-2 text-red-600">{stats.oosCount}</td>
                                 <td className="text-center px-2 py-2 text-amber-600">{stats.riskCount}</td>
                                 <td className="text-right px-2 py-2 tabular-nums">{fmtM(stats.excessValue)}</td>
@@ -551,14 +836,25 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
                             { label: '>90', value: aging.qtyOver90, color: '#991b1b' },
                         ].map(b => (
                             <div key={b.label}>
-                                <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: b.color }}>{b.label}</div>
-                                <div className="text-lg font-black mt-1" style={{ color: b.color }}>{fmtN(b.value)}</div>
+                                <div
+                                    className="text-[10px] font-bold uppercase tracking-wider"
+                                    style={{ color: b.color }}
+                                >
+                                    {b.label}
+                                </div>
+                                <div className="text-lg font-black mt-1" style={{ color: b.color }}>
+                                    {fmtN(b.value)}
+                                </div>
                             </div>
                         ))}
                     </div>
                     <div className="mt-3 pt-3 border-t border-slate-100 flex justify-between text-xs text-slate-500">
-                        <span>Tổng SL nợ: <strong className="text-slate-800">{fmtN(aging.totalQty)}</strong></span>
-                        <span>Giá trị: <strong className="text-slate-800">{fmtM(aging.totalValue)}</strong></span>
+                        <span>
+                            Tổng SL nợ: <strong className="text-slate-800">{fmtN(aging.totalQty)}</strong>
+                        </span>
+                        <span>
+                            Giá trị: <strong className="text-slate-800">{fmtM(aging.totalValue)}</strong>
+                        </span>
                     </div>
                 </div>
                 <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
@@ -570,7 +866,11 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
                         </div>
                         <div className="flex justify-between text-sm">
                             <span className="text-slate-500">MOS trung bình</span>
-                            <span className={`font-bold ${stats.mosAvg > 6 ? 'text-red-600' : stats.mosAvg > 3 ? 'text-amber-600' : 'text-emerald-600'}`}>{stats.mosAvg.toFixed(1)} tháng</span>
+                            <span
+                                className={`font-bold ${stats.mosAvg > 6 ? 'text-red-600' : stats.mosAvg > 3 ? 'text-amber-600' : 'text-emerald-600'}`}
+                            >
+                                {stats.mosAvg.toFixed(1)} tháng
+                            </span>
                         </div>
                         <div className="flex justify-between text-sm">
                             <span className="text-slate-500">SKU có rủi ro</span>
@@ -588,9 +888,13 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Composite Health Score */}
                 <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Điểm Sức Khỏe Tồn Kho</h3>
+                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+                        Điểm Sức Khỏe Tồn Kho
+                    </h3>
                     <div className="flex items-center gap-5">
-                        <div className={`text-4xl font-black ${stats.healthScore >= 75 ? 'text-emerald-600' : stats.healthScore >= 50 ? 'text-amber-600' : 'text-red-600'}`}>
+                        <div
+                            className={`text-4xl font-black ${stats.healthScore >= 75 ? 'text-emerald-600' : stats.healthScore >= 50 ? 'text-amber-600' : 'text-red-600'}`}
+                        >
                             {stats.healthScore.toFixed(0)}
                             <span className="text-base text-slate-400 font-bold">/100</span>
                         </div>
@@ -603,12 +907,18 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
                                 <div key={s.label} className="flex items-center gap-2 text-xs">
                                     <span className="w-16 font-bold text-slate-600">{s.label}</span>
                                     <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                                        <div className="h-full rounded-full" style={{
-                                            width: `${Math.max(0, Math.min(100, s.score))}%`,
-                                            background: s.score >= 75 ? '#10b981' : s.score >= 50 ? '#f59e0b' : '#ef4444',
-                                        }} />
+                                        <div
+                                            className="h-full rounded-full"
+                                            style={{
+                                                width: `${Math.max(0, Math.min(100, s.score))}%`,
+                                                background:
+                                                    s.score >= 75 ? '#10b981' : s.score >= 50 ? '#f59e0b' : '#ef4444',
+                                            }}
+                                        />
                                     </div>
-                                    <span className="w-9 text-right tabular-nums font-bold text-slate-700">{s.score.toFixed(0)}</span>
+                                    <span className="w-9 text-right tabular-nums font-bold text-slate-700">
+                                        {s.score.toFixed(0)}
+                                    </span>
                                     <span className="w-8 text-right text-slate-400">{s.w}</span>
                                 </div>
                             ))}
@@ -621,17 +931,34 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
                     <div className="grid grid-cols-3 gap-3 text-center">
                         <div>
                             <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">WMAPE</div>
-                            <div className={`text-lg font-black mt-1 ${stats.wmape <= 20 ? 'text-emerald-600' : stats.wmape <= 40 ? 'text-amber-600' : 'text-red-600'}`}>{stats.wmape.toFixed(1)}%</div>
+                            <div
+                                className={`text-lg font-black mt-1 ${stats.wmape <= 20 ? 'text-emerald-600' : stats.wmape <= 40 ? 'text-amber-600' : 'text-red-600'}`}
+                            >
+                                {stats.wmape.toFixed(1)}%
+                            </div>
                             <div className="text-[9px] text-slate-400">sai số dự báo</div>
                         </div>
                         <div>
                             <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Bias</div>
-                            <div className={`text-lg font-black mt-1 ${Math.abs(stats.bias) <= 10 ? 'text-emerald-600' : 'text-amber-600'}`}>{stats.bias > 0 ? '+' : ''}{stats.bias.toFixed(1)}%</div>
-                            <div className="text-[9px] text-slate-400">{stats.bias > 5 ? 'dự báo cao' : stats.bias < -5 ? 'dự báo thấp' : 'cân bằng'}</div>
+                            <div
+                                className={`text-lg font-black mt-1 ${Math.abs(stats.bias) <= 10 ? 'text-emerald-600' : 'text-amber-600'}`}
+                            >
+                                {stats.bias > 0 ? '+' : ''}
+                                {stats.bias.toFixed(1)}%
+                            </div>
+                            <div className="text-[9px] text-slate-400">
+                                {stats.bias > 5 ? 'dự báo cao' : stats.bias < -5 ? 'dự báo thấp' : 'cân bằng'}
+                            </div>
                         </div>
                         <div>
-                            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Vòng quay vốn</div>
-                            <div className={`text-lg font-black mt-1 ${stats.capitalTurn >= 3 ? 'text-emerald-600' : stats.capitalTurn >= 1.5 ? 'text-amber-600' : 'text-red-600'}`}>{stats.capitalTurn.toFixed(1)}x</div>
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                Vòng quay vốn
+                            </div>
+                            <div
+                                className={`text-lg font-black mt-1 ${stats.capitalTurn >= 3 ? 'text-emerald-600' : stats.capitalTurn >= 1.5 ? 'text-amber-600' : 'text-red-600'}`}
+                            >
+                                {stats.capitalTurn.toFixed(1)}x
+                            </div>
                             <div className="text-[9px] text-slate-400">lần/năm</div>
                         </div>
                     </div>
@@ -646,7 +973,9 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
                 </div>
                 <ul className="space-y-2">
                     {commentary.map((c, i) => (
-                        <li key={i} className="text-sm text-slate-700 leading-relaxed">{c}</li>
+                        <li key={i} className="text-sm text-slate-700 leading-relaxed">
+                            {c}
+                        </li>
                     ))}
                 </ul>
             </div>
@@ -685,10 +1014,14 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
                             <div className="rpt-logo">ATP</div>
                             <div>
                                 <div className="rpt-title">Báo Cáo Tổng Hợp KPI</div>
-                                <div className="rpt-sub">{brandLabel} · {dateStr} — {timeStr}</div>
+                                <div className="rpt-sub">
+                                    {brandLabel} · {dateStr} — {timeStr}
+                                </div>
                             </div>
                         </div>
-                        <div className="rpt-sub">SKU: {fmtN(stats.totalSKUs)} · OOS: {stats.oosCount} · Risk: {stats.riskCount}</div>
+                        <div className="rpt-sub">
+                            SKU: {fmtN(stats.totalSKUs)} · OOS: {stats.oosCount} · Risk: {stats.riskCount}
+                        </div>
                     </div>
 
                     <div className="rpt-kpi-grid">
@@ -712,8 +1045,13 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
                                 <PieChartSVG slices={loisSlices} size={70} />
                                 <div>
                                     {loisSlices.map(s => (
-                                        <div key={s.label} style={{ fontSize: '6pt', display: 'flex', alignItems: 'center', gap: 3 }}>
-                                            <div style={{ width: 6, height: 6, borderRadius: 1, background: s.color }} />
+                                        <div
+                                            key={s.label}
+                                            style={{ fontSize: '6pt', display: 'flex', alignItems: 'center', gap: 3 }}
+                                        >
+                                            <div
+                                                style={{ width: 6, height: 6, borderRadius: 1, background: s.color }}
+                                            />
                                             <span style={{ fontWeight: 700 }}>{s.label}</span>
                                         </div>
                                     ))}
@@ -730,7 +1068,10 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
                         <div className="rpt-kpi">
                             <div className="rpt-kpi-label">Điểm sức khỏe</div>
                             <div className="rpt-kpi-value">{stats.healthScore.toFixed(0)}/100</div>
-                            <div className="rpt-kpi-sub">SV {stats.serviceScore.toFixed(0)} · EF {stats.efficiencyScore.toFixed(0)} · FR {stats.freshnessScore.toFixed(0)}</div>
+                            <div className="rpt-kpi-sub">
+                                SV {stats.serviceScore.toFixed(0)} · EF {stats.efficiencyScore.toFixed(0)} · FR{' '}
+                                {stats.freshnessScore.toFixed(0)}
+                            </div>
                         </div>
                         <div className="rpt-kpi">
                             <div className="rpt-kpi-label">WMAPE</div>
@@ -739,8 +1080,13 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
                         </div>
                         <div className="rpt-kpi">
                             <div className="rpt-kpi-label">Forecast Bias</div>
-                            <div className="rpt-kpi-value">{stats.bias > 0 ? '+' : ''}{stats.bias.toFixed(1)}%</div>
-                            <div className="rpt-kpi-sub">{stats.bias > 5 ? 'dự báo cao' : stats.bias < -5 ? 'dự báo thấp' : 'cân bằng'}</div>
+                            <div className="rpt-kpi-value">
+                                {stats.bias > 0 ? '+' : ''}
+                                {stats.bias.toFixed(1)}%
+                            </div>
+                            <div className="rpt-kpi-sub">
+                                {stats.bias > 5 ? 'dự báo cao' : stats.bias < -5 ? 'dự báo thấp' : 'cân bằng'}
+                            </div>
                         </div>
                         <div className="rpt-kpi">
                             <div className="rpt-kpi-label">Vòng quay vốn</div>
@@ -753,10 +1099,17 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
                         <thead>
                             <tr>
                                 <th style={{ textAlign: 'left' }}>Phân khúc</th>
-                                <th className="r">SKU</th><th className="r">Doanh số</th><th className="r">% DS</th>
-                                <th className="r">Tồn kho</th><th className="c">MOS</th><th className="r">PO</th>
-                                <th className="c">OOS</th><th className="c">Risk</th>
-                                <th className="r">Dư thừa</th><th className="c">% Dư</th><th className="c">Trend</th>
+                                <th className="r">SKU</th>
+                                <th className="r">Doanh số</th>
+                                <th className="r">% DS</th>
+                                <th className="r">Tồn kho</th>
+                                <th className="c">MOS</th>
+                                <th className="r">PO</th>
+                                <th className="c">OOS</th>
+                                <th className="c">Risk</th>
+                                <th className="r">Dư thừa</th>
+                                <th className="c">% Dư</th>
+                                <th className="c">Trend</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -764,16 +1117,30 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
                                 <tr key={r.label}>
                                     <td style={{ fontWeight: 800 }}>{r.label}</td>
                                     <td className="r">{fmtN(r.items)}</td>
-                                    <td className="r" style={{ fontWeight: 700 }}>{fmtM(r.turnover)}</td>
+                                    <td className="r" style={{ fontWeight: 700 }}>
+                                        {fmtM(r.turnover)}
+                                    </td>
                                     <td className="r blue">{pct(r.turnoverPct)}</td>
                                     <td className="r grn">{fmtM(r.stockVal)}</td>
-                                    <td className={`c ${r.mos > 6 ? 'red' : r.mos > 3 ? 'amb' : 'grn'}`} style={{ fontWeight: 700 }}>{r.mos.toFixed(1)}</td>
+                                    <td
+                                        className={`c ${r.mos > 6 ? 'red' : r.mos > 3 ? 'amb' : 'grn'}`}
+                                        style={{ fontWeight: 700 }}
+                                    >
+                                        {r.mos.toFixed(1)}
+                                    </td>
                                     <td className="r blue">{fmtM(r.poVal)}</td>
-                                    <td className={`c ${r.oosCount > 0 ? 'red' : ''}`} style={{ fontWeight: 700 }}>{r.oosCount || '-'}</td>
-                                    <td className={`c ${r.riskCount > 0 ? 'amb' : ''}`} style={{ fontWeight: 700 }}>{r.riskCount || '-'}</td>
+                                    <td className={`c ${r.oosCount > 0 ? 'red' : ''}`} style={{ fontWeight: 700 }}>
+                                        {r.oosCount || '-'}
+                                    </td>
+                                    <td className={`c ${r.riskCount > 0 ? 'amb' : ''}`} style={{ fontWeight: 700 }}>
+                                        {r.riskCount || '-'}
+                                    </td>
                                     <td className="r">{fmtM(r.excessVal)}</td>
                                     <td className={`c ${r.excessPct > 15 ? 'red' : ''}`}>{pct(r.excessPct)}</td>
-                                    <td className={`c ${r.trend > 0 ? 'grn' : 'red'}`} style={{ fontWeight: 700 }}>{r.trend > 0 ? '↑' : '↓'}{Math.abs(r.trend).toFixed(0)}%</td>
+                                    <td className={`c ${r.trend > 0 ? 'grn' : 'red'}`} style={{ fontWeight: 700 }}>
+                                        {r.trend > 0 ? '↑' : '↓'}
+                                        {Math.abs(r.trend).toFixed(0)}%
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
@@ -798,13 +1165,17 @@ export const ExecutiveReport = ({ data, enrichedData, appSettings }: Props) => {
                     <div className="rpt-commentary">
                         <h4>💡 Nhận xét & Đề xuất</h4>
                         <ul>
-                            {commentary.map((c, i) => <li key={i}>{c}</li>)}
+                            {commentary.map((c, i) => (
+                                <li key={i}>{c}</li>
+                            ))}
                         </ul>
                     </div>
 
                     <div className="rpt-footer">
                         <span>Auto Parts Governance · {brandLabel}</span>
-                        <span>In lúc: {dateStr} — {timeStr}</span>
+                        <span>
+                            In lúc: {dateStr} — {timeStr}
+                        </span>
                     </div>
                 </div>
             </div>

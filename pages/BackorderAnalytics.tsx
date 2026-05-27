@@ -588,7 +588,8 @@ export const BackorderAnalytics = ({
         let list = cachedData.filter(item => {
             const matchesSearch = matchSearch(item, searchResult);
             // Enhanced robustness for multi-select filters
-            const matchesSource = deferredSourceFilters.length === 0 || deferredSourceFilters.includes(item.SourceId ?? '');
+            const matchesSource =
+                deferredSourceFilters.length === 0 || deferredSourceFilters.includes(item.SourceId ?? '');
             const matchesMother =
                 deferredMotherGroupFilters.length === 0 ||
                 deferredMotherGroupFilters.includes(resolveMotherGroup(item));

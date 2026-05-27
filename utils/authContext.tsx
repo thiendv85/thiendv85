@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try {
             const result = await Promise.race([
                 supabase.from('profiles').select('*').eq('id', userId).single(),
-                new Promise<{ data: null; error: { message: string } }>((resolve) => {
+                new Promise<{ data: null; error: { message: string } }>(resolve => {
                     timer = setTimeout(() => resolve({ data: null, error: { message: 'timeout' } }), 5000);
                 }),
             ]);

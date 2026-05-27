@@ -370,7 +370,7 @@ export async function fetchRequestByDraftName(draftName: string): Promise<Approv
                 .from('inventory_snapshots')
                 .download(request.snapshot_data.storage_path);
             if (!dlErr && blob) {
-                request.snapshot_data = await decompressData(blob) as SnapshotData;
+                request.snapshot_data = (await decompressData(blob)) as SnapshotData;
             }
         } catch (e) {
             // decompression failed — return request with compressed stub
@@ -428,7 +428,8 @@ export async function processApprovalAction(
         .eq('id', request.workflow_id)
         .single();
     const workflow: ApprovalWorkflow | null = wfData ?? null;
-    if (!workflow) return { success: false, newStatus: request.status ?? 'pending', error: 'Không tìm thấy quy trình phê duyệt' };
+    if (!workflow)
+        return { success: false, newStatus: request.status ?? 'pending', error: 'Không tìm thấy quy trình phê duyệt' };
 
     // Phase 5: Optimistic locking — check version matches
     if (expectedVersion !== undefined && request.version !== expectedVersion) {
@@ -528,7 +529,11 @@ export async function processApprovalAction(
     });
 
     if (actionError)
-        return { success: false, newStatus: request.status ?? 'pending', error: 'Không thể ghi nhận hành động phê duyệt' };
+        return {
+            success: false,
+            newStatus: request.status ?? 'pending',
+            error: 'Không thể ghi nhận hành động phê duyệt',
+        };
 
     if (action === 'commented') return { success: true, newStatus: request.status ?? 'pending' };
 
@@ -540,7 +545,11 @@ export async function processApprovalAction(
         if (reason) update.rejection_reason = reason;
         const { error: updErr } = await supabase.from('approval_requests').update(update).eq('id', request.id);
         if (updErr)
-            return { success: false, newStatus: request.status ?? 'pending', error: 'Lỗi khi từ chối đơn hàng: ' + updErr.message };
+            return {
+                success: false,
+                newStatus: request.status ?? 'pending',
+                error: 'Lỗi khi từ chối đơn hàng: ' + updErr.message,
+            };
         return { success: true, newStatus: 'rejected' };
     }
 
@@ -555,7 +564,11 @@ export async function processApprovalAction(
 
         const { error: updErr } = await supabase.from('approval_requests').update(returnUpdate).eq('id', request.id);
         if (updErr)
-            return { success: false, newStatus: request.status ?? 'pending', error: 'Lỗi khi trả lại đơn hàng: ' + updErr.message };
+            return {
+                success: false,
+                newStatus: request.status ?? 'pending',
+                error: 'Lỗi khi trả lại đơn hàng: ' + updErr.message,
+            };
         return { success: true, newStatus: 'returned' };
     }
 
@@ -602,7 +615,12 @@ export async function processApprovalAction(
         if (finalSnapshotData) advanceUpdate.snapshot_data = finalSnapshotData;
 
         const { error: updErr } = await supabase.from('approval_requests').update(advanceUpdate).eq('id', request.id);
-        if (updErr) return { success: false, newStatus: request.status ?? 'pending', error: 'Lỗi khi chuyển cấp bậc phê duyệt' };
+        if (updErr)
+            return {
+                success: false,
+                newStatus: request.status ?? 'pending',
+                error: 'Lỗi khi chuyển cấp bậc phê duyệt',
+            };
         return { success: true, newStatus: 'in_progress' };
     } else {
         const approveUpdate: Record<string, unknown> = {

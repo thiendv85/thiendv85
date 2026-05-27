@@ -51,29 +51,30 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
     }
 
     // Memoized calculations
-    const { chartWidth, chartHeight, dataMax, dataMin, yMax, yMin, monthLabels, average, peakIndex, lowIndex } = useMemo(() => {
-        const chartWidth = SVG_WIDTH - PADDING.left - PADDING.right;
-        const chartHeight = SVG_HEIGHT - PADDING.top - PADDING.bottom;
+    const { chartWidth, chartHeight, dataMax, dataMin, yMax, yMin, monthLabels, average, peakIndex, lowIndex } =
+        useMemo(() => {
+            const chartWidth = SVG_WIDTH - PADDING.left - PADDING.right;
+            const chartHeight = SVG_HEIGHT - PADDING.top - PADDING.bottom;
 
-        const dataMin = Math.min(0, ...history);
-        const dataMax = Math.max(...history, forecast || 0, currentStock || 0, rop || 0, netDemand || 0);
+            const dataMin = Math.min(0, ...history);
+            const dataMax = Math.max(...history, forecast || 0, currentStock || 0, rop || 0, netDemand || 0);
 
-        const yMax = dataMax * 1.3 || 1;
-        const yMin = dataMin * 1.1;
+            const yMax = dataMax * 1.3 || 1;
+            const yMin = dataMin * 1.1;
 
-        const monthLabels = history.map((_, i) => {
-            const d = new Date();
-            d.setDate(1);
-            d.setMonth(d.getMonth() - 1 - (history.length - 1 - i));
-            return `${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear().toString().slice(-2)}`;
-        });
+            const monthLabels = history.map((_, i) => {
+                const d = new Date();
+                d.setDate(1);
+                d.setMonth(d.getMonth() - 1 - (history.length - 1 - i));
+                return `${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear().toString().slice(-2)}`;
+            });
 
-        const average = history.reduce((sum, val) => sum + val, 0) / history.length;
-        const peakIndex = history.indexOf(Math.max(...history));
-        const lowIndex = history.indexOf(Math.min(...history));
+            const average = history.reduce((sum, val) => sum + val, 0) / history.length;
+            const peakIndex = history.indexOf(Math.max(...history));
+            const lowIndex = history.indexOf(Math.min(...history));
 
-        return { chartWidth, chartHeight, dataMax, dataMin, yMax, yMin, monthLabels, average, peakIndex, lowIndex };
-    }, [history, forecast, currentStock, rop]);
+            return { chartWidth, chartHeight, dataMax, dataMin, yMax, yMin, monthLabels, average, peakIndex, lowIndex };
+        }, [history, forecast, currentStock, rop]);
 
     // Scaling functions
     const scaleX = (index: number) => {
@@ -110,13 +111,7 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
     }, '');
 
     // Y-axis ticks
-    const yTicks = [
-        yMin,
-        yMin + (yMax - yMin) * 0.25,
-        yMin + (yMax - yMin) * 0.5,
-        yMin + (yMax - yMin) * 0.75,
-        yMax,
-    ];
+    const yTicks = [yMin, yMin + (yMax - yMin) * 0.25, yMin + (yMax - yMin) * 0.5, yMin + (yMax - yMin) * 0.75, yMax];
 
     // Trend calculation
     const trend = useMemo(() => {
@@ -148,12 +143,12 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
         const yMean = sumY / n;
         const ssTotal = yValues.reduce((sum, y) => sum + Math.pow(y - yMean, 2), 0);
         const ssResidual = yValues.reduce((sum, y, i) => sum + Math.pow(y - (slope * i + intercept), 2), 0);
-        const rSquared = ssTotal > 0 ? 1 - (ssResidual / ssTotal) : 0;
+        const rSquared = ssTotal > 0 ? 1 - ssResidual / ssTotal : 0;
 
         const trendPoints = xValues.map(x => ({
             x: scaleX(x),
             y: scaleY(slope * x + intercept),
-            value: slope * x + intercept
+            value: slope * x + intercept,
         }));
 
         return { slope, intercept, points: trendPoints, rSquared };
@@ -176,9 +171,15 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
         const ma12 = calculateSMA(12);
 
         return {
-            ma3: ma3.map((val, i) => val !== null ? { x: scaleX(i), y: scaleY(val), value: val } : null).filter(Boolean) as Array<{ x: number; y: number; value: number }>,
-            ma6: ma6.map((val, i) => val !== null ? { x: scaleX(i), y: scaleY(val), value: val } : null).filter(Boolean) as Array<{ x: number; y: number; value: number }>,
-            ma12: ma12.map((val, i) => val !== null ? { x: scaleX(i), y: scaleY(val), value: val } : null).filter(Boolean) as Array<{ x: number; y: number; value: number }>,
+            ma3: ma3
+                .map((val, i) => (val !== null ? { x: scaleX(i), y: scaleY(val), value: val } : null))
+                .filter(Boolean) as Array<{ x: number; y: number; value: number }>,
+            ma6: ma6
+                .map((val, i) => (val !== null ? { x: scaleX(i), y: scaleY(val), value: val } : null))
+                .filter(Boolean) as Array<{ x: number; y: number; value: number }>,
+            ma12: ma12
+                .map((val, i) => (val !== null ? { x: scaleX(i), y: scaleY(val), value: val } : null))
+                .filter(Boolean) as Array<{ x: number; y: number; value: number }>,
         };
     }, [history, scaleX, scaleY]);
 
@@ -191,7 +192,8 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
             history.reduce((sum, y, i) => {
                 const predicted = trendLine.slope * i + trendLine.intercept;
                 return sum + Math.pow(y - predicted, 2);
-            }, 0) / (n - 2)
+            }, 0) /
+                (n - 2),
         );
 
         const tValue = 1.96;
@@ -201,7 +203,7 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
             const predicted = trendLine.slope * i + trendLine.intercept;
             return {
                 upper: { x: scaleX(i), y: scaleY(predicted + margin) },
-                lower: { x: scaleX(i), y: scaleY(predicted - margin) }
+                lower: { x: scaleX(i), y: scaleY(predicted - margin) },
             };
         });
     }, [trendLine, history, scaleX, scaleY]);
@@ -227,18 +229,20 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
     const anomalies = useMemo(() => {
         if (!volatility || history.length < 3) return [];
 
-        return history.map((val, i) => {
-            const zScore = volatility.stdDev > 0 ? (val - volatility.mean) / volatility.stdDev : 0;
-            if (Math.abs(zScore) > 2) {
-                return {
-                    index: i,
-                    value: val,
-                    type: zScore > 0 ? ('spike' as const) : ('drop' as const),
-                    zScore
-                };
-            }
-            return null;
-        }).filter((a): a is NonNullable<typeof a> => a !== null);
+        return history
+            .map((val, i) => {
+                const zScore = volatility.stdDev > 0 ? (val - volatility.mean) / volatility.stdDev : 0;
+                if (Math.abs(zScore) > 2) {
+                    return {
+                        index: i,
+                        value: val,
+                        type: zScore > 0 ? ('spike' as const) : ('drop' as const),
+                        zScore,
+                    };
+                }
+                return null;
+            })
+            .filter((a): a is NonNullable<typeof a> => a !== null);
     }, [history, volatility]);
 
     // Demand Classification
@@ -320,7 +324,7 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
             strength,
             peakMonths: overallMean > 10 ? peakMonths : [],
             approachingPeak: overallMean > 10 ? approachingPeak : null,
-            monthlyPattern: monthlyAvg
+            monthlyPattern: monthlyAvg,
         };
     }, [history]);
 
@@ -329,10 +333,13 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
             <div className="w-full relative overflow-hidden bg-gradient-to-br from-slate-50 to-blue-50/30 rounded-2xl border border-slate-200 shadow-sm">
                 {/* Trend Badge */}
                 {trend && (
-                    <div className={`absolute top-3 right-3 px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 z-10 ${trend.direction === 'up'
-                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                        : 'bg-rose-100 text-rose-700 border border-rose-200'
-                        }`}>
+                    <div
+                        className={`absolute top-3 right-3 px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 z-10 ${
+                            trend.direction === 'up'
+                                ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                                : 'bg-rose-100 text-rose-700 border border-rose-200'
+                        }`}
+                    >
                         <FaIcon className={`fas fa-arrow-${trend.direction === 'up' ? 'up' : 'down'}`} />
                         {Math.abs(trend.change).toFixed(1)}%
                     </div>
@@ -366,7 +373,7 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
                                 y2={scaleY(tick)}
                                 stroke={i === 0 ? COLORS.gridStrong : COLORS.grid}
                                 strokeWidth={i === 0 ? 1.5 : 1}
-                                strokeDasharray={i === 0 ? "0" : "4 4"}
+                                strokeDasharray={i === 0 ? '0' : '4 4'}
                             />
                             <text
                                 x={PADDING.left - 10}
@@ -536,7 +543,11 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
                     {/* Confidence Bands */}
                     {showConfidenceBands && confidenceBands && (
                         <path
-                            d={`M ${confidenceBands[0].upper.x},${confidenceBands[0].upper.y} ${confidenceBands.map(b => `L ${b.upper.x},${b.upper.y}`).join(' ')} ${confidenceBands.slice().reverse().map(b => `L ${b.lower.x},${b.lower.y}`).join(' ')} Z`}
+                            d={`M ${confidenceBands[0].upper.x},${confidenceBands[0].upper.y} ${confidenceBands.map(b => `L ${b.upper.x},${b.upper.y}`).join(' ')} ${confidenceBands
+                                .slice()
+                                .reverse()
+                                .map(b => `L ${b.lower.x},${b.lower.y}`)
+                                .join(' ')} Z`}
                             fill={trendLine && trendLine.slope > 0 ? '#10b981' : '#ef4444'}
                             opacity="0.1"
                         />
@@ -552,9 +563,11 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
                     {trendLine && trendLine.points.length > 0 && (
                         <g opacity="0.5">
                             <path
-                                d={trendLine.points.reduce((acc, point, i) =>
-                                    i === 0 ? `M ${point.x},${point.y}` : `${acc} L ${point.x},${point.y}`,
-                                    '')}
+                                d={trendLine.points.reduce(
+                                    (acc, point, i) =>
+                                        i === 0 ? `M ${point.x},${point.y}` : `${acc} L ${point.x},${point.y}`,
+                                    '',
+                                )}
                                 fill="none"
                                 stroke={trendLine.slope > 0 ? '#10b981' : '#ef4444'}
                                 strokeWidth="2"
@@ -567,7 +580,8 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
                                 fontSize="11"
                                 fontWeight="bold"
                             >
-                                Trend: {trendLine.slope > 0 ? '↗' : '↘'} {(trendLine.slope > 0 ? '+' : '')}{trendLine.slope.toFixed(2)}/mo (R²={trendLine.rSquared.toFixed(2)})
+                                Trend: {trendLine.slope > 0 ? '↗' : '↘'} {trendLine.slope > 0 ? '+' : ''}
+                                {trendLine.slope.toFixed(2)}/mo (R²={trendLine.rSquared.toFixed(2)})
                             </text>
                         </g>
                     )}
@@ -575,9 +589,11 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
                     {/* Moving Averages */}
                     {movingAverages && showMA.ma3 && movingAverages.ma3.length > 0 && (
                         <path
-                            d={movingAverages.ma3.reduce((acc, point, i) =>
-                                i === 0 ? `M ${point.x},${point.y}` : `${acc} L ${point.x},${point.y}`,
-                                '')}
+                            d={movingAverages.ma3.reduce(
+                                (acc, point, i) =>
+                                    i === 0 ? `M ${point.x},${point.y}` : `${acc} L ${point.x},${point.y}`,
+                                '',
+                            )}
                             fill="none"
                             stroke={COLORS.ma3}
                             strokeWidth="2.5"
@@ -587,9 +603,11 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
                     )}
                     {movingAverages && showMA.ma6 && movingAverages.ma6.length > 0 && (
                         <path
-                            d={movingAverages.ma6.reduce((acc, point, i) =>
-                                i === 0 ? `M ${point.x},${point.y}` : `${acc} L ${point.x},${point.y}`,
-                                '')}
+                            d={movingAverages.ma6.reduce(
+                                (acc, point, i) =>
+                                    i === 0 ? `M ${point.x},${point.y}` : `${acc} L ${point.x},${point.y}`,
+                                '',
+                            )}
                             fill="none"
                             stroke={COLORS.ma6}
                             strokeWidth="2.5"
@@ -675,7 +693,7 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
                                     y={PADDING.top + chartHeight + 25}
                                     textAnchor="middle"
                                     fill={COLORS.text}
-                                    fontSize={history.length > 12 ? "11" : "12"}
+                                    fontSize={history.length > 12 ? '11' : '12'}
                                     fontWeight="600"
                                 >
                                     {monthLabels[i]}
@@ -686,7 +704,7 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
                                     y={p.y - 15}
                                     textAnchor="middle"
                                     fill={isHovered ? COLORS.line : COLORS.textStrong}
-                                    fontSize={isHovered ? "18" : "16"}
+                                    fontSize={isHovered ? '18' : '16'}
                                     fontWeight="900"
                                     className="drop-shadow-sm transition-all"
                                 >
@@ -735,11 +753,29 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
                     {/* Legend */}
                     {history.length > 3 && (
                         <g>
-                            <circle cx={PADDING.left + 10} cy={15} r="4" fill="none" stroke={COLORS.peak} strokeWidth="2" />
-                            <text x={PADDING.left + 20} y={19} fill={COLORS.text} fontSize="12" fontWeight="600">Peak: {formatValue(history[peakIndex])}</text>
+                            <circle
+                                cx={PADDING.left + 10}
+                                cy={15}
+                                r="4"
+                                fill="none"
+                                stroke={COLORS.peak}
+                                strokeWidth="2"
+                            />
+                            <text x={PADDING.left + 20} y={19} fill={COLORS.text} fontSize="12" fontWeight="600">
+                                Peak: {formatValue(history[peakIndex])}
+                            </text>
 
-                            <circle cx={PADDING.left + 120} cy={15} r="4" fill="none" stroke={COLORS.low} strokeWidth="2" />
-                            <text x={PADDING.left + 130} y={19} fill={COLORS.text} fontSize="12" fontWeight="600">Low: {formatValue(history[lowIndex])}</text>
+                            <circle
+                                cx={PADDING.left + 120}
+                                cy={15}
+                                r="4"
+                                fill="none"
+                                stroke={COLORS.low}
+                                strokeWidth="2"
+                            />
+                            <text x={PADDING.left + 130} y={19} fill={COLORS.text} fontSize="12" fontWeight="600">
+                                Low: {formatValue(history[lowIndex])}
+                            </text>
                         </g>
                     )}
                 </svg>
@@ -776,18 +812,29 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {trendLine && (
-                    <div className="bg-gradient-to-br from-emerald-50 to-white p-4 rounded-2xl border border-emerald-100 shadow-glass-sm transition-all hover:shadow-glass hover:-translate-y-1">
-                        <div className="flex items-center gap-2 mb-1.5">
-                            <FaIcon className={`fas fa-arrow-trend-${trendLine.slope > 0 ? 'up' : 'down'} text-base ${trendLine.slope > 0 ? 'text-emerald-600' : 'text-rose-600'}`} />
-                            <Typography variant="label" className="text-slate-500 uppercase tracking-tight">Xu hướng</Typography>
+                        <div className="bg-gradient-to-br from-emerald-50 to-white p-4 rounded-2xl border border-emerald-100 shadow-glass-sm transition-all hover:shadow-glass hover:-translate-y-1">
+                            <div className="flex items-center gap-2 mb-1.5">
+                                <FaIcon
+                                    className={`fas fa-arrow-trend-${trendLine.slope > 0 ? 'up' : 'down'} text-base ${trendLine.slope > 0 ? 'text-emerald-600' : 'text-rose-600'}`}
+                                />
+                                <Typography variant="label" className="text-slate-500 uppercase tracking-tight">
+                                    Xu hướng
+                                </Typography>
+                            </div>
+                            <Typography
+                                variant="h3"
+                                className={`${trendLine.slope > 0 ? 'text-emerald-700' : 'text-rose-700'}`}
+                            >
+                                {trendLine.slope > 0 ? '+' : ''}
+                                {trendLine.slope.toFixed(2)}/tháng
+                            </Typography>
+                            <Typography variant="body-sm" className="text-slate-400 mt-1 !text-[11px]">
+                                Độ mạnh:{' '}
+                                <span className="font-bold text-slate-600">
+                                    {(trendLine.rSquared * 100).toFixed(0)}%
+                                </span>
+                            </Typography>
                         </div>
-                        <Typography variant="h3" className={`${trendLine.slope > 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-                            {trendLine.slope > 0 ? '+' : ''}{trendLine.slope.toFixed(2)}/tháng
-                        </Typography>
-                        <Typography variant="body-sm" className="text-slate-400 mt-1 !text-[11px]">
-                            Độ mạnh: <span className="font-bold text-slate-600">{(trendLine.rSquared * 100).toFixed(0)}%</span>
-                        </Typography>
-                    </div>
                     )}
 
                     {/* Volatility */}
@@ -795,14 +842,23 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
                         <div className="bg-gradient-to-br from-amber-50 to-white p-4 rounded-2xl border border-amber-100 shadow-glass-sm transition-all hover:shadow-glass hover:-translate-y-1">
                             <div className="flex items-center gap-2 mb-1.5">
                                 <FaIcon className="fas fa-wave-square text-base text-amber-600" />
-                                <Typography variant="label" className="text-slate-500 uppercase tracking-tight">Độ biến động</Typography>
+                                <Typography variant="label" className="text-slate-500 uppercase tracking-tight">
+                                    Độ biến động
+                                </Typography>
                             </div>
                             <Typography variant="h3" className="text-amber-700">
                                 {volatility.cv.toFixed(1)}%
                             </Typography>
                             <Typography variant="body-sm" className="text-slate-400 mt-1 !text-[11px]">
-                                Ổn định: <span className={`font-bold ${volatility.stability === 'high' ? 'text-emerald-600' : volatility.stability === 'medium' ? 'text-amber-600' : 'text-rose-600'}`}>
-                                    {volatility.stability === 'high' ? 'Cao' : volatility.stability === 'medium' ? 'Trung bình' : 'Thấp'}
+                                Ổn định:{' '}
+                                <span
+                                    className={`font-bold ${volatility.stability === 'high' ? 'text-emerald-600' : volatility.stability === 'medium' ? 'text-amber-600' : 'text-rose-600'}`}
+                                >
+                                    {volatility.stability === 'high'
+                                        ? 'Cao'
+                                        : volatility.stability === 'medium'
+                                          ? 'Trung bình'
+                                          : 'Thấp'}
                                 </span>
                             </Typography>
                         </div>
@@ -813,13 +869,22 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
                         <div className="bg-gradient-to-br from-blue-50 to-white p-4 rounded-2xl border border-blue-100 shadow-glass-sm transition-all hover:shadow-glass hover:-translate-y-1">
                             <div className="flex items-center gap-2 mb-1.5">
                                 <FaIcon className="fas fa-chart-bar text-base text-blue-600" />
-                                <Typography variant="label" className="text-slate-500 uppercase tracking-tight">Loại demand</Typography>
+                                <Typography variant="label" className="text-slate-500 uppercase tracking-tight">
+                                    Loại demand
+                                </Typography>
                             </div>
                             <Typography variant="h3" className="text-blue-700 uppercase">
-                                {demandPattern.type === 'fast' ? 'Nhanh' : demandPattern.type === 'slow' ? 'Chậm' : demandPattern.type === 'lumpy' ? 'Đợt lớn' : 'Không đều'}
+                                {demandPattern.type === 'fast'
+                                    ? 'Nhanh'
+                                    : demandPattern.type === 'slow'
+                                      ? 'Chậm'
+                                      : demandPattern.type === 'lumpy'
+                                        ? 'Đợt lớn'
+                                        : 'Không đều'}
                             </Typography>
                             <Typography variant="body-sm" className="text-slate-400 mt-1 !text-[11px]">
-                                ADI: <span className="font-bold text-slate-600">{demandPattern.adi.toFixed(2)}</span> | CV²: <span className="font-bold text-slate-600">{demandPattern.cv2.toFixed(2)}</span>
+                                ADI: <span className="font-bold text-slate-600">{demandPattern.adi.toFixed(2)}</span> |
+                                CV²: <span className="font-bold text-slate-600">{demandPattern.cv2.toFixed(2)}</span>
                             </Typography>
                         </div>
                     )}
@@ -829,18 +894,30 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
                         <div className="bg-gradient-to-br from-purple-50 to-white p-4 rounded-2xl border border-purple-100 shadow-glass-sm transition-all hover:shadow-glass hover:-translate-y-1">
                             <div className="flex items-center gap-2 mb-1.5">
                                 <FaIcon className="fas fa-calendar-alt text-base text-purple-600" />
-                                <Typography variant="label" className="text-slate-500 uppercase tracking-tight">Mùa vụ</Typography>
+                                <Typography variant="label" className="text-slate-500 uppercase tracking-tight">
+                                    Mùa vụ
+                                </Typography>
                             </div>
                             <Typography variant="h3" className="text-purple-700">
                                 {seasonality.detected ? 'Có' : 'Không'}
                             </Typography>
                             <Typography variant="body-sm" className="text-slate-400 mt-1 !text-[11px] truncate">
                                 {seasonality.detected && seasonality.peakMonths.length > 0 ? (
-                                    <>Tháng cao điểm: <span className="font-bold text-slate-600">{seasonality.peakMonths.map(m => m + 1).join(', ')}</span></>
-                                ) : 'Không phát hiện chu kỳ'}
+                                    <>
+                                        Tháng cao điểm:{' '}
+                                        <span className="font-bold text-slate-600">
+                                            {seasonality.peakMonths.map(m => m + 1).join(', ')}
+                                        </span>
+                                    </>
+                                ) : (
+                                    'Không phát hiện chu kỳ'
+                                )}
                             </Typography>
                             {seasonality.approachingPeak !== null && (
-                                <Typography variant="body-sm" className="text-amber-600 font-bold mt-1.5 !text-[10px] flex items-center gap-1 animate-pulse">
+                                <Typography
+                                    variant="body-sm"
+                                    className="text-amber-600 font-bold mt-1.5 !text-[10px] flex items-center gap-1 animate-pulse"
+                                >
                                     <FaIcon className="fas fa-exclamation-triangle" />
                                     Sắp đến mùa cao điểm (Tháng {seasonality.approachingPeak + 1}) - Cần đặt hàng ngay!
                                 </Typography>
@@ -852,15 +929,26 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
                     <div className="bg-gradient-to-br from-rose-50 to-white p-4 rounded-2xl border border-rose-100 shadow-glass-sm transition-all hover:shadow-glass hover:-translate-y-1">
                         <div className="flex items-center gap-2 mb-1.5">
                             <FaIcon className="fas fa-exclamation-triangle text-base text-rose-600" />
-                            <Typography variant="label" className="text-slate-500 uppercase tracking-tight">Bất thường</Typography>
+                            <Typography variant="label" className="text-slate-500 uppercase tracking-tight">
+                                Bất thường
+                            </Typography>
                         </div>
                         <Typography variant="h3" className="text-rose-700">
                             {anomalies.length}
                         </Typography>
                         <Typography variant="body-sm" className="text-slate-400 mt-1 !text-[11px]">
                             {anomalies.length > 0 ? (
-                                <>Gần nhất: <span className="font-bold text-slate-600">{anomalies[anomalies.length - 1].type === 'spike' ? 'Tăng đột biến' : 'Giảm đột ngột'}</span></>
-                            ) : 'Không có bất thường'}
+                                <>
+                                    Gần nhất:{' '}
+                                    <span className="font-bold text-slate-600">
+                                        {anomalies[anomalies.length - 1].type === 'spike'
+                                            ? 'Tăng đột biến'
+                                            : 'Giảm đột ngột'}
+                                    </span>
+                                </>
+                            ) : (
+                                'Không có bất thường'
+                            )}
                         </Typography>
                     </div>
 
@@ -868,7 +956,9 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
                     <div className="bg-gradient-to-br from-indigo-50 to-white p-4 rounded-2xl border border-indigo-100 shadow-glass-sm transition-all hover:shadow-glass hover:-translate-y-1">
                         <div className="flex items-center gap-2 mb-1.5">
                             <FaIcon className="fas fa-chart-line text-base text-indigo-600" />
-                            <Typography variant="label" className="text-slate-500 uppercase tracking-tight">Trung bình</Typography>
+                            <Typography variant="label" className="text-slate-500 uppercase tracking-tight">
+                                Trung bình
+                            </Typography>
                         </div>
                         <Typography variant="h3" className="text-indigo-700">
                             {average.toFixed(1)}
@@ -882,4 +972,3 @@ export const SalesHistoryChart = ({ history, forecast, currentStock, rop, netDem
         </div>
     );
 };
-

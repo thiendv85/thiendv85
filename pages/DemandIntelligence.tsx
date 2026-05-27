@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useEffect } from 'react';
 import { InventoryItem } from '../types/inventory';
 import { MetricCard } from '../components/MetricCard';
@@ -12,7 +11,10 @@ import { FaIcon } from '../components/Icon';
 // TYPES
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface IntelResult { group: string; [key: string]: any; }
+interface IntelResult {
+    group: string;
+    [key: string]: any;
+}
 interface DemandIntelligenceProps {
     data: (InventoryItem & { analyzed?: IntelResult })[];
     onItemSelect: (item: InventoryItem) => void;
@@ -60,12 +62,12 @@ interface AnalyzedItem {
 
 function getZScore(loisGroup: string): number {
     const lois = (loisGroup || '').trim().toUpperCase();
-    if (['1', '2', '3'].includes(lois)) return 2.05;  // 98% — fast movers
-    if (['4', '5'].includes(lois)) return 1.65;         // 95% — medium
-    if (['6', '7'].includes(lois)) return 1.28;         // 90% — slow
+    if (['1', '2', '3'].includes(lois)) return 2.05; // 98% — fast movers
+    if (['4', '5'].includes(lois)) return 1.65; // 95% — medium
+    if (['6', '7'].includes(lois)) return 1.28; // 90% — slow
     if (lois === '8' || lois === 'E' || lois === 'N' || lois === 'A' || lois === 'V') return 0.84; // 80%
-    if (lois === 'I') return 0;                          // inactive
-    return 1.65;                                         // default 95%
+    if (lois === 'I') return 0; // inactive
+    return 1.65; // default 95%
 }
 
 function getServiceLevel(loisGroup: string): string {
@@ -78,13 +80,72 @@ function getServiceLevel(loisGroup: string): string {
     return '95%';
 }
 
-const GROUP_CONFIG: Record<IntelGroup, { color: string; bgColor: string; borderColor: string; label: string; icon: string; actionLabel: string; actionIcon: string }> = {
-    STOCKOUT: { color: 'text-rose-700', bgColor: 'bg-rose-50', borderColor: 'border-rose-200', label: 'Hết hàng', icon: 'fa-circle-xmark', actionLabel: 'Order AIR', actionIcon: 'fa-plane-departure' },
-    RISK: { color: 'text-amber-700', bgColor: 'bg-amber-50', borderColor: 'border-amber-200', label: 'Rủi ro', icon: 'fa-triangle-exclamation', actionLabel: 'Expedite PO', actionIcon: 'fa-truck-fast' },
-    SEASONAL: { color: 'text-purple-700', bgColor: 'bg-purple-50', borderColor: 'border-purple-200', label: 'Mùa vụ sắp tới', icon: 'fa-calendar-days', actionLabel: 'Tạo đơn Draft', actionIcon: 'fa-file-signature' },
-    SPIKE: { color: 'text-yellow-700', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-200', label: 'Nhu cầu tăng', icon: 'fa-arrow-trend-up', actionLabel: 'Review FC', actionIcon: 'fa-magnifying-glass-chart' },
-    OVERSTOCK: { color: 'text-blue-700', bgColor: 'bg-blue-50', borderColor: 'border-blue-200', label: 'Tồn dư', icon: 'fa-boxes-stacked', actionLabel: 'Transfer/Cắt PO', actionIcon: 'fa-scissors' },
-    DECLINING: { color: 'text-slate-600', bgColor: 'bg-slate-50', borderColor: 'border-slate-200', label: 'Xu hướng giảm', icon: 'fa-arrow-trend-down', actionLabel: 'Hold PO', actionIcon: 'fa-hand' },
+const GROUP_CONFIG: Record<
+    IntelGroup,
+    {
+        color: string;
+        bgColor: string;
+        borderColor: string;
+        label: string;
+        icon: string;
+        actionLabel: string;
+        actionIcon: string;
+    }
+> = {
+    STOCKOUT: {
+        color: 'text-rose-700',
+        bgColor: 'bg-rose-50',
+        borderColor: 'border-rose-200',
+        label: 'Hết hàng',
+        icon: 'fa-circle-xmark',
+        actionLabel: 'Order AIR',
+        actionIcon: 'fa-plane-departure',
+    },
+    RISK: {
+        color: 'text-amber-700',
+        bgColor: 'bg-amber-50',
+        borderColor: 'border-amber-200',
+        label: 'Rủi ro',
+        icon: 'fa-triangle-exclamation',
+        actionLabel: 'Expedite PO',
+        actionIcon: 'fa-truck-fast',
+    },
+    SEASONAL: {
+        color: 'text-purple-700',
+        bgColor: 'bg-purple-50',
+        borderColor: 'border-purple-200',
+        label: 'Mùa vụ sắp tới',
+        icon: 'fa-calendar-days',
+        actionLabel: 'Tạo đơn Draft',
+        actionIcon: 'fa-file-signature',
+    },
+    SPIKE: {
+        color: 'text-yellow-700',
+        bgColor: 'bg-yellow-50',
+        borderColor: 'border-yellow-200',
+        label: 'Nhu cầu tăng',
+        icon: 'fa-arrow-trend-up',
+        actionLabel: 'Review FC',
+        actionIcon: 'fa-magnifying-glass-chart',
+    },
+    OVERSTOCK: {
+        color: 'text-blue-700',
+        bgColor: 'bg-blue-50',
+        borderColor: 'border-blue-200',
+        label: 'Tồn dư',
+        icon: 'fa-boxes-stacked',
+        actionLabel: 'Transfer/Cắt PO',
+        actionIcon: 'fa-scissors',
+    },
+    DECLINING: {
+        color: 'text-slate-600',
+        bgColor: 'bg-slate-50',
+        borderColor: 'border-slate-200',
+        label: 'Xu hướng giảm',
+        icon: 'fa-arrow-trend-down',
+        actionLabel: 'Hold PO',
+        actionIcon: 'fa-hand',
+    },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -119,7 +180,14 @@ const Sparkline = ({ values, group }: { values: number[]; group: IntelGroup }) =
 
     return (
         <svg width={width} height={height} className="overflow-visible" role="img" aria-label="Biểu đồ xu hướng">
-            <polyline points={points} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <polyline
+                points={points}
+                fill="none"
+                stroke={color}
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
             <circle cx={getX(values.length - 1)} cy={getY(values[values.length - 1])} r={2.5} fill={color} />
         </svg>
     );
@@ -129,21 +197,37 @@ const Sparkline = ({ values, group }: { values: number[]; group: IntelGroup }) =
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveState, appSettings, updateTuning, seasonalityTuning }: DemandIntelligenceProps) => {
+export const DemandIntelligence = ({
+    data,
+    onItemSelect,
+    initialState,
+    onSaveState,
+    appSettings,
+    updateTuning,
+    seasonalityTuning,
+}: DemandIntelligenceProps) => {
     const { t } = useLanguage();
     const [groupFilter, setGroupFilter] = useState<'ALL' | IntelGroup>(initialState?.groupFilter || 'ALL');
     const [sortKey, setSortKey] = useState<string>(initialState?.sortKey || 'group');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(25);
     const [searchText, setSearchText] = useState('');
-    const [searchResult, setSearchResult] = useState<SearchResult>({ type: 'EMPTY', tokens: [], displayTokens: [], raw: '' });
-    
-    // Seasonality Tuning State (synced with global or local)
-    const [localTuning, setLocalTuning] = useState(seasonalityTuning || appSettings?.seasonalityTuning || {
-        useSPD: true,
-        tetWeight: 1.2,
-        weatherWeight: 1.0
+    const [searchResult, setSearchResult] = useState<SearchResult>({
+        type: 'EMPTY',
+        tokens: [],
+        displayTokens: [],
+        raw: '',
     });
+
+    // Seasonality Tuning State (synced with global or local)
+    const [localTuning, setLocalTuning] = useState(
+        seasonalityTuning ||
+            appSettings?.seasonalityTuning || {
+                useSPD: true,
+                tetWeight: 1.2,
+                weatherWeight: 1.0,
+            },
+    );
 
     // Sync from prop when it changes
     useEffect(() => {
@@ -161,7 +245,7 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
             updateTuning(newTuning);
         }
     };
-    
+
     // Panel visibility is local
     const [showPanel, setShowPanel] = useState(false);
 
@@ -173,12 +257,34 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
 
     // ── ANALYSIS ENGINE ──────────────────────────────────────────────────────
     const { analyzedItems, metrics } = useMemo(() => {
-        if (!data || data.length === 0) return { analyzedItems: [] as AnalyzedItem[], metrics: { stockout: 0, risk: 0, seasonal: 0, spike: 0, overstock: 0, declining: 0, stockoutGapValue: 0, excessValue: 0, avgAccuracy: 0, accuracyCount: 0 } };
+        if (!data || data.length === 0)
+            return {
+                analyzedItems: [] as AnalyzedItem[],
+                metrics: {
+                    stockout: 0,
+                    risk: 0,
+                    seasonal: 0,
+                    spike: 0,
+                    overstock: 0,
+                    declining: 0,
+                    stockoutGapValue: 0,
+                    excessValue: 0,
+                    avgAccuracy: 0,
+                    accuracyCount: 0,
+                },
+            };
 
         const results: AnalyzedItem[] = [];
-        let mStockout = 0, mRisk = 0, mSeasonal = 0, mSpike = 0, mOverstock = 0, mDeclining = 0;
-        let totalGapValue = 0, totalExcessValue = 0;
-        let accuracySum = 0, accuracyCount = 0;
+        let mStockout = 0,
+            mRisk = 0,
+            mSeasonal = 0,
+            mSpike = 0,
+            mOverstock = 0,
+            mDeclining = 0;
+        let totalGapValue = 0,
+            totalExcessValue = 0;
+        let accuracySum = 0,
+            accuracyCount = 0;
 
         for (const item of data) {
             const computed = item.computed;
@@ -188,9 +294,8 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
             if (history.length === 0) continue;
 
             // Pad to 12 months
-            const fullHistory = history.length >= 12
-                ? history.slice(-12)
-                : [...Array(12 - history.length).fill(0), ...history];
+            const fullHistory =
+                history.length >= 12 ? history.slice(-12) : [...Array(12 - history.length).fill(0), ...history];
 
             const actualM1 = fullHistory[11];
             const forecastM1 = item.BaseForecast || 0;
@@ -203,8 +308,8 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
 
             // Slope (linear regression)
             const n = fullHistory.length;
-            const sumX = n * (n - 1) / 2;
-            const sumX2 = n * (n - 1) * (2 * n - 1) / 6;
+            const sumX = (n * (n - 1)) / 2;
+            const sumX2 = (n * (n - 1) * (2 * n - 1)) / 6;
             const sumY = fullHistory.reduce((a, b) => a + b, 0);
             const sumXY = fullHistory.reduce((a, v, i) => a + i * v, 0);
             const slope = n > 1 ? (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX) : 0;
@@ -218,9 +323,7 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
 
             // Forecast accuracy
             const forecastBias = actualM1 - forecastM1;
-            const accuracy = forecastM1 > 0
-                ? Math.max(0, 100 - (Math.abs(forecastBias) / forecastM1) * 100)
-                : null;
+            const accuracy = forecastM1 > 0 ? Math.max(0, 100 - (Math.abs(forecastBias) / forecastM1) * 100) : null;
 
             if (accuracy !== null) {
                 accuracySum += accuracy;
@@ -243,7 +346,7 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
 
             // ── CLASSIFICATION (priority: STOCKOUT > RISK > SEASONAL > SPIKE > OVERSTOCK > DECLINING) ──
             let group: IntelGroup | null = null;
-            
+
             // Override compute check for local tuning (simulating engine behavior)
             // Note: In a full implementation, we'd pass tuning down to the engine.
             // For now, our engine already has the field. Let's assume computed reflects it
@@ -251,11 +354,7 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
             const seasonalWarn = computed.warnings.find(w => w.code === 'SEASONAL_UPCOMING');
 
             // STOCKOUT
-            if (
-                (available <= 0 && demandMonthly > 0) ||
-                isBOCritical ||
-                (mos < 0.25 && demandMonthly > 0.5)
-            ) {
+            if ((available <= 0 && demandMonthly > 0) || isBOCritical || (mos < 0.25 && demandMonthly > 0.5)) {
                 group = 'STOCKOUT';
             }
             // RISK
@@ -270,25 +369,15 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                 group = 'SEASONAL';
             }
             // SPIKE
-            else if (
-                (actualM1 > mean12M + 2 * sigmaD && actualM1 >= 5) ||
-                (slope > 2 && cv < 1.2 && mos < 3)
-            ) {
+            else if ((actualM1 > mean12M + 2 * sigmaD && actualM1 >= 5) || (slope > 2 && cv < 1.2 && mos < 3)) {
                 group = 'SPIKE';
             }
             // OVERSTOCK
-            else if (
-                (excessQty > 0 && mos > 6) ||
-                (mos > 12 && demandMonthly > 0) ||
-                (isStopBiz && available > 0)
-            ) {
+            else if ((excessQty > 0 && mos > 6) || (mos > 12 && demandMonthly > 0) || (isStopBiz && available > 0)) {
                 group = 'OVERSTOCK';
             }
             // DECLINING
-            else if (
-                (slope < -2 && avg12M > 5 && mos > 3) ||
-                (forecastLinReg < 0.3 * avg12M && avg12M > 10)
-            ) {
+            else if ((slope < -2 && avg12M > 5 && mos > 3) || (forecastLinReg < 0.3 * avg12M && avg12M > 10)) {
                 group = 'DECLINING';
             }
 
@@ -296,11 +385,17 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
             if (!group) continue;
 
             // Count metrics
-            if (group === 'STOCKOUT') { mStockout++; totalGapValue += stockoutGapValue; }
+            if (group === 'STOCKOUT') {
+                mStockout++;
+                totalGapValue += stockoutGapValue;
+            }
             if (group === 'RISK') mRisk++;
             if (seasonalWarn) mSeasonal++;
             if (group === 'SPIKE') mSpike++;
-            if (group === 'OVERSTOCK') { mOverstock++; totalExcessValue += excessValue; }
+            if (group === 'OVERSTOCK') {
+                mOverstock++;
+                totalExcessValue += excessValue;
+            }
             if (group === 'DECLINING') mDeclining++;
 
             // Insight text
@@ -394,15 +489,27 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
             result = result.filter(d => matchSearch(d.item, searchResult));
         }
 
-        const groupPriority: Record<IntelGroup, number> = { STOCKOUT: 0, RISK: 1, SEASONAL: 2, SPIKE: 3, OVERSTOCK: 4, DECLINING: 5 };
+        const groupPriority: Record<IntelGroup, number> = {
+            STOCKOUT: 0,
+            RISK: 1,
+            SEASONAL: 2,
+            SPIKE: 3,
+            OVERSTOCK: 4,
+            DECLINING: 5,
+        };
 
         return result.sort((a, b) => {
             switch (sortKey) {
-                case 'mos_asc': return a.mos - b.mos;
-                case 'mos_desc': return b.mos - a.mos;
-                case 'demand_desc': return (b.item.computed?.demandMonthly || 0) - (a.item.computed?.demandMonthly || 0);
-                case 'excess_desc': return b.excessValue - a.excessValue;
-                case 'gap_desc': return b.stockoutGapValue - a.stockoutGapValue;
+                case 'mos_asc':
+                    return a.mos - b.mos;
+                case 'mos_desc':
+                    return b.mos - a.mos;
+                case 'demand_desc':
+                    return (b.item.computed?.demandMonthly || 0) - (a.item.computed?.demandMonthly || 0);
+                case 'excess_desc':
+                    return b.excessValue - a.excessValue;
+                case 'gap_desc':
+                    return b.stockoutGapValue - a.stockoutGapValue;
                 case 'group':
                 default:
                     return groupPriority[a.group] - groupPriority[b.group] || a.mos - b.mos;
@@ -410,9 +517,9 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
         });
     }, [analyzedItems, groupFilter, searchResult, sortKey]);
 
-    const paginatedData = useMemo(() =>
-        filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
-        [filteredData, currentPage, itemsPerPage]
+    const paginatedData = useMemo(
+        () => filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
+        [filteredData, currentPage, itemsPerPage],
     );
 
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -438,10 +545,17 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                 <MetricCard
                     label="Hết hàng"
                     value={metrics.stockout.toString()}
-                    subValue={metrics.stockoutGapValue > 0 ? `Gap: ${(metrics.stockoutGapValue / 1e6).toFixed(1)}M đ` : 'Cần order AIR'}
+                    subValue={
+                        metrics.stockoutGapValue > 0
+                            ? `Gap: ${(metrics.stockoutGapValue / 1e6).toFixed(1)}M đ`
+                            : 'Cần order AIR'
+                    }
                     icon="fa-circle-xmark"
                     color="rose"
-                    onClick={() => { setGroupFilter('STOCKOUT'); setCurrentPage(1); }}
+                    onClick={() => {
+                        setGroupFilter('STOCKOUT');
+                        setCurrentPage(1);
+                    }}
                     isActive={groupFilter === 'STOCKOUT'}
                 />
                 <MetricCard
@@ -450,7 +564,10 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                     subValue="Dưới ROP — expedite"
                     icon="fa-triangle-exclamation"
                     color="amber"
-                    onClick={() => { setGroupFilter('RISK'); setCurrentPage(1); }}
+                    onClick={() => {
+                        setGroupFilter('RISK');
+                        setCurrentPage(1);
+                    }}
                     isActive={groupFilter === 'RISK'}
                 />
                 <MetricCard
@@ -459,7 +576,10 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                     subValue="Sắp đến peak 2M tới"
                     icon="fa-calendar-days"
                     color="blue"
-                    onClick={() => { setGroupFilter('SEASONAL'); setCurrentPage(1); }}
+                    onClick={() => {
+                        setGroupFilter('SEASONAL');
+                        setCurrentPage(1);
+                    }}
                     isActive={groupFilter === 'SEASONAL'}
                 />
                 <MetricCard
@@ -468,16 +588,26 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                     subValue="Demand spike — review FC"
                     icon="fa-arrow-trend-up"
                     color="amber"
-                    onClick={() => { setGroupFilter('SPIKE'); setCurrentPage(1); }}
+                    onClick={() => {
+                        setGroupFilter('SPIKE');
+                        setCurrentPage(1);
+                    }}
                     isActive={groupFilter === 'SPIKE'}
                 />
                 <MetricCard
                     label="Tồn dư"
                     value={metrics.overstock.toString()}
-                    subValue={metrics.excessValue > 0 ? `Excess: ${(metrics.excessValue / 1e6).toFixed(1)}M đ` : 'Transfer/cắt PO'}
+                    subValue={
+                        metrics.excessValue > 0
+                            ? `Excess: ${(metrics.excessValue / 1e6).toFixed(1)}M đ`
+                            : 'Transfer/cắt PO'
+                    }
                     icon="fa-boxes-stacked"
                     color="slate"
-                    onClick={() => { setGroupFilter('OVERSTOCK'); setCurrentPage(1); }}
+                    onClick={() => {
+                        setGroupFilter('OVERSTOCK');
+                        setCurrentPage(1);
+                    }}
                     isActive={groupFilter === 'OVERSTOCK'}
                 />
                 <MetricCard
@@ -486,14 +616,17 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                     subValue={`${metrics.accuracyCount} SKU có FC`}
                     icon="fa-bullseye"
                     color="emerald"
-                    onClick={() => { setGroupFilter('ALL'); setCurrentPage(1); }}
+                    onClick={() => {
+                        setGroupFilter('ALL');
+                        setCurrentPage(1);
+                    }}
                     isActive={groupFilter === 'ALL'}
                 />
             </div>
 
             {/* Seasonality Tuning Panel */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden transition-all duration-300">
-                <div 
+                <div
                     className="px-5 py-3 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
                     onClick={() => setShowPanel(!showPanel)}
                 >
@@ -503,10 +636,14 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                         </div>
                         <div>
                             <h3 className="text-sm font-bold text-slate-800">Hiệu chỉnh Mùa vụ (Advanced Tuning)</h3>
-                            <p className="text-[10px] text-slate-500 font-medium">SPD Normalization • Tet Weights • Weather Factors</p>
+                            <p className="text-[10px] text-slate-500 font-medium">
+                                SPD Normalization • Tet Weights • Weather Factors
+                            </p>
                         </div>
                     </div>
-                    <FaIcon className={`fas fa-chevron-down text-slate-400 transition-transform ${showPanel ? 'rotate-180' : ''}`} />
+                    <FaIcon
+                        className={`fas fa-chevron-down text-slate-400 transition-transform ${showPanel ? 'rotate-180' : ''}`}
+                    />
                 </div>
 
                 {showPanel && (
@@ -515,8 +652,12 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                             {/* SAA Anchor Status */}
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">SAA Engine</label>
-                                    <span className="text-[10px] bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full font-bold">26d × SSI</span>
+                                    <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                                        SAA Engine
+                                    </label>
+                                    <span className="text-[10px] bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full font-bold">
+                                        26d × SSI
+                                    </span>
                                 </div>
                                 <p className="text-[10px] text-slate-500 leading-relaxed italic">
                                     Mỏ neo 26 ngày cố định + Hệ số Mùa vụ tự động (SSI).
@@ -526,13 +667,20 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                             {/* Tet Weight Slider */}
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Trọng số Lễ Tết</label>
-                                    <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-bold">x{tuning.tetWeight.toFixed(1)}</span>
+                                    <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                                        Trọng số Lễ Tết
+                                    </label>
+                                    <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-bold">
+                                        x{tuning.tetWeight.toFixed(1)}
+                                    </span>
                                 </div>
-                                <input 
-                                    type="range" min="1.0" max="2.0" step="0.1" 
+                                <input
+                                    type="range"
+                                    min="1.0"
+                                    max="2.0"
+                                    step="0.1"
                                     value={tuning.tetWeight}
-                                    onChange={(e) => setTuningValue('tetWeight', parseFloat(e.target.value))}
+                                    onChange={e => setTuningValue('tetWeight', parseFloat(e.target.value))}
                                     className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
                                 />
                                 <p className="text-[10px] text-slate-500 leading-relaxed">
@@ -543,17 +691,24 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                             {/* Weather Weight Slider */}
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Trọng số Thời tiết</label>
-                                    <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">x{tuning.weatherWeight.toFixed(1)}</span>
+                                    <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                                        Trọng số Thời tiết
+                                    </label>
+                                    <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">
+                                        x{tuning.weatherWeight.toFixed(1)}
+                                    </span>
                                 </div>
-                                <input 
-                                    type="range" min="1.0" max="2.0" step="0.1" 
+                                <input
+                                    type="range"
+                                    min="1.0"
+                                    max="2.0"
+                                    step="0.1"
                                     value={tuning.weatherWeight}
-                                    onChange={(e) => setTuningValue('weatherWeight', parseFloat(e.target.value))}
+                                    onChange={e => setTuningValue('weatherWeight', parseFloat(e.target.value))}
                                     className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                                 />
                                 <p className="text-[10px] text-slate-500 leading-relaxed">
-                                   Cân nhắc "Mưa/Nắng nóng" khi dự báo lốp, gạt mưa, làm mát.
+                                    Cân nhắc "Mưa/Nắng nóng" khi dự báo lốp, gạt mưa, làm mát.
                                 </p>
                             </div>
                         </div>
@@ -564,20 +719,35 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                                 <FaIcon className="fas fa-brain text-violet-500" />
                                 Seasonal-Adaptive Anchor (SAA Engine)
                             </h4>
-                            
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* SAA Formula Explanation */}
                                 <div className="space-y-3">
                                     <div className="p-3 bg-gradient-to-br from-violet-50 to-indigo-50 rounded-xl border border-violet-100 shadow-sm">
                                         <p className="text-[11px] font-bold text-violet-800 mb-2">Công thức Unified</p>
                                         <div className="bg-white/80 rounded-lg p-2.5 font-mono text-[10px] text-slate-700 leading-relaxed">
-                                            <p>SPD = <span className="text-emerald-600 font-bold">Demand / 26</span> × <span className="text-violet-600 font-bold">SSI</span></p>
-                                            <p className="mt-1">ROP = SPD × <span className="text-blue-600 font-bold">(WD_LT + WD_SSP)</span></p>
+                                            <p>
+                                                SPD = <span className="text-emerald-600 font-bold">Demand / 26</span> ×{' '}
+                                                <span className="text-violet-600 font-bold">SSI</span>
+                                            </p>
+                                            <p className="mt-1">
+                                                ROP = SPD ×{' '}
+                                                <span className="text-blue-600 font-bold">(WD_LT + WD_SSP)</span>
+                                            </p>
                                         </div>
                                         <div className="mt-2 space-y-1">
-                                            <p className="text-[9px] text-slate-500"><span className="text-emerald-600 font-bold">26</span> = Mỏ neo cố định (Mon-Sat) — Chống nhiễu lịch Tết</p>
-                                            <p className="text-[9px] text-slate-500"><span className="text-violet-600 font-bold">SSI</span> = Seasonal Index tự động (MA3 × Tet × Weather)</p>
-                                            <p className="text-[9px] text-slate-500"><span className="text-blue-600 font-bold">WD</span> = Working Days thực tế trong LT/SSP (từ Today)</p>
+                                            <p className="text-[9px] text-slate-500">
+                                                <span className="text-emerald-600 font-bold">26</span> = Mỏ neo cố định
+                                                (Mon-Sat) — Chống nhiễu lịch Tết
+                                            </p>
+                                            <p className="text-[9px] text-slate-500">
+                                                <span className="text-violet-600 font-bold">SSI</span> = Seasonal Index
+                                                tự động (MA3 × Tet × Weather)
+                                            </p>
+                                            <p className="text-[9px] text-slate-500">
+                                                <span className="text-blue-600 font-bold">WD</span> = Working Days thực
+                                                tế trong LT/SSP (từ Today)
+                                            </p>
                                         </div>
                                     </div>
 
@@ -588,33 +758,57 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                                             <p className="text-[10px] text-slate-500">MA3 ≥ 1.5x → Kích hoạt mùa vụ</p>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <span className="px-2.5 py-1 bg-violet-50 text-violet-600 text-[10px] font-bold rounded-full border border-violet-100">📊 Data-Driven</span>
+                                            <span className="px-2.5 py-1 bg-violet-50 text-violet-600 text-[10px] font-bold rounded-full border border-violet-100">
+                                                📊 Data-Driven
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Workday Heatmap (Visual Verification) */}
                                 <div className="bg-white rounded-xl border border-slate-100 p-3 shadow-sm">
-                                    <p className="text-[11px] font-bold text-slate-800 mb-2">Ngày làm việc {new Date().getFullYear()} <span className="text-[9px] font-normal text-slate-400">(cho ROP Coverage)</span></p>
+                                    <p className="text-[11px] font-bold text-slate-800 mb-2">
+                                        Ngày làm việc {new Date().getFullYear()}{' '}
+                                        <span className="text-[9px] font-normal text-slate-400">
+                                            (cho ROP Coverage)
+                                        </span>
+                                    </p>
                                     <div className="flex flex-wrap gap-1">
-                                        {[0,1,2,3,4,5,6,7,8,9,10,11].map(m => {
+                                        {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(m => {
                                             const days = getVietnameseWorkingDays(m, new Date().getFullYear());
                                             const isCurrent = m === new Date().getMonth();
                                             const isLow = days < 22; // Highlight months with fewer working days (holidays)
-                                            const bg = isCurrent ? 'bg-emerald-50 border-emerald-300 shadow-md ring-1 ring-emerald-200' 
-                                                     : isLow ? 'bg-amber-50/60 border-amber-200' 
-                                                     : 'bg-slate-50 border-slate-100';
+                                            const bg = isCurrent
+                                                ? 'bg-emerald-50 border-emerald-300 shadow-md ring-1 ring-emerald-200'
+                                                : isLow
+                                                  ? 'bg-amber-50/60 border-amber-200'
+                                                  : 'bg-slate-50 border-slate-100';
                                             return (
-                                                <div key={m} className={`flex-1 min-w-[32px] p-1.5 rounded-lg border flex flex-col items-center gap-1 ${bg}`}>
-                                                    <span className="text-[8px] font-bold text-slate-400 uppercase">T{m+1}</span>
-                                                    <span className={`text-[11px] font-black ${isCurrent ? 'text-emerald-600' : isLow ? 'text-amber-600' : 'text-slate-600'}`}>{days}</span>
+                                                <div
+                                                    key={m}
+                                                    className={`flex-1 min-w-[32px] p-1.5 rounded-lg border flex flex-col items-center gap-1 ${bg}`}
+                                                >
+                                                    <span className="text-[8px] font-bold text-slate-400 uppercase">
+                                                        T{m + 1}
+                                                    </span>
+                                                    <span
+                                                        className={`text-[11px] font-black ${isCurrent ? 'text-emerald-600' : isLow ? 'text-amber-600' : 'text-slate-600'}`}
+                                                    >
+                                                        {days}
+                                                    </span>
                                                 </div>
                                             );
                                         })}
                                     </div>
                                     <div className="flex items-center justify-center gap-4 mt-2">
-                                        <span className="flex items-center gap-1 text-[8px] text-slate-400"><span className="w-2 h-2 rounded-full bg-amber-200 inline-block"></span> Nghỉ nhiều (&lt;22d)</span>
-                                        <span className="flex items-center gap-1 text-[8px] text-slate-400"><span className="w-2 h-2 rounded-full bg-emerald-300 inline-block"></span> Hiện tại</span>
+                                        <span className="flex items-center gap-1 text-[8px] text-slate-400">
+                                            <span className="w-2 h-2 rounded-full bg-amber-200 inline-block"></span>{' '}
+                                            Nghỉ nhiều (&lt;22d)
+                                        </span>
+                                        <span className="flex items-center gap-1 text-[8px] text-slate-400">
+                                            <span className="w-2 h-2 rounded-full bg-emerald-300 inline-block"></span>{' '}
+                                            Hiện tại
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -630,27 +824,49 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                     <div className="flex flex-wrap items-center gap-3">
                         {/* Group filter tabs */}
                         <div className="lg-segmented">
-                            {(['ALL', 'STOCKOUT', 'RISK', 'SEASONAL', 'SPIKE', 'OVERSTOCK', 'DECLINING'] as const).map(f => (
-                                <button
-                                    key={f}
-                                    onClick={() => { setGroupFilter(f); setCurrentPage(1); }}
-                                    aria-pressed={groupFilter === f}
-                                    className={groupFilter === f ? 'lg-active' : ''}
-                                >
-                                    {f === 'ALL' ? 'Tất cả' : GROUP_CONFIG[f].label}
-                                    {f !== 'ALL' && (
-                                        <span className="ml-1 text-[9px] opacity-60">
-                                            {f === 'STOCKOUT' ? metrics.stockout : f === 'RISK' ? metrics.risk : f === 'SEASONAL' ? metrics.seasonal : f === 'SPIKE' ? metrics.spike : f === 'OVERSTOCK' ? metrics.overstock : metrics.declining}
-                                        </span>
-                                    )}
-                                </button>
-                            ))}
+                            {(['ALL', 'STOCKOUT', 'RISK', 'SEASONAL', 'SPIKE', 'OVERSTOCK', 'DECLINING'] as const).map(
+                                f => (
+                                    <button
+                                        key={f}
+                                        onClick={() => {
+                                            setGroupFilter(f);
+                                            setCurrentPage(1);
+                                        }}
+                                        aria-pressed={groupFilter === f}
+                                        className={groupFilter === f ? 'lg-active' : ''}
+                                    >
+                                        {f === 'ALL' ? 'Tất cả' : GROUP_CONFIG[f].label}
+                                        {f !== 'ALL' && (
+                                            <span className="ml-1 text-[9px] opacity-60">
+                                                {f === 'STOCKOUT'
+                                                    ? metrics.stockout
+                                                    : f === 'RISK'
+                                                      ? metrics.risk
+                                                      : f === 'SEASONAL'
+                                                        ? metrics.seasonal
+                                                        : f === 'SPIKE'
+                                                          ? metrics.spike
+                                                          : f === 'OVERSTOCK'
+                                                            ? metrics.overstock
+                                                            : metrics.declining}
+                                            </span>
+                                        )}
+                                    </button>
+                                ),
+                            )}
                         </div>
 
                         {/* Sort */}
                         <div className="flex items-center gap-2">
-                            <FaIcon className="fas fa-sort-amount-down text-[10px]" style={{ color: 'rgba(15,17,22,0.4)' }} />
-                            <select value={sortKey} onChange={(e) => setSortKey(e.target.value)} className="lg-select cursor-pointer text-[10px]">
+                            <FaIcon
+                                className="fas fa-sort-amount-down text-[10px]"
+                                style={{ color: 'rgba(15,17,22,0.4)' }}
+                            />
+                            <select
+                                value={sortKey}
+                                onChange={e => setSortKey(e.target.value)}
+                                className="lg-select cursor-pointer text-[10px]"
+                            >
                                 <option value="group">Nhóm hành động</option>
                                 <option value="mos_asc">MOS (Thấp nhất)</option>
                                 <option value="mos_desc">MOS (Cao nhất)</option>
@@ -685,23 +901,34 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                     <table className="w-full text-xs text-left border-separate border-spacing-0 min-w-[1400px] table-zebra">
                         <thead className="bg-slate-50/95 backdrop-blur-sm border-b-2 border-slate-200 text-slate-600 font-black uppercase text-[10px] tracking-widest sticky top-0 z-30 shadow-sm">
                             <tr>
-                                <th className="px-3 py-3 w-10 text-center text-slate-400 border-b border-slate-100">#</th>
+                                <th className="px-3 py-3 w-10 text-center text-slate-400 border-b border-slate-100">
+                                    #
+                                </th>
                                 <th className="px-3 py-3 w-[90px] border-b border-slate-100">Nhóm</th>
-                                <th className="px-4 py-3 min-w-[220px] sticky left-0 z-40 bg-slate-50/95 border-b border-slate-100">SKU</th>
+                                <th className="px-4 py-3 min-w-[220px] sticky left-0 z-40 bg-slate-50/95 border-b border-slate-100">
+                                    SKU
+                                </th>
                                 <th className="px-4 py-3 text-center border-b border-slate-100 w-[120px]">Trend</th>
                                 <th className="px-4 py-3 text-center border-b border-slate-100 w-[100px]">Demand</th>
                                 <th className="px-4 py-3 text-center border-b border-slate-100 w-[130px]">Tồn / ROP</th>
                                 <th className="px-3 py-3 text-center border-b border-slate-100 w-[60px]">MOS</th>
                                 <th className="px-3 py-3 text-center border-b border-slate-100 w-[80px]">Pipeline</th>
-                                <th className="px-4 py-3 text-center border-b border-slate-100 w-[110px]">Gap/Excess</th>
-                                <th className="px-4 py-3 border-b border-slate-100 min-w-[280px] bg-slate-100/30 border-l border-slate-200">Hành động</th>
+                                <th className="px-4 py-3 text-center border-b border-slate-100 w-[110px]">
+                                    Gap/Excess
+                                </th>
+                                <th className="px-4 py-3 border-b border-slate-100 min-w-[280px] bg-slate-100/30 border-l border-slate-200">
+                                    Hành động
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="bg-white">
                             {paginatedData.map((row, idx) => {
                                 const cfg = GROUP_CONFIG[row.group];
                                 return (
-                                    <tr key={row.item.ItemCode} className="hover:bg-slate-50/50 transition-colors group">
+                                    <tr
+                                        key={row.item.ItemCode}
+                                        className="hover:bg-slate-50/50 transition-colors group"
+                                    >
                                         {/* # */}
                                         <td className="px-3 py-2.5 text-center text-slate-500 font-mono text-[10px] font-black">
                                             {(currentPage - 1) * itemsPerPage + idx + 1}
@@ -709,20 +936,29 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
 
                                         {/* Group Badge */}
                                         <td className="px-3 py-2.5">
-                                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-black uppercase ${cfg.bgColor} ${cfg.color} border ${cfg.borderColor}`}>
+                                            <span
+                                                className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-black uppercase ${cfg.bgColor} ${cfg.color} border ${cfg.borderColor}`}
+                                            >
                                                 <FaIcon className={`fas ${cfg.icon} text-[8px]`} />
                                                 {cfg.label}
                                             </span>
                                         </td>
 
                                         {/* SKU */}
-                                        <td className="px-4 py-2.5 sticky left-0 z-10 bg-white group-hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => onItemSelect(row.item)}>
+                                        <td
+                                            className="px-4 py-2.5 sticky left-0 z-10 bg-white group-hover:bg-slate-50 transition-colors cursor-pointer"
+                                            onClick={() => onItemSelect(row.item)}
+                                        >
                                             <div className="font-black text-slate-900 font-mono text-sm uppercase group-hover:text-blue-600 transition-colors">
                                                 {row.item.ItemCode}
                                             </div>
-                                            <div className="text-[10px] font-bold text-slate-500 truncate max-w-[180px]">{row.item.ItemName}</div>
+                                            <div className="text-[10px] font-bold text-slate-500 truncate max-w-[180px]">
+                                                {row.item.ItemName}
+                                            </div>
                                             {row.item.TypeCar && (
-                                                <span className="text-[8px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded mt-0.5 inline-block">{row.item.TypeCar}</span>
+                                                <span className="text-[8px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded mt-0.5 inline-block">
+                                                    {row.item.TypeCar}
+                                                </span>
                                             )}
                                         </td>
 
@@ -733,10 +969,16 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
 
                                         {/* Demand */}
                                         <td className="px-4 py-2.5 text-center">
-                                            <div className="font-black text-slate-900 text-sm">{row.actualM1.toLocaleString()}</div>
-                                            <div className="text-[10px] font-bold text-emerald-600">FC: {row.forecastM1 || '-'}</div>
+                                            <div className="font-black text-slate-900 text-sm">
+                                                {row.actualM1.toLocaleString()}
+                                            </div>
+                                            <div className="text-[10px] font-bold text-emerald-600">
+                                                FC: {row.forecastM1 || '-'}
+                                            </div>
                                             {row.accuracy !== null && (
-                                                <div className={`text-[9px] font-bold ${row.accuracy >= 80 ? 'text-emerald-600' : row.accuracy >= 50 ? 'text-amber-600' : 'text-rose-600'}`}>
+                                                <div
+                                                    className={`text-[9px] font-bold ${row.accuracy >= 80 ? 'text-emerald-600' : row.accuracy >= 50 ? 'text-amber-600' : 'text-rose-600'}`}
+                                                >
                                                     {row.accuracy.toFixed(0)}% acc
                                                 </div>
                                             )}
@@ -745,7 +987,9 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                                         {/* Stock / ROP */}
                                         <td className="px-4 py-2.5 text-center">
                                             <div className="flex gap-1 text-[10px] font-black justify-center">
-                                                <span className={`px-1.5 py-0.5 rounded border ${row.available < row.newROP ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                                                <span
+                                                    className={`px-1.5 py-0.5 rounded border ${row.available < row.newROP ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-slate-50 border-slate-200 text-slate-600'}`}
+                                                >
                                                     {Math.round(row.available)}
                                                 </span>
                                                 <span className="text-slate-300">/</span>
@@ -760,7 +1004,9 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
 
                                         {/* MOS */}
                                         <td className="px-3 py-2.5 text-center">
-                                            <span className={`inline-flex flex-col items-center px-2 py-1 rounded border ${getMosColor(row.mos)}`}>
+                                            <span
+                                                className={`inline-flex flex-col items-center px-2 py-1 rounded border ${getMosColor(row.mos)}`}
+                                            >
                                                 <span className="text-xs font-black">{row.mos.toFixed(1)}</span>
                                                 <span className="text-[9px] font-bold uppercase opacity-80">MOS</span>
                                             </span>
@@ -768,20 +1014,30 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
 
                                         {/* Pipeline */}
                                         <td className="px-3 py-2.5 text-center">
-                                            <div className="font-black text-slate-700 text-sm">{row.item.TotalPO || 0}</div>
+                                            <div className="font-black text-slate-700 text-sm">
+                                                {row.item.TotalPO || 0}
+                                            </div>
                                         </td>
 
                                         {/* Gap / Excess */}
                                         <td className="px-4 py-2.5 text-center">
                                             {row.stockoutGapQty > 0 ? (
                                                 <div>
-                                                    <div className="font-black text-rose-700 text-sm">-{Math.ceil(row.stockoutGapQty)}</div>
-                                                    <div className="text-[9px] text-rose-500">{Math.round(row.stockoutGapValue / 1000).toLocaleString()}k</div>
+                                                    <div className="font-black text-rose-700 text-sm">
+                                                        -{Math.ceil(row.stockoutGapQty)}
+                                                    </div>
+                                                    <div className="text-[9px] text-rose-500">
+                                                        {Math.round(row.stockoutGapValue / 1000).toLocaleString()}k
+                                                    </div>
                                                 </div>
                                             ) : row.excessQty > 0 ? (
                                                 <div>
-                                                    <div className="font-black text-blue-700 text-sm">+{Math.floor(row.excessQty)}</div>
-                                                    <div className="text-[9px] text-blue-500">{Math.round(row.excessValue / 1000).toLocaleString()}k</div>
+                                                    <div className="font-black text-blue-700 text-sm">
+                                                        +{Math.floor(row.excessQty)}
+                                                    </div>
+                                                    <div className="text-[9px] text-blue-500">
+                                                        {Math.round(row.excessValue / 1000).toLocaleString()}k
+                                                    </div>
                                                 </div>
                                             ) : (
                                                 <span className="text-slate-300">—</span>
@@ -790,7 +1046,9 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
 
                                         {/* Insight */}
                                         <td className="px-4 py-2.5 bg-slate-50/40 border-l border-slate-200">
-                                            <p className="text-xs font-medium leading-relaxed text-slate-700">{row.insightText}</p>
+                                            <p className="text-xs font-medium leading-relaxed text-slate-700">
+                                                {row.insightText}
+                                            </p>
                                         </td>
                                     </tr>
                                 );
@@ -810,24 +1068,46 @@ export const DemandIntelligence = ({ data, onItemSelect, initialState, onSaveSta
                         )}
                     </span>
                     <div className="flex items-center gap-1">
-                        <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="pagination-pill text-slate-600">
+                        <button
+                            disabled={currentPage === 1}
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            className="pagination-pill text-slate-600"
+                        >
                             <FaIcon className="fas fa-chevron-left text-xs" />
                         </button>
                         {(() => {
                             return [...Array(totalPages)].map((_, i) => {
                                 const page = i + 1;
-                                if (totalPages > 7 && Math.abs(currentPage - page) > 2 && page !== 1 && page !== totalPages) {
-                                    if (page === 2 || page === totalPages - 1) return <span key={i} className="px-1 text-slate-300">…</span>;
+                                if (
+                                    totalPages > 7 &&
+                                    Math.abs(currentPage - page) > 2 &&
+                                    page !== 1 &&
+                                    page !== totalPages
+                                ) {
+                                    if (page === 2 || page === totalPages - 1)
+                                        return (
+                                            <span key={i} className="px-1 text-slate-300">
+                                                …
+                                            </span>
+                                        );
                                     return null;
                                 }
                                 return (
-                                    <button key={i} onClick={() => setCurrentPage(page)} className={`pagination-pill ${currentPage === page ? 'active' : 'text-slate-600'}`}>
+                                    <button
+                                        key={i}
+                                        onClick={() => setCurrentPage(page)}
+                                        className={`pagination-pill ${currentPage === page ? 'active' : 'text-slate-600'}`}
+                                    >
                                         {page}
                                     </button>
                                 );
                             });
                         })()}
-                        <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} className="pagination-pill text-slate-600">
+                        <button
+                            disabled={currentPage >= totalPages}
+                            onClick={() => setCurrentPage(p => p + 1)}
+                            className="pagination-pill text-slate-600"
+                        >
                             <FaIcon className="fas fa-chevron-right text-xs" />
                         </button>
                     </div>

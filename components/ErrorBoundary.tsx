@@ -75,7 +75,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
                 <pre className="bg-slate-800 p-4 rounded-xl border border-slate-700 max-w-full overflow-auto text-xs mb-4">
                     {errStr}
                 </pre>
-                <button onClick={() => window.location.reload()} className="px-6 py-2 bg-blue-600 rounded-lg font-bold">
+                <button onClick={() => window.location.reload()} className="px-6 py-2 lg-btn lg-btn-blue">
                     RELOAD APP
                 </button>
                 <p className="text-xs text-slate-500 mt-4">

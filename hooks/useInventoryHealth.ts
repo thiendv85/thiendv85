@@ -20,9 +20,9 @@ export function useInventoryHealth(item?: InventoryItem) {
         }
 
         const { mos, available, netAvailable, demandMonthly, stockoutGapQty, stockoutGapValue } = item.computed;
-        
+
         const isOOS = available <= 0;
-        const isRisk = item.computed.stockoutRiskFlag || (netAvailable ?? 0) < ((demandMonthly ?? 0) * 0.5);
+        const isRisk = item.computed.stockoutRiskFlag || (netAvailable ?? 0) < (demandMonthly ?? 0) * 0.5;
         const gapQty = stockoutGapQty || 0;
         const gapValue = stockoutGapValue || 0;
 

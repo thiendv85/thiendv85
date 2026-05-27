@@ -396,13 +396,13 @@ export const ApprovalQueue = ({ onLoadRequest, appSettings }: Props) => {
                     <div className="flex gap-4">
                         <button
                             onClick={() => handleBulkAction('approved')}
-                            className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                            className="lg-btn lg-btn-primary px-6 py-2.5"
                         >
                             Duyệt nhanh
                         </button>
                         <button
                             onClick={() => setConfirmModal({ type: 'cancel', ids: Array.from(selectedIds) })}
-                            className="px-6 py-2.5 bg-slate-700 hover:bg-rose-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                            className="lg-btn lg-btn-danger px-6 py-2.5"
                         >
                             Hủy đơn
                         </button>
@@ -467,7 +467,7 @@ export const ApprovalQueue = ({ onLoadRequest, appSettings }: Props) => {
                                         showToast('Lỗi hệ thống', 'error');
                                     }
                                 }}
-                                className={`flex-1 py-4 rounded-2xl text-white font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 ${confirmModal.type === 'delete' ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-200' : 'bg-amber-600 hover:bg-amber-700 shadow-amber-200'}`}
+                                className={`lg-btn lg-btn-lg ${confirmModal.type === 'delete' ? 'lg-btn-danger' : 'lg-btn-amber'} flex-1 py-4`}
                             >
                                 Xác nhận
                             </button>
@@ -792,7 +792,7 @@ const RequestCard = ({
                                 showToast('Lỗi khi tải đơn hàng', 'error');
                             }
                         }}
-                        className="h-9 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.18em] transition-all flex items-center gap-2 shadow-sm hover:shadow-md active:scale-[0.98]"
+                        className="lg-btn lg-btn-dark h-9 px-4 flex items-center gap-2"
                     >
                         <FaIcon className="fas fa-folder-open text-[11px]" /> Mở đơn
                     </button>
@@ -838,7 +838,7 @@ const RequestCard = ({
                             <button
                                 onClick={() => onAction(req.id, 'approved')}
                                 disabled={isProcessing}
-                                className="h-9 px-5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.18em] transition-all flex items-center gap-2 shadow-md shadow-emerald-200 active:scale-[0.98]"
+                                className="lg-btn lg-btn-primary h-9 px-5 disabled:opacity-50 flex items-center gap-2"
                             >
                                 {isProcessing ? (
                                     <FaIcon className="fas fa-spinner fa-spin" />

@@ -19,22 +19,22 @@ export const AVAILABLE_BRANDS = ['Kia', 'Mazda', 'Stellantis', 'BMW'] as const;
 export type Brand = (typeof AVAILABLE_BRANDS)[number];
 
 export interface LoisProfile {
-    id: string;             // Sub-group code (e.g., '1', 'E', 'L1')
-    parentGroup: string;    // Parent group name (e.g., 'L', 'O', 'U')
-    name: string;           // Description
-    noPlan: boolean;        // Stop planning/ordering if true
+    id: string; // Sub-group code (e.g., '1', 'E', 'L1')
+    parentGroup: string; // Parent group name (e.g., 'L', 'O', 'U')
+    name: string; // Description
+    noPlan: boolean; // Stop planning/ordering if true
     alertType: 'none' | 'info' | 'warning' | 'critical';
     targetMOS: number;
     targetExcessPct: number;
 }
 
 export interface SourceProfile {
-    id: string;          // unique key, e.g. 'NB', 'BMWASIA'
-    brand: Brand;        // brand classification
-    name: string;        // display name, e.g. 'Nhật Bản'
-    lt: number;          // Lead Time (days)
-    sp: number;          // Safety Period (days)
-    ssp: number;         // Safety Stock Period (days)
+    id: string; // unique key, e.g. 'NB', 'BMWASIA'
+    brand: Brand; // brand classification
+    name: string; // display name, e.g. 'Nhật Bản'
+    lt: number; // Lead Time (days)
+    sp: number; // Safety Period (days)
+    ssp: number; // Safety Stock Period (days)
     motherGroup?: string; // Parent group name for analytics (e.g. 'Hàn Quốc', 'Ấn Độ')
 }
 
@@ -70,7 +70,16 @@ export interface InventoryFilters {
     status: 'All' | 'Active' | 'Sleeping' | 'Dead Stock';
     lois: string[];
     trend: string;
-    specialFilter: 'none' | 'stockout' | 'critical_stockout' | 'excess' | 'low_stock' | 'has_po' | 'has_supersession' | 'has_warning' | 'has_seasonality';
+    specialFilter:
+        | 'none'
+        | 'stockout'
+        | 'critical_stockout'
+        | 'excess'
+        | 'low_stock'
+        | 'has_po'
+        | 'has_supersession'
+        | 'has_warning'
+        | 'has_seasonality';
     showBackorders: boolean;
     debtStatus: string[];
     source: string[];
@@ -132,11 +141,11 @@ export const LOIS_DESCRIPTIONS: Record<string, string> = {
     '6': '7 - 12 cái/năm',
     '7': '4 - 6 cái/năm',
     '8': '1 - 3 cái/năm (Low)',
-    'E': 'Hàng thay thế cũ (Superseded)',
-    'N': 'Không bán > 6 tháng',
-    'A': 'Không bán 12 - 24 tháng',
-    'V': 'Không bán > 24 tháng (Dead)',
-    'I': 'Inactive (Ngưng hoạt động)',
+    E: 'Hàng thay thế cũ (Superseded)',
+    N: 'Không bán > 6 tháng',
+    A: 'Không bán 12 - 24 tháng',
+    V: 'Không bán > 24 tháng (Dead)',
+    I: 'Inactive (Ngưng hoạt động)',
 };
 
 export interface DashboardSettings {

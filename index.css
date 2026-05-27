@@ -329,6 +329,292 @@ h1, h2, h3, h4, .font-heading {
         0 12px 32px -16px rgba(15, 17, 22, 0.08);
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   LIQUID GLASS ACTION BUTTONS — primary / danger / ghost / outline
+   Adapted from Apple Liquid Glass: backdrop blur, inner light rim,
+   aurora reflection, hover lift, active press spring.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Base action button — translucent slate glass */
+.lg-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 18px;
+    border-radius: 12px;
+    font-size: 0.8125rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(14px) saturate(1.5);
+    -webkit-backdrop-filter: blur(14px) saturate(1.5);
+    color: rgba(15, 17, 22, 0.8);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.7),
+        0 1px 3px rgba(15, 17, 22, 0.06),
+        0 4px 12px -4px rgba(15, 17, 22, 0.08);
+    transition:
+        transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1),
+        background 180ms ease,
+        border-color 180ms ease;
+    overflow: hidden;
+}
+
+/* Aurora reflection — top edge sheen */
+.lg-btn::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 10%; right: 10%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8) 30%, rgba(255, 255, 255, 0.9) 50%, rgba(255, 255, 255, 0.8) 70%, transparent);
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.8;
+    transition: opacity 180ms ease;
+}
+.lg-btn:hover::before { opacity: 1; }
+
+.lg-btn:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.7);
+    border-color: rgba(15, 17, 22, 0.1);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.8),
+        0 2px 6px rgba(15, 17, 22, 0.08),
+        0 8px 20px -8px rgba(15, 17, 22, 0.12);
+}
+.lg-btn:active {
+    transform: translateY(0) scale(0.97);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.5),
+        0 1px 2px rgba(15, 17, 22, 0.06);
+    transition-duration: 80ms;
+}
+.lg-btn:disabled, .lg-btn[disabled] {
+    opacity: 0.45;
+    pointer-events: none;
+    filter: grayscale(0.3);
+}
+
+/* ─── Primary — emerald glass (confirm / approve / save) ─── */
+.lg-btn-primary {
+    background:
+        linear-gradient(160deg, rgba(16, 185, 129, 0.85) 0%, rgba(5, 150, 105, 0.92) 100%);
+    border-color: rgba(5, 150, 105, 0.4);
+    color: #FFFFFF;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.25),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.12),
+        0 1px 3px rgba(5, 150, 105, 0.15),
+        0 6px 16px -6px rgba(5, 150, 105, 0.3);
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
+}
+.lg-btn-primary::before {
+    background: linear-gradient(90deg, transparent, rgba(167, 243, 208, 0.5) 30%, rgba(255, 255, 255, 0.6) 50%, rgba(167, 243, 208, 0.5) 70%, transparent);
+}
+.lg-btn-primary:hover {
+    background:
+        linear-gradient(160deg, rgba(16, 185, 129, 0.95) 0%, rgba(5, 150, 105, 1) 100%);
+    border-color: rgba(4, 120, 87, 0.5);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.15),
+        0 2px 6px rgba(5, 150, 105, 0.2),
+        0 12px 28px -8px rgba(5, 150, 105, 0.35);
+}
+.lg-btn-primary:active {
+    background:
+        linear-gradient(160deg, rgba(5, 150, 105, 0.95) 0%, rgba(4, 120, 87, 1) 100%);
+}
+
+/* ─── Danger — rose glass (reject / delete / cancel-destructive) ─── */
+.lg-btn-danger {
+    background:
+        linear-gradient(160deg, rgba(244, 63, 94, 0.85) 0%, rgba(225, 29, 72, 0.92) 100%);
+    border-color: rgba(225, 29, 72, 0.4);
+    color: #FFFFFF;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.22),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.12),
+        0 1px 3px rgba(225, 29, 72, 0.15),
+        0 6px 16px -6px rgba(225, 29, 72, 0.3);
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
+}
+.lg-btn-danger::before {
+    background: linear-gradient(90deg, transparent, rgba(254, 205, 211, 0.45) 30%, rgba(255, 255, 255, 0.5) 50%, rgba(254, 205, 211, 0.45) 70%, transparent);
+}
+.lg-btn-danger:hover {
+    background:
+        linear-gradient(160deg, rgba(244, 63, 94, 0.95) 0%, rgba(225, 29, 72, 1) 100%);
+    border-color: rgba(190, 18, 60, 0.5);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.28),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.15),
+        0 2px 6px rgba(225, 29, 72, 0.2),
+        0 12px 28px -8px rgba(225, 29, 72, 0.35);
+}
+.lg-btn-danger:active {
+    background:
+        linear-gradient(160deg, rgba(225, 29, 72, 0.95) 0%, rgba(190, 18, 60, 1) 100%);
+}
+
+/* ─── Ghost — invisible glass, text only (cancel / dismiss) ─── */
+.lg-btn-ghost {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-color: transparent;
+    color: rgba(15, 17, 22, 0.55);
+    box-shadow: none;
+}
+.lg-btn-ghost::before { display: none; }
+.lg-btn-ghost:hover {
+    background: rgba(15, 17, 22, 0.06);
+    border-color: rgba(15, 17, 22, 0.08);
+    color: rgba(15, 17, 22, 0.8);
+    box-shadow: none;
+    transform: none;
+}
+.lg-btn-ghost:active {
+    background: rgba(15, 17, 22, 0.1);
+    box-shadow: none;
+}
+
+/* ─── Outline — glass border, no fill (secondary actions) ─── */
+.lg-btn-outline {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(15, 17, 22, 0.15);
+    color: rgba(15, 17, 22, 0.75);
+}
+.lg-btn-outline:hover {
+    background: rgba(255, 255, 255, 0.55);
+    border-color: rgba(15, 17, 22, 0.22);
+}
+
+/* ─── Dark glass — obsidian surface (for dark header / inverted areas) ─── */
+.lg-btn-dark {
+    background: rgba(14, 17, 22, 0.85);
+    border-color: rgba(168, 133, 75, 0.25);
+    color: #F4F1EB;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 2px 8px -3px rgba(10, 12, 18, 0.4),
+        0 8px 20px -8px rgba(10, 12, 18, 0.25);
+}
+.lg-btn-dark::before {
+    background: linear-gradient(90deg, transparent, rgba(244, 226, 180, 0.3) 30%, rgba(255, 255, 255, 0.35) 50%, rgba(244, 226, 180, 0.3) 70%, transparent);
+}
+.lg-btn-dark:hover {
+    background: rgba(14, 17, 22, 0.92);
+    border-color: rgba(168, 133, 75, 0.4);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        0 4px 12px -4px rgba(10, 12, 18, 0.5),
+        0 12px 28px -10px rgba(10, 12, 18, 0.35);
+}
+.lg-btn-dark:active {
+    background: rgba(10, 12, 18, 0.95);
+}
+
+/* ─── Blue accent — informational / link-style actions ─── */
+.lg-btn-blue {
+    background:
+        linear-gradient(160deg, rgba(59, 130, 246, 0.85) 0%, rgba(37, 99, 235, 0.92) 100%);
+    border-color: rgba(37, 99, 235, 0.4);
+    color: #FFFFFF;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.22),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1),
+        0 1px 3px rgba(37, 99, 235, 0.15),
+        0 6px 16px -6px rgba(37, 99, 235, 0.28);
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.12);
+}
+.lg-btn-blue::before {
+    background: linear-gradient(90deg, transparent, rgba(191, 219, 254, 0.45) 30%, rgba(255, 255, 255, 0.55) 50%, rgba(191, 219, 254, 0.45) 70%, transparent);
+}
+.lg-btn-blue:hover {
+    background:
+        linear-gradient(160deg, rgba(59, 130, 246, 0.95) 0%, rgba(37, 99, 235, 1) 100%);
+    border-color: rgba(29, 78, 216, 0.5);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.28),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.12),
+        0 2px 6px rgba(37, 99, 235, 0.2),
+        0 12px 28px -8px rgba(37, 99, 235, 0.35);
+}
+
+/* ─── Amber/bronze accent — warning actions ─── */
+.lg-btn-amber {
+    background:
+        linear-gradient(160deg, rgba(245, 158, 11, 0.85) 0%, rgba(217, 119, 6, 0.92) 100%);
+    border-color: rgba(217, 119, 6, 0.4);
+    color: #FFFFFF;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.25),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1),
+        0 1px 3px rgba(217, 119, 6, 0.15),
+        0 6px 16px -6px rgba(217, 119, 6, 0.28);
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.12);
+}
+.lg-btn-amber::before {
+    background: linear-gradient(90deg, transparent, rgba(253, 230, 138, 0.5) 30%, rgba(255, 255, 255, 0.55) 50%, rgba(253, 230, 138, 0.5) 70%, transparent);
+}
+.lg-btn-amber:hover {
+    background:
+        linear-gradient(160deg, rgba(245, 158, 11, 0.95) 0%, rgba(217, 119, 6, 1) 100%);
+    border-color: rgba(180, 83, 9, 0.5);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.12),
+        0 2px 6px rgba(217, 119, 6, 0.2),
+        0 12px 28px -8px rgba(217, 119, 6, 0.35);
+}
+
+/* ─── Size variants ─── */
+.lg-btn-sm {
+    height: 28px;
+    padding: 0 12px;
+    font-size: 0.6875rem;
+    border-radius: 9px;
+    gap: 4px;
+}
+.lg-btn-lg {
+    height: 44px;
+    padding: 0 24px;
+    font-size: 0.875rem;
+    border-radius: 16px;
+    gap: 8px;
+}
+.lg-btn-xl {
+    height: 52px;
+    padding: 0 32px;
+    font-size: 0.9375rem;
+    border-radius: 20px;
+    gap: 10px;
+    letter-spacing: 0.08em;
+}
+
+/* ─── Icon-only variant ─── */
+.lg-btn-icon {
+    width: 36px;
+    padding: 0;
+}
+.lg-btn-icon.lg-btn-sm { width: 28px; }
+.lg-btn-icon.lg-btn-lg { width: 44px; }
+
+/* ─── Full-width (modal footers) ─── */
+.lg-btn-full {
+    width: 100%;
+}
+
 /* Premium Glassmorphism Utility */
 .glass-premium {
     background: rgba(255, 255, 255, 0.05);

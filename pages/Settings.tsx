@@ -789,7 +789,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                     <div className="flex items-center gap-3 flex-wrap">
                         <button
                             onClick={handleSave}
-                            className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-xl text-xs font-black uppercase hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20"
+                            className="flex items-center gap-2 px-5 py-2 text-xs lg-btn lg-btn-blue"
                         >
                             <FaIcon className={`fas ${saved ? 'fa-check' : 'fa-floppy-disk'}`} />{' '}
                             {saved ? 'Đã lưu!' : 'Lưu Máy này'}
@@ -1623,7 +1623,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                         ) as any,
                                     }))
                                 }
-                                className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-black uppercase hover:bg-blue-700 transition-all"
+                                className="px-3 py-1.5 text-xs lg-btn lg-btn-sm lg-btn-blue"
                             >
                                 <FaIcon className="fas fa-check-double mr-1" /> Chọn tất cả
                             </button>
@@ -1682,7 +1682,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                         ) as any,
                                     }))
                                 }
-                                className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-black uppercase hover:bg-blue-700 transition-all"
+                                className="px-3 py-1.5 text-xs lg-btn lg-btn-sm lg-btn-blue"
                             >
                                 <FaIcon className="fas fa-check-double mr-1" /> Chọn tất cả
                             </button>
@@ -1816,7 +1816,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                         ) as any,
                                     }))
                                 }
-                                className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-black uppercase hover:bg-blue-700 transition-all"
+                                className="px-3 py-1.5 text-xs lg-btn lg-btn-sm lg-btn-blue"
                             >
                                 <FaIcon className="fas fa-check-double mr-1" /> Chọn tất cả
                             </button>
@@ -1991,7 +1991,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                 </div>
                                 <button
                                     onClick={handleExportConfig}
-                                    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-blue-700 transition-all shadow-sm"
+                                    className="flex items-center gap-2 px-4 py-2 text-xs lg-btn lg-btn-blue"
                                 >
                                     <FaIcon className="fas fa-download" /> Tải cấu hình (.json)
                                 </button>
@@ -2004,7 +2004,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                 <button
                                     onClick={handleReset}
                                     disabled={!isAdmin}
-                                    className="flex items-center gap-2 bg-rose-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-rose-700 transition-all shadow-sm disabled:opacity-40"
+                                    className="flex items-center gap-2 px-4 py-2 text-xs disabled:opacity-40 lg-btn lg-btn-danger"
                                 >
                                     <FaIcon className="fas fa-rotate-left" /> Reset tất cả
                                 </button>
@@ -2026,7 +2026,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                         alert('Đã xóa toàn bộ cache. Trang sẽ tải lại ngay bây giờ.');
                                         window.location.reload();
                                     }}
-                                    className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-emerald-700 transition-all shadow-sm"
+                                    className="flex items-center gap-2 px-4 py-2 text-xs lg-btn lg-btn-primary"
                                 >
                                     <FaIcon className="fas fa-broom" /> Dọn cache
                                 </button>
@@ -2181,7 +2181,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                 </a>
                                 <button
                                     onClick={() => (window as any).navigateToLog?.()}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-black uppercase shadow-lg shadow-blue-500/20 hover:scale-105 transition-all flex items-center gap-2"
+                                    className="px-4 py-2 text-xs flex items-center gap-2 lg-btn lg-btn-blue"
                                 >
                                     <FaIcon className="fas fa-history" /> {t('version_view_log')}
                                 </button>

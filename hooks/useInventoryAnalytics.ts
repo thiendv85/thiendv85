@@ -88,9 +88,7 @@ function analyzeItem(item: InventoryItem): DemandAnalysisRow | null {
     if (!computed) return null;
 
     // Normalize history to 12 months
-    const fullHistory = history.length >= 12
-        ? history.slice(-12)
-        : [...Array(12 - history.length).fill(0), ...history];
+    const fullHistory = history.length >= 12 ? history.slice(-12) : [...Array(12 - history.length).fill(0), ...history];
 
     const actualM1 = fullHistory[11] || 0;
     const meanHistory = avg(fullHistory);
@@ -222,18 +220,39 @@ export function useInventoryAnalytics(data: InventoryItem[]): {
         const actionableData = allAnalyzed.filter(r => r.severity !== 'NORMAL');
 
         // Compute metrics
-        let stockout = 0, risk = 0, spike = 0, overstock = 0, declining = 0, normal = 0;
-        let totalGapValue = 0, totalExcessValue = 0;
-        let accSum = 0, accCount = 0;
+        let stockout = 0,
+            risk = 0,
+            spike = 0,
+            overstock = 0,
+            declining = 0,
+            normal = 0;
+        let totalGapValue = 0,
+            totalExcessValue = 0;
+        let accSum = 0,
+            accCount = 0;
 
         for (const row of allAnalyzed) {
             switch (row.severity) {
-                case 'STOCKOUT': stockout++; totalGapValue += row.stockoutGapValue; break;
-                case 'RISK': risk++; totalGapValue += row.stockoutGapValue; break;
-                case 'SPIKE': spike++; break;
-                case 'OVERSTOCK': overstock++; totalExcessValue += row.excessValue; break;
-                case 'DECLINING': declining++; break;
-                default: normal++;
+                case 'STOCKOUT':
+                    stockout++;
+                    totalGapValue += row.stockoutGapValue;
+                    break;
+                case 'RISK':
+                    risk++;
+                    totalGapValue += row.stockoutGapValue;
+                    break;
+                case 'SPIKE':
+                    spike++;
+                    break;
+                case 'OVERSTOCK':
+                    overstock++;
+                    totalExcessValue += row.excessValue;
+                    break;
+                case 'DECLINING':
+                    declining++;
+                    break;
+                default:
+                    normal++;
             }
             if (row.forecastResult.accuracy > 0) {
                 accSum += row.forecastResult.accuracy;
