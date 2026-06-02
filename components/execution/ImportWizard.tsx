@@ -1,7 +1,16 @@
 import { useState } from 'react';
 import ReconcileDiff, { type ReconcileDiffData } from './ReconcileDiff';
-
-const NCC_LIST = ['Mobis Korea', 'Mobis India', 'Denso'];
+import {
+  reconcileImport,
+  applyReconcile,
+  type ApplyResult,
+} from '../../utils/supabase/execution';
+import { IMPORT_TEMPLATES } from '../../utils/execution/importAdapter';
+import { SAMPLE_IMPORT_ROWS } from '../../utils/execution/mockData';
+import type {
+  ReconcileResult,
+  CanonicalImportRow,
+} from '../../utils/execution/reconcile';
 
 const STEPS = [
   'Tải file',
@@ -10,44 +19,81 @@ const STEPS = [
   'Đối chiếu & ghi nhận',
 ];
 
-interface StagingRow {
-  po: string;
-  part: string;
-  qty: number;
-  status: string;
-  ok: boolean;
+/** Map 1 bucket CanonicalImportRow[] → ReconcileRow[] cho ReconcileDiff. */
+function toRows(rows: CanonicalImportRow[]) {
+  return rows.map((row) => ({
+    key: row.orderKey ?? row.part_code,
+    detail: row.detail,
+  }));
 }
 
-const MOCK_STAGING: StagingRow[] = [
-  { po: 'PO-2401', part: '86561-AA000', qty: 120, status: 'Khớp', ok: true },
-  { po: 'PO-2401', part: '86562-AA010', qty: 80, status: 'Khớp', ok: true },
-  { po: 'PO-2402', part: '95720-BB020', qty: 200, status: 'Lô mới', ok: true },
-  { po: 'PO-2402', part: '95721-BB030', qty: 50, status: 'Đơn mới', ok: true },
-  { po: 'PO-????', part: '00000-XX999', qty: 10, status: 'Không khớp', ok: false },
-];
-
-const MOCK_DIFF: ReconcileDiffData = {
-  matched: [
-    { key: 'PO-2401 / 86561-AA000', detail: 'Cập nhật mốc giao 02/06' },
-    { key: 'PO-2401 / 86562-AA010', detail: 'Cập nhật mốc giao 02/06' },
-    { key: 'PO-2403 / 11223-CC040', detail: 'Cập nhật SL nhận 150' },
-  ],
-  newLots: [{ key: 'PO-2402 / 95720-BB020', detail: 'Lô L-0602 (SL 200)' }],
-  newOrders: [],
-  unmatched: [
-    { key: 'PO-???? / 00000-XX999', detail: 'Không tìm thấy PO trong hệ thống' },
-    { key: '— / 77889-DD050', detail: 'Thiếu mã PO' },
-  ],
-};
+function toDiffData(result: ReconcileResult): ReconcileDiffData {
+  return {
+    matched: toRows(result.matched),
+    newLots: toRows(result.newLots),
+    newOrders: toRows(result.newOrders),
+    unmatched: toRows(result.unmatched),
+  };
+}
 
 export default function ImportWizard() {
   const [step, setStep] = useState(1);
   const [fileName, setFileName] = useState<string | null>(null);
-  const [ncc, setNcc] = useState(NCC_LIST[0]);
-  const [recorded, setRecorded] = useState(false);
+  const [rawRows, setRawRows] = useState<unknown[][] | null>(null);
+  const [templateId, setTemplateId] = useState(IMPORT_TEMPLATES[0]?.id ?? '');
+  const [result, setResult] = useState<ReconcileResult | null>(null);
+  const [applyRes, setApplyRes] = useState<ApplyResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const next = () => setStep((s) => Math.min(4, s + 1));
-  const back = () => setStep((s) => Math.max(1, s - 1));
+  const templateName =
+    IMPORT_TEMPLATES.find((t) => t.id === templateId)?.name ?? '—';
+
+  const back = () => {
+    setError(null);
+    setStep((s) => Math.max(1, s - 1));
+  };
+
+  // Bước 3→4: chạy reconcile khi vào bước đối chiếu.
+  const next = async () => {
+    setError(null);
+    if (step === 3) {
+      if (!rawRows) return;
+      setLoading(true);
+      try {
+        const r = await reconcileImport(templateId, rawRows);
+        setResult(r);
+        setApplyRes(null);
+        setStep(4);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Lỗi đối chiếu dữ liệu.');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    setStep((s) => Math.min(4, s + 1));
+  };
+
+  const record = async () => {
+    if (!result) return;
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await applyReconcile(result);
+      setApplyRes(res);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Lỗi ghi nhận.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const canNext =
+    !loading &&
+    ((step === 1 && !!rawRows) ||
+      (step === 2 && !!templateId) ||
+      step === 3);
 
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-4">
@@ -56,7 +102,8 @@ export default function ImportWizard() {
       </h2>
 
       <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-        Khung demo — chưa nối parser/biểu mẫu NCC thật (giai đoạn sau)
+        Khung demo — chưa nối parser/biểu mẫu NCC thật (giai đoạn sau). Dùng nút
+        “Dùng dữ liệu mẫu” để chạy thử luồng đối chiếu.
       </div>
 
       {/* Stepper header */}
@@ -90,12 +137,19 @@ export default function ImportWizard() {
         })}
       </ol>
 
+      {error && (
+        <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          {error}
+        </div>
+      )}
+
       {/* Step body */}
       <div className="min-h-[200px] rounded-lg border border-gray-200 bg-white p-4">
         {step === 1 && (
           <div className="space-y-3">
             <p className="text-sm text-gray-600">
-              Tải file xuất từ app NCC (chưa phân tích nội dung).
+              Tải file xuất từ app NCC (chưa phân tích nội dung) hoặc dùng dữ
+              liệu mẫu để chạy thử.
             </p>
             <input
               type="file"
@@ -107,6 +161,19 @@ export default function ImportWizard() {
                 Đã chọn: <span className="font-medium">{fileName}</span>
               </p>
             )}
+            <button
+              type="button"
+              onClick={() => setRawRows(SAMPLE_IMPORT_ROWS)}
+              className="rounded-md border border-indigo-300 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700"
+            >
+              Dùng dữ liệu mẫu
+            </button>
+            {rawRows && (
+              <p className="text-sm text-emerald-700">
+                Đã nạp <span className="font-medium">{rawRows.length}</span> dòng
+                mẫu.
+              </p>
+            )}
           </div>
         )}
 
@@ -116,18 +183,18 @@ export default function ImportWizard() {
               Chọn NCC để áp dụng biểu mẫu tương ứng.
             </p>
             <select
-              value={ncc}
-              onChange={(e) => setNcc(e.target.value)}
+              value={templateId}
+              onChange={(e) => setTemplateId(e.target.value)}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700"
             >
-              {NCC_LIST.map((name) => (
-                <option key={name} value={name}>
-                  {name}
+              {IMPORT_TEMPLATES.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
                 </option>
               ))}
             </select>
             <p className="text-xs text-gray-400">
-              Biểu mẫu: <span className="font-medium">{ncc}</span>
+              Biểu mẫu: <span className="font-medium">{templateName}</span>
             </p>
           </div>
         )}
@@ -135,35 +202,20 @@ export default function ImportWizard() {
         {step === 3 && (
           <div className="space-y-3">
             <p className="text-sm text-gray-600">
-              Xem trước dữ liệu tạm (minh hoạ — dòng đỏ là không khớp khoá).
+              Xem trước trước khi đối chiếu với hệ thống.
             </p>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200 text-xs text-gray-500">
-                    <th className="px-2 py-1.5">PO</th>
-                    <th className="px-2 py-1.5">Mã PT</th>
-                    <th className="px-2 py-1.5">SL</th>
-                    <th className="px-2 py-1.5">Trạng thái</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {MOCK_STAGING.map((row, idx) => (
-                    <tr
-                      key={idx}
-                      className={`border-b border-gray-100 ${
-                        row.ok ? '' : 'bg-rose-50 text-rose-700'
-                      }`}
-                    >
-                      <td className="px-2 py-1.5 font-mono">{row.po}</td>
-                      <td className="px-2 py-1.5 font-mono">{row.part}</td>
-                      <td className="px-2 py-1.5">{row.qty}</td>
-                      <td className="px-2 py-1.5">{row.status}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <dl className="grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded border border-gray-200 bg-gray-50 px-3 py-2">
+                <dt className="text-xs text-gray-500">Số dòng</dt>
+                <dd className="font-medium text-gray-800">
+                  {rawRows?.length ?? 0}
+                </dd>
+              </div>
+              <div className="rounded border border-gray-200 bg-gray-50 px-3 py-2">
+                <dt className="text-xs text-gray-500">NCC / biểu mẫu</dt>
+                <dd className="font-medium text-gray-800">{templateName}</dd>
+              </div>
+            </dl>
           </div>
         )}
 
@@ -172,26 +224,26 @@ export default function ImportWizard() {
             <p className="text-sm text-gray-600">
               Đối chiếu với hệ thống và ghi nhận thay đổi.
             </p>
-            <ReconcileDiff diff={MOCK_DIFF} />
+            {loading && !result ? (
+              <p className="text-sm text-gray-500">Đang đối chiếu…</p>
+            ) : result ? (
+              <ReconcileDiff diff={toDiffData(result)} />
+            ) : null}
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                disabled={recorded}
-                onClick={() => setRecorded(true)}
+                disabled={loading || !result || !!applyRes}
+                onClick={record}
                 className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Ghi nhận
               </button>
-              {recorded && (
-                <span className="text-sm font-medium text-emerald-700">
-                  Đã ghi nhận (demo)
-                </span>
-              )}
             </div>
-            {recorded && (
+            {applyRes && (
               <p className="rounded border border-gray-200 bg-gray-50 px-3 py-2 font-mono text-xs text-gray-600">
-                [log] 02/06 14:30 · {ncc} · {fileName ?? 'file.xlsx'} · 3 cập
-                nhật, 1 lô mới, 0 đơn mới, 2 bỏ qua
+                Đã ghi: matched {applyRes.matched} · lô mới {applyRes.newLots} ·
+                đơn mới {applyRes.newOrders} · không khớp {applyRes.unmatched}{' '}
+                (demo, chưa ghi DB)
               </p>
             )}
           </div>
@@ -203,7 +255,7 @@ export default function ImportWizard() {
         <button
           type="button"
           onClick={back}
-          disabled={step === 1}
+          disabled={step === 1 || loading}
           className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 disabled:cursor-not-allowed disabled:opacity-40"
         >
           Quay lại
@@ -211,7 +263,7 @@ export default function ImportWizard() {
         <button
           type="button"
           onClick={next}
-          disabled={step === 4}
+          disabled={step === 4 || !canNext}
           className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-40"
         >
           Tiếp

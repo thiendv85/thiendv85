@@ -3,6 +3,7 @@ import { useExecutionTracking } from '../hooks/useExecutionTracking';
 import { STAGE_ORDER, type SupplierOrder } from '../types/execution';
 import ExecutionToolbar, { type ExecFilters, type StageFilter } from '../components/execution/ExecutionToolbar';
 import PipelineTable from '../components/execution/PipelineTable';
+import AlertsPanel from '../components/execution/AlertsPanel';
 import ExecutionOrderDetail from '../components/ExecutionOrderDetail';
 import ExecutionSplitModal from '../components/ExecutionSplitModal';
 import ExecutionDashboard from '../components/execution/ExecutionDashboard';
@@ -92,6 +93,7 @@ export default function ExecutionTracking() {
           <div className="p-6 text-red-600">{error}</div>
         ) : (
           <>
+            <AlertsPanel orders={base} summaries={summaries} onSelect={setSelected} />
             <ExecutionToolbar filters={filters} onChange={setFilters} suppliers={suppliers} regions={regions} stageCounts={stageCounts} />
             <PipelineTable data={rows} summaries={summaries} onRowClick={setSelected} />
           </>

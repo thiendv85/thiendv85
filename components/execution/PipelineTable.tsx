@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -8,6 +8,7 @@ import {
   type SortingState,
   type VisibilityState,
   type RowSelectionState,
+  type ColumnSizingState,
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { STAGE_ORDER, type SupplierOrder } from '../../types/execution';
@@ -29,12 +30,55 @@ const COL_LABEL: Record<string, string> = {
   method: 'PT', eta: 'ETA', outstanding: 'Tồn nợ', aging: 'Tuổi nợ', late: 'Trễ',
 };
 
+const STORAGE_KEY = 'exec-pipeline-table-v1';
+const DEFAULT_SORTING: SortingState = [{ id: 'stage', desc: false }];
+
+interface PersistedLayout {
+  sorting?: SortingState;
+  columnVisibility?: VisibilityState;
+  columnSizing?: ColumnSizingState;
+}
+
+function readLayout(): PersistedLayout {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw) as PersistedLayout;
+  } catch {
+    return {};
+  }
+}
+
 export default function PipelineTable({ data, summaries, onRowClick }: Props) {
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'stage', desc: false }]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const initial = useRef<PersistedLayout>(readLayout()).current;
+  const [sorting, setSorting] = useState<SortingState>(initial.sorting ?? DEFAULT_SORTING);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(initial.columnVisibility ?? {});
+  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(initial.columnSizing ?? {});
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [showColMenu, setShowColMenu] = useState(false);
+  const [dense, setDense] = useState(false);
   const parentRef = useRef<HTMLDivElement>(null);
+
+  const rowH = dense ? 32 : 44;
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ sorting, columnVisibility, columnSizing }));
+    } catch {
+      /* ignore quota / unavailable storage */
+    }
+  }, [sorting, columnVisibility, columnSizing]);
+
+  function resetLayout() {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
+    setSorting(DEFAULT_SORTING);
+    setColumnVisibility({});
+    setColumnSizing({});
+  }
 
   const columns = useMemo(
     () => [
@@ -98,9 +142,10 @@ export default function PipelineTable({ data, summaries, onRowClick }: Props) {
   const table = useReactTable({
     data,
     columns,
-    state: { sorting, columnVisibility, rowSelection },
+    state: { sorting, columnVisibility, columnSizing, rowSelection },
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
+    onColumnSizingChange: setColumnSizing,
     onRowSelectionChange: setRowSelection,
     getRowId: (o) => o.id,
     columnResizeMode: 'onChange',
@@ -109,8 +154,13 @@ export default function PipelineTable({ data, summaries, onRowClick }: Props) {
   });
 
   const rows = table.getRowModel().rows;
-  const v = useVirtualizer({ count: rows.length, getScrollElement: () => parentRef.current, estimateSize: () => 44, overscan: 12 });
+  const v = useVirtualizer({ count: rows.length, getScrollElement: () => parentRef.current, estimateSize: () => rowH, overscan: 12 });
   const selectedCount = table.getSelectedRowModel().rows.length;
+
+  // Re-measure virtual rows when density changes so positions stay correct.
+  useEffect(() => {
+    v.measure();
+  }, [rowH, v]);
 
   function handleExport(fmt: 'csv' | 'xlsx') {
     const sel = table.getSelectedRowModel().rows;
@@ -153,6 +203,12 @@ export default function PipelineTable({ data, summaries, onRowClick }: Props) {
         <button onClick={() => handleExport('xlsx')} className="px-3 py-1 border rounded hover:bg-slate-50">
           <i className="fas fa-file-excel mr-1 text-emerald-600" /> Excel
         </button>
+        <button onClick={() => setDense((d) => !d)} className="px-3 py-1 border rounded hover:bg-slate-50">
+          {dense ? 'Thoáng' : 'Gọn'}
+        </button>
+        <button onClick={resetLayout} className="px-3 py-1 border rounded hover:bg-slate-50">
+          Đặt lại
+        </button>
         {selectedCount > 0 && <span className="text-xs text-slate-500">Đã chọn {selectedCount} (xuất theo chọn)</span>}
       </div>
 
@@ -194,7 +250,7 @@ export default function PipelineTable({ data, summaries, onRowClick }: Props) {
                     className={`flex border-b text-sm cursor-pointer hover:bg-blue-50 items-center ${row.getIsSelected() ? 'bg-blue-50/60' : ''}`}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <div key={cell.id} style={{ width: cell.column.getSize() }} className="px-3 py-2.5 truncate">
+                      <div key={cell.id} style={{ width: cell.column.getSize() }} className={`px-3 truncate ${dense ? 'py-1' : 'py-2.5'}`}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </div>
                     ))}
