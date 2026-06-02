@@ -6,12 +6,15 @@ import StageBadge from '../components/execution/StageBadge';
 import ExecutionToolbar, { type ExecFilters, type StageFilter } from '../components/execution/ExecutionToolbar';
 import ExecutionOrderDetail from '../components/ExecutionOrderDetail';
 import ExecutionSplitModal from '../components/ExecutionSplitModal';
+import ExecutionDashboard from '../components/execution/ExecutionDashboard';
+import ImportWizard from '../components/execution/ImportWizard';
 
 type SortKey = 'po' | 'supplier' | 'stage' | 'eta' | 'outstanding' | 'aging';
 const uniq = (xs: (string | null)[]) => [...new Set(xs.filter((x): x is string => !!x))].sort();
 
 export default function ExecutionTracking() {
   const { orders, summaries, loading, error, reload } = useExecutionTracking();
+  const [tab, setTab] = useState<'pipeline' | 'dashboard' | 'import'>('pipeline');
   const [filters, setFilters] = useState<ExecFilters>({ stage: 'OPEN', supplier: 'ALL', method: 'ALL', region: 'ALL', q: '' });
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: 'stage', dir: 1 });
   const [selected, setSelected] = useState<SupplierOrder | null>(null);
@@ -85,9 +88,6 @@ export default function ExecutionTracking() {
     { label: '', w: 'w-10' },
   ];
 
-  if (loading) return <div className="p-6">Đang tải…</div>;
-  if (error) return <div className="p-6 text-red-600">{error}</div>;
-
   return (
     <div className="p-4">
       <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
@@ -109,6 +109,26 @@ export default function ExecutionTracking() {
         </div>
       </div>
 
+      <div className="flex gap-1 mb-3 text-sm border-b">
+        {([['pipeline', 'Pipeline'], ['dashboard', 'Dashboard & KPI'], ['import', 'Nhập từ NCC']] as const).map(([k, lbl]) => (
+          <button
+            key={k}
+            onClick={() => setTab(k)}
+            className={`px-4 py-2 -mb-px border-b-2 ${tab === k ? 'border-blue-600 text-blue-600 font-semibold' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+          >
+            {lbl}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'dashboard' && <ExecutionDashboard />}
+      {tab === 'import' && <ImportWizard />}
+      {tab === 'pipeline' && (loading ? (
+        <div className="p-6">Đang tải…</div>
+      ) : error ? (
+        <div className="p-6 text-red-600">{error}</div>
+      ) : (
+        <>
       <ExecutionToolbar filters={filters} onChange={setFilters} suppliers={suppliers} regions={regions} stageCounts={stageCounts} />
 
       <div className="mt-3 border rounded overflow-hidden">
@@ -161,6 +181,8 @@ export default function ExecutionTracking() {
         </div>
       </div>
       <p className="mt-2 text-xs text-gray-500">{rows.length} đơn NCC</p>
+        </>
+      ))}
 
       {selected && <ExecutionOrderDetail order={selected} onClose={() => setSelected(null)} onChange={reload} />}
       {splitOpen && (
