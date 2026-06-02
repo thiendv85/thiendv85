@@ -164,12 +164,32 @@ export interface OrderSummary {
 
 /**
  * Gom tóm tắt cấp đơn (ETA/tồn nợ/aging/trễ) cho bảng pipeline.
- * Mock: tính từ fixture. Thật: trả Map rỗng (cần view tổng hợp DB — giai đoạn sau,
- * tránh N+1 trên ~3k đơn). Bảng hiển thị "—" khi không có summary.
+ * Mock: tính từ fixture. Thật: 1 query view `supplier_order_summary`
+ * (migration 021) — tránh N+1 trên ~3k đơn.
  */
 export async function getOrderSummaries(orders: SupplierOrder[]): Promise<Map<string, OrderSummary>> {
   const out = new Map<string, OrderSummary>();
-  if (!EXECUTION_MOCK) return out;
+  if (!EXECUTION_MOCK) {
+    interface SummaryRow {
+      supplier_order_id: string;
+      outstanding: number | string;
+      eta: string | null;
+      aging_days: number | null;
+      is_late: boolean;
+    }
+    const rows = await selectAllPaginated<SummaryRow>((from, to) =>
+      supabase.from('supplier_order_summary').select('*').range(from, to),
+    );
+    for (const r of rows) {
+      out.set(r.supplier_order_id, {
+        eta: r.eta,
+        outstanding: Number(r.outstanding) || 0,
+        agingDays: r.aging_days,
+        isLate: !!r.is_late,
+      });
+    }
+    return out;
+  }
   const todayISO = new Date().toISOString().slice(0, 10);
   for (const o of orders) {
     const lines = await listOrderLines(o.id);
