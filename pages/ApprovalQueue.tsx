@@ -5,6 +5,7 @@ import { ApprovalStatusBadge } from '../components/ApprovalStatusBadge';
 import { OrderReviewModal } from '../components/OrderReviewModal';
 import { WorkflowStepper } from '../components/WorkflowStepper';
 import { FaIcon } from '../components/Icon';
+import ExecutionSplitModal from '../components/ExecutionSplitModal';
 import {
     fetchAllRequests,
     fetchMyRequests,
@@ -54,6 +55,7 @@ export const ApprovalQueue = ({ onLoadRequest, appSettings }: Props) => {
     const [downloadingId, setDownloadingId] = useState<string | null>(null);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' | 'loading' | 'amber' } | null>(null);
+    const [splitApprovalId, setSplitApprovalId] = useState<string | null>(null);
 
     const showToast = (msg: string, type: 'success' | 'error' | 'loading' | 'amber' = 'success') => {
         setToast({ msg, type });
@@ -372,6 +374,7 @@ export const ApprovalQueue = ({ onLoadRequest, appSettings }: Props) => {
                                                     onDownload={handleDownload}
                                                     onAction={handleAction}
                                                     onDelete={id => setConfirmModal({ type: 'delete', ids: [id] })}
+                                                    onSplit={setSplitApprovalId}
                                                     showToast={showToast}
                                                 />
                                             ))}
@@ -499,6 +502,14 @@ export const ApprovalQueue = ({ onLoadRequest, appSettings }: Props) => {
                 />
             )}
 
+            {splitApprovalId && (
+                <ExecutionSplitModal
+                    approvalId={splitApprovalId}
+                    onClose={() => setSplitApprovalId(null)}
+                    onDone={() => showToast('Đã tách & gán NCC', 'success')}
+                />
+            )}
+
             <style>{`
                 @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
                 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -528,6 +539,7 @@ interface RequestCardProps {
     onDownload: (req: ApprovalRequest) => void;
     onAction: (id: string, action: 'approved' | 'rejected') => void;
     onDelete: (id: string) => void;
+    onSplit?: (approvalId: string) => void;
     showToast: (msg: string, type?: 'success' | 'error' | 'loading' | 'amber') => void;
 }
 
@@ -545,6 +557,7 @@ const RequestCard = ({
     onDownload,
     onAction,
     onDelete,
+    onSplit,
     showToast,
 }: RequestCardProps) => {
     const tk = STATUS_UI[req.status];
@@ -817,6 +830,15 @@ const RequestCard = ({
                         )}
                         Tải CSV
                     </button>
+                    {req.status === 'approved' && onSplit && (
+                        <button
+                            onClick={() => onSplit(req.id)}
+                            title="Tách đơn theo NCC để theo dõi hàng về"
+                            className="h-9 px-4 rounded-xl text-[10px] font-black uppercase tracking-[0.18em] transition-all flex items-center gap-2 border bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50 hover:border-emerald-300"
+                        >
+                            <FaIcon className="fas fa-truck-ramp-box text-[11px]" /> Tách NCC
+                        </button>
+                    )}
                     <button
                         onClick={() => onOpenDetail(req)}
                         className="h-9 px-3 text-slate-400 hover:text-slate-700 rounded-xl text-[10px] font-black uppercase tracking-[0.18em] transition-all flex items-center gap-2"
