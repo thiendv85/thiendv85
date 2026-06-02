@@ -1,5 +1,5 @@
 import { type ExecStage, STAGE_ORDER } from '../../types/execution';
-import { STAGE_LABEL } from './StageBadge';
+import { STAGE_LABEL } from './stageMeta';
 
 export type StageFilter = ExecStage | 'OPEN' | 'ALL';
 

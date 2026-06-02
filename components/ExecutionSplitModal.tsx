@@ -51,7 +51,7 @@ const ExecutionSplitModal: React.FC<Props> = ({ approvalId, onClose, onDone }) =
                 setGroups(split.groups);
                 setUnmapped(split.unmapped);
                 setSupplierOptions([...new Set(map.values())].sort());
-            } catch (e) {
+            } catch {
                 if (!cancelled) setError('Lỗi khi tải & tách đơn theo NCC.');
             } finally {
                 if (!cancelled) setIsLoading(false);
@@ -99,7 +99,7 @@ const ExecutionSplitModal: React.FC<Props> = ({ approvalId, onClose, onDone }) =
             setResultMsg(`Đã tạo ${res.orders} đơn NCC với tổng ${res.lines} dòng.`);
             onDone?.();
             onClose();
-        } catch (e) {
+        } catch {
             setError('Lỗi khi ghi kết quả tách đơn.');
         } finally {
             setIsSaving(false);

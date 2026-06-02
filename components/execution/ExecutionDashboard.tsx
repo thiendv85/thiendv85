@@ -3,7 +3,7 @@ import { listSupplierOrders, listOrderLines, listReceiptLots } from '../../utils
 import { median } from '../../utils/execution/forecast';
 import { computeOutstanding, computeAgingDays } from '../../utils/execution/outstanding';
 import { STAGE_ORDER } from '../../types/execution';
-import type { SupplierOrder, OrderLine, ReceiptLot, ExecStage, ShipMethod } from '../../types/execution';
+import type { SupplierOrder, OrderLine, ReceiptLot, ExecStage } from '../../types/execution';
 
 /** Số ngày dương lịch giữa hai mốc ISO (a − b). null nếu thiếu/lỗi ngày. */
 function daysBetween(a: string | null | undefined, b: string | null | undefined): number | null {
