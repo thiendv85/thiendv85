@@ -142,7 +142,21 @@ export function groupCanonicalRows(rows: MappedRow[]): GroupResult {
     }
     const lb = bucket.lines.get(c.line.part_code)!;
     lb.line.qty_ordered += c.line.qty_ordered;
-    lb.lots.push(c.lot);
+    // Gộp lô theo invoice_no (key '' cho null) → tránh tuple trùng (order_line_id, invoice_no)
+    // trong 1 upsert batch; cộng qty_received, giữ mốc mới nhất (coalesce).
+    const inv = lb.lots.find((x) => (x.invoice_no || '') === (c.lot.invoice_no || ''));
+    if (inv) {
+      inv.qty_received += c.lot.qty_received;
+      inv.invoice_date ??= c.lot.invoice_date;
+      inv.etd_pol ??= c.lot.etd_pol;
+      inv.eta_pod ??= c.lot.eta_pod;
+      inv.port ??= c.lot.port;
+      inv.expected_wh_date ??= c.lot.expected_wh_date;
+      inv.actual_wh_date ??= c.lot.actual_wh_date;
+      inv.warehouse ??= c.lot.warehouse;
+    } else {
+      lb.lots.push({ ...c.lot });
+    }
   }
   return { orders, skippedNoPo, skippedNoSupplier, skippedNoPart };
 }

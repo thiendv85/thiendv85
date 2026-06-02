@@ -2,9 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { expandApprovalToLines } from '../execution/fromApproval';
 import type { SnapshotData } from '../../types/inventory';
 
+const base = { submitted_at: '2026-01-01', app_version: '2.1.0' };
+
 describe('expandApprovalToLines', () => {
   it('bung quantities thành dòng (air & sea tách dòng, bỏ qty 0)', () => {
-    const snapshot: SnapshotData = { quantities: { A1: { air: 5, sea: 0 }, B2: { air: 0, sea: 3 } } };
+    const snapshot: SnapshotData = { ...base, quantities: { A1: { air: 5, sea: 0 }, B2: { air: 0, sea: 3 } } };
     const lines = expandApprovalToLines(snapshot);
     expect(lines).toEqual(
       expect.arrayContaining([
@@ -16,12 +18,12 @@ describe('expandApprovalToLines', () => {
   });
 
   it('một mã có cả air & sea → 2 dòng', () => {
-    const snapshot: SnapshotData = { quantities: { A1: { air: 2, sea: 4 } } };
+    const snapshot: SnapshotData = { ...base, quantities: { A1: { air: 2, sea: 4 } } };
     expect(expandApprovalToLines(snapshot)).toHaveLength(2);
   });
 
   it('quantities rỗng/thiếu → 0 dòng', () => {
-    expect(expandApprovalToLines({})).toHaveLength(0);
+    expect(expandApprovalToLines({ ...base })).toHaveLength(0);
   });
 
   it('stub nén chưa rehydrate → throw (không ra 0 dòng âm thầm)', () => {

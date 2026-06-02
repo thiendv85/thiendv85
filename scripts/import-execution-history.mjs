@@ -46,7 +46,8 @@ const failures = [];
 for (const { order, lines } of orders.values()) {
   const { data: so, error: e1 } = await supabase
     .from('supplier_orders')
-    .upsert(order, { onConflict: 'po_region_no,supplier' })
+    // khớp uq_so_natural(source,po_region_no,supplier) — index TỔNG (order.source==='imported')
+    .upsert(order, { onConflict: 'source,po_region_no,supplier' })
     .select('id')
     .single();
   if (e1 || !so) {

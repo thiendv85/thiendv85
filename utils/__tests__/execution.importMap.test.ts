@@ -88,12 +88,23 @@ describe('groupCanonicalRows', () => {
     lot: { invoice_no: invoice, invoice_date: null, etd_pol: null, eta_pod: null, port: null, expected_wh_date: null, actual_wh_date: null, warehouse: null, qty_received: received },
   });
 
-  it('gộp qty đa-lô cùng (đơn, mã) + đếm lô', () => {
+  it('gộp qty đa-lô cùng (đơn, mã) + đếm lô (invoice khác nhau → 2 lô)', () => {
     const rows = [mk('PO1', 'NCC1', 'P1', 10, 'INV1', 10), mk('PO1', 'NCC1', 'P1', 5, 'INV2', 5)];
     const r = groupCanonicalRows(rows);
     const line = r.orders.get('PO1|NCC1')!.lines.get('P1')!;
     expect(line.line.qty_ordered).toBe(15);
     expect(line.lots).toHaveLength(2);
+  });
+
+  it('cùng invoice (hoặc đều null) → gộp về 1 lô, cộng qty_received (tránh tuple trùng)', () => {
+    const sameInv = [mk('PO1', 'NCC1', 'P1', 10, 'INV1', 10), mk('PO1', 'NCC1', 'P1', 5, 'INV1', 5)];
+    const r1 = groupCanonicalRows(sameInv).orders.get('PO1|NCC1')!.lines.get('P1')!;
+    expect(r1.lots).toHaveLength(1);
+    expect(r1.lots[0].qty_received).toBe(15);
+
+    const nullInv = [mk('PO2', 'NCC1', 'P1', 3, null, 0), mk('PO2', 'NCC1', 'P1', 4, null, 0)];
+    const r2 = groupCanonicalRows(nullInv).orders.get('PO2|NCC1')!.lines.get('P1')!;
+    expect(r2.lots).toHaveLength(1);
   });
 
   it('đếm & bỏ dòng thiếu po/supplier/part, không bịa', () => {

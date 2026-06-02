@@ -1,6 +1,7 @@
 import { supabase } from './client';
 import { selectAllPaginated } from './helpers';
 import type { SupplierOrder, OrderLine, ReceiptLot, OrderType, ShipMethod } from '../../types/execution';
+import { STAGE_ORDER } from '../../types/execution';
 import type { SplittableLine } from '../execution/split';
 import { stageFromLot, rollupOrderStage } from '../execution/stateMachine';
 
@@ -69,7 +70,6 @@ export async function upsertReceiptLot(lot: Partial<ReceiptLot>): Promise<void> 
  */
 export async function recomputeOrderStage(orderId: string): Promise<SupplierOrder['stage']> {
   const lines = await listOrderLines(orderId);
-  const STAGE_RANK = (await import('../../types/execution')).STAGE_ORDER;
   const lineStages = await Promise.all(
     lines.map(async (l) => {
       const lots = await listReceiptLots(l.id);
@@ -77,7 +77,7 @@ export async function recomputeOrderStage(orderId: string): Promise<SupplierOrde
       // dòng = bậc CAO nhất trong các lô (lô tiến xa nhất)
       return lots
         .map((lot) => stageFromLot(lot))
-        .reduce((hi, s) => (STAGE_RANK.indexOf(s) > STAGE_RANK.indexOf(hi) ? s : hi));
+        .reduce((hi, s) => (STAGE_ORDER.indexOf(s) > STAGE_ORDER.indexOf(hi) ? s : hi));
     }),
   );
   const stage = rollupOrderStage(lineStages);
