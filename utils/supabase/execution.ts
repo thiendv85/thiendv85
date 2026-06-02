@@ -185,6 +185,30 @@ export async function reconcileImport(templateId: string, rawRows: unknown[][]):
   return reconcile(rows, idx);
 }
 
+export interface ApplyResult {
+  matched: number;
+  newLots: number;
+  newOrders: number;
+  unmatched: number;
+}
+
+/**
+ * Ghi nhận kết quả đối chiếu. Mock/demo: KHÔNG ghi DB, trả số đếm.
+ * Apply thật (upsert lô theo khoá / tạo đơn-dòng mới) làm khi nối Supabase live.
+ */
+export async function applyReconcile(r: ReconcileResult): Promise<ApplyResult> {
+  if (!EXECUTION_MOCK) {
+    // TODO(live): matched → upsertReceiptLot(canonical.lot); newLots/newOrders → tạo dòng/đơn.
+    // Cần resolve order_line_id từ khoá — làm khi có dữ liệu thật + part_supplier_map.
+  }
+  return {
+    matched: r.matched.length,
+    newLots: r.newLots.length,
+    newOrders: r.newOrders.length,
+    unmatched: r.unmatched.length,
+  };
+}
+
 export interface OrderSummary {
   eta: string | null; // ETA sớm nhất của lô chưa về
   outstanding: number; // tổng tồn nợ các dòng

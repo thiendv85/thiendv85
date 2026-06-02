@@ -70,6 +70,28 @@ export const mockOrderLines = (orderId: string): OrderLine[] => LINES[orderId] ?
 export const mockReceiptLots = (lineId: string): ReceiptLot[] => LOTS[lineId] ?? [];
 
 // ─── Snapshot đơn duyệt giả cho Cổng G1 (có mã mapped + mã unmapped) ───
+// ─── Dòng thô NCC mẫu cho ImportWizard (vị trí cột theo DEFAULT_HEADER_INDEX) ───
+// Khoá = external_ref (cột 17). Khớp với đơn mock: so-1 ext 'A26VBW3AAE' (Z1140306256K / F3A00719).
+function rawRow(opts: { po?: string; ship?: string; part: string; qty?: number; supplier?: string; extRef?: string | null; invoice?: string | null; status?: string }): unknown[] {
+  const r: unknown[] = [];
+  r[1] = opts.po ?? 'EPCBB23010501';
+  r[5] = opts.ship ?? 'SEA';
+  r[7] = opts.part;
+  r[11] = opts.qty ?? 1;
+  r[15] = opts.supplier ?? 'Mobis Korea';
+  r[17] = opts.extRef ?? null;
+  r[19] = opts.invoice ?? null;
+  r[27] = opts.status ?? 'Chưa invoice';
+  return r;
+}
+export const SAMPLE_IMPORT_ROWS: unknown[][] = [
+  rawRow({ part: 'Z1140306256K', extRef: 'A26VBW3AAE', invoice: 'F3A00719', status: 'Đã nhập kho', qty: 15 }), // matched
+  rawRow({ part: 'Z1140306256K', extRef: 'A26VBW3AAE', invoice: 'F3B22222', status: 'Đang thông quan' }), // newLot (invoice mới)
+  rawRow({ part: 'Z96621R0000', extRef: 'A26VBW9KZ1', invoice: 'F3B01200', status: 'Đến VN' }), // matched (so-2)
+  rawRow({ part: 'NEWPART01', extRef: 'A26VBWNEW9', invoice: 'INV-NEW', status: 'Chưa invoice', qty: 5 }), // newOrder
+  rawRow({ part: 'NOPART', extRef: null, invoice: null, status: 'Chưa invoice' }), // unmatched (thiếu khoá)
+];
+
 export const MOCK_APPROVAL_ID = 'mock-approval-1';
 export const MOCK_APPROVAL_SNAPSHOT: SnapshotData = {
   submitted_at: '2026-05-30',
