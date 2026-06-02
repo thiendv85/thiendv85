@@ -12,6 +12,21 @@
 
 ---
 
+## Revisions (v2 — sau review đội dev: tdd-guide/architect/typescript-reviewer/silent-failure-hunter)
+
+1. **selectAllPaginated** dùng callback builder (không phải `(table, cols)`) — Task 8.
+2. **Rehydrate snapshot duyệt** trước khi bung: snapshot lớn bị gzip lên Storage, `snapshot_data` chỉ là stub → phải decompress qua `utils/supabase/approval.ts` trước `expandApprovalToLines` — Task 12.
+3. **Cầu nối normalize mã PT**: `part_supplier_map` key bằng `normalizePartCode`; resolver supersession phải normalize cả đầu vào lẫn đầu ra trước khi tra map — Task 3.
+4. **Gộp qty_ordered**: `qty_ordered(dòng) = Σ qty các dòng Excel cùng (đơn, mã)`; mỗi dòng Excel = 1 lô với `qty_received = qty dòng đó nếu đã nhập kho, ngược lại 0` — Task 9/10.
+5. **Import fail-loud + idempotent**: gom lỗi từng tầng, in tổng kết, ghi `rows_failed` vào `import_log`, exit≠0 khi có lỗi; natural key + skip-if-exists để re-run không nhân đôi; chạy bằng `npx tsx` — Task 10.
+6. **Không bịa NCC**: supplier rỗng → quarantine + đếm, KHÔNG default `'KHÔNG RÕ'` (vì là khoá gom) — Task 9.
+7. **Chuẩn hoá trạng thái trước khi map**: `excelStatusToStage` trim+collapse+hoa, xử lý null/lạ — Task 9.
+8. **Ngày an toàn**: `iso()` nhận Excel serial number + chuỗi; bất hợp lệ→null (phân biệt rỗng vs lỗi để đếm); `addDaysISO` guard NaN→null — Task 6/9.
+9. **Idempotency keys** ở migration: unique trên `supplier_orders` + `receipt_lots(order_line_id, invoice_no)` — Task 7.
+10. **`stage` tính khi đọc** (không tin cột lưu) hoặc recompute trong `upsertReceiptLot` — Task 5/8.
+
+---
+
 ## File Structure
 
 | File | Trách nhiệm |
@@ -313,7 +328,7 @@ export function splitBySupplier<T extends SplittableLine>(
 }
 ```
 
-> Lưu ý: `partSupplierMap` keys phải đã `normalizePartCode`. Test trên dùng key `'Z1140306256K'` (không dấu cách) — khớp sau normalize.
+> **Cầu nối keyspace (review):** `partSupplierMap` keys phải đã `normalizePartCode` (bỏ ` -_./`). Nhưng `SupersessionGraph` key bằng `trim/upper` (GIỮ dấu cách/gạch). `resolveSupersession` nhận mã gốc → tra supersession bằng dạng graph cần → trả mã mới, rồi để `splitBySupplier` tự `normalizePartCode`. Không trộn 2 keyspace. Bổ sung test: mã thường + `-./` (gap tdd-guide nêu).
 
 - [ ] **Step 4: Chạy test, xác nhận PASS**
 
@@ -545,9 +560,10 @@ export function median(xs: number[]): number | null {
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
-function addDaysISO(iso: string, days: number): string {
-  const d = new Date(iso);
-  return new Date(d.getTime() + days * MS_PER_DAY).toISOString().slice(0, 10);
+function addDaysISO(iso: string, days: number): string | null {
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return null; // ngày lỗi → null, KHÔNG throw (giữ hợp đồng null-on-bad)
+  return new Date(t + days * MS_PER_DAY).toISOString().slice(0, 10);
 }
 
 /**
@@ -643,6 +659,15 @@ CREATE TABLE IF NOT EXISTS receipt_lots (
 CREATE INDEX IF NOT EXISTS idx_rl_line ON receipt_lots(order_line_id);
 CREATE INDEX IF NOT EXISTS idx_rl_invoice ON receipt_lots(invoice_no);
 
+-- Idempotency / natural keys (re-import & reconcile không nhân đôi):
+-- 1 mã PT chỉ 1 dòng / đơn NCC.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_ol_order_part ON order_lines(supplier_order_id, part_code);
+-- 1 lô / (dòng, invoice). Lưu ý: NULL invoice_no được Postgres coi là phân biệt;
+-- import lịch sử phải dùng skip-if-exists theo khoá này (xem Task 10), không chỉ dựa unique.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_rl_line_invoice ON receipt_lots(order_line_id, invoice_no);
+-- Đơn import: 1 đơn / (po_region_no, supplier). Chỉ áp cho source='imported'.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_so_imported ON supplier_orders(po_region_no, supplier) WHERE source = 'imported';
+
 CREATE TABLE IF NOT EXISTS import_log (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     supplier TEXT,
@@ -705,13 +730,12 @@ vi.mock('../../utils/supabase/client', () => ({
   },
 }));
 
-import { buildSupplierOrderRows } from '../../utils/supabase/execution';
+import { buildSupplierOrderRows, type OrderMeta } from '../../utils/supabase/execution';
 
 describe('buildSupplierOrderRows', () => {
   it('map nhóm NCC → bản ghi supplier_orders', () => {
-    const rows = buildSupplierOrderRows('appr-1', new Map([['Mobis Korea', [{ part_code: 'A', qty_ordered: 2 }]]]), {
-      po_region_no: 'PO1', region: 'Miền Bắc', order_type: 'KHAN', ship_method: 'AIR',
-    });
+    const meta: OrderMeta = { po_region_no: 'PO1', region: 'Miền Bắc', order_type: 'KHAN', ship_method: 'AIR' };
+    const rows = buildSupplierOrderRows('appr-1', new Map([['Mobis Korea', [{ part_code: 'A', qty_ordered: 2 }]]]), meta);
     expect(rows).toHaveLength(1);
     expect(rows[0].supplier).toBe('Mobis Korea');
     expect(rows[0].source).toBe('v16');
@@ -734,7 +758,7 @@ import { selectAllPaginated } from './helpers';
 import type { SupplierOrder, OrderLine, ReceiptLot, OrderType, ShipMethod } from '../../types/execution';
 import type { SplittableLine } from '../execution/split';
 
-interface OrderMeta {
+export interface OrderMeta {
   po_region_no: string | null; region: string | null;
   order_type: OrderType | null; ship_method: ShipMethod | null;
 }
@@ -762,7 +786,10 @@ export function buildSupplierOrderRows(
 }
 
 export async function listSupplierOrders(): Promise<SupplierOrder[]> {
-  return selectAllPaginated<SupplierOrder>('supplier_orders', '*');
+  // selectAllPaginated nhận CALLBACK builder (from,to), không phải (table, cols).
+  return selectAllPaginated<SupplierOrder>((from, to) =>
+    supabase.from('supplier_orders').select('*').order('created_at').range(from, to),
+  );
 }
 
 export async function listOrderLines(orderId: string): Promise<OrderLine[]> {
@@ -783,12 +810,13 @@ export async function updateSupplierOrder(id: string, patch: Partial<SupplierOrd
 }
 
 export async function upsertReceiptLot(lot: Partial<ReceiptLot>): Promise<void> {
-  const { error } = await supabase.from('receipt_lots').upsert(lot);
+  // onConflict khớp uq_rl_line_invoice → sửa tay/re-import không nhân đôi lô.
+  const { error } = await supabase.from('receipt_lots').upsert(lot, { onConflict: 'order_line_id,invoice_no' });
   if (error) throw error;
 }
 ```
 
-> Kiểm tra chữ ký `selectAllPaginated` trong `utils/supabase/helpers.ts:` và chỉnh tham số cho khớp nếu cần.
+> **`stage` tính khi đọc (review #10):** cột `supplier_orders.stage` chỉ là cache. `upsertReceiptLot`/`saveStage` phải recompute `stage` (qua `stageFromLot` + `rollupOrderStage` trên các lô của đơn) và ghi lại trong cùng thao tác; hook nên ưu tiên giá trị recompute để tránh drift. `upsertReceiptLot` phải truyền `onConflict: 'order_line_id,invoice_no'` (khớp uq_rl_line_invoice) để sửa tay không nhân đôi lô.
 
 - [ ] **Step 4: Chạy test, xác nhận PASS**
 
@@ -875,20 +903,35 @@ import type { ExecStage } from '../../types/execution';
 export type HeaderIndex = Record<string, number>;
 
 export function excelStatusToStage(status: string | null): ExecStage {
-  const s = (status || '').trim();
-  if (s === 'Đã nhập kho') return 'S8_RECEIVED';
-  if (s === 'Đang thông quan') return 'S7_CUSTOMS';
-  if (s === 'Đã có invoice, có lịch về') return 'S4_INVOICED';
-  return 'S2_ORDERED'; // "Chưa invoice" + mặc định
+  // Chuẩn hoá trước khi khớp: dữ liệu bẩn (hoa/thường/space) không được rớt về mặc định.
+  const s = (status || '').trim().replace(/\s+/g, ' ').toUpperCase();
+  if (!s) return 'S2_ORDERED';
+  if (s === 'ĐÃ NHẬP KHO') return 'S8_RECEIVED';
+  if (s === 'ĐANG THÔNG QUAN') return 'S7_CUSTOMS';
+  if (s === 'ĐÃ CÓ INVOICE, CÓ LỊCH VỀ' || s.startsWith('ĐÃ CÓ INVOICE')) return 'S4_INVOICED';
+  if (s === 'CHƯA INVOICE') return 'S2_ORDERED';
+  return 'S2_ORDERED'; // giá trị lạ — script phải ĐẾM & báo (xem Task 10), không nuốt thầm
 }
 
+const EXCEL_EPOCH = Date.UTC(1899, 11, 30); // serial 0 = 1899-12-30
+/** Trả ISO yyyy-mm-dd. null = rỗng HOẶC không parse được (script đếm riêng loại sau). */
 const iso = (v: unknown): string | null => {
-  if (!v) return null;
-  const d = v instanceof Date ? v : new Date(String(v));
+  if (v == null || v === '') return null;
+  let d: Date;
+  if (v instanceof Date) d = v;
+  else if (typeof v === 'number') d = new Date(EXCEL_EPOCH + v * 86_400_000); // Excel serial
+  else d = new Date(String(v).trim());
   return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
 };
 const num = (v: unknown): number => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
-const str = (v: unknown): string | null => { const s = (v == null ? '' : String(v)).trim(); return s && s !== '_' ? s : null; };
+const str = (v: unknown): string | null => {
+  // exceljs cell có thể là object rich-text/hyperlink → lấy .text/.result nếu có.
+  const raw = v && typeof v === 'object' && !(v instanceof Date)
+    ? ((v as { text?: string; result?: unknown }).text ?? (v as { result?: unknown }).result ?? '')
+    : v;
+  const s = (raw == null ? '' : String(raw)).trim();
+  return s && s !== '_' ? s : null;
+};
 
 /** Map 1 dòng Excel (mảng theo cột) → {order, line, lot} canonical, đã chuẩn hoá. */
 export function mapExcelRowToCanonical(row: unknown[], h: HeaderIndex) {
@@ -902,7 +945,7 @@ export function mapExcelRowToCanonical(row: unknown[], h: HeaderIndex) {
     region: str(row[h.region]),
     order_type: normOrderType(str(row[h.order_type])),
     ship_method: normShipMethod(str(row[h.ship_method])),
-    supplier: str(row[h.supplier]) || 'KHÔNG RÕ',
+    supplier: str(row[h.supplier]), // string | null — KHÔNG bịa. Script quarantine dòng supplier=null.
     external_order_ref: str(row[h.ext_ref]),
     ordered_at: iso(row[h.ordered_at]),
     supplier_confirmed_at: iso(row[h.confirmed_at]),
@@ -978,6 +1021,7 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 
 const orderKey = (o) => `${o.po_region_no || ''}|${o.supplier}`;
 const orders = new Map();   // key → {order, lines: Map(part→{line, lots:[]})}
+let skippedNoPo = 0, skippedNoSupplier = 0, skippedNoPart = 0;
 
 const wb = new ExcelJS.stream.xlsx.WorkbookReader(FILE, {});
 let rowNum = 0;
@@ -987,47 +1031,69 @@ for await (const worksheet of wb) {
     if (rowNum === 1) continue; // header
     const values = row.values; // exceljs: index 1-based; values[0] undefined
     const arr = []; for (let i = 0; i < values.length; i++) arr[i] = values[i];
-    if (!arr[HEADER_INDEX.po_no]) continue;
+    if (!arr[HEADER_INDEX.po_no]) { skippedNoPo++; continue; }
     const c = mapExcelRowToCanonical(arr, HEADER_INDEX);
+    if (!c.order.supplier) { skippedNoSupplier++; continue; }   // KHÔNG bịa NCC — quarantine
+    if (!c.line.part_code) { skippedNoPart++; continue; }
     const k = orderKey(c.order);
     if (!orders.has(k)) orders.set(k, { order: c.order, lines: new Map() });
     const bucket = orders.get(k);
-    if (!bucket.lines.has(c.line.part_code)) bucket.lines.set(c.line.part_code, { line: c.line, lots: [] });
-    bucket.lines.get(c.line.part_code).lots.push(c.lot);
+    if (!bucket.lines.has(c.line.part_code)) {
+      bucket.lines.set(c.line.part_code, { line: { ...c.line, qty_ordered: 0 }, lots: [] });
+    }
+    const lb = bucket.lines.get(c.line.part_code);
+    lb.line.qty_ordered += c.line.qty_ordered;  // GỘP: qty đặt = Σ qty các dòng cùng (đơn, mã)
+    lb.lots.push(c.lot);
   }
 }
 console.log(`Đọc ${rowNum - 1} dòng → ${orders.size} đơn NCC`);
+console.log(`Bỏ qua: ${skippedNoPo} thiếu PO, ${skippedNoSupplier} thiếu NCC, ${skippedNoPart} thiếu mã PT`);
 
-// Ghi theo lô: orders → lines → lots
+// Ghi theo lô: orders → lines → lots. IDEMPOTENT (upsert theo natural key) + FAIL-LOUD.
 let nOrders = 0, nLines = 0, nLots = 0;
+const failures = []; // {level, key, error}
 for (const { order, lines } of orders.values()) {
-  const { data: so, error: e1 } = await supabase.from('supplier_orders').insert(order).select('id').single();
-  if (e1) { console.error('order err', e1.message); continue; }
+  // upsert đơn theo (po_region_no, supplier) cho source='imported' (uq_so_imported) → re-run không nhân đôi
+  const { data: so, error: e1 } = await supabase.from('supplier_orders')
+    .upsert(order, { onConflict: 'po_region_no,supplier', ignoreDuplicates: false })
+    .select('id').single();
+  if (e1 || !so) { failures.push({ level: 'order', key: orderKey(order), error: e1?.message || 'no id' }); continue; }
   nOrders++;
   for (const { line, lots } of lines.values()) {
     const { data: ol, error: e2 } = await supabase.from('order_lines')
-      .insert({ ...line, supplier_order_id: so.id }).select('id').single();
-    if (e2) { console.error('line err', e2.message); continue; }
+      .upsert({ ...line, supplier_order_id: so.id }, { onConflict: 'supplier_order_id,part_code' })
+      .select('id').single();
+    if (e2 || !ol) { failures.push({ level: 'line', key: `${so.id}/${line.part_code}`, error: e2?.message || 'no id' }); continue; }
     nLines++;
     const lotRows = lots.map((l) => ({ ...l, order_line_id: ol.id }));
-    const { error: e3 } = await supabase.from('receipt_lots').insert(lotRows);
-    if (e3) console.error('lot err', e3.message); else nLots += lotRows.length;
+    // upsert lô theo (order_line_id, invoice_no) (uq_rl_line_invoice)
+    const { error: e3 } = await supabase.from('receipt_lots')
+      .upsert(lotRows, { onConflict: 'order_line_id,invoice_no' });
+    if (e3) failures.push({ level: 'lot', key: ol.id, error: e3.message }); else nLots += lotRows.length;
   }
 }
+
+const byLevel = (lv) => failures.filter((f) => f.level === lv).length;
 await supabase.from('import_log').insert({
   supplier: 'HISTORICAL', filename: FILE, rows_total: rowNum - 1,
-  rows_matched: 0, rows_new: nLines, rows_unmatched: 0, note: 'one-time historical load',
+  rows_matched: 0, rows_new: nLines, rows_unmatched: skippedNoPo + skippedNoSupplier + skippedNoPart,
+  note: `orders=${nOrders} lines=${nLines} lots=${nLots} | skipped: po=${skippedNoPo} ncc=${skippedNoSupplier} part=${skippedNoPart} | failed: order=${byLevel('order')} line=${byLevel('line')} lot=${byLevel('lot')}`,
 });
 console.log(`Đã ghi: ${nOrders} đơn, ${nLines} dòng, ${nLots} lô`);
+if (failures.length) {
+  console.error(`THẤT BẠI ${failures.length}: order=${byLevel('order')} line=${byLevel('line')} lot=${byLevel('lot')}`);
+  failures.slice(0, 20).forEach((f) => console.error(`  [${f.level}] ${f.key}: ${f.error}`));
+  process.exit(1); // fail-loud: exit≠0 để CI/người chạy biết
+}
 ```
 
 - [ ] **Step 2: Chạy thử trên tập nhỏ (sanity)**
 
-Tạo bản copy 200 dòng đầu của file Excel (thủ công hoặc bằng script tách), đặt biến môi trường, chạy:
-`SUPABASE_URL=... SUPABASE_SERVICE_KEY=... node scripts/import-execution-history.mjs "test_200.xlsx"`
-Expected: log "Đọc 199 dòng → N đơn NCC" và "Đã ghi…" không lỗi; kiểm tra bảng `supplier_orders`/`order_lines`/`receipt_lots` có dữ liệu.
+Tạo bản copy 200 dòng đầu của file Excel, đặt biến môi trường, chạy bằng **`npx tsx`** (vì `.mjs` import `.ts`):
+`SUPABASE_URL=... SUPABASE_SERVICE_KEY=... npx tsx scripts/import-execution-history.mjs "test_200.xlsx"`
+Expected: log "Đọc 199 dòng → N đơn NCC", dòng "Bỏ qua…", "Đã ghi…" và KHÔNG có dòng "THẤT BẠI"; exit 0. Kiểm tra 3 bảng có dữ liệu. Chạy LẠI lần 2 → số liệu không tăng (idempotent).
 
-> Lưu ý: import `.ts` trong `.mjs` cần chạy qua `tsx` (đã có trong deps): `npx tsx scripts/import-execution-history.mjs ...`. Nếu vẫn lỗi import, đổi `importMap.ts` → biên dịch hoặc dùng `npx tsx`.
+> Bắt buộc `npx tsx` (KHÔNG dùng bare `node` — không chạy được `.ts`). Xác nhận `tsx` có trong devDependencies trước (`package.json`); nếu thiếu: `npm i -D tsx`.
 
 - [ ] **Step 3: Chạy đầy đủ 187k (sau khi sanity OK)**
 
@@ -1073,8 +1139,14 @@ export function useExecutionTracking() {
   useEffect(() => { reload(); }, [reload]);
 
   const saveStage = useCallback(async (id: string, patch: Partial<SupplierOrder>) => {
-    await updateSupplierOrder(id, patch);
-    await reload();
+    try {
+      await updateSupplierOrder(id, patch);
+      await reload();
+    } catch (e) {
+      // Không nuốt thầm: hiện lỗi để user biết ghi THẤT BẠI (vd RLS từ chối non-planner).
+      setError(e instanceof Error ? e.message : 'Lỗi lưu trạng thái');
+      throw e;
+    }
   }, [reload]);
 
   return { orders, loading, error, reload, saveStage };
@@ -1204,10 +1276,20 @@ import type { ShipMethod } from '../../types/execution';
 
 export interface ExpandedLine { part_code: string; qty_ordered: number; ship_method: ShipMethod; }
 
-/** Bung snapshot_data.quantities {itemCode:{air,sea}} → các dòng (bỏ số lượng 0). */
+/**
+ * Bung snapshot_data.quantities {itemCode:{air,sea}} → các dòng (bỏ số lượng 0).
+ * ⚠️ QUAN TRỌNG: snapshot lớn (>50KB) bị gzip lên Supabase Storage, `snapshot_data`
+ * trong DB chỉ là stub {is_compressed, storage_path}. PHẢI rehydrate (download +
+ * decompressData qua utils/supabase/approval.ts) TRƯỚC khi gọi hàm này, nếu không
+ * `quantities` = undefined → ra 0 dòng âm thầm. Hàm này chỉ nhận snapshot ĐÃ rehydrate.
+ */
 export function expandApprovalToLines(snapshot: SnapshotData): ExpandedLine[] {
   const out: ExpandedLine[] = [];
   const q = snapshot.quantities ?? {};
+  // Fail-loud nếu nhận phải stub nén (chưa rehydrate) — tránh ra 0 dòng âm thầm.
+  if ((snapshot as { is_compressed?: boolean }).is_compressed && Object.keys(q).length === 0) {
+    throw new Error('Snapshot chưa rehydrate (đang nén ở Storage) — decompress qua approval.ts trước');
+  }
   for (const [code, v] of Object.entries(q)) {
     if (v.air > 0) out.push({ part_code: code, qty_ordered: v.air, ship_method: 'AIR' });
     if (v.sea > 0) out.push({ part_code: code, qty_ordered: v.sea, ship_method: 'SEA' });
@@ -1231,7 +1313,7 @@ git add utils/execution/fromApproval.ts utils/__tests__/execution.fromApproval.t
 git commit -m "feat(execution): expand approved snapshot into order lines (air/sea)"
 ```
 
-> UI cho review tách NCC (G1) và bind khoá ngoài (S2): nối `expandApprovalToLines` → `splitBySupplier` → `buildSupplierOrderRows` trong một modal "Tách & gán NCC" trên page Task 11; hiển thị nhóm theo NCC + danh sách `unmapped` để gán tay; nút xác nhận ghi `supplier_orders`/`order_lines`. (Triển khai trong cùng pattern modal của V16, ví dụ `components/OrderReviewModal.tsx`.)
+> UI cho review tách NCC (G1) và bind khoá ngoài (S2): luồng **rehydrate snapshot (decompress qua `utils/supabase/approval.ts` nếu `is_compressed`)** → `expandApprovalToLines` → `splitBySupplier` → `buildSupplierOrderRows`, trong một modal "Tách & gán NCC" trên page Task 11. Hiển thị nhóm theo NCC + danh sách `unmapped`; **chặn nút xác nhận khi `unmapped.length > 0`** (hoặc lưu unmapped vào quarantine) và assert `Σ qty dòng ghi == Σ qty dòng vào` để không mất dòng âm thầm. Ghi `supplier_orders`/`order_lines`. (Theo pattern modal V16, ví dụ `components/OrderReviewModal.tsx`.)
 
 ---
 
@@ -1254,3 +1336,6 @@ git commit -m "feat(execution): expand approved snapshot into order lines (air/s
 **Type consistency:** `ExecStage`, `STAGE_ORDER`, `SupplierOrder`, `OrderLine`, `ReceiptLot`, `SplittableLine`, `mapExcelRowToCanonical`, `buildSupplierOrderRows`, `expandApprovalToLines` dùng nhất quán giữa các task. `normShipMethod/normOrderType/normPort/normGroup` khớp Task 2 ↔ Task 9.
 
 **Đầu vào còn thiếu (chặn một phần GĐ1):** master `part_supplier_map` — nếu chưa có, Task 3/12 vẫn chạy nhưng mọi mã rơi vào `unmapped`; cần Ban cung cấp bảng ánh xạ để tách tự động (xem §13 spec).
+
+**v2 — đã vá sau review đội dev (xem Revisions đầu file):** selectAllPaginated (T8), rehydrate snapshot nén (T12), cầu nối normalize mã PT (T3), gộp qty_ordered (T9/10), import fail-loud + idempotent + npx tsx (T10), không bịa NCC (T9), chuẩn hoá trạng thái + ngày Excel-serial an toàn (T6/9), unique keys idempotency (T7), stage tính khi đọc + onConflict (T5/8), saveStage không nuốt lỗi (T11).
+*Còn nên làm khi thực thi (gap tdd-guide, chưa chặn):* tách hàm `groupCanonicalRows` thuần để test gộp đa-lô + perf 100k; test dirty-cases cho `excelStatusToStage`/`iso`; bỏ `as any` trong test T12; `HeaderIndex` thành union literal.
