@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { listSupplierOrders, updateSupplierOrder } from '../utils/supabase/execution';
+import { listSupplierOrders, updateSupplierOrder, getOrderSummaries, type OrderSummary } from '../utils/supabase/execution';
 import type { SupplierOrder } from '../types/execution';
 
 export function useExecutionTracking() {
   const [orders, setOrders] = useState<SupplierOrder[]>([]);
+  const [summaries, setSummaries] = useState<Map<string, OrderSummary>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -11,7 +12,9 @@ export function useExecutionTracking() {
     setLoading(true);
     setError(null);
     try {
-      setOrders(await listSupplierOrders());
+      const list = await listSupplierOrders();
+      setOrders(list);
+      setSummaries(await getOrderSummaries(list));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Lỗi tải dữ liệu');
     } finally {
@@ -37,5 +40,5 @@ export function useExecutionTracking() {
     [reload],
   );
 
-  return { orders, loading, error, reload, saveStage };
+  return { orders, summaries, loading, error, reload, saveStage };
 }
