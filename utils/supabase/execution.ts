@@ -4,7 +4,7 @@ import type { SupplierOrder, OrderLine, ReceiptLot, OrderType, ShipMethod, PartS
 import { STAGE_ORDER } from '../../types/execution';
 import type { SplittableLine } from '../execution/split';
 import { stageFromLot, rollupOrderStage } from '../execution/stateMachine';
-import { computeOutstanding, computeAgingDays } from '../execution/outstanding';
+import { computeOrderSummary } from '../execution/summary';
 import {
   EXECUTION_MOCK,
   MOCK_SUPPLIER_ORDERS,
@@ -190,25 +190,13 @@ export async function getOrderSummaries(orders: SupplierOrder[]): Promise<Map<st
     }
     return out;
   }
-  const todayISO = new Date().toISOString().slice(0, 10);
+  const asOf = new Date();
   for (const o of orders) {
     const lines = await listOrderLines(o.id);
-    let outstanding = 0;
-    const lots: ReceiptLot[] = [];
-    for (const l of lines) {
-      const ls = await listReceiptLots(l.id);
-      outstanding += computeOutstanding(l.qty_ordered, ls);
-      lots.push(...ls);
-    }
-    const open = lots.filter((x) => !x.actual_wh_date);
-    const eta = open.map((x) => x.eta_pod).filter((d): d is string => !!d).sort()[0] ?? null;
-    const expected = open.map((x) => x.expected_wh_date).filter((d): d is string => !!d).sort()[0] ?? null;
-    out.set(o.id, {
-      eta,
-      outstanding,
-      agingDays: computeAgingDays(o.ordered_at, new Date()),
-      isLate: o.stage !== 'S9_DONE' && !!expected && expected < todayISO,
-    });
+    const withLots = await Promise.all(
+      lines.map(async (l) => ({ qty_ordered: l.qty_ordered, lots: await listReceiptLots(l.id) })),
+    );
+    out.set(o.id, computeOrderSummary(o, withLots, asOf));
   }
   return out;
 }
