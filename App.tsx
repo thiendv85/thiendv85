@@ -35,6 +35,7 @@ const BackorderAnalytics = React.lazy(() =>
 );
 const SettingsPage = React.lazy(() => import('./pages/Settings').then(m => ({ default: m.SettingsPage })));
 const ExecutiveReport = React.lazy(() => import('./pages/ExecutiveReport'));
+const ExecutionTracking = React.lazy(() => import('./pages/ExecutionTracking'));
 
 const PageSkeleton = () => (
     <div className="animate-pulse space-y-4 p-6">
@@ -309,6 +310,7 @@ const AppContent = () => {
                     {view === 'report' && (
                         <ExecutiveReport data={data} enrichedData={enrichedData} appSettings={appSettings} />
                     )}
+                    {view === 'execution' && <ExecutionTracking />}
                     {view === 'approval-queue' && (
                         <ApprovalQueue
                             appSettings={appSettings}

@@ -13,7 +13,8 @@ export type View =
     | 'kitting'
     | 'settings'
     | 'approval-queue'
-    | 'report';
+    | 'report'
+    | 'execution';
 
 export const AVAILABLE_BRANDS = ['Kia', 'Mazda', 'Stellantis', 'BMW'] as const;
 export type Brand = (typeof AVAILABLE_BRANDS)[number];

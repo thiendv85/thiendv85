@@ -7,7 +7,7 @@ import type { View } from '../types/inventory';
 
 import { FaIcon } from './Icon';
 
-type NavId = 'dashboard' | 'ordering' | 'backorder' | 'transfer' | 'kitting' | 'approval-queue' | 'report';
+type NavId = 'dashboard' | 'ordering' | 'backorder' | 'transfer' | 'kitting' | 'approval-queue' | 'report' | 'execution';
 interface NavItem {
     id: NavId;
     label: string;
@@ -23,6 +23,7 @@ const NAV_ITEMS = (t: (k: string) => string, role: string | undefined, inAnyWork
         { id: 'transfer', label: t('nav_transfer') || 'Phân bổ', icon: 'fa-right-left', mobile: 'Phân bổ' },
         { id: 'kitting', label: t('nav_kitting') || 'Kitting', icon: 'fa-boxes-stacked', mobile: 'Kitting' },
         { id: 'report', label: 'Báo cáo', icon: 'fa-file-chart-line', mobile: 'Báo cáo' },
+        { id: 'execution', label: 'Hàng về', icon: 'fa-truck-ramp-box', mobile: 'Hàng về' },
     ];
     // FIX 2026-05-21: cũng show nav nếu user xuất hiện trong bất kỳ workflow nào
     // (kể cả role viewer) — workflow membership = source of truth.
