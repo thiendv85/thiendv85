@@ -1,6 +1,6 @@
 import { supabase } from './client';
 import { selectAllPaginated } from './helpers';
-import type { SupplierOrder, OrderLine, ReceiptLot, OrderType, ShipMethod } from '../../types/execution';
+import type { SupplierOrder, OrderLine, ReceiptLot, OrderType, ShipMethod, PartSupplierMap } from '../../types/execution';
 import { STAGE_ORDER } from '../../types/execution';
 import type { SplittableLine } from '../execution/split';
 import { stageFromLot, rollupOrderStage } from '../execution/stateMachine';
@@ -83,4 +83,56 @@ export async function recomputeOrderStage(orderId: string): Promise<SupplierOrde
   const stage = rollupOrderStage(lineStages);
   await updateSupplierOrder(orderId, { stage });
   return stage;
+}
+
+/** Master map mã PT (đã normalize) → NCC. Dùng cho tách đơn (splitBySupplier). */
+export async function listPartSupplierMap(): Promise<Map<string, string>> {
+  const rows = await selectAllPaginated<PartSupplierMap>((from, to) =>
+    supabase.from('part_supplier_map').select('part_code,supplier').range(from, to),
+  );
+  return new Map(rows.map((r) => [r.part_code, r.supplier]));
+}
+
+/**
+ * Ghi kết quả tách NCC: 1 supplier_order / NCC + order_lines theo nhóm.
+ * groups: Map<NCC, dòng[]>. Trả số đơn/dòng đã ghi. KHÔNG ghi nếu groups rỗng.
+ */
+export async function persistSplit(
+  approvalId: string | null,
+  meta: OrderMeta,
+  groups: Map<string, SplittableLine[]>,
+): Promise<{ orders: number; lines: number }> {
+  if (groups.size === 0) return { orders: 0, lines: 0 };
+  const orderRows = buildSupplierOrderRows(approvalId, groups, meta);
+  const { data: inserted, error } = await supabase
+    .from('supplier_orders')
+    .insert(orderRows)
+    .select('id, supplier');
+  if (error) throw error;
+  const idBySupplier = new Map((inserted ?? []).map((o: { id: string; supplier: string }) => [o.supplier, o.id]));
+
+  const lineRows: Omit<OrderLine, 'id'>[] = [];
+  for (const [supplier, lines] of groups) {
+    const oid = idBySupplier.get(supplier);
+    if (!oid) continue;
+    for (const l of lines) {
+      lineRows.push({
+        supplier_order_id: oid,
+        part_code: String(l.part_code),
+        part_code_old: (l.part_code_old as string) ?? null,
+        name_vi: (l.name_vi as string) ?? null,
+        name_en: (l.name_en as string) ?? null,
+        unit: (l.unit as string) ?? null,
+        car_model: (l.car_model as string) ?? null,
+        group_name: (l.group_name as string) ?? null,
+        qty_ordered: Number(l.qty_ordered) || 0,
+        unit_price: (l.unit_price as number) ?? null,
+      });
+    }
+  }
+  if (lineRows.length) {
+    const { error: e2 } = await supabase.from('order_lines').insert(lineRows);
+    if (e2) throw e2;
+  }
+  return { orders: orderRows.length, lines: lineRows.length };
 }
