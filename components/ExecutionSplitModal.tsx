@@ -25,6 +25,7 @@ const ExecutionSplitModal: React.FC<Props> = ({ approvalId, onClose, onDone }) =
     const [request, setRequest] = useState<ApprovalRequest | null>(null);
     const [groups, setGroups] = useState<Map<string, SplittableLine[]>>(new Map());
     const [unmapped, setUnmapped] = useState<SplittableLine[]>([]);
+    const [supplierOptions, setSupplierOptions] = useState<string[]>([]);
     const [isSaving, setIsSaving] = useState(false);
     const [resultMsg, setResultMsg] = useState<string | null>(null);
 
@@ -49,6 +50,7 @@ const ExecutionSplitModal: React.FC<Props> = ({ approvalId, onClose, onDone }) =
                 setRequest(req);
                 setGroups(split.groups);
                 setUnmapped(split.unmapped);
+                setSupplierOptions([...new Set(map.values())].sort());
             } catch (e) {
                 if (!cancelled) setError('Lỗi khi tải & tách đơn theo NCC.');
             } finally {
@@ -68,6 +70,19 @@ const ExecutionSplitModal: React.FC<Props> = ({ approvalId, onClose, onDone }) =
     }));
 
     const canConfirm = unmapped.length === 0 && groups.size > 0 && !isSaving;
+
+    const handleAssign = (lineIdx: number, supplier: string) => {
+        if (!supplier) return;
+        const line = unmapped[lineIdx];
+        if (!line) return;
+        setUnmapped(prev => prev.filter((_, i) => i !== lineIdx));
+        setGroups(prev => {
+            const next = new Map(prev);
+            const existing = next.get(supplier) ?? [];
+            next.set(supplier, [...existing, line]);
+            return next;
+        });
+    };
 
     const handleConfirm = async () => {
         if (!request || !canConfirm) return;
@@ -147,10 +162,22 @@ const ExecutionSplitModal: React.FC<Props> = ({ approvalId, onClose, onDone }) =
                                         {unmapped.map((l, idx) => (
                                             <div
                                                 key={`${l.part_code}-${idx}`}
-                                                className="flex items-center justify-between text-xs font-bold bg-white/70 border border-rose-100 rounded-lg px-3 py-1.5"
+                                                className="flex items-center gap-2 text-xs font-bold bg-white/70 border border-rose-100 rounded-lg px-3 py-1.5"
                                             >
-                                                <span className="text-slate-700 truncate">{l.part_code}</span>
+                                                <span className="text-slate-700 truncate flex-1 min-w-0">{l.part_code}</span>
                                                 <span className="text-rose-600 shrink-0">SL: {l.qty_ordered}</span>
+                                                <select
+                                                    value=""
+                                                    onChange={e => handleAssign(idx, e.target.value)}
+                                                    className="shrink-0 text-xs font-bold text-slate-700 bg-white border border-rose-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-rose-300"
+                                                >
+                                                    <option value="">— Chọn NCC —</option>
+                                                    {supplierOptions.map(s => (
+                                                        <option key={s} value={s}>
+                                                            {s}
+                                                        </option>
+                                                    ))}
+                                                </select>
                                             </div>
                                         ))}
                                     </div>

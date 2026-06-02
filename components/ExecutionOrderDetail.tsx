@@ -8,6 +8,7 @@ import {
     recomputeOrderStage,
 } from '../utils/supabase/execution';
 import { computeOutstanding, computeAgingDays } from '../utils/execution/outstanding';
+import LotTimeline from './execution/LotTimeline';
 
 interface Props {
     order: SupplierOrder;
@@ -26,7 +27,11 @@ const toDateInput = (iso: string | null): string => (iso ? iso.slice(0, 10) : ''
 // State của form ghi lô cho từng dòng.
 interface LotFormState {
     invoice_no: string;
+    invoice_date: string;
+    etd_pol: string;
     eta_pod: string;
+    port: string;
+    expected_wh_date: string;
     actual_wh_date: string;
     warehouse: string;
     qty_received: string;
@@ -34,7 +39,11 @@ interface LotFormState {
 
 const emptyLotForm: LotFormState = {
     invoice_no: '',
+    invoice_date: '',
+    etd_pol: '',
     eta_pod: '',
+    port: '',
+    expected_wh_date: '',
     actual_wh_date: '',
     warehouse: '',
     qty_received: '',
@@ -55,6 +64,7 @@ export default function ExecutionOrderDetail({ order, onClose, onChange }: Props
     // S8 receipt forms — keyed theo order_line_id.
     const [lotForms, setLotForms] = useState<Record<string, LotFormState>>({});
     const [savingLot, setSavingLot] = useState<string | null>(null);
+    const [closingOrder, setClosingOrder] = useState(false);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -110,7 +120,11 @@ export default function ExecutionOrderDetail({ order, onClose, onChange }: Props
             await upsertReceiptLot({
                 order_line_id: lineId,
                 invoice_no: form.invoice_no.trim(),
+                invoice_date: form.invoice_date || null,
+                etd_pol: form.etd_pol || null,
                 eta_pod: form.eta_pod || null,
+                port: form.port.trim() || null,
+                expected_wh_date: form.expected_wh_date || null,
                 actual_wh_date: form.actual_wh_date || null,
                 warehouse: form.warehouse.trim() || null,
                 qty_received: Number(form.qty_received) || 0,
@@ -126,7 +140,26 @@ export default function ExecutionOrderDetail({ order, onClose, onChange }: Props
         }
     };
 
+    const handleCloseOrder = async () => {
+        setClosingOrder(true);
+        setError(null);
+        try {
+            await updateSupplierOrder(order.id, { stage: 'S9_DONE' });
+            onChange?.();
+        } catch (e) {
+            setError(errMsg(e));
+        } finally {
+            setClosingOrder(false);
+        }
+    };
+
     const aging = computeAgingDays(order.ordered_at, new Date());
+
+    // Tổng tồn nợ toàn đơn — chặn "Đóng đơn" khi còn nợ.
+    const totalOutstanding = rows.reduce(
+        (s, { line, lots }) => s + computeOutstanding(line.qty_ordered, lots),
+        0,
+    );
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 sm:p-2 md:p-3 overflow-hidden">
@@ -192,6 +225,20 @@ export default function ExecutionOrderDetail({ order, onClose, onChange }: Props
                                 Tuổi đơn: <span className="font-black text-slate-700">{aging}</span> ngày
                             </span>
                         )}
+                        <button
+                            onClick={() => void handleCloseOrder()}
+                            disabled={closingOrder || totalOutstanding > 0}
+                            title={totalOutstanding > 0 ? 'Còn nợ — chưa thể đóng' : 'Đóng đơn'}
+                            className={`text-sm font-bold rounded-lg px-4 py-1.5 transition-colors text-white ${
+                                aging === null ? 'ml-auto' : ''
+                            } ${
+                                totalOutstanding > 0
+                                    ? 'bg-slate-300 cursor-not-allowed'
+                                    : 'bg-slate-800 hover:bg-slate-900'
+                            } disabled:opacity-60`}
+                        >
+                            {closingOrder ? 'Đang đóng…' : 'Đóng đơn'}
+                        </button>
                     </div>
                 </div>
 
@@ -251,48 +298,35 @@ export default function ExecutionOrderDetail({ order, onClose, onChange }: Props
                                                     Nợ {aging} ngày
                                                 </span>
                                             )}
+                                            {received > line.qty_ordered && (
+                                                <span className="text-2xs font-bold text-white bg-rose-600 px-2 py-0.5 rounded-full">
+                                                    Lệch: nhận &gt; đặt
+                                                </span>
+                                            )}
                                         </div>
 
-                                        {/* Lots table */}
-                                        <div className="px-4 py-2">
+                                        {/* Lots — mỗi lô là một timeline mốc tiến độ */}
+                                        <div className="px-4 py-2 space-y-2">
                                             {lots.length === 0 ? (
                                                 <div className="text-xs text-slate-400 py-2">Chưa có lô hàng về.</div>
                                             ) : (
-                                                <table className="w-full text-xs">
-                                                    <thead>
-                                                        <tr className="text-slate-400 font-bold border-b border-slate-100">
-                                                            <th className="text-left py-1.5">Invoice</th>
-                                                            <th className="text-left py-1.5">ETA</th>
-                                                            <th className="text-left py-1.5">Ngày về kho</th>
-                                                            <th className="text-right py-1.5">SL nhận</th>
-                                                            <th className="text-left py-1.5 pl-3">Kho</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {lots.map((lot) => (
-                                                            <tr
-                                                                key={lot.id}
-                                                                className="border-b border-slate-50 last:border-0"
-                                                            >
-                                                                <td className="py-1.5 font-medium text-slate-700">
-                                                                    {lot.invoice_no ?? '—'}
-                                                                </td>
-                                                                <td className="py-1.5 text-slate-600">
-                                                                    {toDateInput(lot.eta_pod) || '—'}
-                                                                </td>
-                                                                <td className="py-1.5 text-slate-600">
-                                                                    {toDateInput(lot.actual_wh_date) || '—'}
-                                                                </td>
-                                                                <td className="py-1.5 text-right font-black text-slate-800">
-                                                                    {lot.qty_received}
-                                                                </td>
-                                                                <td className="py-1.5 pl-3 text-slate-600">
-                                                                    {lot.warehouse ?? '—'}
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
+                                                lots.map((lot) => (
+                                                    <div
+                                                        key={lot.id}
+                                                        className="border border-slate-100 rounded-lg px-3 py-1.5"
+                                                    >
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <span className="text-2xs font-bold text-slate-500">
+                                                                {lot.invoice_no ?? 'Lô chưa có invoice'}
+                                                            </span>
+                                                            <span className="text-2xs font-bold text-slate-600">
+                                                                SL nhận:{' '}
+                                                                <span className="text-emerald-600">{lot.qty_received}</span>
+                                                            </span>
+                                                        </div>
+                                                        <LotTimeline lot={lot} />
+                                                    </div>
+                                                ))
                                             )}
                                         </div>
 
@@ -303,7 +337,7 @@ export default function ExecutionOrderDetail({ order, onClose, onChange }: Props
                                             </div>
                                             <div className="flex flex-wrap items-end gap-2">
                                                 <label className="flex flex-col gap-1">
-                                                    <span className="text-2xs font-bold text-slate-400">Invoice</span>
+                                                    <span className="text-2xs font-bold text-slate-400">Invoice *</span>
                                                     <input
                                                         type="text"
                                                         value={form.invoice_no}
@@ -312,11 +346,49 @@ export default function ExecutionOrderDetail({ order, onClose, onChange }: Props
                                                     />
                                                 </label>
                                                 <label className="flex flex-col gap-1">
+                                                    <span className="text-2xs font-bold text-slate-400">Ngày invoice</span>
+                                                    <input
+                                                        type="date"
+                                                        value={form.invoice_date}
+                                                        onChange={(e) => setForm(line.id, { invoice_date: e.target.value })}
+                                                        className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                                                    />
+                                                </label>
+                                                <label className="flex flex-col gap-1">
+                                                    <span className="text-2xs font-bold text-slate-400">ETD</span>
+                                                    <input
+                                                        type="date"
+                                                        value={form.etd_pol}
+                                                        onChange={(e) => setForm(line.id, { etd_pol: e.target.value })}
+                                                        className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                                                    />
+                                                </label>
+                                                <label className="flex flex-col gap-1">
                                                     <span className="text-2xs font-bold text-slate-400">ETA</span>
                                                     <input
                                                         type="date"
                                                         value={form.eta_pod}
                                                         onChange={(e) => setForm(line.id, { eta_pod: e.target.value })}
+                                                        className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                                                    />
+                                                </label>
+                                                <label className="flex flex-col gap-1">
+                                                    <span className="text-2xs font-bold text-slate-400">Cảng</span>
+                                                    <input
+                                                        type="text"
+                                                        value={form.port}
+                                                        onChange={(e) => setForm(line.id, { port: e.target.value })}
+                                                        className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 w-28 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                                                    />
+                                                </label>
+                                                <label className="flex flex-col gap-1">
+                                                    <span className="text-2xs font-bold text-slate-400">Về kho dự kiến</span>
+                                                    <input
+                                                        type="date"
+                                                        value={form.expected_wh_date}
+                                                        onChange={(e) =>
+                                                            setForm(line.id, { expected_wh_date: e.target.value })
+                                                        }
                                                         className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-200"
                                                     />
                                                 </label>
