@@ -5,6 +5,8 @@ import { STAGE_ORDER } from '../../types/execution';
 import type { SplittableLine } from '../execution/split';
 import { stageFromLot, rollupOrderStage } from '../execution/stateMachine';
 import { computeOrderSummary } from '../execution/summary';
+import { applyTemplate, getTemplate } from '../execution/importAdapter';
+import { buildExistingIndex, reconcile, orderKeyOf, type ReconcileResult, type KeyStrategy } from '../execution/reconcile';
 import {
   EXECUTION_MOCK,
   MOCK_SUPPLIER_ORDERS,
@@ -153,6 +155,34 @@ export async function persistSplit(
     if (e2) throw e2;
   }
   return { orders: orderRows.length, lines: lineRows.length };
+}
+
+/** Phẳng hoá dữ liệu đã có → items để dựng ExistingIndex (orderKey theo strategy). Mock-aware. */
+export async function getExistingImportItems(
+  strategy: KeyStrategy,
+): Promise<{ orderKey: string | null; part_code: string; invoice_no: string | null }[]> {
+  const orders = await listSupplierOrders();
+  const items: { orderKey: string | null; part_code: string; invoice_no: string | null }[] = [];
+  for (const o of orders) {
+    const orderKey = orderKeyOf(strategy, { external_order_ref: o.external_order_ref, po_region_no: o.po_region_no });
+    if (!orderKey) continue;
+    const lines = await listOrderLines(o.id);
+    for (const l of lines) {
+      const lots = await listReceiptLots(l.id);
+      if (lots.length === 0) items.push({ orderKey, part_code: l.part_code, invoice_no: null });
+      for (const lot of lots) items.push({ orderKey, part_code: l.part_code, invoice_no: lot.invoice_no });
+    }
+  }
+  return items;
+}
+
+/** Đối chiếu file NCC (dòng thô) theo template → phân loại matched/newLot/newOrder/unmatched. */
+export async function reconcileImport(templateId: string, rawRows: unknown[][]): Promise<ReconcileResult> {
+  const t = getTemplate(templateId);
+  if (!t) throw new Error(`Template không tồn tại: ${templateId}`);
+  const rows = applyTemplate(rawRows, t);
+  const idx = buildExistingIndex(await getExistingImportItems(t.keyStrategy));
+  return reconcile(rows, idx);
 }
 
 export interface OrderSummary {
