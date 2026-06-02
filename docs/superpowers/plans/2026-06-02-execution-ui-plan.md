@@ -72,14 +72,16 @@
 
 ## Thứ tự đề xuất & ước lượng
 
-| GĐ | Nội dung | Phụ thuộc |
+| GĐ | Nội dung | Trạng thái |
 |---|---|---|
-| UI-1 | Nền tảng + mock | (xong) |
-| UI-2 | Bảng pipeline | UI-1 |
-| UI-3 | Chi tiết + nhập tay | UI-1 |
-| UI-4 | Cổng G1 | UI-1 |
-| UI-5 | Import wizard (khung) | UI-2 |
-| UI-6 | Dashboard & KPI | UI-2 |
+| UI-1 | Nền tảng + mock | ✅ xong |
+| UI-2 | Bảng pipeline (lọc/sort/badge/summary) | ✅ xong |
+| UI-3 | Chi tiết + LotTimeline + nhập tay + G4 | ✅ xong |
+| UI-4 | Cổng G1 (gán NCC tay) | ✅ xong |
+| UI-5 | Import wizard (khung) | ✅ xong |
+| UI-6 | Dashboard & KPI | ✅ xong |
+
+**Tất cả 6 GĐ UI đã hoàn thành** (tsc 0 · build ✓ · 52 test · lint 0). Còn verify browser (auth) + dữ liệu thật.
 
 UI-2/3/4 độc lập → chia team chạy song song (mỗi GĐ file riêng, tránh đụng `App.tsx`/page gốc; tích hợp tuần tự). UI-5/6 sau.
 
