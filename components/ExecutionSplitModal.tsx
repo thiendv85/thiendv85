@@ -4,6 +4,7 @@ import { fetchRequestById } from '../utils/supabase/approval';
 import { expandApprovalToLines } from '../utils/execution/fromApproval';
 import { splitBySupplier, type SplittableLine } from '../utils/execution/split';
 import { listPartSupplierMap, persistSplit, type OrderMeta } from '../utils/supabase/execution';
+import { EXECUTION_MOCK, MOCK_APPROVAL_SNAPSHOT } from '../utils/execution/mockData';
 import type { ApprovalRequest } from '../types/inventory';
 
 interface Props {
@@ -33,7 +34,9 @@ const ExecutionSplitModal: React.FC<Props> = ({ approvalId, onClose, onDone }) =
             setIsLoading(true);
             setError(null);
             try {
-                const req = await fetchRequestById(approvalId);
+                const req = EXECUTION_MOCK
+                    ? ({ id: approvalId, draft_name: 'DEMO-DRAFT', brand: 'Kia', snapshot_data: MOCK_APPROVAL_SNAPSHOT } as ApprovalRequest)
+                    : await fetchRequestById(approvalId);
                 if (cancelled) return;
                 if (!req) {
                     setError('Không tìm thấy đơn đã duyệt (approval).');

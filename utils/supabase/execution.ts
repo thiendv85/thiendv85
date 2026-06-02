@@ -4,6 +4,13 @@ import type { SupplierOrder, OrderLine, ReceiptLot, OrderType, ShipMethod, PartS
 import { STAGE_ORDER } from '../../types/execution';
 import type { SplittableLine } from '../execution/split';
 import { stageFromLot, rollupOrderStage } from '../execution/stateMachine';
+import {
+  EXECUTION_MOCK,
+  MOCK_SUPPLIER_ORDERS,
+  MOCK_PART_SUPPLIER_MAP,
+  mockOrderLines,
+  mockReceiptLots,
+} from '../execution/mockData';
 
 export interface OrderMeta {
   po_region_no: string | null;
@@ -35,6 +42,7 @@ export function buildSupplierOrderRows(
 }
 
 export async function listSupplierOrders(): Promise<SupplierOrder[]> {
+  if (EXECUTION_MOCK) return MOCK_SUPPLIER_ORDERS;
   // selectAllPaginated nhận CALLBACK builder (from,to).
   return selectAllPaginated<SupplierOrder>((from, to) =>
     supabase.from('supplier_orders').select('*').order('created_at').range(from, to),
@@ -42,23 +50,27 @@ export async function listSupplierOrders(): Promise<SupplierOrder[]> {
 }
 
 export async function listOrderLines(orderId: string): Promise<OrderLine[]> {
+  if (EXECUTION_MOCK) return mockOrderLines(orderId);
   const { data, error } = await supabase.from('order_lines').select('*').eq('supplier_order_id', orderId);
   if (error) throw error;
   return (data ?? []) as OrderLine[];
 }
 
 export async function listReceiptLots(lineId: string): Promise<ReceiptLot[]> {
+  if (EXECUTION_MOCK) return mockReceiptLots(lineId);
   const { data, error } = await supabase.from('receipt_lots').select('*').eq('order_line_id', lineId);
   if (error) throw error;
   return (data ?? []) as ReceiptLot[];
 }
 
 export async function updateSupplierOrder(id: string, patch: Partial<SupplierOrder>): Promise<void> {
+  if (EXECUTION_MOCK) return; // demo: no-op
   const { error } = await supabase.from('supplier_orders').update(patch).eq('id', id);
   if (error) throw error;
 }
 
 export async function upsertReceiptLot(lot: Partial<ReceiptLot>): Promise<void> {
+  if (EXECUTION_MOCK) return; // demo: no-op
   // onConflict khớp uq_rl_line_invoice → sửa tay/re-import không nhân đôi lô.
   const { error } = await supabase.from('receipt_lots').upsert(lot, { onConflict: 'order_line_id,invoice_no' });
   if (error) throw error;
@@ -87,6 +99,7 @@ export async function recomputeOrderStage(orderId: string): Promise<SupplierOrde
 
 /** Master map mã PT (đã normalize) → NCC. Dùng cho tách đơn (splitBySupplier). */
 export async function listPartSupplierMap(): Promise<Map<string, string>> {
+  if (EXECUTION_MOCK) return MOCK_PART_SUPPLIER_MAP;
   const rows = await selectAllPaginated<PartSupplierMap>((from, to) =>
     supabase.from('part_supplier_map').select('part_code,supplier').range(from, to),
   );
@@ -103,6 +116,10 @@ export async function persistSplit(
   groups: Map<string, SplittableLine[]>,
 ): Promise<{ orders: number; lines: number }> {
   if (groups.size === 0) return { orders: 0, lines: 0 };
+  if (EXECUTION_MOCK) {
+    const lines = [...groups.values()].reduce((s, g) => s + g.length, 0);
+    return { orders: groups.size, lines }; // demo: no DB write
+  }
   const orderRows = buildSupplierOrderRows(approvalId, groups, meta);
   const { data: inserted, error } = await supabase
     .from('supplier_orders')
