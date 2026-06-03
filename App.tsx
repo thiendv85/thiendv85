@@ -205,6 +205,15 @@ const AppContent = () => {
         startTransition(() => setView(v));
     };
 
+    // Route demo cô lập: CHỈ bật khi VITE_EXECUTION_MOCK=1 (off ở prod → trơ hoàn toàn).
+    // Cho phép xem "Hàng về" trên dữ liệu mock, không cần login, không đụng Supabase prod.
+    if (import.meta.env.VITE_EXECUTION_MOCK === '1' && new URLSearchParams(window.location.search).has('exec')) {
+        return (
+            <React.Suspense fallback={<div className="p-6">Đang tải…</div>}>
+                <ExecutionTracking />
+            </React.Suspense>
+        );
+    }
     if (authLoading) return <AuthSpinner />;
     if (!session) return <LoginScreen />;
     if (needsPasswordReset) return <ResetPasswordScreen />;
