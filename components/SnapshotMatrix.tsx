@@ -44,11 +44,25 @@ const LOIS_HIERARCHY = [
 ];
 
 const SUBGROUP_DESC: Record<string, string> = {
-    L1: '> 300 đvt/năm', L2: '101–300', L3: '61–100', L4: '25–60',
-    L5: '13–24', L6: '7–12', L7: '< 6',
-    O8: 'LOIS 8', OE: 'Ngừng SX', ON: 'Lỗi thời', OA: 'Lỗi thời lâu', OV: 'NCC ngừng',
+    L1: '> 300 đvt/năm',
+    L2: '101–300',
+    L3: '61–100',
+    L4: '25–60',
+    L5: '13–24',
+    L6: '7–12',
+    L7: '< 6',
+    O8: 'LOIS 8',
+    OE: 'Ngừng SX',
+    ON: 'Lỗi thời',
+    OA: 'Lỗi thời lâu',
+    OV: 'NCC ngừng',
     I: 'Không giao dịch',
-    SX: 'Đặc thù X', SY: 'Đặc thù Y', SZ: 'Đặc thù Z', SC: 'Đặc thù C', SK: 'Đặc thù K', SD: 'Đặc thù D',
+    SX: 'Đặc thù X',
+    SY: 'Đặc thù Y',
+    SZ: 'Đặc thù Z',
+    SC: 'Đặc thù C',
+    SK: 'Đặc thù K',
+    SD: 'Đặc thù D',
     U_OTHER: 'Chưa phân loại',
 };
 
@@ -63,9 +77,7 @@ const getLoisSubgroup = (loisGroup: string, salesHistory: number[], avgQty12M: n
     if (lois === 'I') return 'I';
 
     // Fallback for legacy 1-char codes or re-calculation if needed
-    const sales12M = salesHistory && salesHistory.length > 0
-        ? salesHistory.reduce((a, b) => a + b, 0)
-        : avgQty12M * 12;
+    const sales12M = salesHistory && salesHistory.length > 0 ? salesHistory.reduce((a, b) => a + b, 0) : avgQty12M * 12;
 
     if (['1', '2', '3', '4', '5', '6', '7'].includes(lois)) {
         if (sales12M > 300) return 'L1';
@@ -96,22 +108,44 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
     const [showSim, setShowSim] = useState(false);
 
     const { matrixData, grand } = useMemo(() => {
-        const matrix: Record<string, {
-            items: number; turnover: number; noStock: number; short: number;
-            stockVal: number; poVal: number; excessItems: number; excessVal: number;
-            boItems: number; boValue: number; trendSum: number; trendCount: number;
-            simStockVal: number; simPoVal: number;
-        }> = {};
+        const matrix: Record<
+            string,
+            {
+                items: number;
+                turnover: number;
+                noStock: number;
+                short: number;
+                stockVal: number;
+                poVal: number;
+                excessItems: number;
+                excessVal: number;
+                boItems: number;
+                boValue: number;
+                trendSum: number;
+                trendCount: number;
+                simStockVal: number;
+                simPoVal: number;
+            }
+        > = {};
 
-        let grandTurnover = 0, grandStock = 0, grandPoVal = 0, grandExcessVal = 0;
-        let grandNoStock = 0, grandShort = 0, grandExcessItems = 0, grandBOItems = 0, grandBOValue = 0;
-        let grandSimStockVal = 0, grandSimPoVal = 0;
+        let grandTurnover = 0,
+            grandStock = 0,
+            grandPoVal = 0,
+            grandExcessVal = 0;
+        let grandNoStock = 0,
+            grandShort = 0,
+            grandExcessItems = 0,
+            grandBOItems = 0,
+            grandBOValue = 0;
+        let grandSimStockVal = 0,
+            grandSimPoVal = 0;
 
         items.forEach(ctx => {
             const sub = getLoisSubgroup(ctx.loisGroup, ctx.salesHistory || [], ctx.avgQty12M);
-            const sales12M = ctx.salesHistory && ctx.salesHistory.length > 0
-                ? ctx.salesHistory.reduce((a, b) => a + b, 0)
-                : ctx.avgQty12M * 12;
+            const sales12M =
+                ctx.salesHistory && ctx.salesHistory.length > 0
+                    ? ctx.salesHistory.reduce((a, b) => a + b, 0)
+                    : ctx.avgQty12M * 12;
 
             const unitCost = ctx.unitCost || 0;
             const avail = ctx.available || 0;
@@ -154,14 +188,28 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
             if (!showSim && isNoStock) grandNoStock++;
             if (!showSim && isShort) grandShort++;
             if ((!showSim && excessQty > 0) || (showSim && simExcessQty > 0)) grandExcessItems++;
-            if (isBO) { grandBOItems++; grandBOValue += boVal; }
+            if (isBO) {
+                grandBOItems++;
+                grandBOValue += boVal;
+            }
 
-            if (!matrix[sub]) matrix[sub] = {
-                items: 0, turnover: 0, noStock: 0, short: 0,
-                stockVal: 0, poVal: 0, excessItems: 0, excessVal: 0,
-                boItems: 0, boValue: 0, trendSum: 0, trendCount: 0,
-                simStockVal: 0, simPoVal: 0,
-            };
+            if (!matrix[sub])
+                matrix[sub] = {
+                    items: 0,
+                    turnover: 0,
+                    noStock: 0,
+                    short: 0,
+                    stockVal: 0,
+                    poVal: 0,
+                    excessItems: 0,
+                    excessVal: 0,
+                    boItems: 0,
+                    boValue: 0,
+                    trendSum: 0,
+                    trendCount: 0,
+                    simStockVal: 0,
+                    simPoVal: 0,
+                };
 
             const m = matrix[sub];
             m.items++;
@@ -176,26 +224,64 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
             if (isNoStock) m.noStock++;
             if (isShort) m.short++;
             if (excessQty > 0) m.excessItems++;
-            if (isBO) { m.boItems++; m.boValue += boVal; }
+            if (isBO) {
+                m.boItems++;
+                m.boValue += boVal;
+            }
         });
 
         return {
             matrixData: matrix,
-            grand: { grandTurnover, grandStock, grandPoVal, grandExcessVal, grandNoStock, grandShort, grandExcessItems, grandBOItems, grandBOValue, grandSimStockVal, grandSimPoVal },
+            grand: {
+                grandTurnover,
+                grandStock,
+                grandPoVal,
+                grandExcessVal,
+                grandNoStock,
+                grandShort,
+                grandExcessItems,
+                grandBOItems,
+                grandBOValue,
+                grandSimStockVal,
+                grandSimPoVal,
+            },
         };
     }, [items, draftQtys, showSim]);
 
     const renderRow = (label: string, subKeys: string[], isHeader = false, groupColor?: string) => {
-        const r = { items: 0, turnover: 0, noStock: 0, short: 0, stockVal: 0, poVal: 0, excessItems: 0, excessVal: 0, boItems: 0, boValue: 0, trendSum: 0, trendCount: 0, simStockVal: 0, simPoVal: 0 };
+        const r = {
+            items: 0,
+            turnover: 0,
+            noStock: 0,
+            short: 0,
+            stockVal: 0,
+            poVal: 0,
+            excessItems: 0,
+            excessVal: 0,
+            boItems: 0,
+            boValue: 0,
+            trendSum: 0,
+            trendCount: 0,
+            simStockVal: 0,
+            simPoVal: 0,
+        };
         subKeys.forEach(k => {
             if (!matrixData[k]) return;
             const m = matrixData[k];
-            r.items += m.items; r.turnover += m.turnover; r.noStock += m.noStock;
-            r.short += m.short; r.stockVal += m.stockVal; r.poVal += m.poVal;
-            r.excessItems += m.excessItems; r.excessVal += m.excessVal;
-            r.boItems += m.boItems; r.boValue += m.boValue;
-            r.trendSum += m.trendSum; r.trendCount += m.trendCount;
-            r.simStockVal += m.simStockVal; r.simPoVal += m.simPoVal;
+            r.items += m.items;
+            r.turnover += m.turnover;
+            r.noStock += m.noStock;
+            r.short += m.short;
+            r.stockVal += m.stockVal;
+            r.poVal += m.poVal;
+            r.excessItems += m.excessItems;
+            r.excessVal += m.excessVal;
+            r.boItems += m.boItems;
+            r.boValue += m.boValue;
+            r.trendSum += m.trendSum;
+            r.trendCount += m.trendCount;
+            r.simStockVal += m.simStockVal;
+            r.simPoVal += m.simPoVal;
         });
 
         if (r.items === 0 && !isHeader) return null;
@@ -203,7 +289,7 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
         const avgTrend = r.trendCount > 0 ? r.trendSum / r.trendCount : 0;
         const activeStockVal = showSim ? r.simStockVal : r.stockVal;
         const activePoVal = showSim ? r.simPoVal : r.poVal;
-        const mos = r.turnover > 0 ? (activeStockVal * 12 / r.turnover) : 0;
+        const mos = r.turnover > 0 ? (activeStockVal * 12) / r.turnover : 0;
         const excessPct = activeStockVal > 0 ? (r.excessVal / activeStockVal) * 100 : 0;
         const pctTurn = grand.grandTurnover > 0 ? (r.turnover / grand.grandTurnover) * 100 : 0;
 
@@ -219,7 +305,9 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
                         <span className={isHeader ? 'font-bold' : 'font-semibold'}>
                             {label}
                             {!isHeader && SUBGROUP_DESC[label] && (
-                                <span className="text-slate-400 font-normal ml-1.5 text-[10px]">— {SUBGROUP_DESC[label]}</span>
+                                <span className="text-slate-400 font-normal ml-1.5 text-[10px]">
+                                    — {SUBGROUP_DESC[label]}
+                                </span>
                             )}
                         </span>
                     </div>
@@ -229,8 +317,11 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
                 <td className="px-3 py-2 text-right font-bold text-slate-800">
                     {fmtTr(r.turnover)}
                     {!isHeader && r.trendCount > 0 && r.turnover > 0 && (
-                        <span className={`ml-1 text-[9px] font-black ${avgTrend >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
-                            {avgTrend >= 0 ? '↑' : '↓'}{Math.abs(avgTrend).toFixed(0)}%
+                        <span
+                            className={`ml-1 text-[9px] font-black ${avgTrend >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}
+                        >
+                            {avgTrend >= 0 ? '↑' : '↓'}
+                            {Math.abs(avgTrend).toFixed(0)}%
                         </span>
                     )}
                 </td>
@@ -242,12 +333,16 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
                 <td className="px-3 py-2 text-center text-slate-500">{r.items || '—'}</td>
 
                 {/* OOS */}
-                <td className={`px-3 py-2 text-center font-bold ${r.noStock > 0 ? 'text-rose-600 bg-rose-50/40' : 'text-slate-300'}`}>
+                <td
+                    className={`px-3 py-2 text-center font-bold ${r.noStock > 0 ? 'text-rose-600 bg-rose-50/40' : 'text-slate-300'}`}
+                >
                     {r.noStock > 0 ? r.noStock : '—'}
                 </td>
 
                 {/* RISK */}
-                <td className={`px-3 py-2 text-center font-bold ${r.short > 0 ? 'text-amber-600 bg-amber-50/40' : 'text-slate-300'}`}>
+                <td
+                    className={`px-3 py-2 text-center font-bold ${r.short > 0 ? 'text-amber-600 bg-amber-50/40' : 'text-slate-300'}`}
+                >
                     {r.short > 0 ? r.short : '—'}
                 </td>
 
@@ -255,7 +350,9 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
                 <td className="px-3 py-2 text-right font-bold text-blue-700 bg-blue-50/20">{fmtTr(activeStockVal)}</td>
 
                 {/* MOS */}
-                <td className={`px-3 py-2 text-center font-bold italic border-x border-blue-100 bg-blue-50/20 ${mos > 0 && mos < 1 ? 'text-rose-600' : mos > 12 ? 'text-amber-600' : 'text-slate-600'}`}>
+                <td
+                    className={`px-3 py-2 text-center font-bold italic border-x border-blue-100 bg-blue-50/20 ${mos > 0 && mos < 1 ? 'text-rose-600' : mos > 12 ? 'text-amber-600' : 'text-slate-600'}`}
+                >
                     {mos > 0 ? `${mos.toFixed(1)}M` : '—'}
                 </td>
 
@@ -263,12 +360,16 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
                 <td className="px-3 py-2 text-right text-slate-500 font-bold">{fmtTr(activePoVal)}</td>
 
                 {/* BO # */}
-                <td className={`px-3 py-2 text-center font-bold ${r.boItems > 0 ? 'text-rose-600 bg-rose-50/30' : 'text-slate-200'}`}>
+                <td
+                    className={`px-3 py-2 text-center font-bold ${r.boItems > 0 ? 'text-rose-600 bg-rose-50/30' : 'text-slate-200'}`}
+                >
                     {r.boItems > 0 ? r.boItems : '—'}
                 </td>
 
                 {/* BO VAL */}
-                <td className={`px-3 py-2 text-right font-bold ${r.boValue > 0 ? 'text-rose-700 bg-rose-50/30' : 'text-slate-200'}`}>
+                <td
+                    className={`px-3 py-2 text-right font-bold ${r.boValue > 0 ? 'text-rose-700 bg-rose-50/30' : 'text-slate-200'}`}
+                >
                     {r.boValue > 0 ? fmtTr(r.boValue) : '—'}
                 </td>
 
@@ -278,10 +379,14 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
                 </td>
 
                 {/* EXC VAL */}
-                <td className="px-3 py-2 text-right text-slate-400 font-bold">{r.excessVal > 0 ? fmtTr(r.excessVal) : '—'}</td>
+                <td className="px-3 py-2 text-right text-slate-400 font-bold">
+                    {r.excessVal > 0 ? fmtTr(r.excessVal) : '—'}
+                </td>
 
                 {/* % EXC */}
-                <td className={`px-3 py-2 text-center font-black italic ${excessPct > 20 ? 'text-rose-500' : excessPct > 10 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                <td
+                    className={`px-3 py-2 text-center font-black italic ${excessPct > 20 ? 'text-rose-500' : excessPct > 10 ? 'text-amber-600' : 'text-emerald-600'}`}
+                >
                     {excessPct.toFixed(1)}%
                 </td>
             </tr>
@@ -289,10 +394,20 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
     };
 
     const matrixValues = Object.values(matrixData) as Array<{
-        items: number; turnover: number; noStock: number; short: number;
-        stockVal: number; poVal: number; excessItems: number; excessVal: number;
-        boItems: number; boValue: number; trendSum: number; trendCount: number;
-        simStockVal: number; simPoVal: number;
+        items: number;
+        turnover: number;
+        noStock: number;
+        short: number;
+        stockVal: number;
+        poVal: number;
+        excessItems: number;
+        excessVal: number;
+        boItems: number;
+        boValue: number;
+        trendSum: number;
+        trendCount: number;
+        simStockVal: number;
+        simPoVal: number;
     }>;
     const totalSimStockVal = matrixValues.reduce((s, m) => s + m.simStockVal, 0);
     const totalSimPoVal = matrixValues.reduce((s, m) => s + m.simPoVal, 0);
@@ -307,24 +422,39 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
     const totalItems = items.length;
     const activeGrandStockVal = showSim ? totalSimStockVal : totalStockVal;
     const activeGrandPoVal = showSim ? totalSimPoVal : totalPoVal;
-    const grandMOS = grand.grandTurnover > 0 ? (activeGrandStockVal * 12 / grand.grandTurnover) : 0;
+    const grandMOS = grand.grandTurnover > 0 ? (activeGrandStockVal * 12) / grand.grandTurnover : 0;
     const grandExcPct = activeGrandStockVal > 0 ? (totalExcessVal / activeGrandStockVal) * 100 : 0;
 
     // ── Compact render ──────────────────────────────────────────────────────────
     if (compact) {
         const renderCompactRow = (label: string, subKeys: string[], groupColor?: string) => {
-            const r = { items: 0, noStock: 0, short: 0, stockVal: 0, boItems: 0, simStockVal: 0, turnover: 0, trendSum: 0, trendCount: 0 };
+            const r = {
+                items: 0,
+                noStock: 0,
+                short: 0,
+                stockVal: 0,
+                boItems: 0,
+                simStockVal: 0,
+                turnover: 0,
+                trendSum: 0,
+                trendCount: 0,
+            };
             subKeys.forEach(k => {
                 if (!matrixData[k]) return;
                 const m = matrixData[k];
-                r.items += m.items; r.noStock += m.noStock; r.short += m.short;
-                r.stockVal += m.stockVal; r.boItems += m.boItems;
-                r.simStockVal += m.simStockVal; r.turnover += m.turnover;
-                r.trendSum += m.trendSum; r.trendCount += m.trendCount;
+                r.items += m.items;
+                r.noStock += m.noStock;
+                r.short += m.short;
+                r.stockVal += m.stockVal;
+                r.boItems += m.boItems;
+                r.simStockVal += m.simStockVal;
+                r.turnover += m.turnover;
+                r.trendSum += m.trendSum;
+                r.trendCount += m.trendCount;
             });
             if (r.items === 0) return null;
             const activeVal = showSim ? r.simStockVal : r.stockVal;
-            const mos = r.turnover > 0 ? (activeVal * 12 / r.turnover) : 0;
+            const mos = r.turnover > 0 ? (activeVal * 12) / r.turnover : 0;
             return (
                 <tr key={label} className="border-b border-slate-100 text-xs hover:bg-slate-50/60 transition-colors">
                     <td className="px-2 py-1.5 border-r border-slate-100">
@@ -334,13 +464,27 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
                         </div>
                     </td>
                     <td className="px-2 py-1.5 text-center text-slate-500 text-[10px]">{r.items}</td>
-                    <td className={`px-2 py-1.5 text-center font-bold text-[10px] ${r.noStock > 0 ? 'text-rose-600' : 'text-slate-300'}`}>{r.noStock || '—'}</td>
-                    <td className={`px-2 py-1.5 text-center font-bold text-[10px] ${r.short > 0 ? 'text-amber-600' : 'text-slate-300'}`}>{r.short || '—'}</td>
+                    <td
+                        className={`px-2 py-1.5 text-center font-bold text-[10px] ${r.noStock > 0 ? 'text-rose-600' : 'text-slate-300'}`}
+                    >
+                        {r.noStock || '—'}
+                    </td>
+                    <td
+                        className={`px-2 py-1.5 text-center font-bold text-[10px] ${r.short > 0 ? 'text-amber-600' : 'text-slate-300'}`}
+                    >
+                        {r.short || '—'}
+                    </td>
                     <td className="px-2 py-1.5 text-right font-bold text-blue-700 text-[10px]">{fmtTr(activeVal)}</td>
-                    <td className={`px-2 py-1.5 text-center font-bold italic text-[10px] ${mos > 0 && mos < 1 ? 'text-rose-600' : mos > 12 ? 'text-amber-600' : 'text-slate-600'}`}>
+                    <td
+                        className={`px-2 py-1.5 text-center font-bold italic text-[10px] ${mos > 0 && mos < 1 ? 'text-rose-600' : mos > 12 ? 'text-amber-600' : 'text-slate-600'}`}
+                    >
                         {mos > 0 ? `${mos.toFixed(1)}M` : '—'}
                     </td>
-                    <td className={`px-2 py-1.5 text-center font-bold text-[10px] ${r.boItems > 0 ? 'text-rose-600' : 'text-slate-300'}`}>{r.boItems || '—'}</td>
+                    <td
+                        className={`px-2 py-1.5 text-center font-bold text-[10px] ${r.boItems > 0 ? 'text-rose-600' : 'text-slate-300'}`}
+                    >
+                        {r.boItems || '—'}
+                    </td>
                 </tr>
             );
         };
@@ -349,10 +493,7 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
             <div className="border border-slate-200 rounded-xl overflow-hidden bg-white">
                 <div className="flex items-center justify-between px-3 py-2 bg-slate-800 text-white">
                     <span className="font-black text-[10px] uppercase tracking-widest">Ma Trận Cung Ứng</span>
-                    <button
-                        onClick={() => setShowSim(p => !p)}
-                        className={`lg-pill ${showSim ? 'lg-active' : ''}`}
-                    >
+                    <button onClick={() => setShowSim(p => !p)} className={`lg-pill ${showSim ? 'lg-active' : ''}`}>
                         {showSim ? 'SIM' : 'TT'}
                     </button>
                 </div>
@@ -373,13 +514,27 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
                         <tr className="bg-slate-800 text-white text-[9px] font-black">
                             <td className="px-2 py-1.5 border-r border-slate-600">TOTAL</td>
                             <td className="px-2 py-1.5 text-center">{totalItems}</td>
-                            <td className={`px-2 py-1.5 text-center ${totalNoStock > 0 ? 'text-rose-400' : 'text-slate-500'}`}>{totalNoStock || '0'}</td>
-                            <td className={`px-2 py-1.5 text-center ${totalShort > 0 ? 'text-amber-400' : 'text-slate-500'}`}>{totalShort || '0'}</td>
+                            <td
+                                className={`px-2 py-1.5 text-center ${totalNoStock > 0 ? 'text-rose-400' : 'text-slate-500'}`}
+                            >
+                                {totalNoStock || '0'}
+                            </td>
+                            <td
+                                className={`px-2 py-1.5 text-center ${totalShort > 0 ? 'text-amber-400' : 'text-slate-500'}`}
+                            >
+                                {totalShort || '0'}
+                            </td>
                             <td className="px-2 py-1.5 text-right text-blue-300">{fmtTr(activeGrandStockVal)}</td>
-                            <td className={`px-2 py-1.5 text-center italic ${grandMOS < 1 ? 'text-rose-400' : grandMOS > 12 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                            <td
+                                className={`px-2 py-1.5 text-center italic ${grandMOS < 1 ? 'text-rose-400' : grandMOS > 12 ? 'text-amber-400' : 'text-emerald-400'}`}
+                            >
                                 {grandMOS > 0 ? `${grandMOS.toFixed(1)}M` : '—'}
                             </td>
-                            <td className={`px-2 py-1.5 text-center ${totalBoItems > 0 ? 'text-rose-400' : 'text-slate-500'}`}>{totalBoItems || '0'}</td>
+                            <td
+                                className={`px-2 py-1.5 text-center ${totalBoItems > 0 ? 'text-rose-400' : 'text-slate-500'}`}
+                            >
+                                {totalBoItems || '0'}
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -396,10 +551,7 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
                     <h3 className="font-black text-sm uppercase tracking-widest">Ma Trận Cung Ứng Tổng Thể</h3>
                     <p className="text-xs text-slate-400 mt-0.5">Tính cho {totalItems} mã trong dự thảo</p>
                 </div>
-                <button
-                    onClick={() => setShowSim(p => !p)}
-                    className={`lg-pill ${showSim ? 'lg-active' : ''}`}
-                >
+                <button onClick={() => setShowSim(p => !p)} className={`lg-pill ${showSim ? 'lg-active' : ''}`}>
                     {showSim ? 'SIMULATED' : 'HIỆN TẠI'}
                 </button>
             </div>
@@ -416,7 +568,9 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
                             <th className="px-3 py-2.5 text-center text-rose-600">OOS</th>
                             <th className="px-3 py-2.5 text-center text-amber-600">Risk</th>
                             <th className="px-3 py-2.5 text-right text-blue-600 bg-blue-50/30">Stock Val</th>
-                            <th className="px-3 py-2.5 text-center text-slate-600 bg-blue-50/30 border-x border-blue-100">MOS</th>
+                            <th className="px-3 py-2.5 text-center text-slate-600 bg-blue-50/30 border-x border-blue-100">
+                                MOS
+                            </th>
                             <th className="px-3 py-2.5 text-right text-indigo-600">PO Val</th>
                             <th className="px-3 py-2.5 text-center text-rose-600">BO #</th>
                             <th className="px-3 py-2.5 text-right text-rose-600">BO Val</th>
@@ -444,18 +598,38 @@ export const SnapshotMatrix = ({ items, draftQtys = {}, compact = false }: Props
                             <td className="px-3 py-3 text-right">{fmtTr(grand.grandTurnover)}</td>
                             <td className="px-3 py-3 text-right text-slate-400 italic">100%</td>
                             <td className="px-3 py-3 text-center">{totalItems}</td>
-                            <td className={`px-3 py-3 text-center ${totalNoStock > 0 ? 'text-rose-400' : 'text-slate-500'}`}>{totalNoStock || '0'}</td>
-                            <td className={`px-3 py-3 text-center ${totalShort > 0 ? 'text-amber-400' : 'text-slate-500'}`}>{totalShort || '0'}</td>
+                            <td
+                                className={`px-3 py-3 text-center ${totalNoStock > 0 ? 'text-rose-400' : 'text-slate-500'}`}
+                            >
+                                {totalNoStock || '0'}
+                            </td>
+                            <td
+                                className={`px-3 py-3 text-center ${totalShort > 0 ? 'text-amber-400' : 'text-slate-500'}`}
+                            >
+                                {totalShort || '0'}
+                            </td>
                             <td className="px-3 py-3 text-right text-blue-300">{fmtTr(activeGrandStockVal)}</td>
-                            <td className={`px-3 py-3 text-center italic ${grandMOS < 1 ? 'text-rose-400' : grandMOS > 12 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                            <td
+                                className={`px-3 py-3 text-center italic ${grandMOS < 1 ? 'text-rose-400' : grandMOS > 12 ? 'text-amber-400' : 'text-emerald-400'}`}
+                            >
                                 {grandMOS > 0 ? `${grandMOS.toFixed(1)}M` : '—'}
                             </td>
                             <td className="px-3 py-3 text-right text-slate-300">{fmtTr(activeGrandPoVal)}</td>
-                            <td className={`px-3 py-3 text-center ${totalBoItems > 0 ? 'text-rose-400' : 'text-slate-500'}`}>{totalBoItems || '0'}</td>
-                            <td className={`px-3 py-3 text-right ${totalBoVal > 0 ? 'text-rose-400' : 'text-slate-500'}`}>{totalBoVal > 0 ? fmtTr(totalBoVal) : '0'}</td>
+                            <td
+                                className={`px-3 py-3 text-center ${totalBoItems > 0 ? 'text-rose-400' : 'text-slate-500'}`}
+                            >
+                                {totalBoItems || '0'}
+                            </td>
+                            <td
+                                className={`px-3 py-3 text-right ${totalBoVal > 0 ? 'text-rose-400' : 'text-slate-500'}`}
+                            >
+                                {totalBoVal > 0 ? fmtTr(totalBoVal) : '0'}
+                            </td>
                             <td className="px-3 py-3 text-center text-slate-400">{totalExcessItems || '0'}</td>
                             <td className="px-3 py-3 text-right text-slate-400">{fmtTr(totalExcessVal)}</td>
-                            <td className={`px-3 py-3 text-center italic ${grandExcPct > 20 ? 'text-rose-400' : grandExcPct > 10 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                            <td
+                                className={`px-3 py-3 text-center italic ${grandExcPct > 20 ? 'text-rose-400' : grandExcPct > 10 ? 'text-amber-400' : 'text-emerald-400'}`}
+                            >
                                 {grandExcPct.toFixed(1)}%
                             </td>
                         </tr>

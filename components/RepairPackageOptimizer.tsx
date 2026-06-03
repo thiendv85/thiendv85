@@ -539,10 +539,7 @@ export const RepairPackageOptimizer = ({
                     >
                         Refill Optimizer
                     </button>
-                    <button
-                        onClick={() => setViewMode('MANAGE')}
-                        className={viewMode === 'MANAGE' ? 'lg-active' : ''}
-                    >
+                    <button onClick={() => setViewMode('MANAGE')} className={viewMode === 'MANAGE' ? 'lg-active' : ''}>
                         Khai báo gói
                     </button>
                     <button

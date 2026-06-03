@@ -237,9 +237,7 @@ export const CloudDraftModal = ({
                 </div>
 
                 {/* Tabs */}
-                <div
-                    className={`lg-segmented grid ${TABS.length === 4 ? 'grid-cols-4' : 'grid-cols-3'}`}
-                >
+                <div className={`lg-segmented grid ${TABS.length === 4 ? 'grid-cols-4' : 'grid-cols-3'}`}>
                     {TABS.map(t => (
                         <button
                             key={t.id}
