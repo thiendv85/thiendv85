@@ -1,0 +1,13 @@
+# .understandignore — exclusions for APG code graph
+.agent/
+.claude/
+.specify/
+.vite/
+.understand-anything/
+streamlit_apps/
+*.html
+results.tsv
+sample_data.csv
+backup_history.md
+decode-sourcemap.cjs
+generate-docx.js

@@ -35,3 +35,7 @@ supabase/.branches/
 
 # Local database backup snippets
 SupaBackup/
+
+# understand-anything scratch
+.understand-anything/intermediate/
+.understand-anything/tmp/
