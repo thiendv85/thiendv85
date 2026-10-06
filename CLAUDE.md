@@ -50,3 +50,19 @@ Transform tasks into verifiable goals:
 - `utils/` — business logic (searchLogic, inventoryEngine, supabase)
 - `hooks/` — custom React hooks
 - `types/inventory.ts` — core data types
+
+## Code Graph — read before every task
+
+`.understand-anything/knowledge-graph.json` maps every file, function, import, layer and a guided tour.
+Before planning or editing, query it to find the files involved and everything that depends on them
+(don't load the whole JSON — it's ~400 KB):
+
+```bash
+# files/functions matching a keyword, with summary
+node -e "const g=require('./.understand-anything/knowledge-graph.json'),q=process.argv[1].toLowerCase();g.nodes.filter(n=>(n.id+n.summary).toLowerCase().includes(q)).slice(0,30).forEach(n=>console.log(n.id,'—',n.summary))" ordering
+# who imports / is imported by a file (impact check before editing)
+node -e "const g=require('./.understand-anything/knowledge-graph.json'),f='file:'+process.argv[1];g.edges.filter(e=>e.type==='imports'&&(e.source===f||e.target===f)).forEach(e=>console.log(e.source,'->',e.target))" utils/inventoryEngine.ts
+```
+
+Graph built at commit in `.understand-anything/meta.json`; if files changed since, trust the code over the graph
+and refresh with `/understand` (incremental).
