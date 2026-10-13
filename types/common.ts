@@ -79,7 +79,8 @@ export interface InventoryFilters {
         | 'has_po'
         | 'has_supersession'
         | 'has_warning'
-        | 'has_seasonality';
+        | 'has_seasonality'
+        | 'has_spike';
     showBackorders: boolean;
     debtStatus: string[];
     source: string[];

@@ -55,6 +55,8 @@ import {
 import { ApprovalRequest, ApprovalWorkflow, ApprovalAction } from '../types/inventory';
 import { useDevice } from '../hooks/useDevice';
 import { usePartAffinity } from '../hooks/usePartAffinity';
+import { useSpikeAlerts } from '../hooks/useSpikeAlerts';
+import { SpikeAlertPopup } from '../components/SpikeAlertPopup';
 import { suggestForOrder, normalizePartCode } from '../utils/partAffinity';
 
 import { FaIcon } from '../components/Icon';
@@ -195,6 +197,7 @@ export const Ordering = ({
     const [returnReason, setReturnReason] = useState<string>('');
 
     const { user, profile } = useAuth();
+    const { map: spikeAlerts, codes: spikeCodes, applyNote: applySpikeNote } = useSpikeAlerts();
     const isLocked = approvalRequest?.status === 'approved';
     const isReturned = approvalRequest?.status === 'returned';
     const isApproverMode =
@@ -569,6 +572,7 @@ export const Ordering = ({
             if (deferredFilters.specialFilter === 'has_warning') {
                 if (!i.computed?.warnings || i.computed.warnings.length === 0) return false;
             }
+            if (deferredFilters.specialFilter === 'has_spike' && !spikeCodes.has(i.ItemCode)) return false;
             if (deferredFilters.specialFilter === 'low_stock') {
                 const avail = i.computed?.available || 0;
                 const ss = i.computed?.safetyStock || 0;
@@ -638,6 +642,7 @@ export const Ordering = ({
         deferredSortKey,
         orderQuantities,
         graph,
+        spikeCodes,
     ]);
 
     const paginatedData = useMemo(() => {
@@ -1565,6 +1570,13 @@ export const Ordering = ({
                                                         <TrendBadge trend={item.TrendFlag} />
                                                     )}
                                                     {!isMobile && <DebtStatusBadge item={item} />}
+                                                    {spikeAlerts.get(item.ItemCode) && (
+                                                        <SpikeAlertPopup
+                                                            key={`${spikeAlerts.get(item.ItemCode)!.week_end}|${spikeAlerts.get(item.ItemCode)!.note?.updated_at ?? ''}`}
+                                                            alert={spikeAlerts.get(item.ItemCode)!}
+                                                            onSaved={applySpikeNote}
+                                                        />
+                                                    )}
                                                 </div>
                                             </div>
                                             <div className="text-right shrink-0">
@@ -1862,6 +1874,13 @@ export const Ordering = ({
                                                 </div>
                                                 <div className="mt-1 flex flex-wrap items-center gap-2">
                                                     <DebtStatusBadge item={item} />
+                                                    {spikeAlerts.get(item.ItemCode) && (
+                                                        <SpikeAlertPopup
+                                                            key={`${spikeAlerts.get(item.ItemCode)!.week_end}|${spikeAlerts.get(item.ItemCode)!.note?.updated_at ?? ''}`}
+                                                            alert={spikeAlerts.get(item.ItemCode)!}
+                                                            onSaved={applySpikeNote}
+                                                        />
+                                                    )}
                                                     {item.computed?.warnings?.find(w => w.code === 'STK_GAP') && (
                                                         <span
                                                             className="text-xs font-black px-1.5 py-0.5 rounded uppercase bg-rose-600 text-white border border-rose-700 shadow-sm animate-pulse flex items-center gap-1 cursor-help"

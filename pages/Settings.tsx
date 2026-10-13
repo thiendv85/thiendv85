@@ -24,6 +24,7 @@ import { FaIcon } from '../components/Icon';
 import { SectionCard, Field, NumberInput, Select, Toggle, ColCheckbox } from './settings/SettingsUI';
 import { UserManagementTab } from './settings/UserManagementTab';
 import { SnapshotManagerTab } from './settings/SnapshotManagerTab';
+import { SpikeAlertUpload } from '../components/SpikeAlertUpload';
 // Re-export so legacy imports of `from './pages/Settings'` keep working until callers migrate.
 export { loadAppSettings, saveAppSettings };
 export type { AppSettings };
@@ -2034,6 +2035,11 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
                                 </button>
                             </div>
                         </div>
+                    </SectionCard>
+
+                    {/* Weekly spike alerts (usp_WeeklySpikeAlert CSV) */}
+                    <SectionCard title="Cảnh báo đột biến tuần" icon="fa-bolt">
+                        <SpikeAlertUpload />
                     </SectionCard>
 
                     {/* Monthly Data (File B) Upload */}

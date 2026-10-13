@@ -392,6 +392,17 @@ export const FilterPanel = React.memo(
                                         })
                                     }
                                 />
+                                <SpecialFilterButton
+                                    label="Đột biến tuần"
+                                    icon="fa-bolt"
+                                    isActive={filters.specialFilter === 'has_spike'}
+                                    onClick={() =>
+                                        onFiltersChange({
+                                            ...filters,
+                                            specialFilter: filters.specialFilter === 'has_spike' ? 'none' : 'has_spike',
+                                        })
+                                    }
+                                />
                             </div>
                         </div>
 

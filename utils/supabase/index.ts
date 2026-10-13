@@ -7,3 +7,4 @@ export * from './profiles';
 export * from './workflows';
 export * from './approval';
 export * from './snapshots';
+export * from './spike-alerts';
