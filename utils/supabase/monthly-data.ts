@@ -1,7 +1,10 @@
 import { supabase } from './client';
 import { selectAllPaginated } from './helpers';
+import { vnMonth } from '../calendar';
 
 const BATCH_SIZE = 500; // Upsert 500 rows per request to avoid timeout
+/** Months kept in monthly_sku_data (Supabase Free = 500 MB; ~37 MB per month). Full history lives in apg-data. */
+export const MONTHLY_RETENTION_MONTHS = 6;
 
 /**
  * Saves monthly coefficient data to Supabase monthly_sku_data table.
@@ -11,15 +14,10 @@ const BATCH_SIZE = 500; // Upsert 500 rows per request to avoid timeout
 export async function saveMonthlyData(
     monthlyMap: Record<string, any>,
     options?: { clearFirst?: boolean },
-): Promise<boolean> {
+): Promise<{ success: boolean; error?: string; warning?: string }> {
     try {
-        const snapshotMonth = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
+        const snapshotMonth = vnMonth();
         const now = new Date().toISOString();
-
-        // Phase: Clear existing data for this month if requested
-        if (options?.clearFirst) {
-            await deleteMonthlyData(snapshotMonth);
-        }
 
         // Build flat rows for the table
         const rows = Object.entries(monthlyMap).map(([itemCode, d]) => ({
@@ -90,11 +88,27 @@ export async function saveMonthlyData(
             const { error } = await supabase
                 .from('monthly_sku_data')
                 .upsert(batch, { onConflict: 'item_code,snapshot_month' });
-            if (error) throw error;
+            if (error) {
+                return {
+                    success: false,
+                    error: `Lưu được ${i.toLocaleString()}/${rows.length.toLocaleString()} mã thì lỗi: ${error.message}. Dữ liệu cũ của tháng vẫn còn – hãy nạp lại.`,
+                };
+            }
         }
 
-        // Also save a snapshot record (for listing history)
-        await supabase.from('monthly_snapshots').upsert(
+        // "Clear first" runs AFTER every batch succeeded: drop this month's rows that were not in the new file
+        // (they keep an older updated_at). A failed upload therefore never leaves the month empty.
+        if (options?.clearFirst) {
+            const { error } = await supabase
+                .from('monthly_sku_data')
+                .delete()
+                .eq('snapshot_month', snapshotMonth)
+                .neq('updated_at', now);
+            if (error) return { success: false, error: `Đã lưu dữ liệu mới nhưng không xoá được mã cũ: ${error.message}` };
+        }
+
+        // Index row: the app finds the latest month through it, so its failure must be reported.
+        const { error: idxErr } = await supabase.from('monthly_snapshots').upsert(
             {
                 snapshot_month: snapshotMonth,
                 row_count: rows.length,
@@ -103,11 +117,32 @@ export async function saveMonthlyData(
             },
             { onConflict: 'snapshot_month' },
         );
+        if (idxErr) return { success: false, error: `Đã lưu dữ liệu nhưng lỗi ghi chỉ mục tháng: ${idxErr.message}` };
 
-        return true;
-    } catch (error) {
-        return false;
+        const pruned = await pruneOldMonthlyData();
+        return pruned.error
+            ? { success: true, warning: `Không dọn được dữ liệu tháng cũ: ${pruned.error}` }
+            : { success: true };
+    } catch (error: any) {
+        return { success: false, error: error?.message || 'Lỗi không xác định' };
     }
+}
+
+/** Keep only the newest MONTHLY_RETENTION_MONTHS months (deleting needs admin, enforced by RLS). */
+export async function pruneOldMonthlyData(): Promise<{ deleted: string[]; error?: string }> {
+    const { data, error } = await supabase
+        .from('monthly_snapshots')
+        .select('snapshot_month')
+        .order('snapshot_month', { ascending: false });
+    if (error) return { deleted: [], error: error.message };
+    const old = (data || []).map(d => d.snapshot_month as string).slice(MONTHLY_RETENTION_MONTHS);
+    const deleted: string[] = [];
+    for (const month of old) {
+        const res = await deleteMonthlyData(month);
+        if (!res.success) return { deleted, error: res.error };
+        deleted.push(month);
+    }
+    return { deleted };
 }
 
 /**
@@ -147,6 +182,7 @@ export async function loadLatestMonthlyData(
                 .from('monthly_sku_data')
                 .select('*')
                 .eq('snapshot_month', latestMonth)
+                .order('item_code') // stable paging: without ORDER BY pages may overlap / skip rows
                 .range(from, from + PAGE - 1);
 
             if (error) throw error;
@@ -243,6 +279,7 @@ export async function loadSpecificMonthlyData(
                 .from('monthly_sku_data')
                 .select('*')
                 .eq('snapshot_month', month)
+                .order('item_code')
                 .range(from, from + PAGE - 1);
 
             if (error) throw error;

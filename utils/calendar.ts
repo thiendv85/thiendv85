@@ -16,7 +16,17 @@ export const TET_DATES: Record<number, { month: number; day: number; length: num
     2025: { month: 0, day: 26, length: 7 }, // Jan 26
     2026: { month: 1, day: 16, length: 7 }, // Feb 16
     2027: { month: 1, day: 5, length: 7 }, // Feb 5
+    // 2028+: bắt đầu nghỉ = trước mùng 1 Tết một ngày, 7 ngày (như 2026–2027). Rà lại theo lịch nghỉ chính thức hằng năm.
+    2028: { month: 0, day: 25, length: 7 }, // Tết 26/01
+    2029: { month: 1, day: 12, length: 7 }, // Tết 13/02
+    2030: { month: 1, day: 2, length: 7 }, // Tết 03/02
+    2031: { month: 0, day: 22, length: 7 }, // Tết 23/01
+    2032: { month: 1, day: 10, length: 7 }, // Tết 11/02
 };
+
+/** 'YYYY-MM' theo giờ Việt Nam — toISOString() là UTC, trước 07:00 ngày 1 sẽ ra tháng trước. */
+export const vnMonth = (d: Date = new Date()): string =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit' }).format(d);
 
 /** Các ngày lễ Dương lịch cố định tại VN */
 export const PUBLIC_HOLIDAYS = [

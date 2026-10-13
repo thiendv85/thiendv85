@@ -17,6 +17,7 @@ import { GlossaryTab } from '../components/GlossaryTab';
 import { clearAllAppCache } from '../utils/db';
 import { Brand, SourceProfile, AVAILABLE_BRANDS, DEFAULT_SOURCE_PROFILES, LoisProfile } from '../types/inventory';
 import { useAuth } from '../utils/authContext';
+import { vnMonth } from '../utils/calendar';
 import { loadAppSettings, saveAppSettings, type AppSettings } from '../utils/appSettings';
 
 import { FaIcon } from '../components/Icon';
@@ -462,9 +463,10 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
             return;
         }
         setMonthlyUploadStatus('saving');
-        const ok = await saveMonthlyData(monthlyPreview.data, { clearFirst: monthlyClearFirst });
-        if (ok) {
-            const today = new Date().toISOString().slice(0, 10);
+        const res = await saveMonthlyData(monthlyPreview.data, { clearFirst: monthlyClearFirst });
+        if (res.success) {
+            if (res.warning) alert(`⚠️ ${res.warning}`);
+            const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
             setMonthlyCurrentDate(today);
             const hist = await listMonthlyDataSnapshots();
             setMonthlyHistory(hist);
@@ -472,7 +474,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
             setMonthlyUploadStatus('done');
             setTimeout(() => setMonthlyUploadStatus('idle'), 2000);
         } else {
-            alert('Lỗi khi lưu lên Cloud.');
+            alert(`❌ Lỗi khi lưu lên Cloud: ${res.error}`);
             setMonthlyUploadStatus('error');
         }
     };
@@ -493,7 +495,7 @@ export const SettingsPage = ({ settings, onSave }: SettingsPageProps) => {
             const hist = await listMonthlyDataSnapshots();
             setMonthlyHistory(hist);
             // If deleted month was the current one, clear the current date label
-            const currentSnapshotMonth = new Date().toISOString().slice(0, 7);
+            const currentSnapshotMonth = vnMonth();
             if (snapshotMonth === currentSnapshotMonth) setMonthlyCurrentDate(null);
         } else {
             alert(`❌ Lỗi khi xóa: ${result.error || 'Không xác định'}`);

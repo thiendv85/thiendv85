@@ -1,6 +1,8 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+const ROLES = ['admin', 'planner', 'approver', 'viewer'];
+
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -29,12 +31,17 @@ serve(async (req) => {
 
         const { email, password, full_name, role } = await req.json();
         if (!email || !password) return new Response(JSON.stringify({ error: 'email and password required' }), { status: 400, headers: corsHeaders });
+        const safeRole = role ?? 'viewer';
+        if (!ROLES.includes(safeRole)) return new Response(JSON.stringify({ error: 'invalid role' }), { status: 400, headers: corsHeaders });
 
         const { data, error } = await supabaseAdmin.auth.admin.createUser({
             email,
             password,
             email_confirm: true,
-            user_metadata: { full_name: full_name ?? '', role: role ?? 'viewer' },
+            // Role lives in app_metadata (only the service role can write it); the handle_new_user trigger
+            // (migration 021) reads it from there, never from user-editable user_metadata.
+            user_metadata: { full_name: full_name ?? '' },
+            app_metadata: { role: safeRole },
         });
 
         if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: corsHeaders });
@@ -44,6 +51,6 @@ serve(async (req) => {
         });
     } catch (err) {
         console.error('admin-create-user error:', err);
-        return new Response(JSON.stringify({ error: String(err) }), { status: 500, headers: corsHeaders });
+        return new Response(JSON.stringify({ error: 'Internal error' }), { status: 500, headers: corsHeaders });
     }
 });
