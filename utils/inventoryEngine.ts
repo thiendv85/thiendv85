@@ -23,6 +23,39 @@ import type { ComputeParams, ComputedFields, SimulatedFields } from './inventory
 
 /** Ngưỡng MOS phân loại "tồn thấp" / P2 priority (tháng) */
 export const MOS_LOW_STOCK_THRESHOLD = 1.5;
+
+/**
+ * Slow movers (0 < FC < 1 unit/month): ROP = smallest whole k with P(Poisson(lead-time demand) <= k) >= p, where
+ * p = 90% for items sold in >= 5 of the last 12 months and 82% for the rest.
+ * The demand × LT + SS formula gives fractions of a unit there and mis-stocks intermittent items.
+ * Stock-neutral mix (management rejected the +19 bn VND of a flat 90%). Backtest on the live app (apg-data
+ * out/optimize/slow_hybrid_grid2.csv, 10 anchors each): TEST 10/2025–07/2026 stock +0.8 bn, shortage −0.7 bn,
+ * −80 short SKUs per cycle; TRAIN 10/2024–07/2025 stock −0.3 bn, shortage −0.8 bn, −115 short SKUs.
+ */
+export const SLOW_MOVER_FC = 1;
+export const SLOW_MOVER_SERVICE_LEVEL = 0.9; // sold in >= SLOW_MOVER_REGULAR_MONTHS of the last 12 months
+export const SLOW_MOVER_SERVICE_LEVEL_RARE = 0.82;
+export const SLOW_MOVER_REGULAR_MONTHS = 5;
+
+/** Service level for a slow mover from its monthly sales history (oldest → newest; returns don't count). */
+export const slowMoverServiceLevel = (history: number[]): number =>
+    history.slice(-12).filter(q => q > 0).length >= SLOW_MOVER_REGULAR_MONTHS
+        ? SLOW_MOVER_SERVICE_LEVEL
+        : SLOW_MOVER_SERVICE_LEVEL_RARE;
+
+/** Smallest whole k with P(Poisson(lambda) <= k) >= p. lambda is small here (slow movers), so a sum is enough. */
+export function poissonQuantile(lambda: number, p: number): number {
+    if (!(lambda > 0)) return 0;
+    let term = Math.exp(-lambda);
+    let cdf = term;
+    let k = 0;
+    while (cdf < p && k < 1000) {
+        k += 1;
+        term *= lambda / k;
+        cdf += term;
+    }
+    return k;
+}
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /**
@@ -733,19 +766,27 @@ export function computeInventory(
      * `effectiveSSP` is exposed in ComputedFields for UI (SimulationLab default)
      * but no longer participates in ROP/MAX calculation.
      */
+    // NOTE: Sigma_eff / CV are NOT merged into items (parseCSV and mergeMonthlyIntoItems omit them), so in
+    // production sigmaD = 0 and SS = Z × σ_LT × demand. Kept on purpose: backtest 2026-10-12 showed that using
+    // Sigma at the same stock budget does not reduce shortage, while enabling it adds ~107 bn VND of stock.
     const sigmaD = (item as any).Sigma_eff || 0;
     const sigmaLT = params.sigmaLT ?? 0.2;
     const ltMonths = workingDaysInLT / 26;
     const z = getZScore(item.LOISGroup || '');
-    const safetyStock =
+    const leadTimeDemand = demandRateDaily * workingDaysInLT;
+    const isSlowMover = demandMonthly < SLOW_MOVER_FC;
+    const formulaSS = Math.max(
+        0,
+        z * Math.sqrt(sigmaD * sigmaD * ltMonths + demandMonthly * demandMonthly * sigmaLT * sigmaLT),
+    );
+    // ROP = expected demand during lead time + safety stock; slow movers: Poisson 90% / 82% quantile (whole units)
+    const rop =
         isStop || isZeroDemand
             ? 0
-            : Math.max(
-                  0,
-                  z * Math.sqrt(sigmaD * sigmaD * ltMonths + demandMonthly * demandMonthly * sigmaLT * sigmaLT),
-              );
-    // ROP = expected demand during lead time + safety stock
-    const rop = isStop || isZeroDemand ? 0 : demandRateDaily * workingDaysInLT + safetyStock;
+            : isSlowMover
+              ? poissonQuantile(leadTimeDemand, slowMoverServiceLevel(item.SalesHistory || []))
+              : leadTimeDemand + formulaSS;
+    const safetyStock = isStop || isZeroDemand ? 0 : isSlowMover ? Math.max(0, rop - leadTimeDemand) : formulaSS;
     // MAX = ROP + supply-period coverage (review-cycle buffer)
     const stockMax = isStop || isZeroDemand ? 0 : rop + demandRateDaily * workingDaysInSP;
 
